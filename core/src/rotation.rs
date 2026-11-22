@@ -1,74 +1,65 @@
 //! The rotation check: what one pass through the rotation trains, what
 //! is wrong with it, and what each workout outside it would add.
 //!
-//! A pass is each rotation template once. Every lift counts three working
-//! sets, the same for every user and every week, so the check describes
-//! the rotation's shape and not this week's history or time budget; sets
-//! are counted the way Home counts the week (primary 1.0, secondary 0.5).
+//! A pass is each rotation workout once. Every lift counts the program's
+//! `rotation_check.sets_per_lift` working sets, the same for every week,
+//! so the check describes the rotation's shape and not this week's history
+//! or time budget; sets are counted the way Home counts the week.
 
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
-use crate::exercise_catalog::ALL_MUSCLES;
 use crate::pb::{
-    Exercise, LibraryTemplate, MuscleGroup, RotationAddition, RotationCheck, RotationWarning,
-    RotationWarningKind, WorkoutTemplate,
+    LibraryTemplate, RotationAddition, RotationCheck, RotationWarning, RotationWarningKind,
 };
-use crate::volume::{credit, primary_muscles, volume_rows};
+use crate::program::{Muscle, Program, WorkoutDef};
+use crate::volume::{primary_muscles, volume_rows};
 
-/// Working sets each lift counts in a pass.
-pub const SETS_PER_LIFT: f32 = 3.0;
-/// Two templates sharing more than this fraction of the smaller one's
-/// lifts overlap.
-pub const OVERLAP_FRACTION: f32 = 0.7;
-
-/// A template's valid lifts, each once.
-fn lifts(template: &WorkoutTemplate) -> Vec<Exercise> {
-    let mut out = Vec::new();
-    for ex in template
-        .exercises
-        .iter()
-        .filter_map(|e| Exercise::try_from(*e).ok())
-    {
-        if ex != Exercise::Unspecified && !out.contains(&ex) {
+/// A workout's lifts the program knows, each once.
+fn lifts<'a>(program: &Program, workout: &'a WorkoutDef) -> Vec<&'a str> {
+    let mut out: Vec<&str> = Vec::new();
+    for ex in &workout.exercises {
+        if program.knows(ex) && !out.contains(&ex.as_str()) {
             out.push(ex);
         }
     }
     out
 }
 
-/// The check over the templates in rotation, in the order given. The
-/// templates out of rotation, and the [library] entries given (the ones the
+/// The check over the program's workouts in rotation, in order. The
+/// workouts out of rotation, and the [library] entries given (the ones the
 /// user does not have), are each an addition when a lift of theirs trains
 /// first a muscle the pass trains none of.
-pub fn rotation_check(templates: &[WorkoutTemplate], library: &[LibraryTemplate]) -> RotationCheck {
-    let rotation: Vec<&WorkoutTemplate> = templates.iter().filter(|t| t.in_rotation).collect();
+pub fn rotation_check(program: &Program, library: &[LibraryTemplate]) -> RotationCheck {
+    let rotation: Vec<&WorkoutDef> = program.workouts.iter().filter(|t| t.rotation).collect();
+    let per_lift = program.rotation_check.sets_per_lift;
 
-    let mut sets: HashMap<MuscleGroup, f32> = HashMap::new();
-    for template in &rotation {
-        for ex in lifts(template) {
-            for (muscle, credit) in credit(ex) {
-                *sets.entry(muscle).or_insert(0.0) += credit * SETS_PER_LIFT;
+    let mut sets: BTreeMap<Muscle, f32> = BTreeMap::new();
+    for workout in &rotation {
+        for ex in lifts(program, workout) {
+            for (muscle, credit) in program.credit(ex) {
+                *sets.entry(muscle).or_insert(0.0) += credit * per_lift;
             }
         }
     }
-    let volume = volume_rows(&sets);
-    let untrained: Vec<MuscleGroup> = ALL_MUSCLES
+    let volume = volume_rows(program, &sets);
+    let untrained: Vec<Muscle> = Muscle::ALL
         .iter()
         .copied()
         .filter(|m| sets.get(m).copied().unwrap_or(0.0) <= 0.0)
         .collect();
 
-    let added = |exercises: &[i32]| -> Vec<i32> {
-        let primary = primary_muscles(exercises);
+    let added = |exercises: &[String]| -> Vec<i32> {
+        let primary = primary_muscles(program, exercises);
         untrained
             .iter()
             .filter(|m| primary.contains(m))
-            .map(|m| *m as i32)
+            .map(|m| m.to_proto() as i32)
             .collect()
     };
-    let reserves = templates
+    let reserves = program
+        .workouts
         .iter()
-        .filter(|t| !t.in_rotation)
+        .filter(|t| !t.rotation)
         .map(|t| RotationAddition {
             template_id: t.id.clone(),
             muscles: added(&t.exercises),
@@ -96,18 +87,19 @@ pub fn rotation_check(templates: &[WorkoutTemplate], library: &[LibraryTemplate]
     if !untrained.is_empty() {
         warnings.push(RotationWarning {
             kind: RotationWarningKind::Gap as i32,
-            muscles: untrained.iter().map(|m| *m as i32).collect(),
+            muscles: untrained.iter().map(|m| m.to_proto() as i32).collect(),
             ..Default::default()
         });
     }
 
+    let overlap = program.rotation_check.overlap_fraction;
     for (i, a) in rotation.iter().enumerate() {
-        let a_lifts = lifts(a);
+        let a_lifts = lifts(program, a);
         for b in &rotation[i + 1..] {
-            let b_lifts = lifts(b);
+            let b_lifts = lifts(program, b);
             let of = a_lifts.len().min(b_lifts.len());
             let shared = a_lifts.iter().filter(|ex| b_lifts.contains(ex)).count();
-            if of > 0 && shared as f32 > OVERLAP_FRACTION * of as f32 {
+            if of > 0 && shared as f32 > overlap * of as f32 {
                 warnings.push(RotationWarning {
                     kind: RotationWarningKind::Overlap as i32,
                     template_ids: vec![a.id.clone(), b.id.clone()],
@@ -129,20 +121,29 @@ pub fn rotation_check(templates: &[WorkoutTemplate], library: &[LibraryTemplate]
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pb::MuscleGroup;
 
-    fn template(id: &str, exercises: &[Exercise]) -> WorkoutTemplate {
-        WorkoutTemplate {
+    fn template(id: &str, exercises: &[&str]) -> WorkoutDef {
+        WorkoutDef {
             id: id.to_string(),
             name: id.to_string(),
-            exercises: exercises.iter().map(|e| *e as i32).collect(),
-            in_rotation: true,
-            ..Default::default()
+            exercises: exercises.iter().map(|e| e.to_string()).collect(),
+            rotation: true,
+            notes: String::new(),
+            from_library: String::new(),
         }
     }
 
+    fn check(templates: &[WorkoutDef], library: &[LibraryTemplate]) -> RotationCheck {
+        rotation_check(
+            &Program::builtin().with_workouts(templates.to_vec()),
+            library,
+        )
+    }
+
     /// The check with no library entries offered.
-    fn pass(templates: &[WorkoutTemplate]) -> RotationCheck {
-        rotation_check(templates, &[])
+    fn pass(templates: &[WorkoutDef]) -> RotationCheck {
+        check(templates, &[])
     }
 
     fn kinds(check: &RotationCheck) -> Vec<RotationWarningKind> {
@@ -170,21 +171,21 @@ mod tests {
             template(
                 "upper",
                 &[
-                    Exercise::BenchPress,
-                    Exercise::BarbellRow,
-                    Exercise::OverheadPress,
-                    Exercise::BarbellCurl,
-                    Exercise::SkullCrusher,
+                    "bench_press",
+                    "barbell_row",
+                    "overhead_press",
+                    "barbell_curl",
+                    "skull_crusher",
                 ],
             ),
             template(
                 "lower",
                 &[
-                    Exercise::Squat,
-                    Exercise::RomanianDeadlift,
-                    Exercise::HipThrust,
-                    Exercise::CalfRaise,
-                    Exercise::Crunch,
+                    "squat",
+                    "romanian_deadlift",
+                    "hip_thrust",
+                    "calf_raise",
+                    "crunch",
                 ],
             ),
         ]);
@@ -201,21 +202,16 @@ mod tests {
         let check = pass(&[
             template(
                 "a",
-                &[
-                    Exercise::BenchPress,
-                    Exercise::BarbellRow,
-                    Exercise::Squat,
-                    Exercise::RomanianDeadlift,
-                ],
+                &["bench_press", "barbell_row", "squat", "romanian_deadlift"],
             ),
             template(
                 "b",
                 &[
-                    Exercise::OverheadPress,
-                    Exercise::PullUp,
-                    Exercise::Deadlift,
-                    Exercise::BarbellCurl,
-                    Exercise::SkullCrusher,
+                    "overhead_press",
+                    "pull_up",
+                    "deadlift",
+                    "barbell_curl",
+                    "skull_crusher",
                 ],
             ),
         ]);
@@ -236,29 +232,29 @@ mod tests {
     /// second adds nothing.
     #[test]
     fn additions_name_the_muscles_the_pass_misses() {
-        let mut reserve = template("calves", &[Exercise::CalfRaise, Exercise::Squat]);
-        reserve.in_rotation = false;
-        let mut covered = template("more", &[Exercise::BenchPress]);
-        covered.in_rotation = false;
+        let mut reserve = template("calves", &["calf_raise", "squat"]);
+        reserve.rotation = false;
+        let mut covered = template("more", &["bench_press"]);
+        covered.rotation = false;
         let library = [
             LibraryTemplate {
                 id: "core_and_calves".into(),
-                exercises: vec![Exercise::Crunch as i32, Exercise::CalfRaise as i32],
+                exercises: vec!["crunch".to_string(), "calf_raise".to_string()],
                 ..Default::default()
             },
             LibraryTemplate {
                 id: "push".into(),
-                exercises: vec![Exercise::BenchPress as i32],
+                exercises: vec!["bench_press".to_string()],
                 ..Default::default()
             },
         ];
         let rotation = [
-            template("a", &[Exercise::BenchPress, Exercise::Squat]),
-            template("b", &[Exercise::BarbellRow, Exercise::RomanianDeadlift]),
+            template("a", &["bench_press", "squat"]),
+            template("b", &["barbell_row", "romanian_deadlift"]),
             reserve,
             covered,
         ];
-        let got: Vec<(String, String, Vec<i32>)> = rotation_check(&rotation, &library)
+        let got: Vec<(String, String, Vec<i32>)> = check(&rotation, &library)
             .additions
             .into_iter()
             .map(|a| (a.template_id, a.library_id, a.muscles))
@@ -281,8 +277,8 @@ mod tests {
 
         // With nothing in rotation every muscle is missing: a reserve adds
         // all its lifts train first.
-        let mut alone = template("legs", &[Exercise::Squat, Exercise::CalfRaise]);
-        alone.in_rotation = false;
+        let mut alone = template("legs", &["squat", "calf_raise"]);
+        alone.rotation = false;
         let additions = pass(&[alone]).additions;
         assert_eq!(additions.len(), 1);
         assert_eq!(
@@ -298,21 +294,16 @@ mod tests {
         let big = template(
             "big",
             &[
-                Exercise::Squat,
-                Exercise::BenchPress,
-                Exercise::BarbellRow,
-                Exercise::OverheadPress,
-                Exercise::BarbellCurl,
+                "squat",
+                "bench_press",
+                "barbell_row",
+                "overhead_press",
+                "barbell_curl",
             ],
         );
         let near = template(
             "near",
-            &[
-                Exercise::Squat,
-                Exercise::BenchPress,
-                Exercise::BarbellRow,
-                Exercise::CalfRaise,
-            ],
+            &["squat", "bench_press", "barbell_row", "calf_raise"],
         );
         let check = pass(&[big.clone(), near]);
         let overlap = check
@@ -323,10 +314,7 @@ mod tests {
         assert_eq!(overlap.template_ids, vec!["big", "near"]);
         assert_eq!((overlap.shared, overlap.of), (3, 4));
 
-        let apart = template(
-            "apart",
-            &[Exercise::Squat, Exercise::BenchPress, Exercise::CalfRaise],
-        );
+        let apart = template("apart", &["squat", "bench_press", "calf_raise"]);
         assert!(!kinds(&pass(&[big, apart])).contains(&RotationWarningKind::Overlap));
     }
 }

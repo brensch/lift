@@ -10,7 +10,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
 import 'package:fixnum/fixnum.dart';
-import 'package:schlift/gen/workout/v1/workout.pbenum.dart';
 import 'support/scenario.dart';
 
 void main() {
@@ -28,7 +27,7 @@ void main() {
       await s.completeOnboarding();
 
       final api = await s.api.login(username);
-      final before = (await api.planFor(Exercise.EXERCISE_SQUAT))!;
+      final before = (await api.planFor('squat'))!;
       s.note(
         'Backend squat before',
         detail: '${before.decision.weight} lb ramp (never performed)',
@@ -66,7 +65,7 @@ void main() {
 
       // Backend: the next plan builds on that session: performed, a max,
       // no ramp, and every rep hit means at least that weight again.
-      final after = (await api.planFor(Exercise.EXERCISE_SQUAT))!;
+      final after = (await api.planFor('squat'))!;
       s.note(
         'Backend squat after finish',
         detail:

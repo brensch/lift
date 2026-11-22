@@ -250,6 +250,20 @@ the rows from their JSON.
 
 The passkeys screen says so when an account has only one.
 
+## Assistants
+
+An assistant connecting over MCP (`src/mcp/`, see
+[backend.md](backend.md#mcp-assistants)) never sees a passkey or a session
+token. It sends the person to the website's `/connect` with its OAuth
+request; the page signs them in with their passkey the usual web way if
+they aren't already, shows who is asking and what it may do
+(`AssistantService.DescribeConnect`, unauthenticated), and on Allow sends
+`AnswerConnect` with the web session's token. The server issues a
+one-time code bound to the PKCE challenge, the assistant exchanges it for
+its own access and refresh tokens, and those reach only `/api/mcp`. A grant
+is the person's to revoke (on `/connect` or Settings → Program); revoking
+it, or deleting the account, ends its tokens at once.
+
 ## Getting back in without a passkey
 
 You cannot delete your last passkey, but losing every device or password

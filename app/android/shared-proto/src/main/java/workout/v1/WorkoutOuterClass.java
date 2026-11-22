@@ -139,826 +139,6 @@ public final class WorkoutOuterClass {
   }
 
   /**
-   * Protobuf enum {@code workout.v1.Exercise}
-   */
-  public enum Exercise
-      implements com.google.protobuf.Internal.EnumLite {
-    /**
-     * <code>EXERCISE_UNSPECIFIED = 0;</code>
-     */
-    EXERCISE_UNSPECIFIED(0),
-    /**
-     * <code>EXERCISE_SQUAT = 1;</code>
-     */
-    EXERCISE_SQUAT(1),
-    /**
-     * <code>EXERCISE_BENCH_PRESS = 2;</code>
-     */
-    EXERCISE_BENCH_PRESS(2),
-    /**
-     * <code>EXERCISE_DEADLIFT = 3;</code>
-     */
-    EXERCISE_DEADLIFT(3),
-    /**
-     * <code>EXERCISE_OVERHEAD_PRESS = 4;</code>
-     */
-    EXERCISE_OVERHEAD_PRESS(4),
-    /**
-     * <code>EXERCISE_BARBELL_ROW = 5;</code>
-     */
-    EXERCISE_BARBELL_ROW(5),
-    /**
-     * <code>EXERCISE_HIP_THRUST = 6;</code>
-     */
-    EXERCISE_HIP_THRUST(6),
-    /**
-     * <code>EXERCISE_BULGARIAN_SPLIT_SQUAT = 7;</code>
-     */
-    EXERCISE_BULGARIAN_SPLIT_SQUAT(7),
-    /**
-     * <code>EXERCISE_ROMANIAN_DEADLIFT = 8;</code>
-     */
-    EXERCISE_ROMANIAN_DEADLIFT(8),
-    /**
-     * <code>EXERCISE_GLUTE_BRIDGE = 9;</code>
-     */
-    EXERCISE_GLUTE_BRIDGE(9),
-    /**
-     * <code>EXERCISE_LUNGE = 10;</code>
-     */
-    EXERCISE_LUNGE(10),
-    /**
-     * <code>EXERCISE_LEG_CURL = 11;</code>
-     */
-    EXERCISE_LEG_CURL(11),
-    /**
-     * <pre>
-     * ── Chest ──
-     * </pre>
-     *
-     * <code>EXERCISE_INCLINE_BENCH_PRESS = 12;</code>
-     */
-    EXERCISE_INCLINE_BENCH_PRESS(12),
-    /**
-     * <code>EXERCISE_DUMBBELL_BENCH_PRESS = 13;</code>
-     */
-    EXERCISE_DUMBBELL_BENCH_PRESS(13),
-    /**
-     * <code>EXERCISE_INCLINE_DUMBBELL_PRESS = 14;</code>
-     */
-    EXERCISE_INCLINE_DUMBBELL_PRESS(14),
-    /**
-     * <code>EXERCISE_DUMBBELL_FLY = 15;</code>
-     */
-    EXERCISE_DUMBBELL_FLY(15),
-    /**
-     * <code>EXERCISE_CABLE_FLY = 16;</code>
-     */
-    EXERCISE_CABLE_FLY(16),
-    /**
-     * <code>EXERCISE_PUSH_UP = 17;</code>
-     */
-    EXERCISE_PUSH_UP(17),
-    /**
-     * <code>EXERCISE_CHEST_DIP = 18;</code>
-     */
-    EXERCISE_CHEST_DIP(18),
-    /**
-     * <code>EXERCISE_MACHINE_CHEST_PRESS = 19;</code>
-     */
-    EXERCISE_MACHINE_CHEST_PRESS(19),
-    /**
-     * <code>EXERCISE_PEC_DECK = 20;</code>
-     */
-    EXERCISE_PEC_DECK(20),
-    /**
-     * <pre>
-     * ── Back ──
-     * </pre>
-     *
-     * <code>EXERCISE_PULL_UP = 21;</code>
-     */
-    EXERCISE_PULL_UP(21),
-    /**
-     * <code>EXERCISE_CHIN_UP = 22;</code>
-     */
-    EXERCISE_CHIN_UP(22),
-    /**
-     * <code>EXERCISE_LAT_PULLDOWN = 23;</code>
-     */
-    EXERCISE_LAT_PULLDOWN(23),
-    /**
-     * <code>EXERCISE_SEATED_CABLE_ROW = 24;</code>
-     */
-    EXERCISE_SEATED_CABLE_ROW(24),
-    /**
-     * <code>EXERCISE_DUMBBELL_ROW = 25;</code>
-     */
-    EXERCISE_DUMBBELL_ROW(25),
-    /**
-     * <code>EXERCISE_T_BAR_ROW = 26;</code>
-     */
-    EXERCISE_T_BAR_ROW(26),
-    /**
-     * <code>EXERCISE_PENDLAY_ROW = 27;</code>
-     */
-    EXERCISE_PENDLAY_ROW(27),
-    /**
-     * <code>EXERCISE_FACE_PULL = 28;</code>
-     */
-    EXERCISE_FACE_PULL(28),
-    /**
-     * <code>EXERCISE_SHRUG = 29;</code>
-     */
-    EXERCISE_SHRUG(29),
-    /**
-     * <code>EXERCISE_BACK_EXTENSION = 30;</code>
-     */
-    EXERCISE_BACK_EXTENSION(30),
-    /**
-     * <pre>
-     * ── Shoulders ──
-     * </pre>
-     *
-     * <code>EXERCISE_DUMBBELL_SHOULDER_PRESS = 31;</code>
-     */
-    EXERCISE_DUMBBELL_SHOULDER_PRESS(31),
-    /**
-     * <code>EXERCISE_ARNOLD_PRESS = 32;</code>
-     */
-    EXERCISE_ARNOLD_PRESS(32),
-    /**
-     * <code>EXERCISE_LATERAL_RAISE = 33;</code>
-     */
-    EXERCISE_LATERAL_RAISE(33),
-    /**
-     * <code>EXERCISE_FRONT_RAISE = 34;</code>
-     */
-    EXERCISE_FRONT_RAISE(34),
-    /**
-     * <code>EXERCISE_REAR_DELT_FLY = 35;</code>
-     */
-    EXERCISE_REAR_DELT_FLY(35),
-    /**
-     * <code>EXERCISE_UPRIGHT_ROW = 36;</code>
-     */
-    EXERCISE_UPRIGHT_ROW(36),
-    /**
-     * <pre>
-     * ── Arms ──
-     * </pre>
-     *
-     * <code>EXERCISE_BARBELL_CURL = 37;</code>
-     */
-    EXERCISE_BARBELL_CURL(37),
-    /**
-     * <code>EXERCISE_DUMBBELL_CURL = 38;</code>
-     */
-    EXERCISE_DUMBBELL_CURL(38),
-    /**
-     * <code>EXERCISE_HAMMER_CURL = 39;</code>
-     */
-    EXERCISE_HAMMER_CURL(39),
-    /**
-     * <code>EXERCISE_PREACHER_CURL = 40;</code>
-     */
-    EXERCISE_PREACHER_CURL(40),
-    /**
-     * <code>EXERCISE_CONCENTRATION_CURL = 41;</code>
-     */
-    EXERCISE_CONCENTRATION_CURL(41),
-    /**
-     * <code>EXERCISE_CABLE_CURL = 42;</code>
-     */
-    EXERCISE_CABLE_CURL(42),
-    /**
-     * <code>EXERCISE_TRICEP_PUSHDOWN = 43;</code>
-     */
-    EXERCISE_TRICEP_PUSHDOWN(43),
-    /**
-     * <code>EXERCISE_OVERHEAD_TRICEP_EXTENSION = 44;</code>
-     */
-    EXERCISE_OVERHEAD_TRICEP_EXTENSION(44),
-    /**
-     * <code>EXERCISE_SKULL_CRUSHER = 45;</code>
-     */
-    EXERCISE_SKULL_CRUSHER(45),
-    /**
-     * <code>EXERCISE_CLOSE_GRIP_BENCH_PRESS = 46;</code>
-     */
-    EXERCISE_CLOSE_GRIP_BENCH_PRESS(46),
-    /**
-     * <code>EXERCISE_TRICEP_DIP = 47;</code>
-     */
-    EXERCISE_TRICEP_DIP(47),
-    /**
-     * <code>EXERCISE_TRICEP_KICKBACK = 48;</code>
-     */
-    EXERCISE_TRICEP_KICKBACK(48),
-    /**
-     * <pre>
-     * ── Legs ──
-     * </pre>
-     *
-     * <code>EXERCISE_FRONT_SQUAT = 49;</code>
-     */
-    EXERCISE_FRONT_SQUAT(49),
-    /**
-     * <code>EXERCISE_LEG_PRESS = 50;</code>
-     */
-    EXERCISE_LEG_PRESS(50),
-    /**
-     * <code>EXERCISE_LEG_EXTENSION = 51;</code>
-     */
-    EXERCISE_LEG_EXTENSION(51),
-    /**
-     * <code>EXERCISE_HACK_SQUAT = 52;</code>
-     */
-    EXERCISE_HACK_SQUAT(52),
-    /**
-     * <code>EXERCISE_GOBLET_SQUAT = 53;</code>
-     */
-    EXERCISE_GOBLET_SQUAT(53),
-    /**
-     * <code>EXERCISE_WALKING_LUNGE = 54;</code>
-     */
-    EXERCISE_WALKING_LUNGE(54),
-    /**
-     * <code>EXERCISE_STEP_UP = 55;</code>
-     */
-    EXERCISE_STEP_UP(55),
-    /**
-     * <code>EXERCISE_CALF_RAISE = 56;</code>
-     */
-    EXERCISE_CALF_RAISE(56),
-    /**
-     * <code>EXERCISE_SEATED_CALF_RAISE = 57;</code>
-     */
-    EXERCISE_SEATED_CALF_RAISE(57),
-    /**
-     * <code>EXERCISE_NORDIC_CURL = 58;</code>
-     */
-    EXERCISE_NORDIC_CURL(58),
-    /**
-     * <code>EXERCISE_GOOD_MORNING = 59;</code>
-     */
-    EXERCISE_GOOD_MORNING(59),
-    /**
-     * <pre>
-     * ── Ass ──
-     * </pre>
-     *
-     * <code>EXERCISE_GLUTE_KICKBACK = 60;</code>
-     */
-    EXERCISE_GLUTE_KICKBACK(60),
-    /**
-     * <code>EXERCISE_SUMO_DEADLIFT = 61;</code>
-     */
-    EXERCISE_SUMO_DEADLIFT(61),
-    /**
-     * <code>EXERCISE_SUMO_SQUAT = 62;</code>
-     */
-    EXERCISE_SUMO_SQUAT(62),
-    /**
-     * <code>EXERCISE_CURTSY_LUNGE = 63;</code>
-     */
-    EXERCISE_CURTSY_LUNGE(63),
-    /**
-     * <code>EXERCISE_FROG_PUMP = 64;</code>
-     */
-    EXERCISE_FROG_PUMP(64),
-    /**
-     * <code>EXERCISE_SINGLE_LEG_HIP_THRUST = 65;</code>
-     */
-    EXERCISE_SINGLE_LEG_HIP_THRUST(65),
-    /**
-     * <code>EXERCISE_CABLE_PULL_THROUGH = 66;</code>
-     */
-    EXERCISE_CABLE_PULL_THROUGH(66),
-    /**
-     * <code>EXERCISE_HIP_ABDUCTION = 67;</code>
-     */
-    EXERCISE_HIP_ABDUCTION(67),
-    /**
-     * <pre>
-     * ── Core ──
-     * </pre>
-     *
-     * <code>EXERCISE_PLANK = 68;</code>
-     */
-    EXERCISE_PLANK(68),
-    /**
-     * <code>EXERCISE_HANGING_LEG_RAISE = 69;</code>
-     */
-    EXERCISE_HANGING_LEG_RAISE(69),
-    /**
-     * <code>EXERCISE_CABLE_CRUNCH = 70;</code>
-     */
-    EXERCISE_CABLE_CRUNCH(70),
-    /**
-     * <code>EXERCISE_RUSSIAN_TWIST = 71;</code>
-     */
-    EXERCISE_RUSSIAN_TWIST(71),
-    /**
-     * <code>EXERCISE_AB_WHEEL_ROLLOUT = 72;</code>
-     */
-    EXERCISE_AB_WHEEL_ROLLOUT(72),
-    /**
-     * <code>EXERCISE_SIT_UP = 73;</code>
-     */
-    EXERCISE_SIT_UP(73),
-    /**
-     * <code>EXERCISE_CRUNCH = 74;</code>
-     */
-    EXERCISE_CRUNCH(74),
-    /**
-     * <code>EXERCISE_MOUNTAIN_CLIMBER = 75;</code>
-     */
-    EXERCISE_MOUNTAIN_CLIMBER(75),
-    /**
-     * <code>EXERCISE_HIP_ADDUCTION = 76;</code>
-     */
-    EXERCISE_HIP_ADDUCTION(76),
-    UNRECOGNIZED(-1),
-    ;
-
-    /**
-     * <code>EXERCISE_UNSPECIFIED = 0;</code>
-     */
-    public static final int EXERCISE_UNSPECIFIED_VALUE = 0;
-    /**
-     * <code>EXERCISE_SQUAT = 1;</code>
-     */
-    public static final int EXERCISE_SQUAT_VALUE = 1;
-    /**
-     * <code>EXERCISE_BENCH_PRESS = 2;</code>
-     */
-    public static final int EXERCISE_BENCH_PRESS_VALUE = 2;
-    /**
-     * <code>EXERCISE_DEADLIFT = 3;</code>
-     */
-    public static final int EXERCISE_DEADLIFT_VALUE = 3;
-    /**
-     * <code>EXERCISE_OVERHEAD_PRESS = 4;</code>
-     */
-    public static final int EXERCISE_OVERHEAD_PRESS_VALUE = 4;
-    /**
-     * <code>EXERCISE_BARBELL_ROW = 5;</code>
-     */
-    public static final int EXERCISE_BARBELL_ROW_VALUE = 5;
-    /**
-     * <code>EXERCISE_HIP_THRUST = 6;</code>
-     */
-    public static final int EXERCISE_HIP_THRUST_VALUE = 6;
-    /**
-     * <code>EXERCISE_BULGARIAN_SPLIT_SQUAT = 7;</code>
-     */
-    public static final int EXERCISE_BULGARIAN_SPLIT_SQUAT_VALUE = 7;
-    /**
-     * <code>EXERCISE_ROMANIAN_DEADLIFT = 8;</code>
-     */
-    public static final int EXERCISE_ROMANIAN_DEADLIFT_VALUE = 8;
-    /**
-     * <code>EXERCISE_GLUTE_BRIDGE = 9;</code>
-     */
-    public static final int EXERCISE_GLUTE_BRIDGE_VALUE = 9;
-    /**
-     * <code>EXERCISE_LUNGE = 10;</code>
-     */
-    public static final int EXERCISE_LUNGE_VALUE = 10;
-    /**
-     * <code>EXERCISE_LEG_CURL = 11;</code>
-     */
-    public static final int EXERCISE_LEG_CURL_VALUE = 11;
-    /**
-     * <pre>
-     * ── Chest ──
-     * </pre>
-     *
-     * <code>EXERCISE_INCLINE_BENCH_PRESS = 12;</code>
-     */
-    public static final int EXERCISE_INCLINE_BENCH_PRESS_VALUE = 12;
-    /**
-     * <code>EXERCISE_DUMBBELL_BENCH_PRESS = 13;</code>
-     */
-    public static final int EXERCISE_DUMBBELL_BENCH_PRESS_VALUE = 13;
-    /**
-     * <code>EXERCISE_INCLINE_DUMBBELL_PRESS = 14;</code>
-     */
-    public static final int EXERCISE_INCLINE_DUMBBELL_PRESS_VALUE = 14;
-    /**
-     * <code>EXERCISE_DUMBBELL_FLY = 15;</code>
-     */
-    public static final int EXERCISE_DUMBBELL_FLY_VALUE = 15;
-    /**
-     * <code>EXERCISE_CABLE_FLY = 16;</code>
-     */
-    public static final int EXERCISE_CABLE_FLY_VALUE = 16;
-    /**
-     * <code>EXERCISE_PUSH_UP = 17;</code>
-     */
-    public static final int EXERCISE_PUSH_UP_VALUE = 17;
-    /**
-     * <code>EXERCISE_CHEST_DIP = 18;</code>
-     */
-    public static final int EXERCISE_CHEST_DIP_VALUE = 18;
-    /**
-     * <code>EXERCISE_MACHINE_CHEST_PRESS = 19;</code>
-     */
-    public static final int EXERCISE_MACHINE_CHEST_PRESS_VALUE = 19;
-    /**
-     * <code>EXERCISE_PEC_DECK = 20;</code>
-     */
-    public static final int EXERCISE_PEC_DECK_VALUE = 20;
-    /**
-     * <pre>
-     * ── Back ──
-     * </pre>
-     *
-     * <code>EXERCISE_PULL_UP = 21;</code>
-     */
-    public static final int EXERCISE_PULL_UP_VALUE = 21;
-    /**
-     * <code>EXERCISE_CHIN_UP = 22;</code>
-     */
-    public static final int EXERCISE_CHIN_UP_VALUE = 22;
-    /**
-     * <code>EXERCISE_LAT_PULLDOWN = 23;</code>
-     */
-    public static final int EXERCISE_LAT_PULLDOWN_VALUE = 23;
-    /**
-     * <code>EXERCISE_SEATED_CABLE_ROW = 24;</code>
-     */
-    public static final int EXERCISE_SEATED_CABLE_ROW_VALUE = 24;
-    /**
-     * <code>EXERCISE_DUMBBELL_ROW = 25;</code>
-     */
-    public static final int EXERCISE_DUMBBELL_ROW_VALUE = 25;
-    /**
-     * <code>EXERCISE_T_BAR_ROW = 26;</code>
-     */
-    public static final int EXERCISE_T_BAR_ROW_VALUE = 26;
-    /**
-     * <code>EXERCISE_PENDLAY_ROW = 27;</code>
-     */
-    public static final int EXERCISE_PENDLAY_ROW_VALUE = 27;
-    /**
-     * <code>EXERCISE_FACE_PULL = 28;</code>
-     */
-    public static final int EXERCISE_FACE_PULL_VALUE = 28;
-    /**
-     * <code>EXERCISE_SHRUG = 29;</code>
-     */
-    public static final int EXERCISE_SHRUG_VALUE = 29;
-    /**
-     * <code>EXERCISE_BACK_EXTENSION = 30;</code>
-     */
-    public static final int EXERCISE_BACK_EXTENSION_VALUE = 30;
-    /**
-     * <pre>
-     * ── Shoulders ──
-     * </pre>
-     *
-     * <code>EXERCISE_DUMBBELL_SHOULDER_PRESS = 31;</code>
-     */
-    public static final int EXERCISE_DUMBBELL_SHOULDER_PRESS_VALUE = 31;
-    /**
-     * <code>EXERCISE_ARNOLD_PRESS = 32;</code>
-     */
-    public static final int EXERCISE_ARNOLD_PRESS_VALUE = 32;
-    /**
-     * <code>EXERCISE_LATERAL_RAISE = 33;</code>
-     */
-    public static final int EXERCISE_LATERAL_RAISE_VALUE = 33;
-    /**
-     * <code>EXERCISE_FRONT_RAISE = 34;</code>
-     */
-    public static final int EXERCISE_FRONT_RAISE_VALUE = 34;
-    /**
-     * <code>EXERCISE_REAR_DELT_FLY = 35;</code>
-     */
-    public static final int EXERCISE_REAR_DELT_FLY_VALUE = 35;
-    /**
-     * <code>EXERCISE_UPRIGHT_ROW = 36;</code>
-     */
-    public static final int EXERCISE_UPRIGHT_ROW_VALUE = 36;
-    /**
-     * <pre>
-     * ── Arms ──
-     * </pre>
-     *
-     * <code>EXERCISE_BARBELL_CURL = 37;</code>
-     */
-    public static final int EXERCISE_BARBELL_CURL_VALUE = 37;
-    /**
-     * <code>EXERCISE_DUMBBELL_CURL = 38;</code>
-     */
-    public static final int EXERCISE_DUMBBELL_CURL_VALUE = 38;
-    /**
-     * <code>EXERCISE_HAMMER_CURL = 39;</code>
-     */
-    public static final int EXERCISE_HAMMER_CURL_VALUE = 39;
-    /**
-     * <code>EXERCISE_PREACHER_CURL = 40;</code>
-     */
-    public static final int EXERCISE_PREACHER_CURL_VALUE = 40;
-    /**
-     * <code>EXERCISE_CONCENTRATION_CURL = 41;</code>
-     */
-    public static final int EXERCISE_CONCENTRATION_CURL_VALUE = 41;
-    /**
-     * <code>EXERCISE_CABLE_CURL = 42;</code>
-     */
-    public static final int EXERCISE_CABLE_CURL_VALUE = 42;
-    /**
-     * <code>EXERCISE_TRICEP_PUSHDOWN = 43;</code>
-     */
-    public static final int EXERCISE_TRICEP_PUSHDOWN_VALUE = 43;
-    /**
-     * <code>EXERCISE_OVERHEAD_TRICEP_EXTENSION = 44;</code>
-     */
-    public static final int EXERCISE_OVERHEAD_TRICEP_EXTENSION_VALUE = 44;
-    /**
-     * <code>EXERCISE_SKULL_CRUSHER = 45;</code>
-     */
-    public static final int EXERCISE_SKULL_CRUSHER_VALUE = 45;
-    /**
-     * <code>EXERCISE_CLOSE_GRIP_BENCH_PRESS = 46;</code>
-     */
-    public static final int EXERCISE_CLOSE_GRIP_BENCH_PRESS_VALUE = 46;
-    /**
-     * <code>EXERCISE_TRICEP_DIP = 47;</code>
-     */
-    public static final int EXERCISE_TRICEP_DIP_VALUE = 47;
-    /**
-     * <code>EXERCISE_TRICEP_KICKBACK = 48;</code>
-     */
-    public static final int EXERCISE_TRICEP_KICKBACK_VALUE = 48;
-    /**
-     * <pre>
-     * ── Legs ──
-     * </pre>
-     *
-     * <code>EXERCISE_FRONT_SQUAT = 49;</code>
-     */
-    public static final int EXERCISE_FRONT_SQUAT_VALUE = 49;
-    /**
-     * <code>EXERCISE_LEG_PRESS = 50;</code>
-     */
-    public static final int EXERCISE_LEG_PRESS_VALUE = 50;
-    /**
-     * <code>EXERCISE_LEG_EXTENSION = 51;</code>
-     */
-    public static final int EXERCISE_LEG_EXTENSION_VALUE = 51;
-    /**
-     * <code>EXERCISE_HACK_SQUAT = 52;</code>
-     */
-    public static final int EXERCISE_HACK_SQUAT_VALUE = 52;
-    /**
-     * <code>EXERCISE_GOBLET_SQUAT = 53;</code>
-     */
-    public static final int EXERCISE_GOBLET_SQUAT_VALUE = 53;
-    /**
-     * <code>EXERCISE_WALKING_LUNGE = 54;</code>
-     */
-    public static final int EXERCISE_WALKING_LUNGE_VALUE = 54;
-    /**
-     * <code>EXERCISE_STEP_UP = 55;</code>
-     */
-    public static final int EXERCISE_STEP_UP_VALUE = 55;
-    /**
-     * <code>EXERCISE_CALF_RAISE = 56;</code>
-     */
-    public static final int EXERCISE_CALF_RAISE_VALUE = 56;
-    /**
-     * <code>EXERCISE_SEATED_CALF_RAISE = 57;</code>
-     */
-    public static final int EXERCISE_SEATED_CALF_RAISE_VALUE = 57;
-    /**
-     * <code>EXERCISE_NORDIC_CURL = 58;</code>
-     */
-    public static final int EXERCISE_NORDIC_CURL_VALUE = 58;
-    /**
-     * <code>EXERCISE_GOOD_MORNING = 59;</code>
-     */
-    public static final int EXERCISE_GOOD_MORNING_VALUE = 59;
-    /**
-     * <pre>
-     * ── Ass ──
-     * </pre>
-     *
-     * <code>EXERCISE_GLUTE_KICKBACK = 60;</code>
-     */
-    public static final int EXERCISE_GLUTE_KICKBACK_VALUE = 60;
-    /**
-     * <code>EXERCISE_SUMO_DEADLIFT = 61;</code>
-     */
-    public static final int EXERCISE_SUMO_DEADLIFT_VALUE = 61;
-    /**
-     * <code>EXERCISE_SUMO_SQUAT = 62;</code>
-     */
-    public static final int EXERCISE_SUMO_SQUAT_VALUE = 62;
-    /**
-     * <code>EXERCISE_CURTSY_LUNGE = 63;</code>
-     */
-    public static final int EXERCISE_CURTSY_LUNGE_VALUE = 63;
-    /**
-     * <code>EXERCISE_FROG_PUMP = 64;</code>
-     */
-    public static final int EXERCISE_FROG_PUMP_VALUE = 64;
-    /**
-     * <code>EXERCISE_SINGLE_LEG_HIP_THRUST = 65;</code>
-     */
-    public static final int EXERCISE_SINGLE_LEG_HIP_THRUST_VALUE = 65;
-    /**
-     * <code>EXERCISE_CABLE_PULL_THROUGH = 66;</code>
-     */
-    public static final int EXERCISE_CABLE_PULL_THROUGH_VALUE = 66;
-    /**
-     * <code>EXERCISE_HIP_ABDUCTION = 67;</code>
-     */
-    public static final int EXERCISE_HIP_ABDUCTION_VALUE = 67;
-    /**
-     * <pre>
-     * ── Core ──
-     * </pre>
-     *
-     * <code>EXERCISE_PLANK = 68;</code>
-     */
-    public static final int EXERCISE_PLANK_VALUE = 68;
-    /**
-     * <code>EXERCISE_HANGING_LEG_RAISE = 69;</code>
-     */
-    public static final int EXERCISE_HANGING_LEG_RAISE_VALUE = 69;
-    /**
-     * <code>EXERCISE_CABLE_CRUNCH = 70;</code>
-     */
-    public static final int EXERCISE_CABLE_CRUNCH_VALUE = 70;
-    /**
-     * <code>EXERCISE_RUSSIAN_TWIST = 71;</code>
-     */
-    public static final int EXERCISE_RUSSIAN_TWIST_VALUE = 71;
-    /**
-     * <code>EXERCISE_AB_WHEEL_ROLLOUT = 72;</code>
-     */
-    public static final int EXERCISE_AB_WHEEL_ROLLOUT_VALUE = 72;
-    /**
-     * <code>EXERCISE_SIT_UP = 73;</code>
-     */
-    public static final int EXERCISE_SIT_UP_VALUE = 73;
-    /**
-     * <code>EXERCISE_CRUNCH = 74;</code>
-     */
-    public static final int EXERCISE_CRUNCH_VALUE = 74;
-    /**
-     * <code>EXERCISE_MOUNTAIN_CLIMBER = 75;</code>
-     */
-    public static final int EXERCISE_MOUNTAIN_CLIMBER_VALUE = 75;
-    /**
-     * <code>EXERCISE_HIP_ADDUCTION = 76;</code>
-     */
-    public static final int EXERCISE_HIP_ADDUCTION_VALUE = 76;
-
-
-    @java.lang.Override
-    public final int getNumber() {
-      if (this == UNRECOGNIZED) {
-        throw new java.lang.IllegalArgumentException(
-            "Can't get the number of an unknown enum value.");
-      }
-      return value;
-    }
-
-    /**
-     * @param value The number of the enum to look for.
-     * @return The enum associated with the given number.
-     * @deprecated Use {@link #forNumber(int)} instead.
-     */
-    @java.lang.Deprecated
-    public static Exercise valueOf(int value) {
-      return forNumber(value);
-    }
-
-    public static Exercise forNumber(int value) {
-      switch (value) {
-        case 0: return EXERCISE_UNSPECIFIED;
-        case 1: return EXERCISE_SQUAT;
-        case 2: return EXERCISE_BENCH_PRESS;
-        case 3: return EXERCISE_DEADLIFT;
-        case 4: return EXERCISE_OVERHEAD_PRESS;
-        case 5: return EXERCISE_BARBELL_ROW;
-        case 6: return EXERCISE_HIP_THRUST;
-        case 7: return EXERCISE_BULGARIAN_SPLIT_SQUAT;
-        case 8: return EXERCISE_ROMANIAN_DEADLIFT;
-        case 9: return EXERCISE_GLUTE_BRIDGE;
-        case 10: return EXERCISE_LUNGE;
-        case 11: return EXERCISE_LEG_CURL;
-        case 12: return EXERCISE_INCLINE_BENCH_PRESS;
-        case 13: return EXERCISE_DUMBBELL_BENCH_PRESS;
-        case 14: return EXERCISE_INCLINE_DUMBBELL_PRESS;
-        case 15: return EXERCISE_DUMBBELL_FLY;
-        case 16: return EXERCISE_CABLE_FLY;
-        case 17: return EXERCISE_PUSH_UP;
-        case 18: return EXERCISE_CHEST_DIP;
-        case 19: return EXERCISE_MACHINE_CHEST_PRESS;
-        case 20: return EXERCISE_PEC_DECK;
-        case 21: return EXERCISE_PULL_UP;
-        case 22: return EXERCISE_CHIN_UP;
-        case 23: return EXERCISE_LAT_PULLDOWN;
-        case 24: return EXERCISE_SEATED_CABLE_ROW;
-        case 25: return EXERCISE_DUMBBELL_ROW;
-        case 26: return EXERCISE_T_BAR_ROW;
-        case 27: return EXERCISE_PENDLAY_ROW;
-        case 28: return EXERCISE_FACE_PULL;
-        case 29: return EXERCISE_SHRUG;
-        case 30: return EXERCISE_BACK_EXTENSION;
-        case 31: return EXERCISE_DUMBBELL_SHOULDER_PRESS;
-        case 32: return EXERCISE_ARNOLD_PRESS;
-        case 33: return EXERCISE_LATERAL_RAISE;
-        case 34: return EXERCISE_FRONT_RAISE;
-        case 35: return EXERCISE_REAR_DELT_FLY;
-        case 36: return EXERCISE_UPRIGHT_ROW;
-        case 37: return EXERCISE_BARBELL_CURL;
-        case 38: return EXERCISE_DUMBBELL_CURL;
-        case 39: return EXERCISE_HAMMER_CURL;
-        case 40: return EXERCISE_PREACHER_CURL;
-        case 41: return EXERCISE_CONCENTRATION_CURL;
-        case 42: return EXERCISE_CABLE_CURL;
-        case 43: return EXERCISE_TRICEP_PUSHDOWN;
-        case 44: return EXERCISE_OVERHEAD_TRICEP_EXTENSION;
-        case 45: return EXERCISE_SKULL_CRUSHER;
-        case 46: return EXERCISE_CLOSE_GRIP_BENCH_PRESS;
-        case 47: return EXERCISE_TRICEP_DIP;
-        case 48: return EXERCISE_TRICEP_KICKBACK;
-        case 49: return EXERCISE_FRONT_SQUAT;
-        case 50: return EXERCISE_LEG_PRESS;
-        case 51: return EXERCISE_LEG_EXTENSION;
-        case 52: return EXERCISE_HACK_SQUAT;
-        case 53: return EXERCISE_GOBLET_SQUAT;
-        case 54: return EXERCISE_WALKING_LUNGE;
-        case 55: return EXERCISE_STEP_UP;
-        case 56: return EXERCISE_CALF_RAISE;
-        case 57: return EXERCISE_SEATED_CALF_RAISE;
-        case 58: return EXERCISE_NORDIC_CURL;
-        case 59: return EXERCISE_GOOD_MORNING;
-        case 60: return EXERCISE_GLUTE_KICKBACK;
-        case 61: return EXERCISE_SUMO_DEADLIFT;
-        case 62: return EXERCISE_SUMO_SQUAT;
-        case 63: return EXERCISE_CURTSY_LUNGE;
-        case 64: return EXERCISE_FROG_PUMP;
-        case 65: return EXERCISE_SINGLE_LEG_HIP_THRUST;
-        case 66: return EXERCISE_CABLE_PULL_THROUGH;
-        case 67: return EXERCISE_HIP_ABDUCTION;
-        case 68: return EXERCISE_PLANK;
-        case 69: return EXERCISE_HANGING_LEG_RAISE;
-        case 70: return EXERCISE_CABLE_CRUNCH;
-        case 71: return EXERCISE_RUSSIAN_TWIST;
-        case 72: return EXERCISE_AB_WHEEL_ROLLOUT;
-        case 73: return EXERCISE_SIT_UP;
-        case 74: return EXERCISE_CRUNCH;
-        case 75: return EXERCISE_MOUNTAIN_CLIMBER;
-        case 76: return EXERCISE_HIP_ADDUCTION;
-        default: return null;
-      }
-    }
-
-    public static com.google.protobuf.Internal.EnumLiteMap<Exercise>
-        internalGetValueMap() {
-      return internalValueMap;
-    }
-    private static final com.google.protobuf.Internal.EnumLiteMap<
-        Exercise> internalValueMap =
-          new com.google.protobuf.Internal.EnumLiteMap<Exercise>() {
-            @java.lang.Override
-            public Exercise findValueByNumber(int number) {
-              return Exercise.forNumber(number);
-            }
-          };
-
-    public static com.google.protobuf.Internal.EnumVerifier 
-        internalGetVerifier() {
-      return ExerciseVerifier.INSTANCE;
-    }
-
-    private static final class ExerciseVerifier implements 
-         com.google.protobuf.Internal.EnumVerifier { 
-            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new ExerciseVerifier();
-            @java.lang.Override
-            public boolean isInRange(int number) {
-              return Exercise.forNumber(number) != null;
-            }
-          };
-
-    private final int value;
-
-    private Exercise(int value) {
-      this.value = value;
-    }
-
-    // @@protoc_insertion_point(enum_scope:workout.v1.Exercise)
-  }
-
-  /**
    * <pre>
    * How many more reps a calibration rung done in full had left in it. Each
    * answer counts as a reserve in the rung's shown max (core/src/plan.rs):
@@ -1192,6 +372,41 @@ public final class WorkoutOuterClass {
      * <code>PLAN_REASON_KIND_SAME_AS_LAST = 12;</code>
      */
     PLAN_REASON_KIND_SAME_AS_LAST(12),
+    /**
+     * <pre>
+     * The lift follows a progression of the program's other than the
+     * estimated max: `rule` names it, `text` is the program's note on it.
+     * </pre>
+     *
+     * <code>PLAN_REASON_KIND_RULE = 13;</code>
+     */
+    PLAN_REASON_KIND_RULE(13),
+    /**
+     * <pre>
+     * `count` sessions in a row with a rep missed: the weight cut to
+     * `after` from `before` (lb).
+     * </pre>
+     *
+     * <code>PLAN_REASON_KIND_DELOAD = 14;</code>
+     */
+    PLAN_REASON_KIND_DELOAD(14),
+    /**
+     * <pre>
+     * The lift's rule could not plan it (`text` says why): planned from the
+     * estimated max instead.
+     * </pre>
+     *
+     * <code>PLAN_REASON_KIND_FALLBACK = 15;</code>
+     */
+    PLAN_REASON_KIND_FALLBACK(15),
+    /**
+     * <pre>
+     * A cycle's step `count` of `of`: `after` is the fraction of the max.
+     * </pre>
+     *
+     * <code>PLAN_REASON_KIND_CYCLE_STEP = 16;</code>
+     */
+    PLAN_REASON_KIND_CYCLE_STEP(16),
     UNRECOGNIZED(-1),
     ;
 
@@ -1303,6 +518,41 @@ public final class WorkoutOuterClass {
      * <code>PLAN_REASON_KIND_SAME_AS_LAST = 12;</code>
      */
     public static final int PLAN_REASON_KIND_SAME_AS_LAST_VALUE = 12;
+    /**
+     * <pre>
+     * The lift follows a progression of the program's other than the
+     * estimated max: `rule` names it, `text` is the program's note on it.
+     * </pre>
+     *
+     * <code>PLAN_REASON_KIND_RULE = 13;</code>
+     */
+    public static final int PLAN_REASON_KIND_RULE_VALUE = 13;
+    /**
+     * <pre>
+     * `count` sessions in a row with a rep missed: the weight cut to
+     * `after` from `before` (lb).
+     * </pre>
+     *
+     * <code>PLAN_REASON_KIND_DELOAD = 14;</code>
+     */
+    public static final int PLAN_REASON_KIND_DELOAD_VALUE = 14;
+    /**
+     * <pre>
+     * The lift's rule could not plan it (`text` says why): planned from the
+     * estimated max instead.
+     * </pre>
+     *
+     * <code>PLAN_REASON_KIND_FALLBACK = 15;</code>
+     */
+    public static final int PLAN_REASON_KIND_FALLBACK_VALUE = 15;
+    /**
+     * <pre>
+     * A cycle's step `count` of `of`: `after` is the fraction of the max.
+     * </pre>
+     *
+     * <code>PLAN_REASON_KIND_CYCLE_STEP = 16;</code>
+     */
+    public static final int PLAN_REASON_KIND_CYCLE_STEP_VALUE = 16;
 
 
     @java.lang.Override
@@ -1339,6 +589,10 @@ public final class WorkoutOuterClass {
         case 10: return PLAN_REASON_KIND_REPS_UP;
         case 11: return PLAN_REASON_KIND_REPS_DOWN;
         case 12: return PLAN_REASON_KIND_SAME_AS_LAST;
+        case 13: return PLAN_REASON_KIND_RULE;
+        case 14: return PLAN_REASON_KIND_DELOAD;
+        case 15: return PLAN_REASON_KIND_FALLBACK;
+        case 16: return PLAN_REASON_KIND_CYCLE_STEP;
         default: return null;
       }
     }
@@ -1965,6 +1219,160 @@ public final class WorkoutOuterClass {
     }
 
     // @@protoc_insertion_point(enum_scope:workout.v1.RotationWarningKind)
+  }
+
+  /**
+   * <pre>
+   * How the simulated sessions go.
+   * </pre>
+   *
+   * Protobuf enum {@code workout.v1.SimulatedEffort}
+   */
+  public enum SimulatedEffort
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <code>SIMULATED_EFFORT_UNSPECIFIED = 0;</code>
+     */
+    SIMULATED_EFFORT_UNSPECIFIED(0),
+    /**
+     * <pre>
+     * Every rep of every set.
+     * </pre>
+     *
+     * <code>SIMULATED_EFFORT_ALL_HIT = 1;</code>
+     */
+    SIMULATED_EFFORT_ALL_HIT(1),
+    /**
+     * <pre>
+     * The last set of each lift one rep short.
+     * </pre>
+     *
+     * <code>SIMULATED_EFFORT_LAST_SET_SHORT = 2;</code>
+     */
+    SIMULATED_EFFORT_LAST_SET_SHORT(2),
+    /**
+     * <pre>
+     * Every set one rep short.
+     * </pre>
+     *
+     * <code>SIMULATED_EFFORT_ALL_SHORT = 3;</code>
+     */
+    SIMULATED_EFFORT_ALL_SHORT(3),
+    /**
+     * <pre>
+     * All hit, but every `miss_every`th session of a lift the last set one
+     * rep short.
+     * </pre>
+     *
+     * <code>SIMULATED_EFFORT_MISS_EVERY = 4;</code>
+     */
+    SIMULATED_EFFORT_MISS_EVERY(4),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <code>SIMULATED_EFFORT_UNSPECIFIED = 0;</code>
+     */
+    public static final int SIMULATED_EFFORT_UNSPECIFIED_VALUE = 0;
+    /**
+     * <pre>
+     * Every rep of every set.
+     * </pre>
+     *
+     * <code>SIMULATED_EFFORT_ALL_HIT = 1;</code>
+     */
+    public static final int SIMULATED_EFFORT_ALL_HIT_VALUE = 1;
+    /**
+     * <pre>
+     * The last set of each lift one rep short.
+     * </pre>
+     *
+     * <code>SIMULATED_EFFORT_LAST_SET_SHORT = 2;</code>
+     */
+    public static final int SIMULATED_EFFORT_LAST_SET_SHORT_VALUE = 2;
+    /**
+     * <pre>
+     * Every set one rep short.
+     * </pre>
+     *
+     * <code>SIMULATED_EFFORT_ALL_SHORT = 3;</code>
+     */
+    public static final int SIMULATED_EFFORT_ALL_SHORT_VALUE = 3;
+    /**
+     * <pre>
+     * All hit, but every `miss_every`th session of a lift the last set one
+     * rep short.
+     * </pre>
+     *
+     * <code>SIMULATED_EFFORT_MISS_EVERY = 4;</code>
+     */
+    public static final int SIMULATED_EFFORT_MISS_EVERY_VALUE = 4;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static SimulatedEffort valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static SimulatedEffort forNumber(int value) {
+      switch (value) {
+        case 0: return SIMULATED_EFFORT_UNSPECIFIED;
+        case 1: return SIMULATED_EFFORT_ALL_HIT;
+        case 2: return SIMULATED_EFFORT_LAST_SET_SHORT;
+        case 3: return SIMULATED_EFFORT_ALL_SHORT;
+        case 4: return SIMULATED_EFFORT_MISS_EVERY;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<SimulatedEffort>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        SimulatedEffort> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<SimulatedEffort>() {
+            @java.lang.Override
+            public SimulatedEffort findValueByNumber(int number) {
+              return SimulatedEffort.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return SimulatedEffortVerifier.INSTANCE;
+    }
+
+    private static final class SimulatedEffortVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new SimulatedEffortVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return SimulatedEffort.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private SimulatedEffort(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.SimulatedEffort)
   }
 
   public interface UserOrBuilder extends
@@ -4037,15 +3445,16 @@ public final class WorkoutOuterClass {
     int getWorkoutOrder();
 
     /**
-     * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    int getExerciseValue();
-    /**
-     * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
+     * <code>string exercise = 17 [json_name = "exercise"];</code>
      * @return The exercise.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercise();
+    java.lang.String getExercise();
+    /**
+     * <code>string exercise = 17 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
+     */
+    com.google.protobuf.ByteString
+        getExerciseBytes();
 
     /**
      * <code>int32 target_reps = 5 [json_name = "targetReps"];</code>
@@ -4116,6 +3525,7 @@ public final class WorkoutOuterClass {
     private ProposedSet() {
       id_ = "";
       workoutId_ = "";
+      exercise_ = "";
     }
     public static final int ID_FIELD_NUMBER = 1;
     private java.lang.String id_;
@@ -4237,46 +3647,51 @@ public final class WorkoutOuterClass {
       workoutOrder_ = 0;
     }
 
-    public static final int EXERCISE_FIELD_NUMBER = 4;
-    private int exercise_;
+    public static final int EXERCISE_FIELD_NUMBER = 17;
+    private java.lang.String exercise_;
     /**
-     * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    @java.lang.Override
-    public int getExerciseValue() {
-      return exercise_;
-    }
-    /**
-     * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
+     * <code>string exercise = 17 [json_name = "exercise"];</code>
      * @return The exercise.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercise() {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercise_);
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercise() {
+      return exercise_;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
-     * @param value The enum numeric value on the wire for exercise to set.
+     * <code>string exercise = 17 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
      */
-    private void setExerciseValue(int value) {
-        exercise_ = value;
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getExerciseBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(exercise_);
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
+     * <code>string exercise = 17 [json_name = "exercise"];</code>
      * @param value The exercise to set.
      */
-    private void setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
-      exercise_ = value.getNumber();
-      
+    private void setExercise(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      exercise_ = value;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
+     * <code>string exercise = 17 [json_name = "exercise"];</code>
      */
     private void clearExercise() {
       
-      exercise_ = 0;
+      exercise_ = getDefaultInstance().getExercise();
+    }
+    /**
+     * <code>string exercise = 17 [json_name = "exercise"];</code>
+     * @param value The bytes for exercise to set.
+     */
+    private void setExerciseBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      exercise_ = value.toStringUtf8();
+      
     }
 
     public static final int TARGET_REPS_FIELD_NUMBER = 5;
@@ -4731,48 +4146,51 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
-       * @return The enum numeric value on the wire for exercise.
-       */
-      @java.lang.Override
-      public int getExerciseValue() {
-        return instance.getExerciseValue();
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
-       * @param value The exercise to set.
-       * @return This builder for chaining.
-       */
-      public Builder setExerciseValue(int value) {
-        copyOnWrite();
-        instance.setExerciseValue(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
+       * <code>string exercise = 17 [json_name = "exercise"];</code>
        * @return The exercise.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercise() {
+      public java.lang.String getExercise() {
         return instance.getExercise();
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
-       * @param value The enum numeric value on the wire for exercise to set.
+       * <code>string exercise = 17 [json_name = "exercise"];</code>
+       * @return The bytes for exercise.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExerciseBytes() {
+        return instance.getExerciseBytes();
+      }
+      /**
+       * <code>string exercise = 17 [json_name = "exercise"];</code>
+       * @param value The exercise to set.
        * @return This builder for chaining.
        */
-      public Builder setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder setExercise(
+          java.lang.String value) {
         copyOnWrite();
         instance.setExercise(value);
         return this;
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 4 [json_name = "exercise"];</code>
+       * <code>string exercise = 17 [json_name = "exercise"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercise() {
         copyOnWrite();
         instance.clearExercise();
+        return this;
+      }
+      /**
+       * <code>string exercise = 17 [json_name = "exercise"];</code>
+       * @param value The bytes for exercise to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExerciseBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setExerciseBytes(value);
         return this;
       }
 
@@ -5039,7 +4457,6 @@ public final class WorkoutOuterClass {
               "id_",
               "workoutId_",
               "workoutOrder_",
-              "exercise_",
               "targetReps_",
               "targetWeight_",
               "warmup_",
@@ -5047,11 +4464,12 @@ public final class WorkoutOuterClass {
               "cancelled_",
               "calibration_",
               "skipped_",
+              "exercise_",
             };
             java.lang.String info =
-                "\u0000\u000b\u0000\u0000\u0001\u0010\u000b\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003\u0004\u0004\f\u0005\u0004\u0006\u0001\u0007\u0007\t\u0004\u000b\u0007\u000f" +
-                "\u0007\u0010\u0007";
+                "\u0000\u000b\u0000\u0000\u0001\u0011\u000b\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0004\u0005\u0004\u0006\u0001\u0007\u0007\t\u0004\u000b\u0007\u000f\u0007" +
+                "\u0010\u0007\u0011\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -6384,6 +5802,57 @@ public final class WorkoutOuterClass {
      * @return The setsAfter.
      */
     int getSetsAfter();
+
+    /**
+     * <pre>
+     * RULE, FALLBACK: the progression's name in the program, and its note
+     * (or, FALLBACK, what went wrong).
+     * </pre>
+     *
+     * <code>string rule = 16 [json_name = "rule"];</code>
+     * @return The rule.
+     */
+    java.lang.String getRule();
+    /**
+     * <pre>
+     * RULE, FALLBACK: the progression's name in the program, and its note
+     * (or, FALLBACK, what went wrong).
+     * </pre>
+     *
+     * <code>string rule = 16 [json_name = "rule"];</code>
+     * @return The bytes for rule.
+     */
+    com.google.protobuf.ByteString
+        getRuleBytes();
+
+    /**
+     * <code>string text = 17 [json_name = "text"];</code>
+     * @return The text.
+     */
+    java.lang.String getText();
+    /**
+     * <code>string text = 17 [json_name = "text"];</code>
+     * @return The bytes for text.
+     */
+    com.google.protobuf.ByteString
+        getTextBytes();
+
+    /**
+     * <pre>
+     * DELOAD: the sessions missed in a row. CYCLE_STEP: the step, from 1, of
+     * `of`.
+     * </pre>
+     *
+     * <code>int32 count = 18 [json_name = "count"];</code>
+     * @return The count.
+     */
+    int getCount();
+
+    /**
+     * <code>int32 of = 19 [json_name = "of"];</code>
+     * @return The of.
+     */
+    int getOf();
   }
   /**
    * <pre>
@@ -6400,6 +5869,8 @@ public final class WorkoutOuterClass {
     private PlanReason() {
       workoutId_ = "";
       setId_ = "";
+      rule_ = "";
+      text_ = "";
     }
     public static final int KIND_FIELD_NUMBER = 1;
     private int kind_;
@@ -6994,6 +6465,192 @@ public final class WorkoutOuterClass {
     private void clearSetsAfter() {
       
       setsAfter_ = 0;
+    }
+
+    public static final int RULE_FIELD_NUMBER = 16;
+    private java.lang.String rule_;
+    /**
+     * <pre>
+     * RULE, FALLBACK: the progression's name in the program, and its note
+     * (or, FALLBACK, what went wrong).
+     * </pre>
+     *
+     * <code>string rule = 16 [json_name = "rule"];</code>
+     * @return The rule.
+     */
+    @java.lang.Override
+    public java.lang.String getRule() {
+      return rule_;
+    }
+    /**
+     * <pre>
+     * RULE, FALLBACK: the progression's name in the program, and its note
+     * (or, FALLBACK, what went wrong).
+     * </pre>
+     *
+     * <code>string rule = 16 [json_name = "rule"];</code>
+     * @return The bytes for rule.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getRuleBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(rule_);
+    }
+    /**
+     * <pre>
+     * RULE, FALLBACK: the progression's name in the program, and its note
+     * (or, FALLBACK, what went wrong).
+     * </pre>
+     *
+     * <code>string rule = 16 [json_name = "rule"];</code>
+     * @param value The rule to set.
+     */
+    private void setRule(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      rule_ = value;
+    }
+    /**
+     * <pre>
+     * RULE, FALLBACK: the progression's name in the program, and its note
+     * (or, FALLBACK, what went wrong).
+     * </pre>
+     *
+     * <code>string rule = 16 [json_name = "rule"];</code>
+     */
+    private void clearRule() {
+      
+      rule_ = getDefaultInstance().getRule();
+    }
+    /**
+     * <pre>
+     * RULE, FALLBACK: the progression's name in the program, and its note
+     * (or, FALLBACK, what went wrong).
+     * </pre>
+     *
+     * <code>string rule = 16 [json_name = "rule"];</code>
+     * @param value The bytes for rule to set.
+     */
+    private void setRuleBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      rule_ = value.toStringUtf8();
+      
+    }
+
+    public static final int TEXT_FIELD_NUMBER = 17;
+    private java.lang.String text_;
+    /**
+     * <code>string text = 17 [json_name = "text"];</code>
+     * @return The text.
+     */
+    @java.lang.Override
+    public java.lang.String getText() {
+      return text_;
+    }
+    /**
+     * <code>string text = 17 [json_name = "text"];</code>
+     * @return The bytes for text.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getTextBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(text_);
+    }
+    /**
+     * <code>string text = 17 [json_name = "text"];</code>
+     * @param value The text to set.
+     */
+    private void setText(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      text_ = value;
+    }
+    /**
+     * <code>string text = 17 [json_name = "text"];</code>
+     */
+    private void clearText() {
+      
+      text_ = getDefaultInstance().getText();
+    }
+    /**
+     * <code>string text = 17 [json_name = "text"];</code>
+     * @param value The bytes for text to set.
+     */
+    private void setTextBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      text_ = value.toStringUtf8();
+      
+    }
+
+    public static final int COUNT_FIELD_NUMBER = 18;
+    private int count_;
+    /**
+     * <pre>
+     * DELOAD: the sessions missed in a row. CYCLE_STEP: the step, from 1, of
+     * `of`.
+     * </pre>
+     *
+     * <code>int32 count = 18 [json_name = "count"];</code>
+     * @return The count.
+     */
+    @java.lang.Override
+    public int getCount() {
+      return count_;
+    }
+    /**
+     * <pre>
+     * DELOAD: the sessions missed in a row. CYCLE_STEP: the step, from 1, of
+     * `of`.
+     * </pre>
+     *
+     * <code>int32 count = 18 [json_name = "count"];</code>
+     * @param value The count to set.
+     */
+    private void setCount(int value) {
+      
+      count_ = value;
+    }
+    /**
+     * <pre>
+     * DELOAD: the sessions missed in a row. CYCLE_STEP: the step, from 1, of
+     * `of`.
+     * </pre>
+     *
+     * <code>int32 count = 18 [json_name = "count"];</code>
+     */
+    private void clearCount() {
+      
+      count_ = 0;
+    }
+
+    public static final int OF_FIELD_NUMBER = 19;
+    private int of_;
+    /**
+     * <code>int32 of = 19 [json_name = "of"];</code>
+     * @return The of.
+     */
+    @java.lang.Override
+    public int getOf() {
+      return of_;
+    }
+    /**
+     * <code>int32 of = 19 [json_name = "of"];</code>
+     * @param value The of to set.
+     */
+    private void setOf(int value) {
+      
+      of_ = value;
+    }
+    /**
+     * <code>int32 of = 19 [json_name = "of"];</code>
+     */
+    private void clearOf() {
+      
+      of_ = 0;
     }
 
     public static workout.v1.WorkoutOuterClass.PlanReason parseFrom(
@@ -7726,6 +7383,200 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * RULE, FALLBACK: the progression's name in the program, and its note
+       * (or, FALLBACK, what went wrong).
+       * </pre>
+       *
+       * <code>string rule = 16 [json_name = "rule"];</code>
+       * @return The rule.
+       */
+      @java.lang.Override
+      public java.lang.String getRule() {
+        return instance.getRule();
+      }
+      /**
+       * <pre>
+       * RULE, FALLBACK: the progression's name in the program, and its note
+       * (or, FALLBACK, what went wrong).
+       * </pre>
+       *
+       * <code>string rule = 16 [json_name = "rule"];</code>
+       * @return The bytes for rule.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getRuleBytes() {
+        return instance.getRuleBytes();
+      }
+      /**
+       * <pre>
+       * RULE, FALLBACK: the progression's name in the program, and its note
+       * (or, FALLBACK, what went wrong).
+       * </pre>
+       *
+       * <code>string rule = 16 [json_name = "rule"];</code>
+       * @param value The rule to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRule(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setRule(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * RULE, FALLBACK: the progression's name in the program, and its note
+       * (or, FALLBACK, what went wrong).
+       * </pre>
+       *
+       * <code>string rule = 16 [json_name = "rule"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRule() {
+        copyOnWrite();
+        instance.clearRule();
+        return this;
+      }
+      /**
+       * <pre>
+       * RULE, FALLBACK: the progression's name in the program, and its note
+       * (or, FALLBACK, what went wrong).
+       * </pre>
+       *
+       * <code>string rule = 16 [json_name = "rule"];</code>
+       * @param value The bytes for rule to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRuleBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setRuleBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string text = 17 [json_name = "text"];</code>
+       * @return The text.
+       */
+      @java.lang.Override
+      public java.lang.String getText() {
+        return instance.getText();
+      }
+      /**
+       * <code>string text = 17 [json_name = "text"];</code>
+       * @return The bytes for text.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getTextBytes() {
+        return instance.getTextBytes();
+      }
+      /**
+       * <code>string text = 17 [json_name = "text"];</code>
+       * @param value The text to set.
+       * @return This builder for chaining.
+       */
+      public Builder setText(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setText(value);
+        return this;
+      }
+      /**
+       * <code>string text = 17 [json_name = "text"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearText() {
+        copyOnWrite();
+        instance.clearText();
+        return this;
+      }
+      /**
+       * <code>string text = 17 [json_name = "text"];</code>
+       * @param value The bytes for text to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTextBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setTextBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * DELOAD: the sessions missed in a row. CYCLE_STEP: the step, from 1, of
+       * `of`.
+       * </pre>
+       *
+       * <code>int32 count = 18 [json_name = "count"];</code>
+       * @return The count.
+       */
+      @java.lang.Override
+      public int getCount() {
+        return instance.getCount();
+      }
+      /**
+       * <pre>
+       * DELOAD: the sessions missed in a row. CYCLE_STEP: the step, from 1, of
+       * `of`.
+       * </pre>
+       *
+       * <code>int32 count = 18 [json_name = "count"];</code>
+       * @param value The count to set.
+       * @return This builder for chaining.
+       */
+      public Builder setCount(int value) {
+        copyOnWrite();
+        instance.setCount(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * DELOAD: the sessions missed in a row. CYCLE_STEP: the step, from 1, of
+       * `of`.
+       * </pre>
+       *
+       * <code>int32 count = 18 [json_name = "count"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearCount() {
+        copyOnWrite();
+        instance.clearCount();
+        return this;
+      }
+
+      /**
+       * <code>int32 of = 19 [json_name = "of"];</code>
+       * @return The of.
+       */
+      @java.lang.Override
+      public int getOf() {
+        return instance.getOf();
+      }
+      /**
+       * <code>int32 of = 19 [json_name = "of"];</code>
+       * @param value The of to set.
+       * @return This builder for chaining.
+       */
+      public Builder setOf(int value) {
+        copyOnWrite();
+        instance.setOf(value);
+        return this;
+      }
+      /**
+       * <code>int32 of = 19 [json_name = "of"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearOf() {
+        copyOnWrite();
+        instance.clearOf();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.PlanReason)
     }
     @java.lang.Override
@@ -7757,11 +7608,16 @@ public final class WorkoutOuterClass {
               "repsAfter_",
               "setsBefore_",
               "setsAfter_",
+              "rule_",
+              "text_",
+              "count_",
+              "of_",
             };
             java.lang.String info =
-                "\u0000\u000f\u0000\u0000\u0001\u000f\u000f\u0000\u0000\u0000\u0001\f\u0002\u0001" +
+                "\u0000\u0013\u0000\u0000\u0001\u0013\u0013\u0000\u0000\u0000\u0001\f\u0002\u0001" +
                 "\u0003\u0001\u0004\u0004\u0005\u0208\u0006\u0208\u0007\u0002\b\u0004\t\f\n\u0001" +
-                "\u000b\f\f\u0004\r\u0004\u000e\u0004\u000f\u0004";
+                "\u000b\f\f\u0004\r\u0004\u000e\u0004\u000f\u0004\u0010\u0208\u0011\u0208\u0012\u0004" +
+                "\u0013\u0004";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -7821,15 +7677,16 @@ public final class WorkoutOuterClass {
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    int getExerciseValue();
-    /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 14 [json_name = "exercise"];</code>
      * @return The exercise.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercise();
+    java.lang.String getExercise();
+    /**
+     * <code>string exercise = 14 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
+     */
+    com.google.protobuf.ByteString
+        getExerciseBytes();
 
     /**
      * <code>int32 sets = 2 [json_name = "sets"];</code>
@@ -7871,7 +7728,7 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * The class's rep range.
+     * The rep range the progression works in; a ramp settles inside it.
      * </pre>
      *
      * <code>int32 rep_low = 7 [json_name = "repLow"];</code>
@@ -7937,6 +7794,42 @@ public final class WorkoutOuterClass {
      * <code>repeated .workout.v1.PlanReason reasons = 13 [json_name = "reasons"];</code>
      */
     int getReasonsCount();
+
+    /**
+     * <pre>
+     * The progression it was planned by: its name in the program and its
+     * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+     * `formula`).
+     * </pre>
+     *
+     * <code>string progression = 15 [json_name = "progression"];</code>
+     * @return The progression.
+     */
+    java.lang.String getProgression();
+    /**
+     * <pre>
+     * The progression it was planned by: its name in the program and its
+     * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+     * `formula`).
+     * </pre>
+     *
+     * <code>string progression = 15 [json_name = "progression"];</code>
+     * @return The bytes for progression.
+     */
+    com.google.protobuf.ByteString
+        getProgressionBytes();
+
+    /**
+     * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+     * @return The progressionKind.
+     */
+    java.lang.String getProgressionKind();
+    /**
+     * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+     * @return The bytes for progressionKind.
+     */
+    com.google.protobuf.ByteString
+        getProgressionKindBytes();
   }
   /**
    * <pre>
@@ -7952,48 +7845,56 @@ public final class WorkoutOuterClass {
       // @@protoc_insertion_point(message_implements:workout.v1.ExerciseDecision)
       ExerciseDecisionOrBuilder {
     private ExerciseDecision() {
+      exercise_ = "";
       reasons_ = emptyProtobufList();
+      progression_ = "";
+      progressionKind_ = "";
     }
-    public static final int EXERCISE_FIELD_NUMBER = 1;
-    private int exercise_;
+    public static final int EXERCISE_FIELD_NUMBER = 14;
+    private java.lang.String exercise_;
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    @java.lang.Override
-    public int getExerciseValue() {
-      return exercise_;
-    }
-    /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 14 [json_name = "exercise"];</code>
      * @return The exercise.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercise() {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercise_);
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercise() {
+      return exercise_;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @param value The enum numeric value on the wire for exercise to set.
+     * <code>string exercise = 14 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
      */
-    private void setExerciseValue(int value) {
-        exercise_ = value;
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getExerciseBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(exercise_);
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 14 [json_name = "exercise"];</code>
      * @param value The exercise to set.
      */
-    private void setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
-      exercise_ = value.getNumber();
-      
+    private void setExercise(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      exercise_ = value;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 14 [json_name = "exercise"];</code>
      */
     private void clearExercise() {
       
-      exercise_ = 0;
+      exercise_ = getDefaultInstance().getExercise();
+    }
+    /**
+     * <code>string exercise = 14 [json_name = "exercise"];</code>
+     * @param value The bytes for exercise to set.
+     */
+    private void setExerciseBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      exercise_ = value.toStringUtf8();
+      
     }
 
     public static final int SETS_FIELD_NUMBER = 2;
@@ -8154,7 +8055,7 @@ public final class WorkoutOuterClass {
     private int repLow_;
     /**
      * <pre>
-     * The class's rep range.
+     * The rep range the progression works in; a ramp settles inside it.
      * </pre>
      *
      * <code>int32 rep_low = 7 [json_name = "repLow"];</code>
@@ -8166,7 +8067,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The class's rep range.
+     * The rep range the progression works in; a ramp settles inside it.
      * </pre>
      *
      * <code>int32 rep_low = 7 [json_name = "repLow"];</code>
@@ -8178,7 +8079,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The class's rep range.
+     * The rep range the progression works in; a ramp settles inside it.
      * </pre>
      *
      * <code>int32 rep_low = 7 [json_name = "repLow"];</code>
@@ -8457,6 +8358,130 @@ public final class WorkoutOuterClass {
       reasons_.remove(index);
     }
 
+    public static final int PROGRESSION_FIELD_NUMBER = 15;
+    private java.lang.String progression_;
+    /**
+     * <pre>
+     * The progression it was planned by: its name in the program and its
+     * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+     * `formula`).
+     * </pre>
+     *
+     * <code>string progression = 15 [json_name = "progression"];</code>
+     * @return The progression.
+     */
+    @java.lang.Override
+    public java.lang.String getProgression() {
+      return progression_;
+    }
+    /**
+     * <pre>
+     * The progression it was planned by: its name in the program and its
+     * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+     * `formula`).
+     * </pre>
+     *
+     * <code>string progression = 15 [json_name = "progression"];</code>
+     * @return The bytes for progression.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProgressionBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(progression_);
+    }
+    /**
+     * <pre>
+     * The progression it was planned by: its name in the program and its
+     * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+     * `formula`).
+     * </pre>
+     *
+     * <code>string progression = 15 [json_name = "progression"];</code>
+     * @param value The progression to set.
+     */
+    private void setProgression(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      progression_ = value;
+    }
+    /**
+     * <pre>
+     * The progression it was planned by: its name in the program and its
+     * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+     * `formula`).
+     * </pre>
+     *
+     * <code>string progression = 15 [json_name = "progression"];</code>
+     */
+    private void clearProgression() {
+      
+      progression_ = getDefaultInstance().getProgression();
+    }
+    /**
+     * <pre>
+     * The progression it was planned by: its name in the program and its
+     * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+     * `formula`).
+     * </pre>
+     *
+     * <code>string progression = 15 [json_name = "progression"];</code>
+     * @param value The bytes for progression to set.
+     */
+    private void setProgressionBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      progression_ = value.toStringUtf8();
+      
+    }
+
+    public static final int PROGRESSION_KIND_FIELD_NUMBER = 16;
+    private java.lang.String progressionKind_;
+    /**
+     * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+     * @return The progressionKind.
+     */
+    @java.lang.Override
+    public java.lang.String getProgressionKind() {
+      return progressionKind_;
+    }
+    /**
+     * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+     * @return The bytes for progressionKind.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProgressionKindBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(progressionKind_);
+    }
+    /**
+     * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+     * @param value The progressionKind to set.
+     */
+    private void setProgressionKind(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      progressionKind_ = value;
+    }
+    /**
+     * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+     */
+    private void clearProgressionKind() {
+      
+      progressionKind_ = getDefaultInstance().getProgressionKind();
+    }
+    /**
+     * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+     * @param value The bytes for progressionKind to set.
+     */
+    private void setProgressionKindBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      progressionKind_ = value.toStringUtf8();
+      
+    }
+
     public static workout.v1.WorkoutOuterClass.ExerciseDecision parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -8558,48 +8583,51 @@ public final class WorkoutOuterClass {
 
 
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @return The enum numeric value on the wire for exercise.
-       */
-      @java.lang.Override
-      public int getExerciseValue() {
-        return instance.getExerciseValue();
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @param value The exercise to set.
-       * @return This builder for chaining.
-       */
-      public Builder setExerciseValue(int value) {
-        copyOnWrite();
-        instance.setExerciseValue(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+       * <code>string exercise = 14 [json_name = "exercise"];</code>
        * @return The exercise.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercise() {
+      public java.lang.String getExercise() {
         return instance.getExercise();
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @param value The enum numeric value on the wire for exercise to set.
+       * <code>string exercise = 14 [json_name = "exercise"];</code>
+       * @return The bytes for exercise.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExerciseBytes() {
+        return instance.getExerciseBytes();
+      }
+      /**
+       * <code>string exercise = 14 [json_name = "exercise"];</code>
+       * @param value The exercise to set.
        * @return This builder for chaining.
        */
-      public Builder setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder setExercise(
+          java.lang.String value) {
         copyOnWrite();
         instance.setExercise(value);
         return this;
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+       * <code>string exercise = 14 [json_name = "exercise"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercise() {
         copyOnWrite();
         instance.clearExercise();
+        return this;
+      }
+      /**
+       * <code>string exercise = 14 [json_name = "exercise"];</code>
+       * @param value The bytes for exercise to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExerciseBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setExerciseBytes(value);
         return this;
       }
 
@@ -8769,7 +8797,7 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * The class's rep range.
+       * The rep range the progression works in; a ramp settles inside it.
        * </pre>
        *
        * <code>int32 rep_low = 7 [json_name = "repLow"];</code>
@@ -8781,7 +8809,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The class's rep range.
+       * The rep range the progression works in; a ramp settles inside it.
        * </pre>
        *
        * <code>int32 rep_low = 7 [json_name = "repLow"];</code>
@@ -8795,7 +8823,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The class's rep range.
+       * The rep range the progression works in; a ramp settles inside it.
        * </pre>
        *
        * <code>int32 rep_low = 7 [json_name = "repLow"];</code>
@@ -9094,6 +9122,134 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The progression it was planned by: its name in the program and its
+       * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+       * `formula`).
+       * </pre>
+       *
+       * <code>string progression = 15 [json_name = "progression"];</code>
+       * @return The progression.
+       */
+      @java.lang.Override
+      public java.lang.String getProgression() {
+        return instance.getProgression();
+      }
+      /**
+       * <pre>
+       * The progression it was planned by: its name in the program and its
+       * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+       * `formula`).
+       * </pre>
+       *
+       * <code>string progression = 15 [json_name = "progression"];</code>
+       * @return The bytes for progression.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProgressionBytes() {
+        return instance.getProgressionBytes();
+      }
+      /**
+       * <pre>
+       * The progression it was planned by: its name in the program and its
+       * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+       * `formula`).
+       * </pre>
+       *
+       * <code>string progression = 15 [json_name = "progression"];</code>
+       * @param value The progression to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgression(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProgression(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The progression it was planned by: its name in the program and its
+       * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+       * `formula`).
+       * </pre>
+       *
+       * <code>string progression = 15 [json_name = "progression"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProgression() {
+        copyOnWrite();
+        instance.clearProgression();
+        return this;
+      }
+      /**
+       * <pre>
+       * The progression it was planned by: its name in the program and its
+       * kind (`estimated_max`, `linear`, `double`, `fixed`, `cycle`,
+       * `formula`).
+       * </pre>
+       *
+       * <code>string progression = 15 [json_name = "progression"];</code>
+       * @param value The bytes for progression to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgressionBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProgressionBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+       * @return The progressionKind.
+       */
+      @java.lang.Override
+      public java.lang.String getProgressionKind() {
+        return instance.getProgressionKind();
+      }
+      /**
+       * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+       * @return The bytes for progressionKind.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProgressionKindBytes() {
+        return instance.getProgressionKindBytes();
+      }
+      /**
+       * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+       * @param value The progressionKind to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgressionKind(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProgressionKind(value);
+        return this;
+      }
+      /**
+       * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProgressionKind() {
+        copyOnWrite();
+        instance.clearProgressionKind();
+        return this;
+      }
+      /**
+       * <code>string progression_kind = 16 [json_name = "progressionKind"];</code>
+       * @param value The bytes for progressionKind to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgressionKindBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProgressionKindBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.ExerciseDecision)
     }
     @java.lang.Override
@@ -9110,7 +9266,6 @@ public final class WorkoutOuterClass {
         }
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
-              "exercise_",
               "sets_",
               "reps_",
               "weight_",
@@ -9124,11 +9279,14 @@ public final class WorkoutOuterClass {
               "estimatedSeconds_",
               "reasons_",
               workout.v1.WorkoutOuterClass.PlanReason.class,
+              "exercise_",
+              "progression_",
+              "progressionKind_",
             };
             java.lang.String info =
-                "\u0000\r\u0000\u0000\u0001\r\r\u0000\u0001\u0000\u0001\f\u0002\u0004\u0003\u0004" +
+                "\u0000\u000f\u0000\u0000\u0002\u0010\u000f\u0000\u0001\u0000\u0002\u0004\u0003\u0004" +
                 "\u0004\u0001\u0005\u0004\u0006\u0007\u0007\u0004\b\u0004\t\u0001\n\u0007\u000b\u0004" +
-                "\f\u0004\r\u001b";
+                "\f\u0004\r\u001b\u000e\u0208\u000f\u0208\u0010\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -11230,96 +11388,54 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
-    java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList();
+    java.util.List<java.lang.String>
+        getExercisesList();
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     int getExercisesCount();
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercises(int index);
+    java.lang.String getExercises(int index);
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @param index The index of the element to return.
+     * @return The exercises at the given index.
      */
-    java.util.List<java.lang.Integer>
-    getExercisesValueList();
-    /**
-     * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
-     * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
-     */
-    int getExercisesValue(int index);
+    com.google.protobuf.ByteString
+        getExercisesBytes(int index);
 
     /**
      * <pre>
-     * The time the user has; 0 = the default (60).
+     * The time the user has; 0 = the program's default.
      * </pre>
      *
      * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
      * @return The budgetMinutes.
      */
     int getBudgetMinutes();
-
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    java.util.List<workout.v1.WorkoutOuterClass.ExerciseDecision> 
-        getDecisionsList();
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    workout.v1.WorkoutOuterClass.ExerciseDecision getDecisions(int index);
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    int getDecisionsCount();
 
     /**
      * <pre>
@@ -11352,8 +11468,7 @@ public final class WorkoutOuterClass {
     private StartWorkoutRequest() {
       name_ = "";
       templateId_ = "";
-      exercises_ = emptyIntList();
-      decisions_ = emptyProtobufList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
       motivation_ = "";
     }
     public static final int NAME_FIELD_NUMBER = 1;
@@ -11508,39 +11623,26 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int EXERCISES_FIELD_NUMBER = 5;
-    private com.google.protobuf.Internal.IntList exercises_;
-    private static final com.google.protobuf.Internal.ListAdapter.Converter<
-        java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise> exercises_converter_ =
-            new com.google.protobuf.Internal.ListAdapter.Converter<
-                java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>() {
-              @java.lang.Override
-              public workout.v1.WorkoutOuterClass.Exercise convert(java.lang.Integer from) {
-                workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(from);
-                return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
-              }
-            };
+    public static final int EXERCISES_FIELD_NUMBER = 9;
+    private com.google.protobuf.Internal.ProtobufList<java.lang.String> exercises_;
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
     @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-      return new com.google.protobuf.Internal.ListAdapter<
-          java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>(exercises_, exercises_converter_);
+    public java.util.List<java.lang.String> getExercisesList() {
+      return exercises_;
     }
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     @java.lang.Override
@@ -11549,161 +11651,112 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercises_.getInt(index));
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercises(int index) {
+      return exercises_.get(index);
     }
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
-     */
-    @java.lang.Override
-    public java.util.List<java.lang.Integer>
-    getExercisesValueList() {
-      return exercises_;
-    }
-    /**
-     * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
      * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
+     * @return The bytes of the exercises at the given index.
      */
     @java.lang.Override
-    public int getExercisesValue(int index) {
-      return exercises_.getInt(index);
+    public com.google.protobuf.ByteString
+        getExercisesBytes(int index) {
+      return com.google.protobuf.ByteString.copyFromUtf8(
+          exercises_.get(index));
     }
-    private int exercisesMemoizedSerializedSize;
     private void ensureExercisesIsMutable() {
-      com.google.protobuf.Internal.IntList tmp = exercises_;
-      if (!tmp.isModifiable()) {
+      com.google.protobuf.Internal.ProtobufList<java.lang.String> tmp =
+          exercises_;  if (!tmp.isModifiable()) {
         exercises_ =
             com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-      }
+       }
     }
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
      * @param index The index to set the value at.
      * @param value The exercises to set.
      */
     private void setExercises(
-        int index, workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+        int index, java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.setInt(index, value.getNumber());
+      exercises_.set(index, value);
     }
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
      * @param value The exercises to add.
      */
-    private void addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+    private void addExercises(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.addInt(value.getNumber());
+      exercises_.add(value);
     }
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
      * @param values The exercises to add.
      */
     private void addAllExercises(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+        java.lang.Iterable<java.lang.String> values) {
       ensureExercisesIsMutable();
-      for (workout.v1.WorkoutOuterClass.Exercise value : values) {
-        exercises_.addInt(value.getNumber());
-      }
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exercises_);
     }
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
      */
     private void clearExercises() {
-      exercises_ = emptyIntList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     /**
      * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
+     * The exercises, in order; empty means the template's.
      * </pre>
      *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to set.
+     * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+     * @param value The bytes of the exercises to add.
      */
-    private void setExercisesValue(
-        int index, int value) {
+    private void addExercisesBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
       ensureExercisesIsMutable();
-      exercises_.setInt(index, value);
-    }
-    /**
-     * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to add.
-     */
-    private void addExercisesValue(int value) {
-      ensureExercisesIsMutable();
-      exercises_.addInt(value);
-    }
-    /**
-     * <pre>
-     * The exercises, in order: the template's when it names one (the
-     * library's of now for a coupled template), filled in by the core.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
-     * @param values The enum numeric values on the wire for exercises to add.
-     */
-    private void addAllExercisesValue(
-        java.lang.Iterable<java.lang.Integer> values) {
-      ensureExercisesIsMutable();
-      for (int value : values) {
-        exercises_.addInt(value);
-      }
+      exercises_.add(value.toStringUtf8());
     }
 
     public static final int BUDGET_MINUTES_FIELD_NUMBER = 7;
     private int budgetMinutes_;
     /**
      * <pre>
-     * The time the user has; 0 = the default (60).
+     * The time the user has; 0 = the program's default.
      * </pre>
      *
      * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
@@ -11715,7 +11768,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The time the user has; 0 = the default (60).
+     * The time the user has; 0 = the program's default.
      * </pre>
      *
      * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
@@ -11727,7 +11780,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The time the user has; 0 = the default (60).
+     * The time the user has; 0 = the program's default.
      * </pre>
      *
      * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
@@ -11735,155 +11788,6 @@ public final class WorkoutOuterClass {
     private void clearBudgetMinutes() {
       
       budgetMinutes_ = 0;
-    }
-
-    public static final int DECISIONS_FIELD_NUMBER = 6;
-    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseDecision> decisions_;
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.ExerciseDecision> getDecisionsList() {
-      return decisions_;
-    }
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    public java.util.List<? extends workout.v1.WorkoutOuterClass.ExerciseDecisionOrBuilder> 
-        getDecisionsOrBuilderList() {
-      return decisions_;
-    }
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    @java.lang.Override
-    public int getDecisionsCount() {
-      return decisions_.size();
-    }
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    @java.lang.Override
-    public workout.v1.WorkoutOuterClass.ExerciseDecision getDecisions(int index) {
-      return decisions_.get(index);
-    }
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    public workout.v1.WorkoutOuterClass.ExerciseDecisionOrBuilder getDecisionsOrBuilder(
-        int index) {
-      return decisions_.get(index);
-    }
-    private void ensureDecisionsIsMutable() {
-      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseDecision> tmp = decisions_;
-      if (!tmp.isModifiable()) {
-        decisions_ =
-            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-       }
-    }
-
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    private void setDecisions(
-        int index, workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-      value.getClass();
-  ensureDecisionsIsMutable();
-      decisions_.set(index, value);
-    }
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    private void addDecisions(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-      value.getClass();
-  ensureDecisionsIsMutable();
-      decisions_.add(value);
-    }
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    private void addDecisions(
-        int index, workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-      value.getClass();
-  ensureDecisionsIsMutable();
-      decisions_.add(index, value);
-    }
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    private void addAllDecisions(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseDecision> values) {
-      ensureDecisionsIsMutable();
-      com.google.protobuf.AbstractMessageLite.addAll(
-          values, decisions_);
-    }
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    private void clearDecisions() {
-      decisions_ = emptyProtobufList();
-    }
-    /**
-     * <pre>
-     * What each exercise is given, decided by the core (plan) when the event
-     * is recorded. The workout's sets are laid out from these alone.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-     */
-    private void removeDecisions(int index) {
-      ensureDecisionsIsMutable();
-      decisions_.remove(index);
     }
 
     public static final int MOTIVATION_FIELD_NUMBER = 8;
@@ -12208,24 +12112,24 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
+       * The exercises, in order; empty means the template's.
        * </pre>
        *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
        * @return A list containing the exercises.
        */
       @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-        return instance.getExercisesList();
+      public java.util.List<java.lang.String>
+          getExercisesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExercisesList());
       }
       /**
        * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
+       * The exercises, in order; empty means the template's.
        * </pre>
        *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
        * @return The count of exercises.
        */
       @java.lang.Override
@@ -12234,72 +12138,83 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
+       * The exercises, in order; empty means the template's.
        * </pre>
        *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
        * @param index The index of the element to return.
        * @return The exercises at the given index.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
+      public java.lang.String getExercises(int index) {
         return instance.getExercises(index);
       }
       /**
        * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
+       * The exercises, in order; empty means the template's.
        * </pre>
        *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the exercises at the given index.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExercisesBytes(int index) {
+        return instance.getExercisesBytes(index);
+      }
+      /**
+       * <pre>
+       * The exercises, in order; empty means the template's.
+       * </pre>
+       *
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
        * @param index The index to set the value at.
        * @param value The exercises to set.
        * @return This builder for chaining.
        */
       public Builder setExercises(
-          int index, workout.v1.WorkoutOuterClass.Exercise value) {
+          int index, java.lang.String value) {
         copyOnWrite();
         instance.setExercises(index, value);
         return this;
       }
       /**
        * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
+       * The exercises, in order; empty means the template's.
        * </pre>
        *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
        * @param value The exercises to add.
        * @return This builder for chaining.
        */
-      public Builder addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder addExercises(
+          java.lang.String value) {
         copyOnWrite();
         instance.addExercises(value);
         return this;
       }
       /**
        * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
+       * The exercises, in order; empty means the template's.
        * </pre>
        *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
        * @param values The exercises to add.
        * @return This builder for chaining.
        */
       public Builder addAllExercises(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+          java.lang.Iterable<java.lang.String> values) {
         copyOnWrite();
-        instance.addAllExercises(values);  return this;
+        instance.addAllExercises(values);
+        return this;
       }
       /**
        * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
+       * The exercises, in order; empty means the template's.
        * </pre>
        *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercises() {
@@ -12309,84 +12224,23 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
+       * The exercises, in order; empty means the template's.
        * </pre>
        *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
-       * @return A list containing the enum numeric values on the wire for exercises.
-       */
-      @java.lang.Override
-      public java.util.List<java.lang.Integer>
-      getExercisesValueList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getExercisesValueList());
-      }
-      /**
-       * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
-       * @param index The index of the value to return.
-       * @return The enum numeric value on the wire of exercises at the given index.
-       */
-      @java.lang.Override
-      public int getExercisesValue(int index) {
-        return instance.getExercisesValue(index);
-      }
-      /**
-       * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
-       * @param index The index to set the value at.
-       * @param value The enum numeric value on the wire for exercises to set.
+       * <code>repeated string exercises = 9 [json_name = "exercises"];</code>
+       * @param value The bytes of the exercises to add.
        * @return This builder for chaining.
        */
-      public Builder setExercisesValue(
-          int index, int value) {
+      public Builder addExercisesBytes(
+          com.google.protobuf.ByteString value) {
         copyOnWrite();
-        instance.setExercisesValue(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
-       * @param value The enum numeric value on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addExercisesValue(int value) {
-        instance.addExercisesValue(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The exercises, in order: the template's when it names one (the
-       * library's of now for a coupled template), filled in by the core.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.Exercise exercises = 5 [json_name = "exercises"];</code>
-       * @param values The enum numeric values on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllExercisesValue(
-          java.lang.Iterable<java.lang.Integer> values) {
-        copyOnWrite();
-        instance.addAllExercisesValue(values);
+        instance.addExercisesBytes(value);
         return this;
       }
 
       /**
        * <pre>
-       * The time the user has; 0 = the default (60).
+       * The time the user has; 0 = the program's default.
        * </pre>
        *
        * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
@@ -12398,7 +12252,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The time the user has; 0 = the default (60).
+       * The time the user has; 0 = the program's default.
        * </pre>
        *
        * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
@@ -12412,7 +12266,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The time the user has; 0 = the default (60).
+       * The time the user has; 0 = the program's default.
        * </pre>
        *
        * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
@@ -12421,168 +12275,6 @@ public final class WorkoutOuterClass {
       public Builder clearBudgetMinutes() {
         copyOnWrite();
         instance.clearBudgetMinutes();
-        return this;
-      }
-
-      /**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.ExerciseDecision> getDecisionsList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getDecisionsList());
-      }
-      /**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      @java.lang.Override
-      public int getDecisionsCount() {
-        return instance.getDecisionsCount();
-      }/**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      @java.lang.Override
-      public workout.v1.WorkoutOuterClass.ExerciseDecision getDecisions(int index) {
-        return instance.getDecisions(index);
-      }
-      /**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      public Builder setDecisions(
-          int index, workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-        copyOnWrite();
-        instance.setDecisions(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      public Builder setDecisions(
-          int index, workout.v1.WorkoutOuterClass.ExerciseDecision.Builder builderForValue) {
-        copyOnWrite();
-        instance.setDecisions(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      public Builder addDecisions(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-        copyOnWrite();
-        instance.addDecisions(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      public Builder addDecisions(
-          int index, workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-        copyOnWrite();
-        instance.addDecisions(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      public Builder addDecisions(
-          workout.v1.WorkoutOuterClass.ExerciseDecision.Builder builderForValue) {
-        copyOnWrite();
-        instance.addDecisions(builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      public Builder addDecisions(
-          int index, workout.v1.WorkoutOuterClass.ExerciseDecision.Builder builderForValue) {
-        copyOnWrite();
-        instance.addDecisions(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      public Builder addAllDecisions(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseDecision> values) {
-        copyOnWrite();
-        instance.addAllDecisions(values);
-        return this;
-      }
-      /**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      public Builder clearDecisions() {
-        copyOnWrite();
-        instance.clearDecisions();
-        return this;
-      }
-      /**
-       * <pre>
-       * What each exercise is given, decided by the core (plan) when the event
-       * is recorded. The workout's sets are laid out from these alone.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 6 [json_name = "decisions"];</code>
-       */
-      public Builder removeDecisions(int index) {
-        copyOnWrite();
-        instance.removeDecisions(index);
         return this;
       }
 
@@ -12674,15 +12366,13 @@ public final class WorkoutOuterClass {
               "name_",
               "startedAt_",
               "templateId_",
-              "exercises_",
-              "decisions_",
-              workout.v1.WorkoutOuterClass.ExerciseDecision.class,
               "budgetMinutes_",
               "motivation_",
+              "exercises_",
             };
             java.lang.String info =
-                "\u0000\u0007\u0000\u0000\u0001\b\u0007\u0000\u0002\u0000\u0001\u0208\u0003\u0002" +
-                "\u0004\u0208\u0005,\u0006\u001b\u0007\u0004\b\u0208";
+                "\u0000\u0006\u0000\u0000\u0001\t\u0006\u0000\u0001\u0000\u0001\u0208\u0003\u0002" +
+                "\u0004\u0208\u0007\u0004\b\u0208\t\u021a";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -12827,6 +12517,32 @@ public final class WorkoutOuterClass {
      * <code>repeated .workout.v1.ExerciseLog exercise_logs = 9 [json_name = "exerciseLogs"];</code>
      */
     int getExerciseLogsCount();
+
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.ExerciseInfo> 
+        getExercisesList();
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    workout.v1.WorkoutOuterClass.ExerciseInfo getExercises(int index);
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    int getExercisesCount();
   }
   /**
    * Protobuf type {@code workout.v1.StartWorkoutResponse}
@@ -12841,6 +12557,7 @@ public final class WorkoutOuterClass {
       proposedSets_ = emptyProtobufList();
       completedSets_ = emptyProtobufList();
       exerciseLogs_ = emptyProtobufList();
+      exercises_ = emptyProtobufList();
     }
     public static final int ID_FIELD_NUMBER = 1;
     private java.lang.String id_;
@@ -13307,6 +13024,144 @@ public final class WorkoutOuterClass {
     private void removeExerciseLogs(int index) {
       ensureExerciseLogsIsMutable();
       exerciseLogs_.remove(index);
+    }
+
+    public static final int EXERCISES_FIELD_NUMBER = 10;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseInfo> exercises_;
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.ExerciseInfo> getExercisesList() {
+      return exercises_;
+    }
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.ExerciseInfoOrBuilder> 
+        getExercisesOrBuilderList() {
+      return exercises_;
+    }
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    @java.lang.Override
+    public int getExercisesCount() {
+      return exercises_.size();
+    }
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ExerciseInfo getExercises(int index) {
+      return exercises_.get(index);
+    }
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.ExerciseInfoOrBuilder getExercisesOrBuilder(
+        int index) {
+      return exercises_.get(index);
+    }
+    private void ensureExercisesIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseInfo> tmp = exercises_;
+      if (!tmp.isModifiable()) {
+        exercises_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    private void setExercises(
+        int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+      value.getClass();
+  ensureExercisesIsMutable();
+      exercises_.set(index, value);
+    }
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    private void addExercises(workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+      value.getClass();
+  ensureExercisesIsMutable();
+      exercises_.add(value);
+    }
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    private void addExercises(
+        int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+      value.getClass();
+  ensureExercisesIsMutable();
+      exercises_.add(index, value);
+    }
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    private void addAllExercises(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseInfo> values) {
+      ensureExercisesIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exercises_);
+    }
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    private void clearExercises() {
+      exercises_ = emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * As GetWorkoutResponse.exercises.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+     */
+    private void removeExercises(int index) {
+      ensureExercisesIsMutable();
+      exercises_.remove(index);
     }
 
     public static workout.v1.WorkoutOuterClass.StartWorkoutResponse parseFrom(
@@ -13900,6 +13755,156 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.ExerciseInfo> getExercisesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExercisesList());
+      }
+      /**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      @java.lang.Override
+      public int getExercisesCount() {
+        return instance.getExercisesCount();
+      }/**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ExerciseInfo getExercises(int index) {
+        return instance.getExercises(index);
+      }
+      /**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      public Builder setExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+        copyOnWrite();
+        instance.setExercises(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      public Builder setExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo.Builder builderForValue) {
+        copyOnWrite();
+        instance.setExercises(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+        copyOnWrite();
+        instance.addExercises(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+        copyOnWrite();
+        instance.addExercises(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(
+          workout.v1.WorkoutOuterClass.ExerciseInfo.Builder builderForValue) {
+        copyOnWrite();
+        instance.addExercises(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo.Builder builderForValue) {
+        copyOnWrite();
+        instance.addExercises(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      public Builder addAllExercises(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseInfo> values) {
+        copyOnWrite();
+        instance.addAllExercises(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      public Builder clearExercises() {
+        copyOnWrite();
+        instance.clearExercises();
+        return this;
+      }
+      /**
+       * <pre>
+       * As GetWorkoutResponse.exercises.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 10 [json_name = "exercises"];</code>
+       */
+      public Builder removeExercises(int index) {
+        copyOnWrite();
+        instance.removeExercises(index);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.StartWorkoutResponse)
     }
     @java.lang.Override
@@ -13926,10 +13931,12 @@ public final class WorkoutOuterClass {
               "stateSnapshot_",
               "exerciseLogs_",
               workout.v1.WorkoutOuterClass.ExerciseLog.class,
+              "exercises_",
+              workout.v1.WorkoutOuterClass.ExerciseInfo.class,
             };
             java.lang.String info =
-                "\u0000\u0007\u0000\u0000\u0001\t\u0007\u0000\u0003\u0000\u0001\u0208\u0002\t\u0004" +
-                "\u001b\u0005\u001b\u0006\t\u0007\t\t\u001b";
+                "\u0000\b\u0000\u0000\u0001\n\b\u0000\u0004\u0000\u0001\u0208\u0002\t\u0004\u001b" +
+                "\u0005\u001b\u0006\t\u0007\t\t\u001b\n\u001b";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -14281,15 +14288,16 @@ public final class WorkoutOuterClass {
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    int getExerciseValue();
-    /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 8 [json_name = "exercise"];</code>
      * @return The exercise.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercise();
+    java.lang.String getExercise();
+    /**
+     * <code>string exercise = 8 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
+     */
+    com.google.protobuf.ByteString
+        getExerciseBytes();
 
     /**
      * <code>int32 total_sets = 2 [json_name = "totalSets"];</code>
@@ -14333,6 +14341,26 @@ public final class WorkoutOuterClass {
      * @return The estimatedMaxAfter.
      */
     float getEstimatedMaxAfter();
+
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 9 [json_name = "name"];</code>
+     * @return The name.
+     */
+    java.lang.String getName();
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 9 [json_name = "name"];</code>
+     * @return The bytes for name.
+     */
+    com.google.protobuf.ByteString
+        getNameBytes();
   }
   /**
    * <pre>
@@ -14347,47 +14375,54 @@ public final class WorkoutOuterClass {
       // @@protoc_insertion_point(message_implements:workout.v1.ExerciseSummary)
       ExerciseSummaryOrBuilder {
     private ExerciseSummary() {
+      exercise_ = "";
+      name_ = "";
     }
-    public static final int EXERCISE_FIELD_NUMBER = 1;
-    private int exercise_;
+    public static final int EXERCISE_FIELD_NUMBER = 8;
+    private java.lang.String exercise_;
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    @java.lang.Override
-    public int getExerciseValue() {
-      return exercise_;
-    }
-    /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 8 [json_name = "exercise"];</code>
      * @return The exercise.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercise() {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercise_);
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercise() {
+      return exercise_;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @param value The enum numeric value on the wire for exercise to set.
+     * <code>string exercise = 8 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
      */
-    private void setExerciseValue(int value) {
-        exercise_ = value;
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getExerciseBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(exercise_);
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 8 [json_name = "exercise"];</code>
      * @param value The exercise to set.
      */
-    private void setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
-      exercise_ = value.getNumber();
-      
+    private void setExercise(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      exercise_ = value;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 8 [json_name = "exercise"];</code>
      */
     private void clearExercise() {
       
-      exercise_ = 0;
+      exercise_ = getDefaultInstance().getExercise();
+    }
+    /**
+     * <code>string exercise = 8 [json_name = "exercise"];</code>
+     * @param value The bytes for exercise to set.
+     */
+    private void setExerciseBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      exercise_ = value.toStringUtf8();
+      
     }
 
     public static final int TOTAL_SETS_FIELD_NUMBER = 2;
@@ -14559,6 +14594,73 @@ public final class WorkoutOuterClass {
       estimatedMaxAfter_ = 0F;
     }
 
+    public static final int NAME_FIELD_NUMBER = 9;
+    private java.lang.String name_;
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 9 [json_name = "name"];</code>
+     * @return The name.
+     */
+    @java.lang.Override
+    public java.lang.String getName() {
+      return name_;
+    }
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 9 [json_name = "name"];</code>
+     * @return The bytes for name.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getNameBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(name_);
+    }
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 9 [json_name = "name"];</code>
+     * @param value The name to set.
+     */
+    private void setName(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      name_ = value;
+    }
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 9 [json_name = "name"];</code>
+     */
+    private void clearName() {
+      
+      name_ = getDefaultInstance().getName();
+    }
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 9 [json_name = "name"];</code>
+     * @param value The bytes for name to set.
+     */
+    private void setNameBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      name_ = value.toStringUtf8();
+      
+    }
+
     public static workout.v1.WorkoutOuterClass.ExerciseSummary parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -14659,48 +14761,51 @@ public final class WorkoutOuterClass {
 
 
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @return The enum numeric value on the wire for exercise.
-       */
-      @java.lang.Override
-      public int getExerciseValue() {
-        return instance.getExerciseValue();
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @param value The exercise to set.
-       * @return This builder for chaining.
-       */
-      public Builder setExerciseValue(int value) {
-        copyOnWrite();
-        instance.setExerciseValue(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+       * <code>string exercise = 8 [json_name = "exercise"];</code>
        * @return The exercise.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercise() {
+      public java.lang.String getExercise() {
         return instance.getExercise();
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @param value The enum numeric value on the wire for exercise to set.
+       * <code>string exercise = 8 [json_name = "exercise"];</code>
+       * @return The bytes for exercise.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExerciseBytes() {
+        return instance.getExerciseBytes();
+      }
+      /**
+       * <code>string exercise = 8 [json_name = "exercise"];</code>
+       * @param value The exercise to set.
        * @return This builder for chaining.
        */
-      public Builder setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder setExercise(
+          java.lang.String value) {
         copyOnWrite();
         instance.setExercise(value);
         return this;
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+       * <code>string exercise = 8 [json_name = "exercise"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercise() {
         copyOnWrite();
         instance.clearExercise();
+        return this;
+      }
+      /**
+       * <code>string exercise = 8 [json_name = "exercise"];</code>
+       * @param value The bytes for exercise to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExerciseBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setExerciseBytes(value);
         return this;
       }
 
@@ -14883,6 +14988,75 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * What the person's program calls the lift.
+       * </pre>
+       *
+       * <code>string name = 9 [json_name = "name"];</code>
+       * @return The name.
+       */
+      @java.lang.Override
+      public java.lang.String getName() {
+        return instance.getName();
+      }
+      /**
+       * <pre>
+       * What the person's program calls the lift.
+       * </pre>
+       *
+       * <code>string name = 9 [json_name = "name"];</code>
+       * @return The bytes for name.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getNameBytes() {
+        return instance.getNameBytes();
+      }
+      /**
+       * <pre>
+       * What the person's program calls the lift.
+       * </pre>
+       *
+       * <code>string name = 9 [json_name = "name"];</code>
+       * @param value The name to set.
+       * @return This builder for chaining.
+       */
+      public Builder setName(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setName(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * What the person's program calls the lift.
+       * </pre>
+       *
+       * <code>string name = 9 [json_name = "name"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearName() {
+        copyOnWrite();
+        instance.clearName();
+        return this;
+      }
+      /**
+       * <pre>
+       * What the person's program calls the lift.
+       * </pre>
+       *
+       * <code>string name = 9 [json_name = "name"];</code>
+       * @param value The bytes for name to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNameBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setNameBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.ExerciseSummary)
     }
     @java.lang.Override
@@ -14899,16 +15073,17 @@ public final class WorkoutOuterClass {
         }
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
-              "exercise_",
               "totalSets_",
               "totalReps_",
               "totalVolume_",
               "heaviestSetWeight_",
               "estimatedMaxAfter_",
+              "exercise_",
+              "name_",
             };
             java.lang.String info =
-                "\u0000\u0006\u0000\u0000\u0001\u0007\u0006\u0000\u0000\u0000\u0001\f\u0002\u0004" +
-                "\u0003\u0004\u0004\u0001\u0006\u0001\u0007\u0001";
+                "\u0000\u0007\u0000\u0000\u0002\t\u0007\u0000\u0000\u0000\u0002\u0004\u0003\u0004" +
+                "\u0004\u0001\u0006\u0001\u0007\u0001\b\u0208\t\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -16131,6 +16306,35 @@ public final class WorkoutOuterClass {
      * <code>repeated .workout.v1.ExerciseLog exercise_logs = 11 [json_name = "exerciseLogs"];</code>
      */
     int getExerciseLogsCount();
+
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.ExerciseInfo> 
+        getExercisesList();
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    workout.v1.WorkoutOuterClass.ExerciseInfo getExercises(int index);
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    int getExercisesCount();
   }
   /**
    * Protobuf type {@code workout.v1.GetWorkoutResponse}
@@ -16148,6 +16352,7 @@ public final class WorkoutOuterClass {
       passedWarmupIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
       firstTimeSetIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
       exerciseLogs_ = emptyProtobufList();
+      exercises_ = emptyProtobufList();
     }
     public static final int WORKOUT_FIELD_NUMBER = 1;
     private workout.v1.WorkoutOuterClass.Workout workout_;
@@ -17184,6 +17389,155 @@ public final class WorkoutOuterClass {
     private void removeExerciseLogs(int index) {
       ensureExerciseLogsIsMutable();
       exerciseLogs_.remove(index);
+    }
+
+    public static final int EXERCISES_FIELD_NUMBER = 15;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseInfo> exercises_;
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.ExerciseInfo> getExercisesList() {
+      return exercises_;
+    }
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.ExerciseInfoOrBuilder> 
+        getExercisesOrBuilderList() {
+      return exercises_;
+    }
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    @java.lang.Override
+    public int getExercisesCount() {
+      return exercises_.size();
+    }
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ExerciseInfo getExercises(int index) {
+      return exercises_.get(index);
+    }
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.ExerciseInfoOrBuilder getExercisesOrBuilder(
+        int index) {
+      return exercises_.get(index);
+    }
+    private void ensureExercisesIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseInfo> tmp = exercises_;
+      if (!tmp.isModifiable()) {
+        exercises_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    private void setExercises(
+        int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+      value.getClass();
+  ensureExercisesIsMutable();
+      exercises_.set(index, value);
+    }
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    private void addExercises(workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+      value.getClass();
+  ensureExercisesIsMutable();
+      exercises_.add(value);
+    }
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    private void addExercises(
+        int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+      value.getClass();
+  ensureExercisesIsMutable();
+      exercises_.add(index, value);
+    }
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    private void addAllExercises(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseInfo> values) {
+      ensureExercisesIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exercises_);
+    }
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    private void clearExercises() {
+      exercises_ = emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * The workout's lifts as the program it was planned under defines them:
+     * what to call a lift, whoever's program it came from.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+     */
+    private void removeExercises(int index) {
+      ensureExercisesIsMutable();
+      exercises_.remove(index);
     }
 
     public static workout.v1.WorkoutOuterClass.GetWorkoutResponse parseFrom(
@@ -18364,6 +18718,168 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.ExerciseInfo> getExercisesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExercisesList());
+      }
+      /**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      @java.lang.Override
+      public int getExercisesCount() {
+        return instance.getExercisesCount();
+      }/**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ExerciseInfo getExercises(int index) {
+        return instance.getExercises(index);
+      }
+      /**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      public Builder setExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+        copyOnWrite();
+        instance.setExercises(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      public Builder setExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo.Builder builderForValue) {
+        copyOnWrite();
+        instance.setExercises(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+        copyOnWrite();
+        instance.addExercises(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+        copyOnWrite();
+        instance.addExercises(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(
+          workout.v1.WorkoutOuterClass.ExerciseInfo.Builder builderForValue) {
+        copyOnWrite();
+        instance.addExercises(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo.Builder builderForValue) {
+        copyOnWrite();
+        instance.addExercises(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      public Builder addAllExercises(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseInfo> values) {
+        copyOnWrite();
+        instance.addAllExercises(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      public Builder clearExercises() {
+        copyOnWrite();
+        instance.clearExercises();
+        return this;
+      }
+      /**
+       * <pre>
+       * The workout's lifts as the program it was planned under defines them:
+       * what to call a lift, whoever's program it came from.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 15 [json_name = "exercises"];</code>
+       */
+      public Builder removeExercises(int index) {
+        copyOnWrite();
+        instance.removeExercises(index);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.GetWorkoutResponse)
     }
     @java.lang.Override
@@ -18395,10 +18911,12 @@ public final class WorkoutOuterClass {
               "rungOutcomes_",
               workout.v1.WorkoutOuterClass.RungOutcome.class,
               "firstTimeSetIds_",
+              "exercises_",
+              workout.v1.WorkoutOuterClass.ExerciseInfo.class,
             };
             java.lang.String info =
-                "\u0000\u000b\u0000\u0000\u0001\u000e\u000b\u0000\u0006\u0000\u0001\t\u0003\u001b" +
-                "\u0004\u001b\u0005\t\u0007\t\t\t\n\u021a\u000b\u001b\f\u0208\r\u001b\u000e\u021a" +
+                "\u0000\f\u0000\u0000\u0001\u000f\f\u0000\u0007\u0000\u0001\t\u0003\u001b\u0004\u001b" +
+                "\u0005\t\u0007\t\t\t\n\u021a\u000b\u001b\f\u0208\r\u001b\u000e\u021a\u000f\u001b" +
                 "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
@@ -20969,15 +21487,16 @@ public final class WorkoutOuterClass {
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    int getExerciseValue();
-    /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
      * @return The exercise.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercise();
+    java.lang.String getExercise();
+    /**
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
+     */
+    com.google.protobuf.ByteString
+        getExerciseBytes();
 
     /**
      * <pre>
@@ -21015,6 +21534,26 @@ public final class WorkoutOuterClass {
      * @return The bodyweight.
      */
     boolean getBodyweight();
+
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 5 [json_name = "name"];</code>
+     * @return The name.
+     */
+    java.lang.String getName();
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 5 [json_name = "name"];</code>
+     * @return The bytes for name.
+     */
+    com.google.protobuf.ByteString
+        getNameBytes();
   }
   /**
    * Protobuf type {@code workout.v1.ExerciseProgress}
@@ -21025,48 +21564,55 @@ public final class WorkoutOuterClass {
       // @@protoc_insertion_point(message_implements:workout.v1.ExerciseProgress)
       ExerciseProgressOrBuilder {
     private ExerciseProgress() {
+      exercise_ = "";
       points_ = emptyProtobufList();
+      name_ = "";
     }
-    public static final int EXERCISE_FIELD_NUMBER = 1;
-    private int exercise_;
+    public static final int EXERCISE_FIELD_NUMBER = 4;
+    private java.lang.String exercise_;
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    @java.lang.Override
-    public int getExerciseValue() {
-      return exercise_;
-    }
-    /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
      * @return The exercise.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercise() {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercise_);
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercise() {
+      return exercise_;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @param value The enum numeric value on the wire for exercise to set.
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
      */
-    private void setExerciseValue(int value) {
-        exercise_ = value;
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getExerciseBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(exercise_);
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
      * @param value The exercise to set.
      */
-    private void setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
-      exercise_ = value.getNumber();
-      
+    private void setExercise(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      exercise_ = value;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
      */
     private void clearExercise() {
       
-      exercise_ = 0;
+      exercise_ = getDefaultInstance().getExercise();
+    }
+    /**
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
+     * @param value The bytes for exercise to set.
+     */
+    private void setExerciseBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      exercise_ = value.toStringUtf8();
+      
     }
 
     public static final int POINTS_FIELD_NUMBER = 2;
@@ -21248,6 +21794,73 @@ public final class WorkoutOuterClass {
       bodyweight_ = false;
     }
 
+    public static final int NAME_FIELD_NUMBER = 5;
+    private java.lang.String name_;
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 5 [json_name = "name"];</code>
+     * @return The name.
+     */
+    @java.lang.Override
+    public java.lang.String getName() {
+      return name_;
+    }
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 5 [json_name = "name"];</code>
+     * @return The bytes for name.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getNameBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(name_);
+    }
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 5 [json_name = "name"];</code>
+     * @param value The name to set.
+     */
+    private void setName(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      name_ = value;
+    }
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 5 [json_name = "name"];</code>
+     */
+    private void clearName() {
+      
+      name_ = getDefaultInstance().getName();
+    }
+    /**
+     * <pre>
+     * What the person's program calls the lift.
+     * </pre>
+     *
+     * <code>string name = 5 [json_name = "name"];</code>
+     * @param value The bytes for name to set.
+     */
+    private void setNameBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      name_ = value.toStringUtf8();
+      
+    }
+
     public static workout.v1.WorkoutOuterClass.ExerciseProgress parseFrom(
         java.nio.ByteBuffer data)
         throws com.google.protobuf.InvalidProtocolBufferException {
@@ -21344,48 +21957,51 @@ public final class WorkoutOuterClass {
 
 
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @return The enum numeric value on the wire for exercise.
-       */
-      @java.lang.Override
-      public int getExerciseValue() {
-        return instance.getExerciseValue();
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @param value The exercise to set.
-       * @return This builder for chaining.
-       */
-      public Builder setExerciseValue(int value) {
-        copyOnWrite();
-        instance.setExerciseValue(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+       * <code>string exercise = 4 [json_name = "exercise"];</code>
        * @return The exercise.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercise() {
+      public java.lang.String getExercise() {
         return instance.getExercise();
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @param value The enum numeric value on the wire for exercise to set.
+       * <code>string exercise = 4 [json_name = "exercise"];</code>
+       * @return The bytes for exercise.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExerciseBytes() {
+        return instance.getExerciseBytes();
+      }
+      /**
+       * <code>string exercise = 4 [json_name = "exercise"];</code>
+       * @param value The exercise to set.
        * @return This builder for chaining.
        */
-      public Builder setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder setExercise(
+          java.lang.String value) {
         copyOnWrite();
         instance.setExercise(value);
         return this;
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+       * <code>string exercise = 4 [json_name = "exercise"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercise() {
         copyOnWrite();
         instance.clearExercise();
+        return this;
+      }
+      /**
+       * <code>string exercise = 4 [json_name = "exercise"];</code>
+       * @param value The bytes for exercise to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExerciseBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setExerciseBytes(value);
         return this;
       }
 
@@ -21582,6 +22198,75 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * What the person's program calls the lift.
+       * </pre>
+       *
+       * <code>string name = 5 [json_name = "name"];</code>
+       * @return The name.
+       */
+      @java.lang.Override
+      public java.lang.String getName() {
+        return instance.getName();
+      }
+      /**
+       * <pre>
+       * What the person's program calls the lift.
+       * </pre>
+       *
+       * <code>string name = 5 [json_name = "name"];</code>
+       * @return The bytes for name.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getNameBytes() {
+        return instance.getNameBytes();
+      }
+      /**
+       * <pre>
+       * What the person's program calls the lift.
+       * </pre>
+       *
+       * <code>string name = 5 [json_name = "name"];</code>
+       * @param value The name to set.
+       * @return This builder for chaining.
+       */
+      public Builder setName(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setName(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * What the person's program calls the lift.
+       * </pre>
+       *
+       * <code>string name = 5 [json_name = "name"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearName() {
+        copyOnWrite();
+        instance.clearName();
+        return this;
+      }
+      /**
+       * <pre>
+       * What the person's program calls the lift.
+       * </pre>
+       *
+       * <code>string name = 5 [json_name = "name"];</code>
+       * @param value The bytes for name to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNameBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setNameBytes(value);
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.ExerciseProgress)
     }
     @java.lang.Override
@@ -21598,14 +22283,15 @@ public final class WorkoutOuterClass {
         }
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
-              "exercise_",
               "points_",
               workout.v1.WorkoutOuterClass.ExerciseProgressPoint.class,
               "bodyweight_",
+              "exercise_",
+              "name_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0001\u0000\u0001\f\u0002\u001b" +
-                "\u0003\u0007";
+                "\u0000\u0004\u0000\u0000\u0002\u0005\u0004\u0000\u0001\u0000\u0002\u001b\u0003\u0007" +
+                "\u0004\u0208\u0005\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -22596,65 +23282,29 @@ public final class WorkoutOuterClass {
         getWorkoutIdBytes();
 
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
-    java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList();
+    java.util.List<java.lang.String>
+        getExercisesList();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     int getExercisesCount();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercises(int index);
+    java.lang.String getExercises(int index);
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
+     * @param index The index of the element to return.
+     * @return The exercises at the given index.
      */
-    java.util.List<java.lang.Integer>
-    getExercisesValueList();
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
-     */
-    int getExercisesValue(int index);
-
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    java.util.List<workout.v1.WorkoutOuterClass.ExerciseDecision> 
-        getDecisionsList();
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    workout.v1.WorkoutOuterClass.ExerciseDecision getDecisions(int index);
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    int getDecisionsCount();
+    com.google.protobuf.ByteString
+        getExercisesBytes(int index);
   }
   /**
    * <pre>
@@ -22670,8 +23320,7 @@ public final class WorkoutOuterClass {
       AddExercisesRequestOrBuilder {
     private AddExercisesRequest() {
       workoutId_ = "";
-      exercises_ = emptyIntList();
-      decisions_ = emptyProtobufList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     public static final int WORKOUT_ID_FIELD_NUMBER = 1;
     private java.lang.String workoutId_;
@@ -22720,29 +23369,18 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int EXERCISES_FIELD_NUMBER = 2;
-    private com.google.protobuf.Internal.IntList exercises_;
-    private static final com.google.protobuf.Internal.ListAdapter.Converter<
-        java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise> exercises_converter_ =
-            new com.google.protobuf.Internal.ListAdapter.Converter<
-                java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>() {
-              @java.lang.Override
-              public workout.v1.WorkoutOuterClass.Exercise convert(java.lang.Integer from) {
-                workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(from);
-                return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
-              }
-            };
+    public static final int EXERCISES_FIELD_NUMBER = 5;
+    private com.google.protobuf.Internal.ProtobufList<java.lang.String> exercises_;
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
     @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-      return new com.google.protobuf.Internal.ListAdapter<
-          java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>(exercises_, exercises_converter_);
+    public java.util.List<java.lang.String> getExercisesList() {
+      return exercises_;
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     @java.lang.Override
@@ -22750,265 +23388,78 @@ public final class WorkoutOuterClass {
       return exercises_.size();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercises_.getInt(index));
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercises(int index) {
+      return exercises_.get(index);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
-     */
-    @java.lang.Override
-    public java.util.List<java.lang.Integer>
-    getExercisesValueList() {
-      return exercises_;
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
      * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
+     * @return The bytes of the exercises at the given index.
      */
     @java.lang.Override
-    public int getExercisesValue(int index) {
-      return exercises_.getInt(index);
+    public com.google.protobuf.ByteString
+        getExercisesBytes(int index) {
+      return com.google.protobuf.ByteString.copyFromUtf8(
+          exercises_.get(index));
     }
-    private int exercisesMemoizedSerializedSize;
     private void ensureExercisesIsMutable() {
-      com.google.protobuf.Internal.IntList tmp = exercises_;
-      if (!tmp.isModifiable()) {
+      com.google.protobuf.Internal.ProtobufList<java.lang.String> tmp =
+          exercises_;  if (!tmp.isModifiable()) {
         exercises_ =
             com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-      }
+       }
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
      * @param index The index to set the value at.
      * @param value The exercises to set.
      */
     private void setExercises(
-        int index, workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+        int index, java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.setInt(index, value.getNumber());
+      exercises_.set(index, value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
      * @param value The exercises to add.
      */
-    private void addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+    private void addExercises(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.addInt(value.getNumber());
+      exercises_.add(value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
      * @param values The exercises to add.
      */
     private void addAllExercises(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+        java.lang.Iterable<java.lang.String> values) {
       ensureExercisesIsMutable();
-      for (workout.v1.WorkoutOuterClass.Exercise value : values) {
-        exercises_.addInt(value.getNumber());
-      }
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exercises_);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
      */
     private void clearExercises() {
-      exercises_ = emptyIntList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to set.
+     * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
+     * @param value The bytes of the exercises to add.
      */
-    private void setExercisesValue(
-        int index, int value) {
+    private void addExercisesBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
       ensureExercisesIsMutable();
-      exercises_.setInt(index, value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to add.
-     */
-    private void addExercisesValue(int value) {
-      ensureExercisesIsMutable();
-      exercises_.addInt(value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @param values The enum numeric values on the wire for exercises to add.
-     */
-    private void addAllExercisesValue(
-        java.lang.Iterable<java.lang.Integer> values) {
-      ensureExercisesIsMutable();
-      for (int value : values) {
-        exercises_.addInt(value);
-      }
-    }
-
-    public static final int DECISIONS_FIELD_NUMBER = 4;
-    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseDecision> decisions_;
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.ExerciseDecision> getDecisionsList() {
-      return decisions_;
-    }
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    public java.util.List<? extends workout.v1.WorkoutOuterClass.ExerciseDecisionOrBuilder> 
-        getDecisionsOrBuilderList() {
-      return decisions_;
-    }
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    @java.lang.Override
-    public int getDecisionsCount() {
-      return decisions_.size();
-    }
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    @java.lang.Override
-    public workout.v1.WorkoutOuterClass.ExerciseDecision getDecisions(int index) {
-      return decisions_.get(index);
-    }
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    public workout.v1.WorkoutOuterClass.ExerciseDecisionOrBuilder getDecisionsOrBuilder(
-        int index) {
-      return decisions_.get(index);
-    }
-    private void ensureDecisionsIsMutable() {
-      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseDecision> tmp = decisions_;
-      if (!tmp.isModifiable()) {
-        decisions_ =
-            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-       }
-    }
-
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    private void setDecisions(
-        int index, workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-      value.getClass();
-  ensureDecisionsIsMutable();
-      decisions_.set(index, value);
-    }
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    private void addDecisions(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-      value.getClass();
-  ensureDecisionsIsMutable();
-      decisions_.add(value);
-    }
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    private void addDecisions(
-        int index, workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-      value.getClass();
-  ensureDecisionsIsMutable();
-      decisions_.add(index, value);
-    }
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    private void addAllDecisions(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseDecision> values) {
-      ensureDecisionsIsMutable();
-      com.google.protobuf.AbstractMessageLite.addAll(
-          values, decisions_);
-    }
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    private void clearDecisions() {
-      decisions_ = emptyProtobufList();
-    }
-    /**
-     * <pre>
-     * What each added exercise is given, decided by the core (plan) when the
-     * event is recorded, in the workout's budget; the lifts already planned
-     * keep theirs.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-     */
-    private void removeDecisions(int index) {
-      ensureDecisionsIsMutable();
-      decisions_.remove(index);
+      exercises_.add(value.toStringUtf8());
     }
 
     public static workout.v1.WorkoutOuterClass.AddExercisesRequest parseFrom(
@@ -23160,15 +23611,17 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
        * @return A list containing the exercises.
        */
       @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-        return instance.getExercisesList();
+      public java.util.List<java.lang.String>
+          getExercisesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExercisesList());
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
        * @return The count of exercises.
        */
       @java.lang.Override
@@ -23176,48 +23629,60 @@ public final class WorkoutOuterClass {
         return instance.getExercisesCount();
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
        * @param index The index of the element to return.
        * @return The exercises at the given index.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
+      public java.lang.String getExercises(int index) {
         return instance.getExercises(index);
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the exercises at the given index.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExercisesBytes(int index) {
+        return instance.getExercisesBytes(index);
+      }
+      /**
+       * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
        * @param index The index to set the value at.
        * @param value The exercises to set.
        * @return This builder for chaining.
        */
       public Builder setExercises(
-          int index, workout.v1.WorkoutOuterClass.Exercise value) {
+          int index, java.lang.String value) {
         copyOnWrite();
         instance.setExercises(index, value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
        * @param value The exercises to add.
        * @return This builder for chaining.
        */
-      public Builder addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder addExercises(
+          java.lang.String value) {
         copyOnWrite();
         instance.addExercises(value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
        * @param values The exercises to add.
        * @return This builder for chaining.
        */
       public Builder addAllExercises(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+          java.lang.Iterable<java.lang.String> values) {
         copyOnWrite();
-        instance.addAllExercises(values);  return this;
+        instance.addAllExercises(values);
+        return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercises() {
@@ -23226,228 +23691,14 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-       * @return A list containing the enum numeric values on the wire for exercises.
-       */
-      @java.lang.Override
-      public java.util.List<java.lang.Integer>
-      getExercisesValueList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getExercisesValueList());
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-       * @param index The index of the value to return.
-       * @return The enum numeric value on the wire of exercises at the given index.
-       */
-      @java.lang.Override
-      public int getExercisesValue(int index) {
-        return instance.getExercisesValue(index);
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-       * @param index The index to set the value at.
-       * @param value The enum numeric value on the wire for exercises to set.
+       * <code>repeated string exercises = 5 [json_name = "exercises"];</code>
+       * @param value The bytes of the exercises to add.
        * @return This builder for chaining.
        */
-      public Builder setExercisesValue(
-          int index, int value) {
+      public Builder addExercisesBytes(
+          com.google.protobuf.ByteString value) {
         copyOnWrite();
-        instance.setExercisesValue(index, value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-       * @param value The enum numeric value on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addExercisesValue(int value) {
-        instance.addExercisesValue(value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-       * @param values The enum numeric values on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllExercisesValue(
-          java.lang.Iterable<java.lang.Integer> values) {
-        copyOnWrite();
-        instance.addAllExercisesValue(values);
-        return this;
-      }
-
-      /**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.ExerciseDecision> getDecisionsList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getDecisionsList());
-      }
-      /**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      @java.lang.Override
-      public int getDecisionsCount() {
-        return instance.getDecisionsCount();
-      }/**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      @java.lang.Override
-      public workout.v1.WorkoutOuterClass.ExerciseDecision getDecisions(int index) {
-        return instance.getDecisions(index);
-      }
-      /**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      public Builder setDecisions(
-          int index, workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-        copyOnWrite();
-        instance.setDecisions(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      public Builder setDecisions(
-          int index, workout.v1.WorkoutOuterClass.ExerciseDecision.Builder builderForValue) {
-        copyOnWrite();
-        instance.setDecisions(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      public Builder addDecisions(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-        copyOnWrite();
-        instance.addDecisions(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      public Builder addDecisions(
-          int index, workout.v1.WorkoutOuterClass.ExerciseDecision value) {
-        copyOnWrite();
-        instance.addDecisions(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      public Builder addDecisions(
-          workout.v1.WorkoutOuterClass.ExerciseDecision.Builder builderForValue) {
-        copyOnWrite();
-        instance.addDecisions(builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      public Builder addDecisions(
-          int index, workout.v1.WorkoutOuterClass.ExerciseDecision.Builder builderForValue) {
-        copyOnWrite();
-        instance.addDecisions(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      public Builder addAllDecisions(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseDecision> values) {
-        copyOnWrite();
-        instance.addAllDecisions(values);
-        return this;
-      }
-      /**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      public Builder clearDecisions() {
-        copyOnWrite();
-        instance.clearDecisions();
-        return this;
-      }
-      /**
-       * <pre>
-       * What each added exercise is given, decided by the core (plan) when the
-       * event is recorded, in the workout's budget; the lifts already planned
-       * keep theirs.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseDecision decisions = 4 [json_name = "decisions"];</code>
-       */
-      public Builder removeDecisions(int index) {
-        copyOnWrite();
-        instance.removeDecisions(index);
+        instance.addExercisesBytes(value);
         return this;
       }
 
@@ -23469,12 +23720,10 @@ public final class WorkoutOuterClass {
             java.lang.Object[] objects = new java.lang.Object[] {
               "workoutId_",
               "exercises_",
-              "decisions_",
-              workout.v1.WorkoutOuterClass.ExerciseDecision.class,
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0004\u0003\u0000\u0002\u0000\u0001\u0208\u0002,\u0004" +
-                "\u001b";
+                "\u0000\u0002\u0000\u0000\u0001\u0005\u0002\u0000\u0001\u0000\u0001\u0208\u0005\u021a" +
+                "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -23546,15 +23795,16 @@ public final class WorkoutOuterClass {
         getWorkoutIdBytes();
 
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    int getExerciseValue();
-    /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 6 [json_name = "exercise"];</code>
      * @return The exercise.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercise();
+    java.lang.String getExercise();
+    /**
+     * <code>string exercise = 6 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
+     */
+    com.google.protobuf.ByteString
+        getExerciseBytes();
 
     /**
      * <pre>
@@ -23602,6 +23852,7 @@ public final class WorkoutOuterClass {
       AdjustExerciseWeightRequestOrBuilder {
     private AdjustExerciseWeightRequest() {
       workoutId_ = "";
+      exercise_ = "";
     }
     public static final int WORKOUT_ID_FIELD_NUMBER = 1;
     private java.lang.String workoutId_;
@@ -23650,46 +23901,51 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int EXERCISE_FIELD_NUMBER = 2;
-    private int exercise_;
+    public static final int EXERCISE_FIELD_NUMBER = 6;
+    private java.lang.String exercise_;
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    @java.lang.Override
-    public int getExerciseValue() {
-      return exercise_;
-    }
-    /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 6 [json_name = "exercise"];</code>
      * @return The exercise.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercise() {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercise_);
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercise() {
+      return exercise_;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-     * @param value The enum numeric value on the wire for exercise to set.
+     * <code>string exercise = 6 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
      */
-    private void setExerciseValue(int value) {
-        exercise_ = value;
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getExerciseBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(exercise_);
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 6 [json_name = "exercise"];</code>
      * @param value The exercise to set.
      */
-    private void setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
-      exercise_ = value.getNumber();
-      
+    private void setExercise(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      exercise_ = value;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 6 [json_name = "exercise"];</code>
      */
     private void clearExercise() {
       
-      exercise_ = 0;
+      exercise_ = getDefaultInstance().getExercise();
+    }
+    /**
+     * <code>string exercise = 6 [json_name = "exercise"];</code>
+     * @param value The bytes for exercise to set.
+     */
+    private void setExerciseBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      exercise_ = value.toStringUtf8();
+      
     }
 
     public static final int WORKING_WEIGHT_FIELD_NUMBER = 3;
@@ -23959,48 +24215,51 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-       * @return The enum numeric value on the wire for exercise.
-       */
-      @java.lang.Override
-      public int getExerciseValue() {
-        return instance.getExerciseValue();
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-       * @param value The exercise to set.
-       * @return This builder for chaining.
-       */
-      public Builder setExerciseValue(int value) {
-        copyOnWrite();
-        instance.setExerciseValue(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+       * <code>string exercise = 6 [json_name = "exercise"];</code>
        * @return The exercise.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercise() {
+      public java.lang.String getExercise() {
         return instance.getExercise();
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-       * @param value The enum numeric value on the wire for exercise to set.
+       * <code>string exercise = 6 [json_name = "exercise"];</code>
+       * @return The bytes for exercise.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExerciseBytes() {
+        return instance.getExerciseBytes();
+      }
+      /**
+       * <code>string exercise = 6 [json_name = "exercise"];</code>
+       * @param value The exercise to set.
        * @return This builder for chaining.
        */
-      public Builder setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder setExercise(
+          java.lang.String value) {
         copyOnWrite();
         instance.setExercise(value);
         return this;
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+       * <code>string exercise = 6 [json_name = "exercise"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercise() {
         copyOnWrite();
         instance.clearExercise();
+        return this;
+      }
+      /**
+       * <code>string exercise = 6 [json_name = "exercise"];</code>
+       * @param value The bytes for exercise to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExerciseBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setExerciseBytes(value);
         return this;
       }
 
@@ -24144,14 +24403,14 @@ public final class WorkoutOuterClass {
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
               "workoutId_",
-              "exercise_",
               "workingWeight_",
               "targetReps_",
               "sets_",
+              "exercise_",
             };
             java.lang.String info =
-                "\u0000\u0005\u0000\u0000\u0001\u0005\u0005\u0000\u0000\u0000\u0001\u0208\u0002\f" +
-                "\u0003\u0001\u0004\u0004\u0005\u0004";
+                "\u0000\u0005\u0000\u0000\u0001\u0006\u0005\u0000\u0000\u0000\u0001\u0208\u0003\u0001" +
+                "\u0004\u0004\u0005\u0004\u0006\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -24223,15 +24482,16 @@ public final class WorkoutOuterClass {
         getWorkoutIdBytes();
 
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    int getExerciseValue();
-    /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
      * @return The exercise.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercise();
+    java.lang.String getExercise();
+    /**
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
+     */
+    com.google.protobuf.ByteString
+        getExerciseBytes();
   }
   /**
    * <pre>
@@ -24247,6 +24507,7 @@ public final class WorkoutOuterClass {
       RemoveExerciseRequestOrBuilder {
     private RemoveExerciseRequest() {
       workoutId_ = "";
+      exercise_ = "";
     }
     public static final int WORKOUT_ID_FIELD_NUMBER = 1;
     private java.lang.String workoutId_;
@@ -24295,46 +24556,51 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int EXERCISE_FIELD_NUMBER = 2;
-    private int exercise_;
+    public static final int EXERCISE_FIELD_NUMBER = 3;
+    private java.lang.String exercise_;
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    @java.lang.Override
-    public int getExerciseValue() {
-      return exercise_;
-    }
-    /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
      * @return The exercise.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercise() {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercise_);
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercise() {
+      return exercise_;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-     * @param value The enum numeric value on the wire for exercise to set.
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
      */
-    private void setExerciseValue(int value) {
-        exercise_ = value;
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getExerciseBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(exercise_);
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
      * @param value The exercise to set.
      */
-    private void setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
-      exercise_ = value.getNumber();
-      
+    private void setExercise(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      exercise_ = value;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
      */
     private void clearExercise() {
       
-      exercise_ = 0;
+      exercise_ = getDefaultInstance().getExercise();
+    }
+    /**
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
+     * @param value The bytes for exercise to set.
+     */
+    private void setExerciseBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      exercise_ = value.toStringUtf8();
+      
     }
 
     public static workout.v1.WorkoutOuterClass.RemoveExerciseRequest parseFrom(
@@ -24486,48 +24752,51 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-       * @return The enum numeric value on the wire for exercise.
-       */
-      @java.lang.Override
-      public int getExerciseValue() {
-        return instance.getExerciseValue();
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-       * @param value The exercise to set.
-       * @return This builder for chaining.
-       */
-      public Builder setExerciseValue(int value) {
-        copyOnWrite();
-        instance.setExerciseValue(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+       * <code>string exercise = 3 [json_name = "exercise"];</code>
        * @return The exercise.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercise() {
+      public java.lang.String getExercise() {
         return instance.getExercise();
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-       * @param value The enum numeric value on the wire for exercise to set.
+       * <code>string exercise = 3 [json_name = "exercise"];</code>
+       * @return The bytes for exercise.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExerciseBytes() {
+        return instance.getExerciseBytes();
+      }
+      /**
+       * <code>string exercise = 3 [json_name = "exercise"];</code>
+       * @param value The exercise to set.
        * @return This builder for chaining.
        */
-      public Builder setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder setExercise(
+          java.lang.String value) {
         copyOnWrite();
         instance.setExercise(value);
         return this;
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+       * <code>string exercise = 3 [json_name = "exercise"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercise() {
         copyOnWrite();
         instance.clearExercise();
+        return this;
+      }
+      /**
+       * <code>string exercise = 3 [json_name = "exercise"];</code>
+       * @param value The bytes for exercise to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExerciseBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setExerciseBytes(value);
         return this;
       }
 
@@ -24551,7 +24820,7 @@ public final class WorkoutOuterClass {
               "exercise_",
             };
             java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0208\u0002\f" +
+                "\u0000\u0002\u0000\u0000\u0001\u0003\u0002\u0000\u0000\u0000\u0001\u0208\u0003\u0208" +
                 "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
@@ -24624,33 +24893,29 @@ public final class WorkoutOuterClass {
         getWorkoutIdBytes();
 
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
-    java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList();
+    java.util.List<java.lang.String>
+        getExercisesList();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     int getExercisesCount();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercises(int index);
+    java.lang.String getExercises(int index);
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
+     * @param index The index of the element to return.
+     * @return The exercises at the given index.
      */
-    java.util.List<java.lang.Integer>
-    getExercisesValueList();
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
-     */
-    int getExercisesValue(int index);
+    com.google.protobuf.ByteString
+        getExercisesBytes(int index);
   }
   /**
    * <pre>
@@ -24667,7 +24932,7 @@ public final class WorkoutOuterClass {
       ReorderExercisesRequestOrBuilder {
     private ReorderExercisesRequest() {
       workoutId_ = "";
-      exercises_ = emptyIntList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     public static final int WORKOUT_ID_FIELD_NUMBER = 1;
     private java.lang.String workoutId_;
@@ -24716,29 +24981,18 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int EXERCISES_FIELD_NUMBER = 2;
-    private com.google.protobuf.Internal.IntList exercises_;
-    private static final com.google.protobuf.Internal.ListAdapter.Converter<
-        java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise> exercises_converter_ =
-            new com.google.protobuf.Internal.ListAdapter.Converter<
-                java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>() {
-              @java.lang.Override
-              public workout.v1.WorkoutOuterClass.Exercise convert(java.lang.Integer from) {
-                workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(from);
-                return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
-              }
-            };
+    public static final int EXERCISES_FIELD_NUMBER = 3;
+    private com.google.protobuf.Internal.ProtobufList<java.lang.String> exercises_;
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
     @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-      return new com.google.protobuf.Internal.ListAdapter<
-          java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>(exercises_, exercises_converter_);
+    public java.util.List<java.lang.String> getExercisesList() {
+      return exercises_;
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     @java.lang.Override
@@ -24746,105 +25000,78 @@ public final class WorkoutOuterClass {
       return exercises_.size();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercises_.getInt(index));
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercises(int index) {
+      return exercises_.get(index);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
-     */
-    @java.lang.Override
-    public java.util.List<java.lang.Integer>
-    getExercisesValueList() {
-      return exercises_;
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
+     * @return The bytes of the exercises at the given index.
      */
     @java.lang.Override
-    public int getExercisesValue(int index) {
-      return exercises_.getInt(index);
+    public com.google.protobuf.ByteString
+        getExercisesBytes(int index) {
+      return com.google.protobuf.ByteString.copyFromUtf8(
+          exercises_.get(index));
     }
-    private int exercisesMemoizedSerializedSize;
     private void ensureExercisesIsMutable() {
-      com.google.protobuf.Internal.IntList tmp = exercises_;
-      if (!tmp.isModifiable()) {
+      com.google.protobuf.Internal.ProtobufList<java.lang.String> tmp =
+          exercises_;  if (!tmp.isModifiable()) {
         exercises_ =
             com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-      }
+       }
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param index The index to set the value at.
      * @param value The exercises to set.
      */
     private void setExercises(
-        int index, workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+        int index, java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.setInt(index, value.getNumber());
+      exercises_.set(index, value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param value The exercises to add.
      */
-    private void addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+    private void addExercises(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.addInt(value.getNumber());
+      exercises_.add(value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param values The exercises to add.
      */
     private void addAllExercises(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+        java.lang.Iterable<java.lang.String> values) {
       ensureExercisesIsMutable();
-      for (workout.v1.WorkoutOuterClass.Exercise value : values) {
-        exercises_.addInt(value.getNumber());
-      }
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exercises_);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      */
     private void clearExercises() {
-      exercises_ = emptyIntList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to set.
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
+     * @param value The bytes of the exercises to add.
      */
-    private void setExercisesValue(
-        int index, int value) {
+    private void addExercisesBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
       ensureExercisesIsMutable();
-      exercises_.setInt(index, value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to add.
-     */
-    private void addExercisesValue(int value) {
-      ensureExercisesIsMutable();
-      exercises_.addInt(value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-     * @param values The enum numeric values on the wire for exercises to add.
-     */
-    private void addAllExercisesValue(
-        java.lang.Iterable<java.lang.Integer> values) {
-      ensureExercisesIsMutable();
-      for (int value : values) {
-        exercises_.addInt(value);
-      }
+      exercises_.add(value.toStringUtf8());
     }
 
     public static workout.v1.WorkoutOuterClass.ReorderExercisesRequest parseFrom(
@@ -24997,15 +25224,17 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @return A list containing the exercises.
        */
       @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-        return instance.getExercisesList();
+      public java.util.List<java.lang.String>
+          getExercisesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExercisesList());
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @return The count of exercises.
        */
       @java.lang.Override
@@ -25013,48 +25242,60 @@ public final class WorkoutOuterClass {
         return instance.getExercisesCount();
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @param index The index of the element to return.
        * @return The exercises at the given index.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
+      public java.lang.String getExercises(int index) {
         return instance.getExercises(index);
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the exercises at the given index.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExercisesBytes(int index) {
+        return instance.getExercisesBytes(index);
+      }
+      /**
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @param index The index to set the value at.
        * @param value The exercises to set.
        * @return This builder for chaining.
        */
       public Builder setExercises(
-          int index, workout.v1.WorkoutOuterClass.Exercise value) {
+          int index, java.lang.String value) {
         copyOnWrite();
         instance.setExercises(index, value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @param value The exercises to add.
        * @return This builder for chaining.
        */
-      public Builder addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder addExercises(
+          java.lang.String value) {
         copyOnWrite();
         instance.addExercises(value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @param values The exercises to add.
        * @return This builder for chaining.
        */
       public Builder addAllExercises(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+          java.lang.Iterable<java.lang.String> values) {
         copyOnWrite();
-        instance.addAllExercises(values);  return this;
+        instance.addAllExercises(values);
+        return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercises() {
@@ -25063,54 +25304,14 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-       * @return A list containing the enum numeric values on the wire for exercises.
-       */
-      @java.lang.Override
-      public java.util.List<java.lang.Integer>
-      getExercisesValueList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getExercisesValueList());
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-       * @param index The index of the value to return.
-       * @return The enum numeric value on the wire of exercises at the given index.
-       */
-      @java.lang.Override
-      public int getExercisesValue(int index) {
-        return instance.getExercisesValue(index);
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-       * @param index The index to set the value at.
-       * @param value The enum numeric value on the wire for exercises to set.
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
+       * @param value The bytes of the exercises to add.
        * @return This builder for chaining.
        */
-      public Builder setExercisesValue(
-          int index, int value) {
+      public Builder addExercisesBytes(
+          com.google.protobuf.ByteString value) {
         copyOnWrite();
-        instance.setExercisesValue(index, value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-       * @param value The enum numeric value on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addExercisesValue(int value) {
-        instance.addExercisesValue(value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 2 [json_name = "exercises"];</code>
-       * @param values The enum numeric values on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllExercisesValue(
-          java.lang.Iterable<java.lang.Integer> values) {
-        copyOnWrite();
-        instance.addAllExercisesValue(values);
+        instance.addExercisesBytes(value);
         return this;
       }
 
@@ -25134,7 +25335,8 @@ public final class WorkoutOuterClass {
               "exercises_",
             };
             java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0001\u0000\u0001\u0208\u0002,";
+                "\u0000\u0002\u0000\u0000\u0001\u0003\u0002\u0000\u0001\u0000\u0001\u0208\u0003\u021a" +
+                "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -25206,15 +25408,16 @@ public final class WorkoutOuterClass {
         getWorkoutIdBytes();
 
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    int getExerciseValue();
-    /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
      * @return The exercise.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercise();
+    java.lang.String getExercise();
+    /**
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
+     */
+    com.google.protobuf.ByteString
+        getExerciseBytes();
 
     /**
      * <pre>
@@ -25251,6 +25454,7 @@ public final class WorkoutOuterClass {
       SkipWarmupsRequestOrBuilder {
     private SkipWarmupsRequest() {
       workoutId_ = "";
+      exercise_ = "";
       proposedSetId_ = "";
     }
     public static final int WORKOUT_ID_FIELD_NUMBER = 1;
@@ -25300,46 +25504,51 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int EXERCISE_FIELD_NUMBER = 2;
-    private int exercise_;
+    public static final int EXERCISE_FIELD_NUMBER = 4;
+    private java.lang.String exercise_;
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    @java.lang.Override
-    public int getExerciseValue() {
-      return exercise_;
-    }
-    /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
      * @return The exercise.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercise() {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercise_);
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercise() {
+      return exercise_;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-     * @param value The enum numeric value on the wire for exercise to set.
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
      */
-    private void setExerciseValue(int value) {
-        exercise_ = value;
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getExerciseBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(exercise_);
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
      * @param value The exercise to set.
      */
-    private void setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
-      exercise_ = value.getNumber();
-      
+    private void setExercise(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      exercise_ = value;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
      */
     private void clearExercise() {
       
-      exercise_ = 0;
+      exercise_ = getDefaultInstance().getExercise();
+    }
+    /**
+     * <code>string exercise = 4 [json_name = "exercise"];</code>
+     * @param value The bytes for exercise to set.
+     */
+    private void setExerciseBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      exercise_ = value.toStringUtf8();
+      
     }
 
     public static final int PROPOSED_SET_ID_FIELD_NUMBER = 3;
@@ -25559,48 +25768,51 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-       * @return The enum numeric value on the wire for exercise.
-       */
-      @java.lang.Override
-      public int getExerciseValue() {
-        return instance.getExerciseValue();
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-       * @param value The exercise to set.
-       * @return This builder for chaining.
-       */
-      public Builder setExerciseValue(int value) {
-        copyOnWrite();
-        instance.setExerciseValue(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+       * <code>string exercise = 4 [json_name = "exercise"];</code>
        * @return The exercise.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercise() {
+      public java.lang.String getExercise() {
         return instance.getExercise();
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
-       * @param value The enum numeric value on the wire for exercise to set.
+       * <code>string exercise = 4 [json_name = "exercise"];</code>
+       * @return The bytes for exercise.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExerciseBytes() {
+        return instance.getExerciseBytes();
+      }
+      /**
+       * <code>string exercise = 4 [json_name = "exercise"];</code>
+       * @param value The exercise to set.
        * @return This builder for chaining.
        */
-      public Builder setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder setExercise(
+          java.lang.String value) {
         copyOnWrite();
         instance.setExercise(value);
         return this;
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 2 [json_name = "exercise"];</code>
+       * <code>string exercise = 4 [json_name = "exercise"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercise() {
         copyOnWrite();
         instance.clearExercise();
+        return this;
+      }
+      /**
+       * <code>string exercise = 4 [json_name = "exercise"];</code>
+       * @param value The bytes for exercise to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExerciseBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setExerciseBytes(value);
         return this;
       }
 
@@ -25690,12 +25902,12 @@ public final class WorkoutOuterClass {
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
               "workoutId_",
-              "exercise_",
               "proposedSetId_",
+              "exercise_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\f" +
-                "\u0003\u0208";
+                "\u0000\u0003\u0000\u0000\u0001\u0004\u0003\u0000\u0000\u0000\u0001\u0208\u0003\u0208" +
+                "\u0004\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -30236,33 +30448,29 @@ public final class WorkoutOuterClass {
         getTemplateNameBytes();
 
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
-    java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList();
+    java.util.List<java.lang.String>
+        getExercisesList();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     int getExercisesCount();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercises(int index);
+    java.lang.String getExercises(int index);
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
+     * @param index The index of the element to return.
+     * @return The exercises at the given index.
      */
-    java.util.List<java.lang.Integer>
-    getExercisesValueList();
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
-     */
-    int getExercisesValue(int index);
+    com.google.protobuf.ByteString
+        getExercisesBytes(int index);
   }
   /**
    * <pre>
@@ -30282,7 +30490,7 @@ public final class WorkoutOuterClass {
     private TemplateOffer() {
       templateId_ = "";
       templateName_ = "";
-      exercises_ = emptyIntList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     public static final int TEMPLATE_ID_FIELD_NUMBER = 1;
     private java.lang.String templateId_;
@@ -30398,29 +30606,18 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int EXERCISES_FIELD_NUMBER = 3;
-    private com.google.protobuf.Internal.IntList exercises_;
-    private static final com.google.protobuf.Internal.ListAdapter.Converter<
-        java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise> exercises_converter_ =
-            new com.google.protobuf.Internal.ListAdapter.Converter<
-                java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>() {
-              @java.lang.Override
-              public workout.v1.WorkoutOuterClass.Exercise convert(java.lang.Integer from) {
-                workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(from);
-                return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
-              }
-            };
+    public static final int EXERCISES_FIELD_NUMBER = 4;
+    private com.google.protobuf.Internal.ProtobufList<java.lang.String> exercises_;
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
     @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-      return new com.google.protobuf.Internal.ListAdapter<
-          java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>(exercises_, exercises_converter_);
+    public java.util.List<java.lang.String> getExercisesList() {
+      return exercises_;
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     @java.lang.Override
@@ -30428,105 +30625,78 @@ public final class WorkoutOuterClass {
       return exercises_.size();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercises_.getInt(index));
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercises(int index) {
+      return exercises_.get(index);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
-     */
-    @java.lang.Override
-    public java.util.List<java.lang.Integer>
-    getExercisesValueList() {
-      return exercises_;
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
      * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
+     * @return The bytes of the exercises at the given index.
      */
     @java.lang.Override
-    public int getExercisesValue(int index) {
-      return exercises_.getInt(index);
+    public com.google.protobuf.ByteString
+        getExercisesBytes(int index) {
+      return com.google.protobuf.ByteString.copyFromUtf8(
+          exercises_.get(index));
     }
-    private int exercisesMemoizedSerializedSize;
     private void ensureExercisesIsMutable() {
-      com.google.protobuf.Internal.IntList tmp = exercises_;
-      if (!tmp.isModifiable()) {
+      com.google.protobuf.Internal.ProtobufList<java.lang.String> tmp =
+          exercises_;  if (!tmp.isModifiable()) {
         exercises_ =
             com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-      }
+       }
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
      * @param index The index to set the value at.
      * @param value The exercises to set.
      */
     private void setExercises(
-        int index, workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+        int index, java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.setInt(index, value.getNumber());
+      exercises_.set(index, value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
      * @param value The exercises to add.
      */
-    private void addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+    private void addExercises(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.addInt(value.getNumber());
+      exercises_.add(value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
      * @param values The exercises to add.
      */
     private void addAllExercises(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+        java.lang.Iterable<java.lang.String> values) {
       ensureExercisesIsMutable();
-      for (workout.v1.WorkoutOuterClass.Exercise value : values) {
-        exercises_.addInt(value.getNumber());
-      }
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exercises_);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
      */
     private void clearExercises() {
-      exercises_ = emptyIntList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to set.
+     * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
+     * @param value The bytes of the exercises to add.
      */
-    private void setExercisesValue(
-        int index, int value) {
+    private void addExercisesBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
       ensureExercisesIsMutable();
-      exercises_.setInt(index, value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to add.
-     */
-    private void addExercisesValue(int value) {
-      ensureExercisesIsMutable();
-      exercises_.addInt(value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param values The enum numeric values on the wire for exercises to add.
-     */
-    private void addAllExercisesValue(
-        java.lang.Iterable<java.lang.Integer> values) {
-      ensureExercisesIsMutable();
-      for (int value : values) {
-        exercises_.addInt(value);
-      }
+      exercises_.add(value.toStringUtf8());
     }
 
     public static workout.v1.WorkoutOuterClass.TemplateOffer parseFrom(
@@ -30750,15 +30920,17 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
        * @return A list containing the exercises.
        */
       @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-        return instance.getExercisesList();
+      public java.util.List<java.lang.String>
+          getExercisesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExercisesList());
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
        * @return The count of exercises.
        */
       @java.lang.Override
@@ -30766,48 +30938,60 @@ public final class WorkoutOuterClass {
         return instance.getExercisesCount();
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
        * @param index The index of the element to return.
        * @return The exercises at the given index.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
+      public java.lang.String getExercises(int index) {
         return instance.getExercises(index);
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the exercises at the given index.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExercisesBytes(int index) {
+        return instance.getExercisesBytes(index);
+      }
+      /**
+       * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
        * @param index The index to set the value at.
        * @param value The exercises to set.
        * @return This builder for chaining.
        */
       public Builder setExercises(
-          int index, workout.v1.WorkoutOuterClass.Exercise value) {
+          int index, java.lang.String value) {
         copyOnWrite();
         instance.setExercises(index, value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
        * @param value The exercises to add.
        * @return This builder for chaining.
        */
-      public Builder addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder addExercises(
+          java.lang.String value) {
         copyOnWrite();
         instance.addExercises(value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
        * @param values The exercises to add.
        * @return This builder for chaining.
        */
       public Builder addAllExercises(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+          java.lang.Iterable<java.lang.String> values) {
         copyOnWrite();
-        instance.addAllExercises(values);  return this;
+        instance.addAllExercises(values);
+        return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercises() {
@@ -30816,54 +31000,14 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @return A list containing the enum numeric values on the wire for exercises.
-       */
-      @java.lang.Override
-      public java.util.List<java.lang.Integer>
-      getExercisesValueList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getExercisesValueList());
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param index The index of the value to return.
-       * @return The enum numeric value on the wire of exercises at the given index.
-       */
-      @java.lang.Override
-      public int getExercisesValue(int index) {
-        return instance.getExercisesValue(index);
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param index The index to set the value at.
-       * @param value The enum numeric value on the wire for exercises to set.
+       * <code>repeated string exercises = 4 [json_name = "exercises"];</code>
+       * @param value The bytes of the exercises to add.
        * @return This builder for chaining.
        */
-      public Builder setExercisesValue(
-          int index, int value) {
+      public Builder addExercisesBytes(
+          com.google.protobuf.ByteString value) {
         copyOnWrite();
-        instance.setExercisesValue(index, value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param value The enum numeric value on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addExercisesValue(int value) {
-        instance.addExercisesValue(value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param values The enum numeric values on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllExercisesValue(
-          java.lang.Iterable<java.lang.Integer> values) {
-        copyOnWrite();
-        instance.addAllExercisesValue(values);
+        instance.addExercisesBytes(value);
         return this;
       }
 
@@ -30888,8 +31032,8 @@ public final class WorkoutOuterClass {
               "exercises_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0001\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003,";
+                "\u0000\u0003\u0000\u0000\u0001\u0004\u0003\u0000\u0001\u0000\u0001\u0208\u0002\u0208" +
+                "\u0004\u021a";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -30973,91 +31117,34 @@ public final class WorkoutOuterClass {
         getNameBytes();
 
     /**
-     * <code>int32 order = 3 [json_name = "order"];</code>
-     * @return The order.
-     */
-    int getOrder();
-
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
-    java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList();
+    java.util.List<java.lang.String>
+        getExercisesList();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     int getExercisesCount();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercises(int index);
+    java.lang.String getExercises(int index);
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
-     */
-    java.util.List<java.lang.Integer>
-    getExercisesValueList();
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
-     * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
-     */
-    int getExercisesValue(int index);
-
-    /**
-     * <code>int64 created_at = 5 [json_name = "createdAt"];</code>
-     * @return The createdAt.
-     */
-    long getCreatedAt();
-
-    /**
-     * <code>int64 updated_at = 6 [json_name = "updatedAt"];</code>
-     * @return The updatedAt.
-     */
-    long getUpdatedAt();
-
-    /**
-     * <pre>
-     * The library entry this follows (templates/library.yaml id); empty for
-     * one the user made or cloned.
-     * </pre>
-     *
-     * <code>string library_id = 7 [json_name = "libraryId"];</code>
-     * @return The libraryId.
-     */
-    java.lang.String getLibraryId();
-    /**
-     * <pre>
-     * The library entry this follows (templates/library.yaml id); empty for
-     * one the user made or cloned.
-     * </pre>
-     *
-     * <code>string library_id = 7 [json_name = "libraryId"];</code>
-     * @return The bytes for libraryId.
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
+     * @param index The index of the element to return.
+     * @return The exercises at the given index.
      */
     com.google.protobuf.ByteString
-        getLibraryIdBytes();
-
-    /**
-     * <pre>
-     * Follows its library entry: the name and exercises shown and started are
-     * the library's current ones (the stored ones are kept for when the entry
-     * is gone). False for the user's own templates.
-     * </pre>
-     *
-     * <code>bool coupled = 8 [json_name = "coupled"];</code>
-     * @return The coupled.
-     */
-    boolean getCoupled();
+        getExercisesBytes(int index);
 
     /**
      * <pre>
      * In the rotation the suggestion picks from; out of it, a reserve (on
-     * Home, never suggested). The library defaults added at onboarding start
-     * in rotation; every other template starts as a reserve.
+     * Home, never suggested).
      * </pre>
      *
      * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
@@ -31067,10 +31154,8 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * The library entry this was added from, kept when it becomes the user's
-     * own (library_id is cleared then); empty for one the user made. A
-     * template with one stands for that entry: the library is not offered
-     * again beside it.
+     * The library entry it was copied from, empty for one made from scratch.
+     * A library entry is copied, never followed.
      * </pre>
      *
      * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -31079,10 +31164,8 @@ public final class WorkoutOuterClass {
     java.lang.String getOriginLibraryId();
     /**
      * <pre>
-     * The library entry this was added from, kept when it becomes the user's
-     * own (library_id is cleared then); empty for one the user made. A
-     * template with one stands for that entry: the library is not offered
-     * again beside it.
+     * The library entry it was copied from, empty for one made from scratch.
+     * A library entry is copied, never followed.
      * </pre>
      *
      * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -31090,12 +31173,32 @@ public final class WorkoutOuterClass {
      */
     com.google.protobuf.ByteString
         getOriginLibraryIdBytes();
+
+    /**
+     * <pre>
+     * Free text from whoever wrote it.
+     * </pre>
+     *
+     * <code>string notes = 12 [json_name = "notes"];</code>
+     * @return The notes.
+     */
+    java.lang.String getNotes();
+    /**
+     * <pre>
+     * Free text from whoever wrote it.
+     * </pre>
+     *
+     * <code>string notes = 12 [json_name = "notes"];</code>
+     * @return The bytes for notes.
+     */
+    com.google.protobuf.ByteString
+        getNotesBytes();
   }
   /**
    * <pre>
-   * A named, ordered list of exercises. Nothing else: sets, reps, rest and
-   * weight all come from the exercise's plan, so every template that contains
-   * an exercise shows the same next weight.
+   * One of the program's workouts (`workouts` in the program document): a
+   * named, ordered list of exercises. Sets, reps, rest and weight come from
+   * each exercise's progression. The list's order is the user's.
    * </pre>
    *
    * Protobuf type {@code workout.v1.WorkoutTemplate}
@@ -31108,9 +31211,9 @@ public final class WorkoutOuterClass {
     private WorkoutTemplate() {
       id_ = "";
       name_ = "";
-      exercises_ = emptyIntList();
-      libraryId_ = "";
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
       originLibraryId_ = "";
+      notes_ = "";
     }
     public static final int ID_FIELD_NUMBER = 1;
     private java.lang.String id_;
@@ -31206,55 +31309,18 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int ORDER_FIELD_NUMBER = 3;
-    private int order_;
+    public static final int EXERCISES_FIELD_NUMBER = 11;
+    private com.google.protobuf.Internal.ProtobufList<java.lang.String> exercises_;
     /**
-     * <code>int32 order = 3 [json_name = "order"];</code>
-     * @return The order.
-     */
-    @java.lang.Override
-    public int getOrder() {
-      return order_;
-    }
-    /**
-     * <code>int32 order = 3 [json_name = "order"];</code>
-     * @param value The order to set.
-     */
-    private void setOrder(int value) {
-      
-      order_ = value;
-    }
-    /**
-     * <code>int32 order = 3 [json_name = "order"];</code>
-     */
-    private void clearOrder() {
-      
-      order_ = 0;
-    }
-
-    public static final int EXERCISES_FIELD_NUMBER = 4;
-    private com.google.protobuf.Internal.IntList exercises_;
-    private static final com.google.protobuf.Internal.ListAdapter.Converter<
-        java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise> exercises_converter_ =
-            new com.google.protobuf.Internal.ListAdapter.Converter<
-                java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>() {
-              @java.lang.Override
-              public workout.v1.WorkoutOuterClass.Exercise convert(java.lang.Integer from) {
-                workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(from);
-                return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
-              }
-            };
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
     @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-      return new com.google.protobuf.Internal.ListAdapter<
-          java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>(exercises_, exercises_converter_);
+    public java.util.List<java.lang.String> getExercisesList() {
+      return exercises_;
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     @java.lang.Override
@@ -31262,273 +31328,78 @@ public final class WorkoutOuterClass {
       return exercises_.size();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercises_.getInt(index));
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercises(int index) {
+      return exercises_.get(index);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
-     */
-    @java.lang.Override
-    public java.util.List<java.lang.Integer>
-    getExercisesValueList() {
-      return exercises_;
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
      * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
+     * @return The bytes of the exercises at the given index.
      */
     @java.lang.Override
-    public int getExercisesValue(int index) {
-      return exercises_.getInt(index);
+    public com.google.protobuf.ByteString
+        getExercisesBytes(int index) {
+      return com.google.protobuf.ByteString.copyFromUtf8(
+          exercises_.get(index));
     }
-    private int exercisesMemoizedSerializedSize;
     private void ensureExercisesIsMutable() {
-      com.google.protobuf.Internal.IntList tmp = exercises_;
-      if (!tmp.isModifiable()) {
+      com.google.protobuf.Internal.ProtobufList<java.lang.String> tmp =
+          exercises_;  if (!tmp.isModifiable()) {
         exercises_ =
             com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-      }
+       }
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
      * @param index The index to set the value at.
      * @param value The exercises to set.
      */
     private void setExercises(
-        int index, workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+        int index, java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.setInt(index, value.getNumber());
+      exercises_.set(index, value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
      * @param value The exercises to add.
      */
-    private void addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+    private void addExercises(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.addInt(value.getNumber());
+      exercises_.add(value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
      * @param values The exercises to add.
      */
     private void addAllExercises(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+        java.lang.Iterable<java.lang.String> values) {
       ensureExercisesIsMutable();
-      for (workout.v1.WorkoutOuterClass.Exercise value : values) {
-        exercises_.addInt(value.getNumber());
-      }
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exercises_);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
      */
     private void clearExercises() {
-      exercises_ = emptyIntList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to set.
+     * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
+     * @param value The bytes of the exercises to add.
      */
-    private void setExercisesValue(
-        int index, int value) {
-      ensureExercisesIsMutable();
-      exercises_.setInt(index, value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to add.
-     */
-    private void addExercisesValue(int value) {
-      ensureExercisesIsMutable();
-      exercises_.addInt(value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
-     * @param values The enum numeric values on the wire for exercises to add.
-     */
-    private void addAllExercisesValue(
-        java.lang.Iterable<java.lang.Integer> values) {
-      ensureExercisesIsMutable();
-      for (int value : values) {
-        exercises_.addInt(value);
-      }
-    }
-
-    public static final int CREATED_AT_FIELD_NUMBER = 5;
-    private long createdAt_;
-    /**
-     * <code>int64 created_at = 5 [json_name = "createdAt"];</code>
-     * @return The createdAt.
-     */
-    @java.lang.Override
-    public long getCreatedAt() {
-      return createdAt_;
-    }
-    /**
-     * <code>int64 created_at = 5 [json_name = "createdAt"];</code>
-     * @param value The createdAt to set.
-     */
-    private void setCreatedAt(long value) {
-      
-      createdAt_ = value;
-    }
-    /**
-     * <code>int64 created_at = 5 [json_name = "createdAt"];</code>
-     */
-    private void clearCreatedAt() {
-      
-      createdAt_ = 0L;
-    }
-
-    public static final int UPDATED_AT_FIELD_NUMBER = 6;
-    private long updatedAt_;
-    /**
-     * <code>int64 updated_at = 6 [json_name = "updatedAt"];</code>
-     * @return The updatedAt.
-     */
-    @java.lang.Override
-    public long getUpdatedAt() {
-      return updatedAt_;
-    }
-    /**
-     * <code>int64 updated_at = 6 [json_name = "updatedAt"];</code>
-     * @param value The updatedAt to set.
-     */
-    private void setUpdatedAt(long value) {
-      
-      updatedAt_ = value;
-    }
-    /**
-     * <code>int64 updated_at = 6 [json_name = "updatedAt"];</code>
-     */
-    private void clearUpdatedAt() {
-      
-      updatedAt_ = 0L;
-    }
-
-    public static final int LIBRARY_ID_FIELD_NUMBER = 7;
-    private java.lang.String libraryId_;
-    /**
-     * <pre>
-     * The library entry this follows (templates/library.yaml id); empty for
-     * one the user made or cloned.
-     * </pre>
-     *
-     * <code>string library_id = 7 [json_name = "libraryId"];</code>
-     * @return The libraryId.
-     */
-    @java.lang.Override
-    public java.lang.String getLibraryId() {
-      return libraryId_;
-    }
-    /**
-     * <pre>
-     * The library entry this follows (templates/library.yaml id); empty for
-     * one the user made or cloned.
-     * </pre>
-     *
-     * <code>string library_id = 7 [json_name = "libraryId"];</code>
-     * @return The bytes for libraryId.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString
-        getLibraryIdBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(libraryId_);
-    }
-    /**
-     * <pre>
-     * The library entry this follows (templates/library.yaml id); empty for
-     * one the user made or cloned.
-     * </pre>
-     *
-     * <code>string library_id = 7 [json_name = "libraryId"];</code>
-     * @param value The libraryId to set.
-     */
-    private void setLibraryId(
-        java.lang.String value) {
-      java.lang.Class<?> valueClass = value.getClass();
-  
-      libraryId_ = value;
-    }
-    /**
-     * <pre>
-     * The library entry this follows (templates/library.yaml id); empty for
-     * one the user made or cloned.
-     * </pre>
-     *
-     * <code>string library_id = 7 [json_name = "libraryId"];</code>
-     */
-    private void clearLibraryId() {
-      
-      libraryId_ = getDefaultInstance().getLibraryId();
-    }
-    /**
-     * <pre>
-     * The library entry this follows (templates/library.yaml id); empty for
-     * one the user made or cloned.
-     * </pre>
-     *
-     * <code>string library_id = 7 [json_name = "libraryId"];</code>
-     * @param value The bytes for libraryId to set.
-     */
-    private void setLibraryIdBytes(
+    private void addExercisesBytes(
         com.google.protobuf.ByteString value) {
       checkByteStringIsUtf8(value);
-      libraryId_ = value.toStringUtf8();
-      
-    }
-
-    public static final int COUPLED_FIELD_NUMBER = 8;
-    private boolean coupled_;
-    /**
-     * <pre>
-     * Follows its library entry: the name and exercises shown and started are
-     * the library's current ones (the stored ones are kept for when the entry
-     * is gone). False for the user's own templates.
-     * </pre>
-     *
-     * <code>bool coupled = 8 [json_name = "coupled"];</code>
-     * @return The coupled.
-     */
-    @java.lang.Override
-    public boolean getCoupled() {
-      return coupled_;
-    }
-    /**
-     * <pre>
-     * Follows its library entry: the name and exercises shown and started are
-     * the library's current ones (the stored ones are kept for when the entry
-     * is gone). False for the user's own templates.
-     * </pre>
-     *
-     * <code>bool coupled = 8 [json_name = "coupled"];</code>
-     * @param value The coupled to set.
-     */
-    private void setCoupled(boolean value) {
-      
-      coupled_ = value;
-    }
-    /**
-     * <pre>
-     * Follows its library entry: the name and exercises shown and started are
-     * the library's current ones (the stored ones are kept for when the entry
-     * is gone). False for the user's own templates.
-     * </pre>
-     *
-     * <code>bool coupled = 8 [json_name = "coupled"];</code>
-     */
-    private void clearCoupled() {
-      
-      coupled_ = false;
+      ensureExercisesIsMutable();
+      exercises_.add(value.toStringUtf8());
     }
 
     public static final int IN_ROTATION_FIELD_NUMBER = 9;
@@ -31536,8 +31407,7 @@ public final class WorkoutOuterClass {
     /**
      * <pre>
      * In the rotation the suggestion picks from; out of it, a reserve (on
-     * Home, never suggested). The library defaults added at onboarding start
-     * in rotation; every other template starts as a reserve.
+     * Home, never suggested).
      * </pre>
      *
      * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
@@ -31550,8 +31420,7 @@ public final class WorkoutOuterClass {
     /**
      * <pre>
      * In the rotation the suggestion picks from; out of it, a reserve (on
-     * Home, never suggested). The library defaults added at onboarding start
-     * in rotation; every other template starts as a reserve.
+     * Home, never suggested).
      * </pre>
      *
      * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
@@ -31564,8 +31433,7 @@ public final class WorkoutOuterClass {
     /**
      * <pre>
      * In the rotation the suggestion picks from; out of it, a reserve (on
-     * Home, never suggested). The library defaults added at onboarding start
-     * in rotation; every other template starts as a reserve.
+     * Home, never suggested).
      * </pre>
      *
      * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
@@ -31579,10 +31447,8 @@ public final class WorkoutOuterClass {
     private java.lang.String originLibraryId_;
     /**
      * <pre>
-     * The library entry this was added from, kept when it becomes the user's
-     * own (library_id is cleared then); empty for one the user made. A
-     * template with one stands for that entry: the library is not offered
-     * again beside it.
+     * The library entry it was copied from, empty for one made from scratch.
+     * A library entry is copied, never followed.
      * </pre>
      *
      * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -31594,10 +31460,8 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The library entry this was added from, kept when it becomes the user's
-     * own (library_id is cleared then); empty for one the user made. A
-     * template with one stands for that entry: the library is not offered
-     * again beside it.
+     * The library entry it was copied from, empty for one made from scratch.
+     * A library entry is copied, never followed.
      * </pre>
      *
      * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -31610,10 +31474,8 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The library entry this was added from, kept when it becomes the user's
-     * own (library_id is cleared then); empty for one the user made. A
-     * template with one stands for that entry: the library is not offered
-     * again beside it.
+     * The library entry it was copied from, empty for one made from scratch.
+     * A library entry is copied, never followed.
      * </pre>
      *
      * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -31627,10 +31489,8 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The library entry this was added from, kept when it becomes the user's
-     * own (library_id is cleared then); empty for one the user made. A
-     * template with one stands for that entry: the library is not offered
-     * again beside it.
+     * The library entry it was copied from, empty for one made from scratch.
+     * A library entry is copied, never followed.
      * </pre>
      *
      * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -31641,10 +31501,8 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * The library entry this was added from, kept when it becomes the user's
-     * own (library_id is cleared then); empty for one the user made. A
-     * template with one stands for that entry: the library is not offered
-     * again beside it.
+     * The library entry it was copied from, empty for one made from scratch.
+     * A library entry is copied, never followed.
      * </pre>
      *
      * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -31654,6 +31512,73 @@ public final class WorkoutOuterClass {
         com.google.protobuf.ByteString value) {
       checkByteStringIsUtf8(value);
       originLibraryId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int NOTES_FIELD_NUMBER = 12;
+    private java.lang.String notes_;
+    /**
+     * <pre>
+     * Free text from whoever wrote it.
+     * </pre>
+     *
+     * <code>string notes = 12 [json_name = "notes"];</code>
+     * @return The notes.
+     */
+    @java.lang.Override
+    public java.lang.String getNotes() {
+      return notes_;
+    }
+    /**
+     * <pre>
+     * Free text from whoever wrote it.
+     * </pre>
+     *
+     * <code>string notes = 12 [json_name = "notes"];</code>
+     * @return The bytes for notes.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getNotesBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(notes_);
+    }
+    /**
+     * <pre>
+     * Free text from whoever wrote it.
+     * </pre>
+     *
+     * <code>string notes = 12 [json_name = "notes"];</code>
+     * @param value The notes to set.
+     */
+    private void setNotes(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      notes_ = value;
+    }
+    /**
+     * <pre>
+     * Free text from whoever wrote it.
+     * </pre>
+     *
+     * <code>string notes = 12 [json_name = "notes"];</code>
+     */
+    private void clearNotes() {
+      
+      notes_ = getDefaultInstance().getNotes();
+    }
+    /**
+     * <pre>
+     * Free text from whoever wrote it.
+     * </pre>
+     *
+     * <code>string notes = 12 [json_name = "notes"];</code>
+     * @param value The bytes for notes to set.
+     */
+    private void setNotesBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      notes_ = value.toStringUtf8();
       
     }
 
@@ -31740,9 +31665,9 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * A named, ordered list of exercises. Nothing else: sets, reps, rest and
-     * weight all come from the exercise's plan, so every template that contains
-     * an exercise shows the same next weight.
+     * One of the program's workouts (`workouts` in the program document): a
+     * named, ordered list of exercises. Sets, reps, rest and weight come from
+     * each exercise's progression. The list's order is the user's.
      * </pre>
      *
      * Protobuf type {@code workout.v1.WorkoutTemplate}
@@ -31857,43 +31782,17 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>int32 order = 3 [json_name = "order"];</code>
-       * @return The order.
-       */
-      @java.lang.Override
-      public int getOrder() {
-        return instance.getOrder();
-      }
-      /**
-       * <code>int32 order = 3 [json_name = "order"];</code>
-       * @param value The order to set.
-       * @return This builder for chaining.
-       */
-      public Builder setOrder(int value) {
-        copyOnWrite();
-        instance.setOrder(value);
-        return this;
-      }
-      /**
-       * <code>int32 order = 3 [json_name = "order"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearOrder() {
-        copyOnWrite();
-        instance.clearOrder();
-        return this;
-      }
-
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
        * @return A list containing the exercises.
        */
       @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-        return instance.getExercisesList();
+      public java.util.List<java.lang.String>
+          getExercisesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExercisesList());
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
        * @return The count of exercises.
        */
       @java.lang.Override
@@ -31901,48 +31800,60 @@ public final class WorkoutOuterClass {
         return instance.getExercisesCount();
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
        * @param index The index of the element to return.
        * @return The exercises at the given index.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
+      public java.lang.String getExercises(int index) {
         return instance.getExercises(index);
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the exercises at the given index.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExercisesBytes(int index) {
+        return instance.getExercisesBytes(index);
+      }
+      /**
+       * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
        * @param index The index to set the value at.
        * @param value The exercises to set.
        * @return This builder for chaining.
        */
       public Builder setExercises(
-          int index, workout.v1.WorkoutOuterClass.Exercise value) {
+          int index, java.lang.String value) {
         copyOnWrite();
         instance.setExercises(index, value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
        * @param value The exercises to add.
        * @return This builder for chaining.
        */
-      public Builder addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder addExercises(
+          java.lang.String value) {
         copyOnWrite();
         instance.addExercises(value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
        * @param values The exercises to add.
        * @return This builder for chaining.
        */
       public Builder addAllExercises(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+          java.lang.Iterable<java.lang.String> values) {
         copyOnWrite();
-        instance.addAllExercises(values);  return this;
+        instance.addAllExercises(values);
+        return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercises() {
@@ -31951,238 +31862,21 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
-       * @return A list containing the enum numeric values on the wire for exercises.
-       */
-      @java.lang.Override
-      public java.util.List<java.lang.Integer>
-      getExercisesValueList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getExercisesValueList());
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
-       * @param index The index of the value to return.
-       * @return The enum numeric value on the wire of exercises at the given index.
-       */
-      @java.lang.Override
-      public int getExercisesValue(int index) {
-        return instance.getExercisesValue(index);
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
-       * @param index The index to set the value at.
-       * @param value The enum numeric value on the wire for exercises to set.
+       * <code>repeated string exercises = 11 [json_name = "exercises"];</code>
+       * @param value The bytes of the exercises to add.
        * @return This builder for chaining.
        */
-      public Builder setExercisesValue(
-          int index, int value) {
-        copyOnWrite();
-        instance.setExercisesValue(index, value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
-       * @param value The enum numeric value on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addExercisesValue(int value) {
-        instance.addExercisesValue(value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 4 [json_name = "exercises"];</code>
-       * @param values The enum numeric values on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllExercisesValue(
-          java.lang.Iterable<java.lang.Integer> values) {
-        copyOnWrite();
-        instance.addAllExercisesValue(values);
-        return this;
-      }
-
-      /**
-       * <code>int64 created_at = 5 [json_name = "createdAt"];</code>
-       * @return The createdAt.
-       */
-      @java.lang.Override
-      public long getCreatedAt() {
-        return instance.getCreatedAt();
-      }
-      /**
-       * <code>int64 created_at = 5 [json_name = "createdAt"];</code>
-       * @param value The createdAt to set.
-       * @return This builder for chaining.
-       */
-      public Builder setCreatedAt(long value) {
-        copyOnWrite();
-        instance.setCreatedAt(value);
-        return this;
-      }
-      /**
-       * <code>int64 created_at = 5 [json_name = "createdAt"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearCreatedAt() {
-        copyOnWrite();
-        instance.clearCreatedAt();
-        return this;
-      }
-
-      /**
-       * <code>int64 updated_at = 6 [json_name = "updatedAt"];</code>
-       * @return The updatedAt.
-       */
-      @java.lang.Override
-      public long getUpdatedAt() {
-        return instance.getUpdatedAt();
-      }
-      /**
-       * <code>int64 updated_at = 6 [json_name = "updatedAt"];</code>
-       * @param value The updatedAt to set.
-       * @return This builder for chaining.
-       */
-      public Builder setUpdatedAt(long value) {
-        copyOnWrite();
-        instance.setUpdatedAt(value);
-        return this;
-      }
-      /**
-       * <code>int64 updated_at = 6 [json_name = "updatedAt"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearUpdatedAt() {
-        copyOnWrite();
-        instance.clearUpdatedAt();
-        return this;
-      }
-
-      /**
-       * <pre>
-       * The library entry this follows (templates/library.yaml id); empty for
-       * one the user made or cloned.
-       * </pre>
-       *
-       * <code>string library_id = 7 [json_name = "libraryId"];</code>
-       * @return The libraryId.
-       */
-      @java.lang.Override
-      public java.lang.String getLibraryId() {
-        return instance.getLibraryId();
-      }
-      /**
-       * <pre>
-       * The library entry this follows (templates/library.yaml id); empty for
-       * one the user made or cloned.
-       * </pre>
-       *
-       * <code>string library_id = 7 [json_name = "libraryId"];</code>
-       * @return The bytes for libraryId.
-       */
-      @java.lang.Override
-      public com.google.protobuf.ByteString
-          getLibraryIdBytes() {
-        return instance.getLibraryIdBytes();
-      }
-      /**
-       * <pre>
-       * The library entry this follows (templates/library.yaml id); empty for
-       * one the user made or cloned.
-       * </pre>
-       *
-       * <code>string library_id = 7 [json_name = "libraryId"];</code>
-       * @param value The libraryId to set.
-       * @return This builder for chaining.
-       */
-      public Builder setLibraryId(
-          java.lang.String value) {
-        copyOnWrite();
-        instance.setLibraryId(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The library entry this follows (templates/library.yaml id); empty for
-       * one the user made or cloned.
-       * </pre>
-       *
-       * <code>string library_id = 7 [json_name = "libraryId"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearLibraryId() {
-        copyOnWrite();
-        instance.clearLibraryId();
-        return this;
-      }
-      /**
-       * <pre>
-       * The library entry this follows (templates/library.yaml id); empty for
-       * one the user made or cloned.
-       * </pre>
-       *
-       * <code>string library_id = 7 [json_name = "libraryId"];</code>
-       * @param value The bytes for libraryId to set.
-       * @return This builder for chaining.
-       */
-      public Builder setLibraryIdBytes(
+      public Builder addExercisesBytes(
           com.google.protobuf.ByteString value) {
         copyOnWrite();
-        instance.setLibraryIdBytes(value);
-        return this;
-      }
-
-      /**
-       * <pre>
-       * Follows its library entry: the name and exercises shown and started are
-       * the library's current ones (the stored ones are kept for when the entry
-       * is gone). False for the user's own templates.
-       * </pre>
-       *
-       * <code>bool coupled = 8 [json_name = "coupled"];</code>
-       * @return The coupled.
-       */
-      @java.lang.Override
-      public boolean getCoupled() {
-        return instance.getCoupled();
-      }
-      /**
-       * <pre>
-       * Follows its library entry: the name and exercises shown and started are
-       * the library's current ones (the stored ones are kept for when the entry
-       * is gone). False for the user's own templates.
-       * </pre>
-       *
-       * <code>bool coupled = 8 [json_name = "coupled"];</code>
-       * @param value The coupled to set.
-       * @return This builder for chaining.
-       */
-      public Builder setCoupled(boolean value) {
-        copyOnWrite();
-        instance.setCoupled(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * Follows its library entry: the name and exercises shown and started are
-       * the library's current ones (the stored ones are kept for when the entry
-       * is gone). False for the user's own templates.
-       * </pre>
-       *
-       * <code>bool coupled = 8 [json_name = "coupled"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearCoupled() {
-        copyOnWrite();
-        instance.clearCoupled();
+        instance.addExercisesBytes(value);
         return this;
       }
 
       /**
        * <pre>
        * In the rotation the suggestion picks from; out of it, a reserve (on
-       * Home, never suggested). The library defaults added at onboarding start
-       * in rotation; every other template starts as a reserve.
+       * Home, never suggested).
        * </pre>
        *
        * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
@@ -32195,8 +31889,7 @@ public final class WorkoutOuterClass {
       /**
        * <pre>
        * In the rotation the suggestion picks from; out of it, a reserve (on
-       * Home, never suggested). The library defaults added at onboarding start
-       * in rotation; every other template starts as a reserve.
+       * Home, never suggested).
        * </pre>
        *
        * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
@@ -32211,8 +31904,7 @@ public final class WorkoutOuterClass {
       /**
        * <pre>
        * In the rotation the suggestion picks from; out of it, a reserve (on
-       * Home, never suggested). The library defaults added at onboarding start
-       * in rotation; every other template starts as a reserve.
+       * Home, never suggested).
        * </pre>
        *
        * <code>bool in_rotation = 9 [json_name = "inRotation"];</code>
@@ -32226,10 +31918,8 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * The library entry this was added from, kept when it becomes the user's
-       * own (library_id is cleared then); empty for one the user made. A
-       * template with one stands for that entry: the library is not offered
-       * again beside it.
+       * The library entry it was copied from, empty for one made from scratch.
+       * A library entry is copied, never followed.
        * </pre>
        *
        * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -32241,10 +31931,8 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The library entry this was added from, kept when it becomes the user's
-       * own (library_id is cleared then); empty for one the user made. A
-       * template with one stands for that entry: the library is not offered
-       * again beside it.
+       * The library entry it was copied from, empty for one made from scratch.
+       * A library entry is copied, never followed.
        * </pre>
        *
        * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -32257,10 +31945,8 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The library entry this was added from, kept when it becomes the user's
-       * own (library_id is cleared then); empty for one the user made. A
-       * template with one stands for that entry: the library is not offered
-       * again beside it.
+       * The library entry it was copied from, empty for one made from scratch.
+       * A library entry is copied, never followed.
        * </pre>
        *
        * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -32275,10 +31961,8 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The library entry this was added from, kept when it becomes the user's
-       * own (library_id is cleared then); empty for one the user made. A
-       * template with one stands for that entry: the library is not offered
-       * again beside it.
+       * The library entry it was copied from, empty for one made from scratch.
+       * A library entry is copied, never followed.
        * </pre>
        *
        * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -32291,10 +31975,8 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * The library entry this was added from, kept when it becomes the user's
-       * own (library_id is cleared then); empty for one the user made. A
-       * template with one stands for that entry: the library is not offered
-       * again beside it.
+       * The library entry it was copied from, empty for one made from scratch.
+       * A library entry is copied, never followed.
        * </pre>
        *
        * <code>string origin_library_id = 10 [json_name = "originLibraryId"];</code>
@@ -32305,6 +31987,75 @@ public final class WorkoutOuterClass {
           com.google.protobuf.ByteString value) {
         copyOnWrite();
         instance.setOriginLibraryIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * Free text from whoever wrote it.
+       * </pre>
+       *
+       * <code>string notes = 12 [json_name = "notes"];</code>
+       * @return The notes.
+       */
+      @java.lang.Override
+      public java.lang.String getNotes() {
+        return instance.getNotes();
+      }
+      /**
+       * <pre>
+       * Free text from whoever wrote it.
+       * </pre>
+       *
+       * <code>string notes = 12 [json_name = "notes"];</code>
+       * @return The bytes for notes.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getNotesBytes() {
+        return instance.getNotesBytes();
+      }
+      /**
+       * <pre>
+       * Free text from whoever wrote it.
+       * </pre>
+       *
+       * <code>string notes = 12 [json_name = "notes"];</code>
+       * @param value The notes to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNotes(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setNotes(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Free text from whoever wrote it.
+       * </pre>
+       *
+       * <code>string notes = 12 [json_name = "notes"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearNotes() {
+        copyOnWrite();
+        instance.clearNotes();
+        return this;
+      }
+      /**
+       * <pre>
+       * Free text from whoever wrote it.
+       * </pre>
+       *
+       * <code>string notes = 12 [json_name = "notes"];</code>
+       * @param value The bytes for notes to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNotesBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setNotesBytes(value);
         return this;
       }
 
@@ -32326,18 +32077,14 @@ public final class WorkoutOuterClass {
             java.lang.Object[] objects = new java.lang.Object[] {
               "id_",
               "name_",
-              "order_",
-              "exercises_",
-              "createdAt_",
-              "updatedAt_",
-              "libraryId_",
-              "coupled_",
               "inRotation_",
               "originLibraryId_",
+              "exercises_",
+              "notes_",
             };
             java.lang.String info =
-                "\u0000\n\u0000\u0000\u0001\n\n\u0000\u0001\u0000\u0001\u0208\u0002\u0208\u0003\u0004" +
-                "\u0004,\u0005\u0002\u0006\u0002\u0007\u0208\b\u0007\t\u0007\n\u0208";
+                "\u0000\u0006\u0000\u0000\u0001\f\u0006\u0000\u0001\u0000\u0001\u0208\u0002\u0208" +
+                "\t\u0007\n\u0208\u000b\u021a\f\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -32445,33 +32192,29 @@ public final class WorkoutOuterClass {
         getGroupLabelBytes();
 
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
-    java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList();
+    java.util.List<java.lang.String>
+        getExercisesList();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     int getExercisesCount();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercises(int index);
+    java.lang.String getExercises(int index);
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
+     * @param index The index of the element to return.
+     * @return The exercises at the given index.
      */
-    java.util.List<java.lang.Integer>
-    getExercisesValueList();
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
-     * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
-     */
-    int getExercisesValue(int index);
+    com.google.protobuf.ByteString
+        getExercisesBytes(int index);
 
     /**
      * <pre>
@@ -32501,7 +32244,7 @@ public final class WorkoutOuterClass {
       name_ = "";
       blurb_ = "";
       groupLabel_ = "";
-      exercises_ = emptyIntList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     public static final int ID_FIELD_NUMBER = 1;
     private java.lang.String id_;
@@ -32691,29 +32434,18 @@ public final class WorkoutOuterClass {
       
     }
 
-    public static final int EXERCISES_FIELD_NUMBER = 6;
-    private com.google.protobuf.Internal.IntList exercises_;
-    private static final com.google.protobuf.Internal.ListAdapter.Converter<
-        java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise> exercises_converter_ =
-            new com.google.protobuf.Internal.ListAdapter.Converter<
-                java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>() {
-              @java.lang.Override
-              public workout.v1.WorkoutOuterClass.Exercise convert(java.lang.Integer from) {
-                workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(from);
-                return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
-              }
-            };
+    public static final int EXERCISES_FIELD_NUMBER = 8;
+    private com.google.protobuf.Internal.ProtobufList<java.lang.String> exercises_;
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
     @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-      return new com.google.protobuf.Internal.ListAdapter<
-          java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>(exercises_, exercises_converter_);
+    public java.util.List<java.lang.String> getExercisesList() {
+      return exercises_;
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     @java.lang.Override
@@ -32721,105 +32453,78 @@ public final class WorkoutOuterClass {
       return exercises_.size();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercises_.getInt(index));
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercises(int index) {
+      return exercises_.get(index);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
-     */
-    @java.lang.Override
-    public java.util.List<java.lang.Integer>
-    getExercisesValueList() {
-      return exercises_;
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
      * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
+     * @return The bytes of the exercises at the given index.
      */
     @java.lang.Override
-    public int getExercisesValue(int index) {
-      return exercises_.getInt(index);
+    public com.google.protobuf.ByteString
+        getExercisesBytes(int index) {
+      return com.google.protobuf.ByteString.copyFromUtf8(
+          exercises_.get(index));
     }
-    private int exercisesMemoizedSerializedSize;
     private void ensureExercisesIsMutable() {
-      com.google.protobuf.Internal.IntList tmp = exercises_;
-      if (!tmp.isModifiable()) {
+      com.google.protobuf.Internal.ProtobufList<java.lang.String> tmp =
+          exercises_;  if (!tmp.isModifiable()) {
         exercises_ =
             com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-      }
+       }
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
      * @param index The index to set the value at.
      * @param value The exercises to set.
      */
     private void setExercises(
-        int index, workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+        int index, java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.setInt(index, value.getNumber());
+      exercises_.set(index, value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
      * @param value The exercises to add.
      */
-    private void addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+    private void addExercises(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.addInt(value.getNumber());
+      exercises_.add(value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
      * @param values The exercises to add.
      */
     private void addAllExercises(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+        java.lang.Iterable<java.lang.String> values) {
       ensureExercisesIsMutable();
-      for (workout.v1.WorkoutOuterClass.Exercise value : values) {
-        exercises_.addInt(value.getNumber());
-      }
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exercises_);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
      */
     private void clearExercises() {
-      exercises_ = emptyIntList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to set.
+     * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
+     * @param value The bytes of the exercises to add.
      */
-    private void setExercisesValue(
-        int index, int value) {
+    private void addExercisesBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
       ensureExercisesIsMutable();
-      exercises_.setInt(index, value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to add.
-     */
-    private void addExercisesValue(int value) {
-      ensureExercisesIsMutable();
-      exercises_.addInt(value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
-     * @param values The enum numeric values on the wire for exercises to add.
-     */
-    private void addAllExercisesValue(
-        java.lang.Iterable<java.lang.Integer> values) {
-      ensureExercisesIsMutable();
-      for (int value : values) {
-        exercises_.addInt(value);
-      }
+      exercises_.add(value.toStringUtf8());
     }
 
     public static final int IS_DEFAULT_FIELD_NUMBER = 7;
@@ -33157,15 +32862,17 @@ public final class WorkoutOuterClass {
       }
 
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
        * @return A list containing the exercises.
        */
       @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-        return instance.getExercisesList();
+      public java.util.List<java.lang.String>
+          getExercisesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExercisesList());
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
        * @return The count of exercises.
        */
       @java.lang.Override
@@ -33173,48 +32880,60 @@ public final class WorkoutOuterClass {
         return instance.getExercisesCount();
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
        * @param index The index of the element to return.
        * @return The exercises at the given index.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
+      public java.lang.String getExercises(int index) {
         return instance.getExercises(index);
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the exercises at the given index.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExercisesBytes(int index) {
+        return instance.getExercisesBytes(index);
+      }
+      /**
+       * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
        * @param index The index to set the value at.
        * @param value The exercises to set.
        * @return This builder for chaining.
        */
       public Builder setExercises(
-          int index, workout.v1.WorkoutOuterClass.Exercise value) {
+          int index, java.lang.String value) {
         copyOnWrite();
         instance.setExercises(index, value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
        * @param value The exercises to add.
        * @return This builder for chaining.
        */
-      public Builder addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder addExercises(
+          java.lang.String value) {
         copyOnWrite();
         instance.addExercises(value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
        * @param values The exercises to add.
        * @return This builder for chaining.
        */
       public Builder addAllExercises(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+          java.lang.Iterable<java.lang.String> values) {
         copyOnWrite();
-        instance.addAllExercises(values);  return this;
+        instance.addAllExercises(values);
+        return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercises() {
@@ -33223,54 +32942,14 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
-       * @return A list containing the enum numeric values on the wire for exercises.
-       */
-      @java.lang.Override
-      public java.util.List<java.lang.Integer>
-      getExercisesValueList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getExercisesValueList());
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
-       * @param index The index of the value to return.
-       * @return The enum numeric value on the wire of exercises at the given index.
-       */
-      @java.lang.Override
-      public int getExercisesValue(int index) {
-        return instance.getExercisesValue(index);
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
-       * @param index The index to set the value at.
-       * @param value The enum numeric value on the wire for exercises to set.
+       * <code>repeated string exercises = 8 [json_name = "exercises"];</code>
+       * @param value The bytes of the exercises to add.
        * @return This builder for chaining.
        */
-      public Builder setExercisesValue(
-          int index, int value) {
+      public Builder addExercisesBytes(
+          com.google.protobuf.ByteString value) {
         copyOnWrite();
-        instance.setExercisesValue(index, value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
-       * @param value The enum numeric value on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addExercisesValue(int value) {
-        instance.addExercisesValue(value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 6 [json_name = "exercises"];</code>
-       * @param values The enum numeric values on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllExercisesValue(
-          java.lang.Iterable<java.lang.Integer> values) {
-        copyOnWrite();
-        instance.addAllExercisesValue(values);
+        instance.addExercisesBytes(value);
         return this;
       }
 
@@ -33334,12 +33013,12 @@ public final class WorkoutOuterClass {
               "name_",
               "blurb_",
               "groupLabel_",
-              "exercises_",
               "isDefault_",
+              "exercises_",
             };
             java.lang.String info =
-                "\u0000\u0006\u0000\u0000\u0001\u0007\u0006\u0000\u0001\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003\u0208\u0005\u0208\u0006,\u0007\u0007";
+                "\u0000\u0006\u0000\u0000\u0001\b\u0006\u0000\u0001\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0208\u0005\u0208\u0007\u0007\b\u021a";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -35103,10 +34782,9 @@ public final class WorkoutOuterClass {
   /**
    * <pre>
    * Makes a ready-made plan the rotation: its entries the user does not
-   * have are added (an AddLibraryTemplates event), then one
-   * ReorderTemplates puts the user's template for each entry (one following
-   * it or made from it) first, in the plan's order, as the rotation and
-   * everything else after it as reserves. Nothing is deleted.
+   * have are copied into the program, then the user's workout for each entry
+   * goes first, in the plan's order, as the rotation, and everything else
+   * after it as reserves. Nothing is deleted. One program edit.
    * </pre>
    *
    * Protobuf type {@code workout.v1.ApplyLibraryPlanRequest}
@@ -35250,10 +34928,9 @@ public final class WorkoutOuterClass {
     /**
      * <pre>
      * Makes a ready-made plan the rotation: its entries the user does not
-     * have are added (an AddLibraryTemplates event), then one
-     * ReorderTemplates puts the user's template for each entry (one following
-     * it or made from it) first, in the plan's order, as the rotation and
-     * everything else after it as reserves. Nothing is deleted.
+     * have are copied into the program, then the user's workout for each entry
+     * goes first, in the plan's order, as the rotation, and everything else
+     * after it as reserves. Nothing is deleted. One program edit.
      * </pre>
      *
      * Protobuf type {@code workout.v1.ApplyLibraryPlanRequest}
@@ -35603,35 +35280,6 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    java.util.List<workout.v1.WorkoutOuterClass.LibraryTemplate> 
-        getEntriesList();
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    workout.v1.WorkoutOuterClass.LibraryTemplate getEntries(int index);
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    int getEntriesCount();
-
-    /**
-     * <pre>
      * Into the rotation; otherwise (the default) they are reserves.
      * </pre>
      *
@@ -35642,9 +35290,8 @@ public final class WorkoutOuterClass {
   }
   /**
    * <pre>
-   * Adds library entries to the caller's templates, coupled, skipping any
-   * the caller already has (a template following it, or one of their own
-   * made from it).
+   * Copies library entries into the program's workouts, skipping any the
+   * caller already has (a workout copied from it).
    * </pre>
    *
    * Protobuf type {@code workout.v1.AddLibraryTemplatesRequest}
@@ -35656,7 +35303,6 @@ public final class WorkoutOuterClass {
       AddLibraryTemplatesRequestOrBuilder {
     private AddLibraryTemplatesRequest() {
       libraryIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
-      entries_ = emptyProtobufList();
     }
     public static final int LIBRARY_IDS_FIELD_NUMBER = 1;
     private com.google.protobuf.Internal.ProtobufList<java.lang.String> libraryIds_;
@@ -35749,155 +35395,6 @@ public final class WorkoutOuterClass {
       checkByteStringIsUtf8(value);
       ensureLibraryIdsIsMutable();
       libraryIds_.add(value.toStringUtf8());
-    }
-
-    public static final int ENTRIES_FIELD_NUMBER = 2;
-    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.LibraryTemplate> entries_;
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.LibraryTemplate> getEntriesList() {
-      return entries_;
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    public java.util.List<? extends workout.v1.WorkoutOuterClass.LibraryTemplateOrBuilder> 
-        getEntriesOrBuilderList() {
-      return entries_;
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    @java.lang.Override
-    public int getEntriesCount() {
-      return entries_.size();
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    @java.lang.Override
-    public workout.v1.WorkoutOuterClass.LibraryTemplate getEntries(int index) {
-      return entries_.get(index);
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    public workout.v1.WorkoutOuterClass.LibraryTemplateOrBuilder getEntriesOrBuilder(
-        int index) {
-      return entries_.get(index);
-    }
-    private void ensureEntriesIsMutable() {
-      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.LibraryTemplate> tmp = entries_;
-      if (!tmp.isModifiable()) {
-        entries_ =
-            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-       }
-    }
-
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    private void setEntries(
-        int index, workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-      value.getClass();
-  ensureEntriesIsMutable();
-      entries_.set(index, value);
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    private void addEntries(workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-      value.getClass();
-  ensureEntriesIsMutable();
-      entries_.add(value);
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    private void addEntries(
-        int index, workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-      value.getClass();
-  ensureEntriesIsMutable();
-      entries_.add(index, value);
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    private void addAllEntries(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.LibraryTemplate> values) {
-      ensureEntriesIsMutable();
-      com.google.protobuf.AbstractMessageLite.addAll(
-          values, entries_);
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    private void clearEntries() {
-      entries_ = emptyProtobufList();
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded, so a replay never reads the library.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-     */
-    private void removeEntries(int index) {
-      ensureEntriesIsMutable();
-      entries_.remove(index);
     }
 
     public static final int IN_ROTATION_FIELD_NUMBER = 3;
@@ -36021,9 +35518,8 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * Adds library entries to the caller's templates, coupled, skipping any
-     * the caller already has (a template following it, or one of their own
-     * made from it).
+     * Copies library entries into the program's workouts, skipping any the
+     * caller already has (a workout copied from it).
      * </pre>
      *
      * Protobuf type {@code workout.v1.AddLibraryTemplatesRequest}
@@ -36133,168 +35629,6 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.LibraryTemplate> getEntriesList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getEntriesList());
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      @java.lang.Override
-      public int getEntriesCount() {
-        return instance.getEntriesCount();
-      }/**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      @java.lang.Override
-      public workout.v1.WorkoutOuterClass.LibraryTemplate getEntries(int index) {
-        return instance.getEntries(index);
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      public Builder setEntries(
-          int index, workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-        copyOnWrite();
-        instance.setEntries(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      public Builder setEntries(
-          int index, workout.v1.WorkoutOuterClass.LibraryTemplate.Builder builderForValue) {
-        copyOnWrite();
-        instance.setEntries(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      public Builder addEntries(workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-        copyOnWrite();
-        instance.addEntries(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      public Builder addEntries(
-          int index, workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-        copyOnWrite();
-        instance.addEntries(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      public Builder addEntries(
-          workout.v1.WorkoutOuterClass.LibraryTemplate.Builder builderForValue) {
-        copyOnWrite();
-        instance.addEntries(builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      public Builder addEntries(
-          int index, workout.v1.WorkoutOuterClass.LibraryTemplate.Builder builderForValue) {
-        copyOnWrite();
-        instance.addEntries(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      public Builder addAllEntries(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.LibraryTemplate> values) {
-        copyOnWrite();
-        instance.addAllEntries(values);
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      public Builder clearEntries() {
-        copyOnWrite();
-        instance.clearEntries();
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded, so a replay never reads the library.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate entries = 2 [json_name = "entries"];</code>
-       */
-      public Builder removeEntries(int index) {
-        copyOnWrite();
-        instance.removeEntries(index);
-        return this;
-      }
-
-      /**
-       * <pre>
        * Into the rotation; otherwise (the default) they are reserves.
        * </pre>
        *
@@ -36350,13 +35684,11 @@ public final class WorkoutOuterClass {
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
               "libraryIds_",
-              "entries_",
-              workout.v1.WorkoutOuterClass.LibraryTemplate.class,
               "inRotation_",
             };
             java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0002\u0000\u0001\u021a\u0002\u001b" +
-                "\u0003\u0007";
+                "\u0000\u0002\u0000\u0000\u0001\u0003\u0002\u0000\u0001\u0000\u0001\u021a\u0003\u0007" +
+                "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -36407,703 +35739,6 @@ public final class WorkoutOuterClass {
     private static volatile com.google.protobuf.Parser<AddLibraryTemplatesRequest> PARSER;
 
     public static com.google.protobuf.Parser<AddLibraryTemplatesRequest> parser() {
-      return DEFAULT_INSTANCE.getParserForType();
-    }
-  }
-
-  public interface CloneTemplateRequestOrBuilder extends
-      // @@protoc_insertion_point(interface_extends:workout.v1.CloneTemplateRequest)
-      com.google.protobuf.MessageLiteOrBuilder {
-
-    /**
-     * <code>string template_id = 1 [json_name = "templateId"];</code>
-     * @return The templateId.
-     */
-    java.lang.String getTemplateId();
-    /**
-     * <code>string template_id = 1 [json_name = "templateId"];</code>
-     * @return The bytes for templateId.
-     */
-    com.google.protobuf.ByteString
-        getTemplateIdBytes();
-
-    /**
-     * <code>string name = 2 [json_name = "name"];</code>
-     * @return The name.
-     */
-    java.lang.String getName();
-    /**
-     * <code>string name = 2 [json_name = "name"];</code>
-     * @return The bytes for name.
-     */
-    com.google.protobuf.ByteString
-        getNameBytes();
-
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @return A list containing the exercises.
-     */
-    java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList();
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @return The count of exercises.
-     */
-    int getExercisesCount();
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param index The index of the element to return.
-     * @return The exercises at the given index.
-     */
-    workout.v1.WorkoutOuterClass.Exercise getExercises(int index);
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
-     */
-    java.util.List<java.lang.Integer>
-    getExercisesValueList();
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
-     */
-    int getExercisesValue(int index);
-  }
-  /**
-   * <pre>
-   * Make a library template the user's own: it stops following the library
-   * and keeps its id (and so its history). name and exercises are the
-   * library's when the event was recorded. Only folded from logs that hold
-   * it; a clone is recorded as a SaveTemplateRequest with unlink.
-   * </pre>
-   *
-   * Protobuf type {@code workout.v1.CloneTemplateRequest}
-   */
-  public  static final class CloneTemplateRequest extends
-      com.google.protobuf.GeneratedMessageLite<
-          CloneTemplateRequest, CloneTemplateRequest.Builder> implements
-      // @@protoc_insertion_point(message_implements:workout.v1.CloneTemplateRequest)
-      CloneTemplateRequestOrBuilder {
-    private CloneTemplateRequest() {
-      templateId_ = "";
-      name_ = "";
-      exercises_ = emptyIntList();
-    }
-    public static final int TEMPLATE_ID_FIELD_NUMBER = 1;
-    private java.lang.String templateId_;
-    /**
-     * <code>string template_id = 1 [json_name = "templateId"];</code>
-     * @return The templateId.
-     */
-    @java.lang.Override
-    public java.lang.String getTemplateId() {
-      return templateId_;
-    }
-    /**
-     * <code>string template_id = 1 [json_name = "templateId"];</code>
-     * @return The bytes for templateId.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString
-        getTemplateIdBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(templateId_);
-    }
-    /**
-     * <code>string template_id = 1 [json_name = "templateId"];</code>
-     * @param value The templateId to set.
-     */
-    private void setTemplateId(
-        java.lang.String value) {
-      java.lang.Class<?> valueClass = value.getClass();
-  
-      templateId_ = value;
-    }
-    /**
-     * <code>string template_id = 1 [json_name = "templateId"];</code>
-     */
-    private void clearTemplateId() {
-      
-      templateId_ = getDefaultInstance().getTemplateId();
-    }
-    /**
-     * <code>string template_id = 1 [json_name = "templateId"];</code>
-     * @param value The bytes for templateId to set.
-     */
-    private void setTemplateIdBytes(
-        com.google.protobuf.ByteString value) {
-      checkByteStringIsUtf8(value);
-      templateId_ = value.toStringUtf8();
-      
-    }
-
-    public static final int NAME_FIELD_NUMBER = 2;
-    private java.lang.String name_;
-    /**
-     * <code>string name = 2 [json_name = "name"];</code>
-     * @return The name.
-     */
-    @java.lang.Override
-    public java.lang.String getName() {
-      return name_;
-    }
-    /**
-     * <code>string name = 2 [json_name = "name"];</code>
-     * @return The bytes for name.
-     */
-    @java.lang.Override
-    public com.google.protobuf.ByteString
-        getNameBytes() {
-      return com.google.protobuf.ByteString.copyFromUtf8(name_);
-    }
-    /**
-     * <code>string name = 2 [json_name = "name"];</code>
-     * @param value The name to set.
-     */
-    private void setName(
-        java.lang.String value) {
-      java.lang.Class<?> valueClass = value.getClass();
-  
-      name_ = value;
-    }
-    /**
-     * <code>string name = 2 [json_name = "name"];</code>
-     */
-    private void clearName() {
-      
-      name_ = getDefaultInstance().getName();
-    }
-    /**
-     * <code>string name = 2 [json_name = "name"];</code>
-     * @param value The bytes for name to set.
-     */
-    private void setNameBytes(
-        com.google.protobuf.ByteString value) {
-      checkByteStringIsUtf8(value);
-      name_ = value.toStringUtf8();
-      
-    }
-
-    public static final int EXERCISES_FIELD_NUMBER = 3;
-    private com.google.protobuf.Internal.IntList exercises_;
-    private static final com.google.protobuf.Internal.ListAdapter.Converter<
-        java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise> exercises_converter_ =
-            new com.google.protobuf.Internal.ListAdapter.Converter<
-                java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>() {
-              @java.lang.Override
-              public workout.v1.WorkoutOuterClass.Exercise convert(java.lang.Integer from) {
-                workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(from);
-                return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
-              }
-            };
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @return A list containing the exercises.
-     */
-    @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-      return new com.google.protobuf.Internal.ListAdapter<
-          java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>(exercises_, exercises_converter_);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @return The count of exercises.
-     */
-    @java.lang.Override
-    public int getExercisesCount() {
-      return exercises_.size();
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param index The index of the element to return.
-     * @return The exercises at the given index.
-     */
-    @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercises_.getInt(index));
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
-     */
-    @java.lang.Override
-    public java.util.List<java.lang.Integer>
-    getExercisesValueList() {
-      return exercises_;
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
-     */
-    @java.lang.Override
-    public int getExercisesValue(int index) {
-      return exercises_.getInt(index);
-    }
-    private int exercisesMemoizedSerializedSize;
-    private void ensureExercisesIsMutable() {
-      com.google.protobuf.Internal.IntList tmp = exercises_;
-      if (!tmp.isModifiable()) {
-        exercises_ =
-            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-      }
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param index The index to set the value at.
-     * @param value The exercises to set.
-     */
-    private void setExercises(
-        int index, workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
-  ensureExercisesIsMutable();
-      exercises_.setInt(index, value.getNumber());
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param value The exercises to add.
-     */
-    private void addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
-  ensureExercisesIsMutable();
-      exercises_.addInt(value.getNumber());
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param values The exercises to add.
-     */
-    private void addAllExercises(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
-      ensureExercisesIsMutable();
-      for (workout.v1.WorkoutOuterClass.Exercise value : values) {
-        exercises_.addInt(value.getNumber());
-      }
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     */
-    private void clearExercises() {
-      exercises_ = emptyIntList();
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to set.
-     */
-    private void setExercisesValue(
-        int index, int value) {
-      ensureExercisesIsMutable();
-      exercises_.setInt(index, value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to add.
-     */
-    private void addExercisesValue(int value) {
-      ensureExercisesIsMutable();
-      exercises_.addInt(value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-     * @param values The enum numeric values on the wire for exercises to add.
-     */
-    private void addAllExercisesValue(
-        java.lang.Iterable<java.lang.Integer> values) {
-      ensureExercisesIsMutable();
-      for (int value : values) {
-        exercises_.addInt(value);
-      }
-    }
-
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseFrom(
-        java.nio.ByteBuffer data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseFrom(
-        java.nio.ByteBuffer data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseFrom(
-        com.google.protobuf.ByteString data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseFrom(
-        com.google.protobuf.ByteString data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseFrom(byte[] data)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data);
-    }
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseFrom(
-        byte[] data,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws com.google.protobuf.InvalidProtocolBufferException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, data, extensionRegistry);
-    }
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseDelimitedFrom(java.io.InputStream input)
-        throws java.io.IOException {
-      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseDelimitedFrom(
-        java.io.InputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseFrom(
-        com.google.protobuf.CodedInputStream input)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input);
-    }
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest parseFrom(
-        com.google.protobuf.CodedInputStream input,
-        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
-        throws java.io.IOException {
-      return com.google.protobuf.GeneratedMessageLite.parseFrom(
-          DEFAULT_INSTANCE, input, extensionRegistry);
-    }
-
-    public static Builder newBuilder() {
-      return (Builder) DEFAULT_INSTANCE.createBuilder();
-    }
-    public static Builder newBuilder(workout.v1.WorkoutOuterClass.CloneTemplateRequest prototype) {
-      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
-    }
-
-    /**
-     * <pre>
-     * Make a library template the user's own: it stops following the library
-     * and keeps its id (and so its history). name and exercises are the
-     * library's when the event was recorded. Only folded from logs that hold
-     * it; a clone is recorded as a SaveTemplateRequest with unlink.
-     * </pre>
-     *
-     * Protobuf type {@code workout.v1.CloneTemplateRequest}
-     */
-    public static final class Builder extends
-        com.google.protobuf.GeneratedMessageLite.Builder<
-          workout.v1.WorkoutOuterClass.CloneTemplateRequest, Builder> implements
-        // @@protoc_insertion_point(builder_implements:workout.v1.CloneTemplateRequest)
-        workout.v1.WorkoutOuterClass.CloneTemplateRequestOrBuilder {
-      // Construct using workout.v1.WorkoutOuterClass.CloneTemplateRequest.newBuilder()
-      private Builder() {
-        super(DEFAULT_INSTANCE);
-      }
-
-
-      /**
-       * <code>string template_id = 1 [json_name = "templateId"];</code>
-       * @return The templateId.
-       */
-      @java.lang.Override
-      public java.lang.String getTemplateId() {
-        return instance.getTemplateId();
-      }
-      /**
-       * <code>string template_id = 1 [json_name = "templateId"];</code>
-       * @return The bytes for templateId.
-       */
-      @java.lang.Override
-      public com.google.protobuf.ByteString
-          getTemplateIdBytes() {
-        return instance.getTemplateIdBytes();
-      }
-      /**
-       * <code>string template_id = 1 [json_name = "templateId"];</code>
-       * @param value The templateId to set.
-       * @return This builder for chaining.
-       */
-      public Builder setTemplateId(
-          java.lang.String value) {
-        copyOnWrite();
-        instance.setTemplateId(value);
-        return this;
-      }
-      /**
-       * <code>string template_id = 1 [json_name = "templateId"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearTemplateId() {
-        copyOnWrite();
-        instance.clearTemplateId();
-        return this;
-      }
-      /**
-       * <code>string template_id = 1 [json_name = "templateId"];</code>
-       * @param value The bytes for templateId to set.
-       * @return This builder for chaining.
-       */
-      public Builder setTemplateIdBytes(
-          com.google.protobuf.ByteString value) {
-        copyOnWrite();
-        instance.setTemplateIdBytes(value);
-        return this;
-      }
-
-      /**
-       * <code>string name = 2 [json_name = "name"];</code>
-       * @return The name.
-       */
-      @java.lang.Override
-      public java.lang.String getName() {
-        return instance.getName();
-      }
-      /**
-       * <code>string name = 2 [json_name = "name"];</code>
-       * @return The bytes for name.
-       */
-      @java.lang.Override
-      public com.google.protobuf.ByteString
-          getNameBytes() {
-        return instance.getNameBytes();
-      }
-      /**
-       * <code>string name = 2 [json_name = "name"];</code>
-       * @param value The name to set.
-       * @return This builder for chaining.
-       */
-      public Builder setName(
-          java.lang.String value) {
-        copyOnWrite();
-        instance.setName(value);
-        return this;
-      }
-      /**
-       * <code>string name = 2 [json_name = "name"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearName() {
-        copyOnWrite();
-        instance.clearName();
-        return this;
-      }
-      /**
-       * <code>string name = 2 [json_name = "name"];</code>
-       * @param value The bytes for name to set.
-       * @return This builder for chaining.
-       */
-      public Builder setNameBytes(
-          com.google.protobuf.ByteString value) {
-        copyOnWrite();
-        instance.setNameBytes(value);
-        return this;
-      }
-
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @return A list containing the exercises.
-       */
-      @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-        return instance.getExercisesList();
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @return The count of exercises.
-       */
-      @java.lang.Override
-      public int getExercisesCount() {
-        return instance.getExercisesCount();
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param index The index of the element to return.
-       * @return The exercises at the given index.
-       */
-      @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
-        return instance.getExercises(index);
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param index The index to set the value at.
-       * @param value The exercises to set.
-       * @return This builder for chaining.
-       */
-      public Builder setExercises(
-          int index, workout.v1.WorkoutOuterClass.Exercise value) {
-        copyOnWrite();
-        instance.setExercises(index, value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param value The exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
-        copyOnWrite();
-        instance.addExercises(value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param values The exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllExercises(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
-        copyOnWrite();
-        instance.addAllExercises(values);  return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearExercises() {
-        copyOnWrite();
-        instance.clearExercises();
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @return A list containing the enum numeric values on the wire for exercises.
-       */
-      @java.lang.Override
-      public java.util.List<java.lang.Integer>
-      getExercisesValueList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getExercisesValueList());
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param index The index of the value to return.
-       * @return The enum numeric value on the wire of exercises at the given index.
-       */
-      @java.lang.Override
-      public int getExercisesValue(int index) {
-        return instance.getExercisesValue(index);
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param index The index to set the value at.
-       * @param value The enum numeric value on the wire for exercises to set.
-       * @return This builder for chaining.
-       */
-      public Builder setExercisesValue(
-          int index, int value) {
-        copyOnWrite();
-        instance.setExercisesValue(index, value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param value The enum numeric value on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addExercisesValue(int value) {
-        instance.addExercisesValue(value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 3 [json_name = "exercises"];</code>
-       * @param values The enum numeric values on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllExercisesValue(
-          java.lang.Iterable<java.lang.Integer> values) {
-        copyOnWrite();
-        instance.addAllExercisesValue(values);
-        return this;
-      }
-
-      // @@protoc_insertion_point(builder_scope:workout.v1.CloneTemplateRequest)
-    }
-    @java.lang.Override
-    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
-    protected final java.lang.Object dynamicMethod(
-        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
-        java.lang.Object arg0, java.lang.Object arg1) {
-      switch (method) {
-        case NEW_MUTABLE_INSTANCE: {
-          return new workout.v1.WorkoutOuterClass.CloneTemplateRequest();
-        }
-        case NEW_BUILDER: {
-          return new Builder();
-        }
-        case BUILD_MESSAGE_INFO: {
-            java.lang.Object[] objects = new java.lang.Object[] {
-              "templateId_",
-              "name_",
-              "exercises_",
-            };
-            java.lang.String info =
-                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0001\u0000\u0001\u0208\u0002\u0208" +
-                "\u0003,";
-            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
-        }
-        // fall through
-        case GET_DEFAULT_INSTANCE: {
-          return DEFAULT_INSTANCE;
-        }
-        case GET_PARSER: {
-          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.CloneTemplateRequest> parser = PARSER;
-          if (parser == null) {
-            synchronized (workout.v1.WorkoutOuterClass.CloneTemplateRequest.class) {
-              parser = PARSER;
-              if (parser == null) {
-                parser =
-                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.CloneTemplateRequest>(
-                        DEFAULT_INSTANCE);
-                PARSER = parser;
-              }
-            }
-          }
-          return parser;
-      }
-      case GET_MEMOIZED_IS_INITIALIZED: {
-        return (byte) 1;
-      }
-      case SET_MEMOIZED_IS_INITIALIZED: {
-        return null;
-      }
-      }
-      throw new UnsupportedOperationException();
-    }
-
-
-    // @@protoc_insertion_point(class_scope:workout.v1.CloneTemplateRequest)
-    private static final workout.v1.WorkoutOuterClass.CloneTemplateRequest DEFAULT_INSTANCE;
-    static {
-      CloneTemplateRequest defaultInstance = new CloneTemplateRequest();
-      // New instances are implicitly immutable so no need to make
-      // immutable.
-      DEFAULT_INSTANCE = defaultInstance;
-      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
-        CloneTemplateRequest.class, defaultInstance);
-    }
-
-    public static workout.v1.WorkoutOuterClass.CloneTemplateRequest getDefaultInstance() {
-      return DEFAULT_INSTANCE;
-    }
-
-    private static volatile com.google.protobuf.Parser<CloneTemplateRequest> PARSER;
-
-    public static com.google.protobuf.Parser<CloneTemplateRequest> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }
@@ -38645,7 +37280,7 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -38655,7 +37290,7 @@ public final class WorkoutOuterClass {
         getPlansList();
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -38664,7 +37299,7 @@ public final class WorkoutOuterClass {
     workout.v1.WorkoutOuterClass.ExercisePlan getPlans(int index);
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -38796,6 +37431,25 @@ public final class WorkoutOuterClass {
      */
     com.google.protobuf.ByteString
         getCurrentPlanIdBytes();
+
+    /**
+     * <pre>
+     * The program everything here was planned by.
+     * </pre>
+     *
+     * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+     * @return Whether the program field is set.
+     */
+    boolean hasProgram();
+    /**
+     * <pre>
+     * The program everything here was planned by.
+     * </pre>
+     *
+     * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+     * @return The program.
+     */
+    workout.v1.WorkoutOuterClass.ProgramSummary getProgram();
   }
   /**
    * Protobuf type {@code workout.v1.GetHomeResponse}
@@ -39359,7 +38013,7 @@ public final class WorkoutOuterClass {
     private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExercisePlan> plans_;
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -39371,7 +38025,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -39383,7 +38037,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -39395,7 +38049,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -39407,7 +38061,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -39427,7 +38081,7 @@ public final class WorkoutOuterClass {
 
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -39441,7 +38095,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -39454,7 +38108,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -39468,7 +38122,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -39482,7 +38136,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -39493,7 +38147,7 @@ public final class WorkoutOuterClass {
     }
     /**
      * <pre>
-     * Every exercise in the catalog, planned at the home's now on its own (a
+     * Every exercise in the program, planned at the home's now on its own (a
      * workout of that one lift, in the budget).
      * </pre>
      *
@@ -39962,6 +38616,72 @@ public final class WorkoutOuterClass {
         com.google.protobuf.ByteString value) {
       checkByteStringIsUtf8(value);
       currentPlanId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int PROGRAM_FIELD_NUMBER = 18;
+    private workout.v1.WorkoutOuterClass.ProgramSummary program_;
+    /**
+     * <pre>
+     * The program everything here was planned by.
+     * </pre>
+     *
+     * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+     */
+    @java.lang.Override
+    public boolean hasProgram() {
+      return program_ != null;
+    }
+    /**
+     * <pre>
+     * The program everything here was planned by.
+     * </pre>
+     *
+     * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgramSummary getProgram() {
+      return program_ == null ? workout.v1.WorkoutOuterClass.ProgramSummary.getDefaultInstance() : program_;
+    }
+    /**
+     * <pre>
+     * The program everything here was planned by.
+     * </pre>
+     *
+     * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+     */
+    private void setProgram(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  program_ = value;
+      
+      }
+    /**
+     * <pre>
+     * The program everything here was planned by.
+     * </pre>
+     *
+     * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeProgram(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  if (program_ != null &&
+          program_ != workout.v1.WorkoutOuterClass.ProgramSummary.getDefaultInstance()) {
+        program_ =
+          workout.v1.WorkoutOuterClass.ProgramSummary.newBuilder(program_).mergeFrom(value).buildPartial();
+      } else {
+        program_ = value;
+      }
+      
+    }
+    /**
+     * <pre>
+     * The program everything here was planned by.
+     * </pre>
+     *
+     * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+     */
+    private void clearProgram() {  program_ = null;
       
     }
 
@@ -40636,7 +39356,7 @@ public final class WorkoutOuterClass {
 
       /**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -40649,7 +39369,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -40660,7 +39380,7 @@ public final class WorkoutOuterClass {
         return instance.getPlansCount();
       }/**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -40672,7 +39392,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -40686,7 +39406,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -40701,7 +39421,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -40714,7 +39434,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -40728,7 +39448,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -40742,7 +39462,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -40757,7 +39477,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -40771,7 +39491,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -40784,7 +39504,7 @@ public final class WorkoutOuterClass {
       }
       /**
        * <pre>
-       * Every exercise in the catalog, planned at the home's now on its own (a
+       * Every exercise in the program, planned at the home's now on its own (a
        * workout of that one lift, in the budget).
        * </pre>
        *
@@ -41279,6 +39999,77 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The program everything here was planned by.
+       * </pre>
+       *
+       * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+       */
+      @java.lang.Override
+      public boolean hasProgram() {
+        return instance.hasProgram();
+      }
+      /**
+       * <pre>
+       * The program everything here was planned by.
+       * </pre>
+       *
+       * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgramSummary getProgram() {
+        return instance.getProgram();
+      }
+      /**
+       * <pre>
+       * The program everything here was planned by.
+       * </pre>
+       *
+       * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+       */
+      public Builder setProgram(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.setProgram(value);
+        return this;
+        }
+      /**
+       * <pre>
+       * The program everything here was planned by.
+       * </pre>
+       *
+       * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+       */
+      public Builder setProgram(
+          workout.v1.WorkoutOuterClass.ProgramSummary.Builder builderForValue) {
+        copyOnWrite();
+        instance.setProgram(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * The program everything here was planned by.
+       * </pre>
+       *
+       * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+       */
+      public Builder mergeProgram(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.mergeProgram(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The program everything here was planned by.
+       * </pre>
+       *
+       * <code>.workout.v1.ProgramSummary program = 18 [json_name = "program"];</code>
+       */
+      public Builder clearProgram() {  copyOnWrite();
+        instance.clearProgram();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.GetHomeResponse)
     }
     @java.lang.Override
@@ -41313,11 +40104,12 @@ public final class WorkoutOuterClass {
               "rotationCheck_",
               "addableLibraryIds_",
               "currentPlanId_",
+              "program_",
             };
             java.lang.String info =
-                "\u0000\r\u0000\u0000\u0001\u0011\r\u0000\u0006\u0000\u0001\u001b\u0003\u0208\u0005" +
-                "\u001b\u0006\u001b\u0007\u0208\t\u0007\n\u001b\u000b\u001b\f\u0004\r\t\u000e\t\u0010" +
-                "\u021a\u0011\u0208";
+                "\u0000\u000e\u0000\u0000\u0001\u0012\u000e\u0000\u0006\u0000\u0001\u001b\u0003\u0208" +
+                "\u0005\u001b\u0006\u001b\u0007\u0208\t\u0007\n\u001b\u000b\u001b\f\u0004\r\t\u000e" +
+                "\t\u0010\u021a\u0011\u0208\u0012\t";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -47357,33 +46149,29 @@ public final class WorkoutOuterClass {
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
-    java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList();
+    java.util.List<java.lang.String>
+        getExercisesList();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     int getExercisesCount();
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercises(int index);
+    java.lang.String getExercises(int index);
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
+     * @param index The index of the element to return.
+     * @return The exercises at the given index.
      */
-    java.util.List<java.lang.Integer>
-    getExercisesValueList();
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
-     * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
-     */
-    int getExercisesValue(int index);
+    com.google.protobuf.ByteString
+        getExercisesBytes(int index);
 
     /**
      * <pre>
@@ -47410,31 +46198,20 @@ public final class WorkoutOuterClass {
       // @@protoc_insertion_point(message_implements:workout.v1.GetTemplatePlanRequest)
       GetTemplatePlanRequestOrBuilder {
     private GetTemplatePlanRequest() {
-      exercises_ = emptyIntList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
-    public static final int EXERCISES_FIELD_NUMBER = 1;
-    private com.google.protobuf.Internal.IntList exercises_;
-    private static final com.google.protobuf.Internal.ListAdapter.Converter<
-        java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise> exercises_converter_ =
-            new com.google.protobuf.Internal.ListAdapter.Converter<
-                java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>() {
-              @java.lang.Override
-              public workout.v1.WorkoutOuterClass.Exercise convert(java.lang.Integer from) {
-                workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(from);
-                return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
-              }
-            };
+    public static final int EXERCISES_FIELD_NUMBER = 3;
+    private com.google.protobuf.Internal.ProtobufList<java.lang.String> exercises_;
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @return A list containing the exercises.
      */
     @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-      return new com.google.protobuf.Internal.ListAdapter<
-          java.lang.Integer, workout.v1.WorkoutOuterClass.Exercise>(exercises_, exercises_converter_);
+    public java.util.List<java.lang.String> getExercisesList() {
+      return exercises_;
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @return The count of exercises.
      */
     @java.lang.Override
@@ -47442,105 +46219,78 @@ public final class WorkoutOuterClass {
       return exercises_.size();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param index The index of the element to return.
      * @return The exercises at the given index.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercises_.getInt(index));
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercises(int index) {
+      return exercises_.get(index);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
-     * @return A list containing the enum numeric values on the wire for exercises.
-     */
-    @java.lang.Override
-    public java.util.List<java.lang.Integer>
-    getExercisesValueList() {
-      return exercises_;
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param index The index of the value to return.
-     * @return The enum numeric value on the wire of exercises at the given index.
+     * @return The bytes of the exercises at the given index.
      */
     @java.lang.Override
-    public int getExercisesValue(int index) {
-      return exercises_.getInt(index);
+    public com.google.protobuf.ByteString
+        getExercisesBytes(int index) {
+      return com.google.protobuf.ByteString.copyFromUtf8(
+          exercises_.get(index));
     }
-    private int exercisesMemoizedSerializedSize;
     private void ensureExercisesIsMutable() {
-      com.google.protobuf.Internal.IntList tmp = exercises_;
-      if (!tmp.isModifiable()) {
+      com.google.protobuf.Internal.ProtobufList<java.lang.String> tmp =
+          exercises_;  if (!tmp.isModifiable()) {
         exercises_ =
             com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-      }
+       }
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param index The index to set the value at.
      * @param value The exercises to set.
      */
     private void setExercises(
-        int index, workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+        int index, java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.setInt(index, value.getNumber());
+      exercises_.set(index, value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param value The exercises to add.
      */
-    private void addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
-      value.getClass();
+    private void addExercises(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
   ensureExercisesIsMutable();
-      exercises_.addInt(value.getNumber());
+      exercises_.add(value);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      * @param values The exercises to add.
      */
     private void addAllExercises(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+        java.lang.Iterable<java.lang.String> values) {
       ensureExercisesIsMutable();
-      for (workout.v1.WorkoutOuterClass.Exercise value : values) {
-        exercises_.addInt(value.getNumber());
-      }
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exercises_);
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
      */
     private void clearExercises() {
-      exercises_ = emptyIntList();
+      exercises_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
     }
     /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to set.
+     * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
+     * @param value The bytes of the exercises to add.
      */
-    private void setExercisesValue(
-        int index, int value) {
+    private void addExercisesBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
       ensureExercisesIsMutable();
-      exercises_.setInt(index, value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
-     * @param value The enum numeric value on the wire for exercises to add.
-     */
-    private void addExercisesValue(int value) {
-      ensureExercisesIsMutable();
-      exercises_.addInt(value);
-    }
-    /**
-     * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
-     * @param values The enum numeric values on the wire for exercises to add.
-     */
-    private void addAllExercisesValue(
-        java.lang.Iterable<java.lang.Integer> values) {
-      ensureExercisesIsMutable();
-      for (int value : values) {
-        exercises_.addInt(value);
-      }
+      exercises_.add(value.toStringUtf8());
     }
 
     public static final int BUDGET_MINUTES_FIELD_NUMBER = 2;
@@ -47683,15 +46433,17 @@ public final class WorkoutOuterClass {
 
 
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @return A list containing the exercises.
        */
       @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.Exercise> getExercisesList() {
-        return instance.getExercisesList();
+      public java.util.List<java.lang.String>
+          getExercisesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExercisesList());
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @return The count of exercises.
        */
       @java.lang.Override
@@ -47699,48 +46451,60 @@ public final class WorkoutOuterClass {
         return instance.getExercisesCount();
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @param index The index of the element to return.
        * @return The exercises at the given index.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercises(int index) {
+      public java.lang.String getExercises(int index) {
         return instance.getExercises(index);
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
+       * @param index The index of the value to return.
+       * @return The bytes of the exercises at the given index.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExercisesBytes(int index) {
+        return instance.getExercisesBytes(index);
+      }
+      /**
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @param index The index to set the value at.
        * @param value The exercises to set.
        * @return This builder for chaining.
        */
       public Builder setExercises(
-          int index, workout.v1.WorkoutOuterClass.Exercise value) {
+          int index, java.lang.String value) {
         copyOnWrite();
         instance.setExercises(index, value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @param value The exercises to add.
        * @return This builder for chaining.
        */
-      public Builder addExercises(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder addExercises(
+          java.lang.String value) {
         copyOnWrite();
         instance.addExercises(value);
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @param values The exercises to add.
        * @return This builder for chaining.
        */
       public Builder addAllExercises(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.Exercise> values) {
+          java.lang.Iterable<java.lang.String> values) {
         copyOnWrite();
-        instance.addAllExercises(values);  return this;
+        instance.addAllExercises(values);
+        return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercises() {
@@ -47749,54 +46513,14 @@ public final class WorkoutOuterClass {
         return this;
       }
       /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
-       * @return A list containing the enum numeric values on the wire for exercises.
-       */
-      @java.lang.Override
-      public java.util.List<java.lang.Integer>
-      getExercisesValueList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getExercisesValueList());
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
-       * @param index The index of the value to return.
-       * @return The enum numeric value on the wire of exercises at the given index.
-       */
-      @java.lang.Override
-      public int getExercisesValue(int index) {
-        return instance.getExercisesValue(index);
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
-       * @param index The index to set the value at.
-       * @param value The enum numeric value on the wire for exercises to set.
+       * <code>repeated string exercises = 3 [json_name = "exercises"];</code>
+       * @param value The bytes of the exercises to add.
        * @return This builder for chaining.
        */
-      public Builder setExercisesValue(
-          int index, int value) {
+      public Builder addExercisesBytes(
+          com.google.protobuf.ByteString value) {
         copyOnWrite();
-        instance.setExercisesValue(index, value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
-       * @param value The enum numeric value on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addExercisesValue(int value) {
-        instance.addExercisesValue(value);
-        return this;
-      }
-      /**
-       * <code>repeated .workout.v1.Exercise exercises = 1 [json_name = "exercises"];</code>
-       * @param values The enum numeric values on the wire for exercises to add.
-       * @return This builder for chaining.
-       */
-      public Builder addAllExercisesValue(
-          java.lang.Iterable<java.lang.Integer> values) {
-        copyOnWrite();
-        instance.addAllExercisesValue(values);
+        instance.addExercisesBytes(value);
         return this;
       }
 
@@ -47856,11 +46580,12 @@ public final class WorkoutOuterClass {
         }
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
-              "exercises_",
               "budgetMinutes_",
+              "exercises_",
             };
             java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0001\u0000\u0001,\u0002\u0004";
+                "\u0000\u0002\u0000\u0000\u0002\u0003\u0002\u0000\u0001\u0000\u0002\u0004\u0003\u021a" +
+                "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -48268,20 +46993,6 @@ public final class WorkoutOuterClass {
      * @return The template.
      */
     workout.v1.WorkoutOuterClass.WorkoutTemplate getTemplate();
-
-    /**
-     * <pre>
-     * The template becomes the user's own, whatever copy it stored. Set by
-     * the caller to make a library template its own unchanged (Clone, saved),
-     * and by the core when the save differs from the library's version of
-     * now. Without it a save unlinks only when it differs from the stored
-     * copy.
-     * </pre>
-     *
-     * <code>bool unlink = 2 [json_name = "unlink"];</code>
-     * @return The unlink.
-     */
-    boolean getUnlink();
   }
   /**
    * <pre>
@@ -48341,56 +47052,6 @@ public final class WorkoutOuterClass {
      */
     private void clearTemplate() {  template_ = null;
       
-    }
-
-    public static final int UNLINK_FIELD_NUMBER = 2;
-    private boolean unlink_;
-    /**
-     * <pre>
-     * The template becomes the user's own, whatever copy it stored. Set by
-     * the caller to make a library template its own unchanged (Clone, saved),
-     * and by the core when the save differs from the library's version of
-     * now. Without it a save unlinks only when it differs from the stored
-     * copy.
-     * </pre>
-     *
-     * <code>bool unlink = 2 [json_name = "unlink"];</code>
-     * @return The unlink.
-     */
-    @java.lang.Override
-    public boolean getUnlink() {
-      return unlink_;
-    }
-    /**
-     * <pre>
-     * The template becomes the user's own, whatever copy it stored. Set by
-     * the caller to make a library template its own unchanged (Clone, saved),
-     * and by the core when the save differs from the library's version of
-     * now. Without it a save unlinks only when it differs from the stored
-     * copy.
-     * </pre>
-     *
-     * <code>bool unlink = 2 [json_name = "unlink"];</code>
-     * @param value The unlink to set.
-     */
-    private void setUnlink(boolean value) {
-      
-      unlink_ = value;
-    }
-    /**
-     * <pre>
-     * The template becomes the user's own, whatever copy it stored. Set by
-     * the caller to make a library template its own unchanged (Clone, saved),
-     * and by the core when the save differs from the library's version of
-     * now. Without it a save unlinks only when it differs from the stored
-     * copy.
-     * </pre>
-     *
-     * <code>bool unlink = 2 [json_name = "unlink"];</code>
-     */
-    private void clearUnlink() {
-      
-      unlink_ = false;
     }
 
     public static workout.v1.WorkoutOuterClass.SaveTemplateRequest parseFrom(
@@ -48539,58 +47200,6 @@ public final class WorkoutOuterClass {
         return this;
       }
 
-      /**
-       * <pre>
-       * The template becomes the user's own, whatever copy it stored. Set by
-       * the caller to make a library template its own unchanged (Clone, saved),
-       * and by the core when the save differs from the library's version of
-       * now. Without it a save unlinks only when it differs from the stored
-       * copy.
-       * </pre>
-       *
-       * <code>bool unlink = 2 [json_name = "unlink"];</code>
-       * @return The unlink.
-       */
-      @java.lang.Override
-      public boolean getUnlink() {
-        return instance.getUnlink();
-      }
-      /**
-       * <pre>
-       * The template becomes the user's own, whatever copy it stored. Set by
-       * the caller to make a library template its own unchanged (Clone, saved),
-       * and by the core when the save differs from the library's version of
-       * now. Without it a save unlinks only when it differs from the stored
-       * copy.
-       * </pre>
-       *
-       * <code>bool unlink = 2 [json_name = "unlink"];</code>
-       * @param value The unlink to set.
-       * @return This builder for chaining.
-       */
-      public Builder setUnlink(boolean value) {
-        copyOnWrite();
-        instance.setUnlink(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The template becomes the user's own, whatever copy it stored. Set by
-       * the caller to make a library template its own unchanged (Clone, saved),
-       * and by the core when the save differs from the library's version of
-       * now. Without it a save unlinks only when it differs from the stored
-       * copy.
-       * </pre>
-       *
-       * <code>bool unlink = 2 [json_name = "unlink"];</code>
-       * @return This builder for chaining.
-       */
-      public Builder clearUnlink() {
-        copyOnWrite();
-        instance.clearUnlink();
-        return this;
-      }
-
       // @@protoc_insertion_point(builder_scope:workout.v1.SaveTemplateRequest)
     }
     @java.lang.Override
@@ -48608,11 +47217,9 @@ public final class WorkoutOuterClass {
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
               "template_",
-              "unlink_",
             };
             java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\t\u0002\u0007" +
-                "";
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\t";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -50104,15 +48711,16 @@ public final class WorkoutOuterClass {
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    int getExerciseValue();
-    /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 5 [json_name = "exercise"];</code>
      * @return The exercise.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercise();
+    java.lang.String getExercise();
+    /**
+     * <code>string exercise = 5 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
+     */
+    com.google.protobuf.ByteString
+        getExerciseBytes();
 
     /**
      * <pre>
@@ -50165,48 +48773,54 @@ public final class WorkoutOuterClass {
       // @@protoc_insertion_point(message_implements:workout.v1.SetOverrideRequest)
       SetOverrideRequestOrBuilder {
     private SetOverrideRequest() {
+      exercise_ = "";
     }
     private int bitField0_;
-    public static final int EXERCISE_FIELD_NUMBER = 1;
-    private int exercise_;
+    public static final int EXERCISE_FIELD_NUMBER = 5;
+    private java.lang.String exercise_;
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    @java.lang.Override
-    public int getExerciseValue() {
-      return exercise_;
-    }
-    /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 5 [json_name = "exercise"];</code>
      * @return The exercise.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercise() {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercise_);
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercise() {
+      return exercise_;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @param value The enum numeric value on the wire for exercise to set.
+     * <code>string exercise = 5 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
      */
-    private void setExerciseValue(int value) {
-        exercise_ = value;
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getExerciseBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(exercise_);
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 5 [json_name = "exercise"];</code>
      * @param value The exercise to set.
      */
-    private void setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
-      exercise_ = value.getNumber();
-      
+    private void setExercise(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      exercise_ = value;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 5 [json_name = "exercise"];</code>
      */
     private void clearExercise() {
       
-      exercise_ = 0;
+      exercise_ = getDefaultInstance().getExercise();
+    }
+    /**
+     * <code>string exercise = 5 [json_name = "exercise"];</code>
+     * @param value The bytes for exercise to set.
+     */
+    private void setExerciseBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      exercise_ = value.toStringUtf8();
+      
     }
 
     public static final int WEIGHT_FIELD_NUMBER = 2;
@@ -50426,48 +49040,51 @@ public final class WorkoutOuterClass {
 
 
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @return The enum numeric value on the wire for exercise.
-       */
-      @java.lang.Override
-      public int getExerciseValue() {
-        return instance.getExerciseValue();
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @param value The exercise to set.
-       * @return This builder for chaining.
-       */
-      public Builder setExerciseValue(int value) {
-        copyOnWrite();
-        instance.setExerciseValue(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+       * <code>string exercise = 5 [json_name = "exercise"];</code>
        * @return The exercise.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercise() {
+      public java.lang.String getExercise() {
         return instance.getExercise();
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @param value The enum numeric value on the wire for exercise to set.
+       * <code>string exercise = 5 [json_name = "exercise"];</code>
+       * @return The bytes for exercise.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExerciseBytes() {
+        return instance.getExerciseBytes();
+      }
+      /**
+       * <code>string exercise = 5 [json_name = "exercise"];</code>
+       * @param value The exercise to set.
        * @return This builder for chaining.
        */
-      public Builder setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder setExercise(
+          java.lang.String value) {
         copyOnWrite();
         instance.setExercise(value);
         return this;
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+       * <code>string exercise = 5 [json_name = "exercise"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercise() {
         copyOnWrite();
         instance.clearExercise();
+        return this;
+      }
+      /**
+       * <code>string exercise = 5 [json_name = "exercise"];</code>
+       * @param value The bytes for exercise to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExerciseBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setExerciseBytes(value);
         return this;
       }
 
@@ -50608,14 +49225,14 @@ public final class WorkoutOuterClass {
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
               "bitField0_",
-              "exercise_",
               "weight_",
               "reps_",
               "sets_",
+              "exercise_",
             };
             java.lang.String info =
-                "\u0000\u0004\u0000\u0001\u0001\u0004\u0004\u0000\u0000\u0000\u0001\f\u0002\u0001" +
-                "\u0003\u0004\u0004\u1004\u0000";
+                "\u0000\u0004\u0000\u0001\u0002\u0005\u0004\u0000\u0000\u0000\u0002\u0001\u0003\u0004" +
+                "\u0004\u1004\u0000\u0005\u0208";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -51035,64 +49652,6 @@ public final class WorkoutOuterClass {
      * @return The strength.
      */
     float getStrength();
-
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    java.util.List<workout.v1.WorkoutOuterClass.LibraryTemplate> 
-        getLibraryEntriesList();
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    workout.v1.WorkoutOuterClass.LibraryTemplate getLibraryEntries(int index);
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    int getLibraryEntriesCount();
-
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    java.util.List<workout.v1.WorkoutOuterClass.ExerciseWeight> 
-        getStartingWeightsList();
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    workout.v1.WorkoutOuterClass.ExerciseWeight getStartingWeights(int index);
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    int getStartingWeightsCount();
   }
   /**
    * <pre>
@@ -51110,8 +49669,6 @@ public final class WorkoutOuterClass {
       CompleteOnboardingRequestOrBuilder {
     private CompleteOnboardingRequest() {
       libraryIds_ = com.google.protobuf.GeneratedMessageLite.emptyProtobufList();
-      libraryEntries_ = emptyProtobufList();
-      startingWeights_ = emptyProtobufList();
     }
     private int bitField0_;
     public static final int UNIT_FIELD_NUMBER = 3;
@@ -51341,304 +49898,6 @@ public final class WorkoutOuterClass {
     private void clearStrength() {
       bitField0_ = (bitField0_ & ~0x00000001);
       strength_ = 0F;
-    }
-
-    public static final int LIBRARY_ENTRIES_FIELD_NUMBER = 7;
-    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.LibraryTemplate> libraryEntries_;
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.LibraryTemplate> getLibraryEntriesList() {
-      return libraryEntries_;
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    public java.util.List<? extends workout.v1.WorkoutOuterClass.LibraryTemplateOrBuilder> 
-        getLibraryEntriesOrBuilderList() {
-      return libraryEntries_;
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    @java.lang.Override
-    public int getLibraryEntriesCount() {
-      return libraryEntries_.size();
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    @java.lang.Override
-    public workout.v1.WorkoutOuterClass.LibraryTemplate getLibraryEntries(int index) {
-      return libraryEntries_.get(index);
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    public workout.v1.WorkoutOuterClass.LibraryTemplateOrBuilder getLibraryEntriesOrBuilder(
-        int index) {
-      return libraryEntries_.get(index);
-    }
-    private void ensureLibraryEntriesIsMutable() {
-      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.LibraryTemplate> tmp = libraryEntries_;
-      if (!tmp.isModifiable()) {
-        libraryEntries_ =
-            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-       }
-    }
-
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    private void setLibraryEntries(
-        int index, workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-      value.getClass();
-  ensureLibraryEntriesIsMutable();
-      libraryEntries_.set(index, value);
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    private void addLibraryEntries(workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-      value.getClass();
-  ensureLibraryEntriesIsMutable();
-      libraryEntries_.add(value);
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    private void addLibraryEntries(
-        int index, workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-      value.getClass();
-  ensureLibraryEntriesIsMutable();
-      libraryEntries_.add(index, value);
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    private void addAllLibraryEntries(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.LibraryTemplate> values) {
-      ensureLibraryEntriesIsMutable();
-      com.google.protobuf.AbstractMessageLite.addAll(
-          values, libraryEntries_);
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    private void clearLibraryEntries() {
-      libraryEntries_ = emptyProtobufList();
-    }
-    /**
-     * <pre>
-     * The entries as the library had them, filled in by the core when the
-     * event is recorded (see AddLibraryTemplatesRequest.entries).
-     * </pre>
-     *
-     * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-     */
-    private void removeLibraryEntries(int index) {
-      ensureLibraryEntriesIsMutable();
-      libraryEntries_.remove(index);
-    }
-
-    public static final int STARTING_WEIGHTS_FIELD_NUMBER = 8;
-    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseWeight> startingWeights_;
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    @java.lang.Override
-    public java.util.List<workout.v1.WorkoutOuterClass.ExerciseWeight> getStartingWeightsList() {
-      return startingWeights_;
-    }
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    public java.util.List<? extends workout.v1.WorkoutOuterClass.ExerciseWeightOrBuilder> 
-        getStartingWeightsOrBuilderList() {
-      return startingWeights_;
-    }
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    @java.lang.Override
-    public int getStartingWeightsCount() {
-      return startingWeights_.size();
-    }
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    @java.lang.Override
-    public workout.v1.WorkoutOuterClass.ExerciseWeight getStartingWeights(int index) {
-      return startingWeights_.get(index);
-    }
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    public workout.v1.WorkoutOuterClass.ExerciseWeightOrBuilder getStartingWeightsOrBuilder(
-        int index) {
-      return startingWeights_.get(index);
-    }
-    private void ensureStartingWeightsIsMutable() {
-      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseWeight> tmp = startingWeights_;
-      if (!tmp.isModifiable()) {
-        startingWeights_ =
-            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
-       }
-    }
-
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    private void setStartingWeights(
-        int index, workout.v1.WorkoutOuterClass.ExerciseWeight value) {
-      value.getClass();
-  ensureStartingWeightsIsMutable();
-      startingWeights_.set(index, value);
-    }
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    private void addStartingWeights(workout.v1.WorkoutOuterClass.ExerciseWeight value) {
-      value.getClass();
-  ensureStartingWeightsIsMutable();
-      startingWeights_.add(value);
-    }
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    private void addStartingWeights(
-        int index, workout.v1.WorkoutOuterClass.ExerciseWeight value) {
-      value.getClass();
-  ensureStartingWeightsIsMutable();
-      startingWeights_.add(index, value);
-    }
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    private void addAllStartingWeights(
-        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseWeight> values) {
-      ensureStartingWeightsIsMutable();
-      com.google.protobuf.AbstractMessageLite.addAll(
-          values, startingWeights_);
-    }
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    private void clearStartingWeights() {
-      startingWeights_ = emptyProtobufList();
-    }
-    /**
-     * <pre>
-     * The starting weights `strength` picks, filled in by the core when the
-     * event is recorded. A lift never done calibrates from 60% of its own.
-     * </pre>
-     *
-     * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-     */
-    private void removeStartingWeights(int index) {
-      ensureStartingWeightsIsMutable();
-      startingWeights_.remove(index);
     }
 
     public static workout.v1.WorkoutOuterClass.CompleteOnboardingRequest parseFrom(
@@ -51976,330 +50235,6 @@ public final class WorkoutOuterClass {
         return this;
       }
 
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.LibraryTemplate> getLibraryEntriesList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getLibraryEntriesList());
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      @java.lang.Override
-      public int getLibraryEntriesCount() {
-        return instance.getLibraryEntriesCount();
-      }/**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      @java.lang.Override
-      public workout.v1.WorkoutOuterClass.LibraryTemplate getLibraryEntries(int index) {
-        return instance.getLibraryEntries(index);
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      public Builder setLibraryEntries(
-          int index, workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-        copyOnWrite();
-        instance.setLibraryEntries(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      public Builder setLibraryEntries(
-          int index, workout.v1.WorkoutOuterClass.LibraryTemplate.Builder builderForValue) {
-        copyOnWrite();
-        instance.setLibraryEntries(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      public Builder addLibraryEntries(workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-        copyOnWrite();
-        instance.addLibraryEntries(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      public Builder addLibraryEntries(
-          int index, workout.v1.WorkoutOuterClass.LibraryTemplate value) {
-        copyOnWrite();
-        instance.addLibraryEntries(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      public Builder addLibraryEntries(
-          workout.v1.WorkoutOuterClass.LibraryTemplate.Builder builderForValue) {
-        copyOnWrite();
-        instance.addLibraryEntries(builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      public Builder addLibraryEntries(
-          int index, workout.v1.WorkoutOuterClass.LibraryTemplate.Builder builderForValue) {
-        copyOnWrite();
-        instance.addLibraryEntries(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      public Builder addAllLibraryEntries(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.LibraryTemplate> values) {
-        copyOnWrite();
-        instance.addAllLibraryEntries(values);
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      public Builder clearLibraryEntries() {
-        copyOnWrite();
-        instance.clearLibraryEntries();
-        return this;
-      }
-      /**
-       * <pre>
-       * The entries as the library had them, filled in by the core when the
-       * event is recorded (see AddLibraryTemplatesRequest.entries).
-       * </pre>
-       *
-       * <code>repeated .workout.v1.LibraryTemplate library_entries = 7 [json_name = "libraryEntries"];</code>
-       */
-      public Builder removeLibraryEntries(int index) {
-        copyOnWrite();
-        instance.removeLibraryEntries(index);
-        return this;
-      }
-
-      /**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      @java.lang.Override
-      public java.util.List<workout.v1.WorkoutOuterClass.ExerciseWeight> getStartingWeightsList() {
-        return java.util.Collections.unmodifiableList(
-            instance.getStartingWeightsList());
-      }
-      /**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      @java.lang.Override
-      public int getStartingWeightsCount() {
-        return instance.getStartingWeightsCount();
-      }/**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      @java.lang.Override
-      public workout.v1.WorkoutOuterClass.ExerciseWeight getStartingWeights(int index) {
-        return instance.getStartingWeights(index);
-      }
-      /**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      public Builder setStartingWeights(
-          int index, workout.v1.WorkoutOuterClass.ExerciseWeight value) {
-        copyOnWrite();
-        instance.setStartingWeights(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      public Builder setStartingWeights(
-          int index, workout.v1.WorkoutOuterClass.ExerciseWeight.Builder builderForValue) {
-        copyOnWrite();
-        instance.setStartingWeights(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      public Builder addStartingWeights(workout.v1.WorkoutOuterClass.ExerciseWeight value) {
-        copyOnWrite();
-        instance.addStartingWeights(value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      public Builder addStartingWeights(
-          int index, workout.v1.WorkoutOuterClass.ExerciseWeight value) {
-        copyOnWrite();
-        instance.addStartingWeights(index, value);
-        return this;
-      }
-      /**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      public Builder addStartingWeights(
-          workout.v1.WorkoutOuterClass.ExerciseWeight.Builder builderForValue) {
-        copyOnWrite();
-        instance.addStartingWeights(builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      public Builder addStartingWeights(
-          int index, workout.v1.WorkoutOuterClass.ExerciseWeight.Builder builderForValue) {
-        copyOnWrite();
-        instance.addStartingWeights(index,
-            builderForValue.build());
-        return this;
-      }
-      /**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      public Builder addAllStartingWeights(
-          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseWeight> values) {
-        copyOnWrite();
-        instance.addAllStartingWeights(values);
-        return this;
-      }
-      /**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      public Builder clearStartingWeights() {
-        copyOnWrite();
-        instance.clearStartingWeights();
-        return this;
-      }
-      /**
-       * <pre>
-       * The starting weights `strength` picks, filled in by the core when the
-       * event is recorded. A lift never done calibrates from 60% of its own.
-       * </pre>
-       *
-       * <code>repeated .workout.v1.ExerciseWeight starting_weights = 8 [json_name = "startingWeights"];</code>
-       */
-      public Builder removeStartingWeights(int index) {
-        copyOnWrite();
-        instance.removeStartingWeights(index);
-        return this;
-      }
-
       // @@protoc_insertion_point(builder_scope:workout.v1.CompleteOnboardingRequest)
     }
     @java.lang.Override
@@ -52320,14 +50255,10 @@ public final class WorkoutOuterClass {
               "unit_",
               "libraryIds_",
               "strength_",
-              "libraryEntries_",
-              workout.v1.WorkoutOuterClass.LibraryTemplate.class,
-              "startingWeights_",
-              workout.v1.WorkoutOuterClass.ExerciseWeight.class,
             };
             java.lang.String info =
-                "\u0000\u0005\u0000\u0001\u0003\b\u0005\u0000\u0003\u0000\u0003\f\u0005\u021a\u0006" +
-                "\u1001\u0000\u0007\u001b\b\u001b";
+                "\u0000\u0003\u0000\u0001\u0003\u0006\u0003\u0000\u0001\u0000\u0003\f\u0005\u021a" +
+                "\u0006\u1001\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -52681,15 +50612,16 @@ public final class WorkoutOuterClass {
       com.google.protobuf.MessageLiteOrBuilder {
 
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    int getExerciseValue();
-    /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
      * @return The exercise.
      */
-    workout.v1.WorkoutOuterClass.Exercise getExercise();
+    java.lang.String getExercise();
+    /**
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
+     */
+    com.google.protobuf.ByteString
+        getExerciseBytes();
 
     /**
      * <code>float weight_lb = 2 [json_name = "weightLb"];</code>
@@ -52706,47 +50638,53 @@ public final class WorkoutOuterClass {
       // @@protoc_insertion_point(message_implements:workout.v1.ExerciseWeight)
       ExerciseWeightOrBuilder {
     private ExerciseWeight() {
+      exercise_ = "";
     }
-    public static final int EXERCISE_FIELD_NUMBER = 1;
-    private int exercise_;
+    public static final int EXERCISE_FIELD_NUMBER = 3;
+    private java.lang.String exercise_;
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @return The enum numeric value on the wire for exercise.
-     */
-    @java.lang.Override
-    public int getExerciseValue() {
-      return exercise_;
-    }
-    /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
      * @return The exercise.
      */
     @java.lang.Override
-    public workout.v1.WorkoutOuterClass.Exercise getExercise() {
-      workout.v1.WorkoutOuterClass.Exercise result = workout.v1.WorkoutOuterClass.Exercise.forNumber(exercise_);
-      return result == null ? workout.v1.WorkoutOuterClass.Exercise.UNRECOGNIZED : result;
+    public java.lang.String getExercise() {
+      return exercise_;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-     * @param value The enum numeric value on the wire for exercise to set.
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
      */
-    private void setExerciseValue(int value) {
-        exercise_ = value;
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getExerciseBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(exercise_);
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
      * @param value The exercise to set.
      */
-    private void setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
-      exercise_ = value.getNumber();
-      
+    private void setExercise(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      exercise_ = value;
     }
     /**
-     * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
      */
     private void clearExercise() {
       
-      exercise_ = 0;
+      exercise_ = getDefaultInstance().getExercise();
+    }
+    /**
+     * <code>string exercise = 3 [json_name = "exercise"];</code>
+     * @param value The bytes for exercise to set.
+     */
+    private void setExerciseBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      exercise_ = value.toStringUtf8();
+      
     }
 
     public static final int WEIGHT_LB_FIELD_NUMBER = 2;
@@ -52871,48 +50809,51 @@ public final class WorkoutOuterClass {
 
 
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @return The enum numeric value on the wire for exercise.
-       */
-      @java.lang.Override
-      public int getExerciseValue() {
-        return instance.getExerciseValue();
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @param value The exercise to set.
-       * @return This builder for chaining.
-       */
-      public Builder setExerciseValue(int value) {
-        copyOnWrite();
-        instance.setExerciseValue(value);
-        return this;
-      }
-      /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+       * <code>string exercise = 3 [json_name = "exercise"];</code>
        * @return The exercise.
        */
       @java.lang.Override
-      public workout.v1.WorkoutOuterClass.Exercise getExercise() {
+      public java.lang.String getExercise() {
         return instance.getExercise();
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
-       * @param value The enum numeric value on the wire for exercise to set.
+       * <code>string exercise = 3 [json_name = "exercise"];</code>
+       * @return The bytes for exercise.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExerciseBytes() {
+        return instance.getExerciseBytes();
+      }
+      /**
+       * <code>string exercise = 3 [json_name = "exercise"];</code>
+       * @param value The exercise to set.
        * @return This builder for chaining.
        */
-      public Builder setExercise(workout.v1.WorkoutOuterClass.Exercise value) {
+      public Builder setExercise(
+          java.lang.String value) {
         copyOnWrite();
         instance.setExercise(value);
         return this;
       }
       /**
-       * <code>.workout.v1.Exercise exercise = 1 [json_name = "exercise"];</code>
+       * <code>string exercise = 3 [json_name = "exercise"];</code>
        * @return This builder for chaining.
        */
       public Builder clearExercise() {
         copyOnWrite();
         instance.clearExercise();
+        return this;
+      }
+      /**
+       * <code>string exercise = 3 [json_name = "exercise"];</code>
+       * @param value The bytes for exercise to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExerciseBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setExerciseBytes(value);
         return this;
       }
 
@@ -52960,11 +50901,11 @@ public final class WorkoutOuterClass {
         }
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
-              "exercise_",
               "weightLb_",
+              "exercise_",
             };
             java.lang.String info =
-                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\f\u0002\u0001" +
+                "\u0000\u0002\u0000\u0000\u0002\u0003\u0002\u0000\u0000\u0000\u0002\u0001\u0003\u0208" +
                 "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
@@ -58839,6 +56780,11639 @@ public final class WorkoutOuterClass {
     private static volatile com.google.protobuf.Parser<AppendWorkoutMutationsResponse> PARSER;
 
     public static com.google.protobuf.Parser<AppendWorkoutMutationsResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface ProgramSummaryOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ProgramSummary)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * The ProgramSet event's id; empty for the built-in program.
+     * </pre>
+     *
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @return The id.
+     */
+    java.lang.String getId();
+    /**
+     * <pre>
+     * The ProgramSet event's id; empty for the built-in program.
+     * </pre>
+     *
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @return The bytes for id.
+     */
+    com.google.protobuf.ByteString
+        getIdBytes();
+
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @return The name.
+     */
+    java.lang.String getName();
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @return The bytes for name.
+     */
+    com.google.protobuf.ByteString
+        getNameBytes();
+
+    /**
+     * <pre>
+     * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @return The author.
+     */
+    java.lang.String getAuthor();
+    /**
+     * <pre>
+     * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @return The bytes for author.
+     */
+    com.google.protobuf.ByteString
+        getAuthorBytes();
+
+    /**
+     * <pre>
+     * The author's one line on why.
+     * </pre>
+     *
+     * <code>string note = 4 [json_name = "note"];</code>
+     * @return The note.
+     */
+    java.lang.String getNote();
+    /**
+     * <pre>
+     * The author's one line on why.
+     * </pre>
+     *
+     * <code>string note = 4 [json_name = "note"];</code>
+     * @return The bytes for note.
+     */
+    com.google.protobuf.ByteString
+        getNoteBytes();
+
+    /**
+     * <pre>
+     * When it was set (Unix seconds); 0 for the built-in program.
+     * </pre>
+     *
+     * <code>int64 set_at = 5 [json_name = "setAt"];</code>
+     * @return The setAt.
+     */
+    long getSetAt();
+
+    /**
+     * <pre>
+     * It plans by the built-in rules (its workouts aside): nothing to reset.
+     * </pre>
+     *
+     * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+     * @return The builtinRules.
+     */
+    boolean getBuiltinRules();
+  }
+  /**
+   * <pre>
+   * Which program, and who set it.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.ProgramSummary}
+   */
+  public  static final class ProgramSummary extends
+      com.google.protobuf.GeneratedMessageLite<
+          ProgramSummary, ProgramSummary.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ProgramSummary)
+      ProgramSummaryOrBuilder {
+    private ProgramSummary() {
+      id_ = "";
+      name_ = "";
+      author_ = "";
+      note_ = "";
+    }
+    public static final int ID_FIELD_NUMBER = 1;
+    private java.lang.String id_;
+    /**
+     * <pre>
+     * The ProgramSet event's id; empty for the built-in program.
+     * </pre>
+     *
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @return The id.
+     */
+    @java.lang.Override
+    public java.lang.String getId() {
+      return id_;
+    }
+    /**
+     * <pre>
+     * The ProgramSet event's id; empty for the built-in program.
+     * </pre>
+     *
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @return The bytes for id.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(id_);
+    }
+    /**
+     * <pre>
+     * The ProgramSet event's id; empty for the built-in program.
+     * </pre>
+     *
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @param value The id to set.
+     */
+    private void setId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      id_ = value;
+    }
+    /**
+     * <pre>
+     * The ProgramSet event's id; empty for the built-in program.
+     * </pre>
+     *
+     * <code>string id = 1 [json_name = "id"];</code>
+     */
+    private void clearId() {
+      
+      id_ = getDefaultInstance().getId();
+    }
+    /**
+     * <pre>
+     * The ProgramSet event's id; empty for the built-in program.
+     * </pre>
+     *
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @param value The bytes for id to set.
+     */
+    private void setIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      id_ = value.toStringUtf8();
+      
+    }
+
+    public static final int NAME_FIELD_NUMBER = 2;
+    private java.lang.String name_;
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @return The name.
+     */
+    @java.lang.Override
+    public java.lang.String getName() {
+      return name_;
+    }
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @return The bytes for name.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getNameBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(name_);
+    }
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @param value The name to set.
+     */
+    private void setName(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      name_ = value;
+    }
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     */
+    private void clearName() {
+      
+      name_ = getDefaultInstance().getName();
+    }
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @param value The bytes for name to set.
+     */
+    private void setNameBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      name_ = value.toStringUtf8();
+      
+    }
+
+    public static final int AUTHOR_FIELD_NUMBER = 3;
+    private java.lang.String author_;
+    /**
+     * <pre>
+     * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @return The author.
+     */
+    @java.lang.Override
+    public java.lang.String getAuthor() {
+      return author_;
+    }
+    /**
+     * <pre>
+     * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @return The bytes for author.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getAuthorBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(author_);
+    }
+    /**
+     * <pre>
+     * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @param value The author to set.
+     */
+    private void setAuthor(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      author_ = value;
+    }
+    /**
+     * <pre>
+     * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     */
+    private void clearAuthor() {
+      
+      author_ = getDefaultInstance().getAuthor();
+    }
+    /**
+     * <pre>
+     * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @param value The bytes for author to set.
+     */
+    private void setAuthorBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      author_ = value.toStringUtf8();
+      
+    }
+
+    public static final int NOTE_FIELD_NUMBER = 4;
+    private java.lang.String note_;
+    /**
+     * <pre>
+     * The author's one line on why.
+     * </pre>
+     *
+     * <code>string note = 4 [json_name = "note"];</code>
+     * @return The note.
+     */
+    @java.lang.Override
+    public java.lang.String getNote() {
+      return note_;
+    }
+    /**
+     * <pre>
+     * The author's one line on why.
+     * </pre>
+     *
+     * <code>string note = 4 [json_name = "note"];</code>
+     * @return The bytes for note.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getNoteBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(note_);
+    }
+    /**
+     * <pre>
+     * The author's one line on why.
+     * </pre>
+     *
+     * <code>string note = 4 [json_name = "note"];</code>
+     * @param value The note to set.
+     */
+    private void setNote(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      note_ = value;
+    }
+    /**
+     * <pre>
+     * The author's one line on why.
+     * </pre>
+     *
+     * <code>string note = 4 [json_name = "note"];</code>
+     */
+    private void clearNote() {
+      
+      note_ = getDefaultInstance().getNote();
+    }
+    /**
+     * <pre>
+     * The author's one line on why.
+     * </pre>
+     *
+     * <code>string note = 4 [json_name = "note"];</code>
+     * @param value The bytes for note to set.
+     */
+    private void setNoteBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      note_ = value.toStringUtf8();
+      
+    }
+
+    public static final int SET_AT_FIELD_NUMBER = 5;
+    private long setAt_;
+    /**
+     * <pre>
+     * When it was set (Unix seconds); 0 for the built-in program.
+     * </pre>
+     *
+     * <code>int64 set_at = 5 [json_name = "setAt"];</code>
+     * @return The setAt.
+     */
+    @java.lang.Override
+    public long getSetAt() {
+      return setAt_;
+    }
+    /**
+     * <pre>
+     * When it was set (Unix seconds); 0 for the built-in program.
+     * </pre>
+     *
+     * <code>int64 set_at = 5 [json_name = "setAt"];</code>
+     * @param value The setAt to set.
+     */
+    private void setSetAt(long value) {
+      
+      setAt_ = value;
+    }
+    /**
+     * <pre>
+     * When it was set (Unix seconds); 0 for the built-in program.
+     * </pre>
+     *
+     * <code>int64 set_at = 5 [json_name = "setAt"];</code>
+     */
+    private void clearSetAt() {
+      
+      setAt_ = 0L;
+    }
+
+    public static final int BUILTIN_RULES_FIELD_NUMBER = 6;
+    private boolean builtinRules_;
+    /**
+     * <pre>
+     * It plans by the built-in rules (its workouts aside): nothing to reset.
+     * </pre>
+     *
+     * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+     * @return The builtinRules.
+     */
+    @java.lang.Override
+    public boolean getBuiltinRules() {
+      return builtinRules_;
+    }
+    /**
+     * <pre>
+     * It plans by the built-in rules (its workouts aside): nothing to reset.
+     * </pre>
+     *
+     * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+     * @param value The builtinRules to set.
+     */
+    private void setBuiltinRules(boolean value) {
+      
+      builtinRules_ = value;
+    }
+    /**
+     * <pre>
+     * It plans by the built-in rules (its workouts aside): nothing to reset.
+     * </pre>
+     *
+     * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+     */
+    private void clearBuiltinRules() {
+      
+      builtinRules_ = false;
+    }
+
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramSummary parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.ProgramSummary prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * Which program, and who set it.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.ProgramSummary}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.ProgramSummary, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ProgramSummary)
+        workout.v1.WorkoutOuterClass.ProgramSummaryOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.ProgramSummary.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * The ProgramSet event's id; empty for the built-in program.
+       * </pre>
+       *
+       * <code>string id = 1 [json_name = "id"];</code>
+       * @return The id.
+       */
+      @java.lang.Override
+      public java.lang.String getId() {
+        return instance.getId();
+      }
+      /**
+       * <pre>
+       * The ProgramSet event's id; empty for the built-in program.
+       * </pre>
+       *
+       * <code>string id = 1 [json_name = "id"];</code>
+       * @return The bytes for id.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getIdBytes() {
+        return instance.getIdBytes();
+      }
+      /**
+       * <pre>
+       * The ProgramSet event's id; empty for the built-in program.
+       * </pre>
+       *
+       * <code>string id = 1 [json_name = "id"];</code>
+       * @param value The id to set.
+       * @return This builder for chaining.
+       */
+      public Builder setId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setId(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The ProgramSet event's id; empty for the built-in program.
+       * </pre>
+       *
+       * <code>string id = 1 [json_name = "id"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearId() {
+        copyOnWrite();
+        instance.clearId();
+        return this;
+      }
+      /**
+       * <pre>
+       * The ProgramSet event's id; empty for the built-in program.
+       * </pre>
+       *
+       * <code>string id = 1 [json_name = "id"];</code>
+       * @param value The bytes for id to set.
+       * @return This builder for chaining.
+       */
+      public Builder setIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string name = 2 [json_name = "name"];</code>
+       * @return The name.
+       */
+      @java.lang.Override
+      public java.lang.String getName() {
+        return instance.getName();
+      }
+      /**
+       * <code>string name = 2 [json_name = "name"];</code>
+       * @return The bytes for name.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getNameBytes() {
+        return instance.getNameBytes();
+      }
+      /**
+       * <code>string name = 2 [json_name = "name"];</code>
+       * @param value The name to set.
+       * @return This builder for chaining.
+       */
+      public Builder setName(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setName(value);
+        return this;
+      }
+      /**
+       * <code>string name = 2 [json_name = "name"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearName() {
+        copyOnWrite();
+        instance.clearName();
+        return this;
+      }
+      /**
+       * <code>string name = 2 [json_name = "name"];</code>
+       * @param value The bytes for name to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNameBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setNameBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+       * </pre>
+       *
+       * <code>string author = 3 [json_name = "author"];</code>
+       * @return The author.
+       */
+      @java.lang.Override
+      public java.lang.String getAuthor() {
+        return instance.getAuthor();
+      }
+      /**
+       * <pre>
+       * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+       * </pre>
+       *
+       * <code>string author = 3 [json_name = "author"];</code>
+       * @return The bytes for author.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getAuthorBytes() {
+        return instance.getAuthorBytes();
+      }
+      /**
+       * <pre>
+       * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+       * </pre>
+       *
+       * <code>string author = 3 [json_name = "author"];</code>
+       * @param value The author to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAuthor(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setAuthor(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+       * </pre>
+       *
+       * <code>string author = 3 [json_name = "author"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearAuthor() {
+        copyOnWrite();
+        instance.clearAuthor();
+        return this;
+      }
+      /**
+       * <pre>
+       * "builtin", "app", "migration" or "mcp:&lt;client&gt;".
+       * </pre>
+       *
+       * <code>string author = 3 [json_name = "author"];</code>
+       * @param value The bytes for author to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAuthorBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setAuthorBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * The author's one line on why.
+       * </pre>
+       *
+       * <code>string note = 4 [json_name = "note"];</code>
+       * @return The note.
+       */
+      @java.lang.Override
+      public java.lang.String getNote() {
+        return instance.getNote();
+      }
+      /**
+       * <pre>
+       * The author's one line on why.
+       * </pre>
+       *
+       * <code>string note = 4 [json_name = "note"];</code>
+       * @return The bytes for note.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getNoteBytes() {
+        return instance.getNoteBytes();
+      }
+      /**
+       * <pre>
+       * The author's one line on why.
+       * </pre>
+       *
+       * <code>string note = 4 [json_name = "note"];</code>
+       * @param value The note to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNote(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setNote(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The author's one line on why.
+       * </pre>
+       *
+       * <code>string note = 4 [json_name = "note"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearNote() {
+        copyOnWrite();
+        instance.clearNote();
+        return this;
+      }
+      /**
+       * <pre>
+       * The author's one line on why.
+       * </pre>
+       *
+       * <code>string note = 4 [json_name = "note"];</code>
+       * @param value The bytes for note to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNoteBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setNoteBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * When it was set (Unix seconds); 0 for the built-in program.
+       * </pre>
+       *
+       * <code>int64 set_at = 5 [json_name = "setAt"];</code>
+       * @return The setAt.
+       */
+      @java.lang.Override
+      public long getSetAt() {
+        return instance.getSetAt();
+      }
+      /**
+       * <pre>
+       * When it was set (Unix seconds); 0 for the built-in program.
+       * </pre>
+       *
+       * <code>int64 set_at = 5 [json_name = "setAt"];</code>
+       * @param value The setAt to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSetAt(long value) {
+        copyOnWrite();
+        instance.setSetAt(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * When it was set (Unix seconds); 0 for the built-in program.
+       * </pre>
+       *
+       * <code>int64 set_at = 5 [json_name = "setAt"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSetAt() {
+        copyOnWrite();
+        instance.clearSetAt();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * It plans by the built-in rules (its workouts aside): nothing to reset.
+       * </pre>
+       *
+       * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+       * @return The builtinRules.
+       */
+      @java.lang.Override
+      public boolean getBuiltinRules() {
+        return instance.getBuiltinRules();
+      }
+      /**
+       * <pre>
+       * It plans by the built-in rules (its workouts aside): nothing to reset.
+       * </pre>
+       *
+       * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+       * @param value The builtinRules to set.
+       * @return This builder for chaining.
+       */
+      public Builder setBuiltinRules(boolean value) {
+        copyOnWrite();
+        instance.setBuiltinRules(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * It plans by the built-in rules (its workouts aside): nothing to reset.
+       * </pre>
+       *
+       * <code>bool builtin_rules = 6 [json_name = "builtinRules"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearBuiltinRules() {
+        copyOnWrite();
+        instance.clearBuiltinRules();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ProgramSummary)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.ProgramSummary();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "id_",
+              "name_",
+              "author_",
+              "note_",
+              "setAt_",
+              "builtinRules_",
+            };
+            java.lang.String info =
+                "\u0000\u0006\u0000\u0000\u0001\u0006\u0006\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0208\u0004\u0208\u0005\u0002\u0006\u0007";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.ProgramSummary> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.ProgramSummary.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.ProgramSummary>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ProgramSummary)
+    private static final workout.v1.WorkoutOuterClass.ProgramSummary DEFAULT_INSTANCE;
+    static {
+      ProgramSummary defaultInstance = new ProgramSummary();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ProgramSummary.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.ProgramSummary getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ProgramSummary> PARSER;
+
+    public static com.google.protobuf.Parser<ProgramSummary> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetProgramRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetProgramRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+  }
+  /**
+   * Protobuf type {@code workout.v1.GetProgramRequest}
+   */
+  public  static final class GetProgramRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetProgramRequest, GetProgramRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetProgramRequest)
+      GetProgramRequestOrBuilder {
+    private GetProgramRequest() {
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.GetProgramRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.GetProgramRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.GetProgramRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetProgramRequest)
+        workout.v1.WorkoutOuterClass.GetProgramRequestOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.GetProgramRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetProgramRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.GetProgramRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = null;java.lang.String info =
+                "\u0000\u0000";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.GetProgramRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.GetProgramRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.GetProgramRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetProgramRequest)
+    private static final workout.v1.WorkoutOuterClass.GetProgramRequest DEFAULT_INSTANCE;
+    static {
+      GetProgramRequest defaultInstance = new GetProgramRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetProgramRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.GetProgramRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetProgramRequest> PARSER;
+
+    public static com.google.protobuf.Parser<GetProgramRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetProgramResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetProgramResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     * @return Whether the summary field is set.
+     */
+    boolean hasSummary();
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     * @return The summary.
+     */
+    workout.v1.WorkoutOuterClass.ProgramSummary getSummary();
+
+    /**
+     * <pre>
+     * The document, as stored (pretty-printed JSON).
+     * </pre>
+     *
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @return The programJson.
+     */
+    java.lang.String getProgramJson();
+    /**
+     * <pre>
+     * The document, as stored (pretty-printed JSON).
+     * </pre>
+     *
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @return The bytes for programJson.
+     */
+    com.google.protobuf.ByteString
+        getProgramJsonBytes();
+
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.ProgramSummary> 
+        getHistoryList();
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    workout.v1.WorkoutOuterClass.ProgramSummary getHistory(int index);
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    int getHistoryCount();
+
+    /**
+     * <pre>
+     * What a program is and every field, for whoever writes one.
+     * </pre>
+     *
+     * <code>string guide = 4 [json_name = "guide"];</code>
+     * @return The guide.
+     */
+    java.lang.String getGuide();
+    /**
+     * <pre>
+     * What a program is and every field, for whoever writes one.
+     * </pre>
+     *
+     * <code>string guide = 4 [json_name = "guide"];</code>
+     * @return The bytes for guide.
+     */
+    com.google.protobuf.ByteString
+        getGuideBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.GetProgramResponse}
+   */
+  public  static final class GetProgramResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetProgramResponse, GetProgramResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetProgramResponse)
+      GetProgramResponseOrBuilder {
+    private GetProgramResponse() {
+      programJson_ = "";
+      history_ = emptyProtobufList();
+      guide_ = "";
+    }
+    public static final int SUMMARY_FIELD_NUMBER = 1;
+    private workout.v1.WorkoutOuterClass.ProgramSummary summary_;
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    @java.lang.Override
+    public boolean hasSummary() {
+      return summary_ != null;
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgramSummary getSummary() {
+      return summary_ == null ? workout.v1.WorkoutOuterClass.ProgramSummary.getDefaultInstance() : summary_;
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    private void setSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  summary_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  if (summary_ != null &&
+          summary_ != workout.v1.WorkoutOuterClass.ProgramSummary.getDefaultInstance()) {
+        summary_ =
+          workout.v1.WorkoutOuterClass.ProgramSummary.newBuilder(summary_).mergeFrom(value).buildPartial();
+      } else {
+        summary_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    private void clearSummary() {  summary_ = null;
+      
+    }
+
+    public static final int PROGRAM_JSON_FIELD_NUMBER = 2;
+    private java.lang.String programJson_;
+    /**
+     * <pre>
+     * The document, as stored (pretty-printed JSON).
+     * </pre>
+     *
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @return The programJson.
+     */
+    @java.lang.Override
+    public java.lang.String getProgramJson() {
+      return programJson_;
+    }
+    /**
+     * <pre>
+     * The document, as stored (pretty-printed JSON).
+     * </pre>
+     *
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @return The bytes for programJson.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProgramJsonBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(programJson_);
+    }
+    /**
+     * <pre>
+     * The document, as stored (pretty-printed JSON).
+     * </pre>
+     *
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @param value The programJson to set.
+     */
+    private void setProgramJson(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      programJson_ = value;
+    }
+    /**
+     * <pre>
+     * The document, as stored (pretty-printed JSON).
+     * </pre>
+     *
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     */
+    private void clearProgramJson() {
+      
+      programJson_ = getDefaultInstance().getProgramJson();
+    }
+    /**
+     * <pre>
+     * The document, as stored (pretty-printed JSON).
+     * </pre>
+     *
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @param value The bytes for programJson to set.
+     */
+    private void setProgramJsonBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      programJson_ = value.toStringUtf8();
+      
+    }
+
+    public static final int HISTORY_FIELD_NUMBER = 3;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ProgramSummary> history_;
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.ProgramSummary> getHistoryList() {
+      return history_;
+    }
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.ProgramSummaryOrBuilder> 
+        getHistoryOrBuilderList() {
+      return history_;
+    }
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    @java.lang.Override
+    public int getHistoryCount() {
+      return history_.size();
+    }
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgramSummary getHistory(int index) {
+      return history_.get(index);
+    }
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.ProgramSummaryOrBuilder getHistoryOrBuilder(
+        int index) {
+      return history_.get(index);
+    }
+    private void ensureHistoryIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ProgramSummary> tmp = history_;
+      if (!tmp.isModifiable()) {
+        history_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    private void setHistory(
+        int index, workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  ensureHistoryIsMutable();
+      history_.set(index, value);
+    }
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    private void addHistory(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  ensureHistoryIsMutable();
+      history_.add(value);
+    }
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    private void addHistory(
+        int index, workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  ensureHistoryIsMutable();
+      history_.add(index, value);
+    }
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    private void addAllHistory(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ProgramSummary> values) {
+      ensureHistoryIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, history_);
+    }
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    private void clearHistory() {
+      history_ = emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * Every program set before it, newest first, without their documents.
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+     */
+    private void removeHistory(int index) {
+      ensureHistoryIsMutable();
+      history_.remove(index);
+    }
+
+    public static final int GUIDE_FIELD_NUMBER = 4;
+    private java.lang.String guide_;
+    /**
+     * <pre>
+     * What a program is and every field, for whoever writes one.
+     * </pre>
+     *
+     * <code>string guide = 4 [json_name = "guide"];</code>
+     * @return The guide.
+     */
+    @java.lang.Override
+    public java.lang.String getGuide() {
+      return guide_;
+    }
+    /**
+     * <pre>
+     * What a program is and every field, for whoever writes one.
+     * </pre>
+     *
+     * <code>string guide = 4 [json_name = "guide"];</code>
+     * @return The bytes for guide.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getGuideBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(guide_);
+    }
+    /**
+     * <pre>
+     * What a program is and every field, for whoever writes one.
+     * </pre>
+     *
+     * <code>string guide = 4 [json_name = "guide"];</code>
+     * @param value The guide to set.
+     */
+    private void setGuide(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      guide_ = value;
+    }
+    /**
+     * <pre>
+     * What a program is and every field, for whoever writes one.
+     * </pre>
+     *
+     * <code>string guide = 4 [json_name = "guide"];</code>
+     */
+    private void clearGuide() {
+      
+      guide_ = getDefaultInstance().getGuide();
+    }
+    /**
+     * <pre>
+     * What a program is and every field, for whoever writes one.
+     * </pre>
+     *
+     * <code>string guide = 4 [json_name = "guide"];</code>
+     * @param value The bytes for guide to set.
+     */
+    private void setGuideBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      guide_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.GetProgramResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.GetProgramResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.GetProgramResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetProgramResponse)
+        workout.v1.WorkoutOuterClass.GetProgramResponseOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.GetProgramResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      @java.lang.Override
+      public boolean hasSummary() {
+        return instance.hasSummary();
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgramSummary getSummary() {
+        return instance.getSummary();
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder setSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.setSummary(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder setSummary(
+          workout.v1.WorkoutOuterClass.ProgramSummary.Builder builderForValue) {
+        copyOnWrite();
+        instance.setSummary(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder mergeSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.mergeSummary(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder clearSummary() {  copyOnWrite();
+        instance.clearSummary();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * The document, as stored (pretty-printed JSON).
+       * </pre>
+       *
+       * <code>string program_json = 2 [json_name = "programJson"];</code>
+       * @return The programJson.
+       */
+      @java.lang.Override
+      public java.lang.String getProgramJson() {
+        return instance.getProgramJson();
+      }
+      /**
+       * <pre>
+       * The document, as stored (pretty-printed JSON).
+       * </pre>
+       *
+       * <code>string program_json = 2 [json_name = "programJson"];</code>
+       * @return The bytes for programJson.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProgramJsonBytes() {
+        return instance.getProgramJsonBytes();
+      }
+      /**
+       * <pre>
+       * The document, as stored (pretty-printed JSON).
+       * </pre>
+       *
+       * <code>string program_json = 2 [json_name = "programJson"];</code>
+       * @param value The programJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgramJson(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProgramJson(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The document, as stored (pretty-printed JSON).
+       * </pre>
+       *
+       * <code>string program_json = 2 [json_name = "programJson"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProgramJson() {
+        copyOnWrite();
+        instance.clearProgramJson();
+        return this;
+      }
+      /**
+       * <pre>
+       * The document, as stored (pretty-printed JSON).
+       * </pre>
+       *
+       * <code>string program_json = 2 [json_name = "programJson"];</code>
+       * @param value The bytes for programJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgramJsonBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProgramJsonBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.ProgramSummary> getHistoryList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getHistoryList());
+      }
+      /**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      @java.lang.Override
+      public int getHistoryCount() {
+        return instance.getHistoryCount();
+      }/**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgramSummary getHistory(int index) {
+        return instance.getHistory(index);
+      }
+      /**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      public Builder setHistory(
+          int index, workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.setHistory(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      public Builder setHistory(
+          int index, workout.v1.WorkoutOuterClass.ProgramSummary.Builder builderForValue) {
+        copyOnWrite();
+        instance.setHistory(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      public Builder addHistory(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.addHistory(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      public Builder addHistory(
+          int index, workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.addHistory(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      public Builder addHistory(
+          workout.v1.WorkoutOuterClass.ProgramSummary.Builder builderForValue) {
+        copyOnWrite();
+        instance.addHistory(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      public Builder addHistory(
+          int index, workout.v1.WorkoutOuterClass.ProgramSummary.Builder builderForValue) {
+        copyOnWrite();
+        instance.addHistory(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      public Builder addAllHistory(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ProgramSummary> values) {
+        copyOnWrite();
+        instance.addAllHistory(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      public Builder clearHistory() {
+        copyOnWrite();
+        instance.clearHistory();
+        return this;
+      }
+      /**
+       * <pre>
+       * Every program set before it, newest first, without their documents.
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ProgramSummary history = 3 [json_name = "history"];</code>
+       */
+      public Builder removeHistory(int index) {
+        copyOnWrite();
+        instance.removeHistory(index);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * What a program is and every field, for whoever writes one.
+       * </pre>
+       *
+       * <code>string guide = 4 [json_name = "guide"];</code>
+       * @return The guide.
+       */
+      @java.lang.Override
+      public java.lang.String getGuide() {
+        return instance.getGuide();
+      }
+      /**
+       * <pre>
+       * What a program is and every field, for whoever writes one.
+       * </pre>
+       *
+       * <code>string guide = 4 [json_name = "guide"];</code>
+       * @return The bytes for guide.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getGuideBytes() {
+        return instance.getGuideBytes();
+      }
+      /**
+       * <pre>
+       * What a program is and every field, for whoever writes one.
+       * </pre>
+       *
+       * <code>string guide = 4 [json_name = "guide"];</code>
+       * @param value The guide to set.
+       * @return This builder for chaining.
+       */
+      public Builder setGuide(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setGuide(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * What a program is and every field, for whoever writes one.
+       * </pre>
+       *
+       * <code>string guide = 4 [json_name = "guide"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearGuide() {
+        copyOnWrite();
+        instance.clearGuide();
+        return this;
+      }
+      /**
+       * <pre>
+       * What a program is and every field, for whoever writes one.
+       * </pre>
+       *
+       * <code>string guide = 4 [json_name = "guide"];</code>
+       * @param value The bytes for guide to set.
+       * @return This builder for chaining.
+       */
+      public Builder setGuideBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setGuideBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetProgramResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.GetProgramResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "summary_",
+              "programJson_",
+              "history_",
+              workout.v1.WorkoutOuterClass.ProgramSummary.class,
+              "guide_",
+            };
+            java.lang.String info =
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0001\u0000\u0001\t\u0002\u0208" +
+                "\u0003\u001b\u0004\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.GetProgramResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.GetProgramResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.GetProgramResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetProgramResponse)
+    private static final workout.v1.WorkoutOuterClass.GetProgramResponse DEFAULT_INSTANCE;
+    static {
+      GetProgramResponse defaultInstance = new GetProgramResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetProgramResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.GetProgramResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetProgramResponse> PARSER;
+
+    public static com.google.protobuf.Parser<GetProgramResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetProgramVersionRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetProgramVersionRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @return The id.
+     */
+    java.lang.String getId();
+    /**
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @return The bytes for id.
+     */
+    com.google.protobuf.ByteString
+        getIdBytes();
+  }
+  /**
+   * <pre>
+   * One earlier program's document (from GetProgramResponse.history).
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.GetProgramVersionRequest}
+   */
+  public  static final class GetProgramVersionRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetProgramVersionRequest, GetProgramVersionRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetProgramVersionRequest)
+      GetProgramVersionRequestOrBuilder {
+    private GetProgramVersionRequest() {
+      id_ = "";
+    }
+    public static final int ID_FIELD_NUMBER = 1;
+    private java.lang.String id_;
+    /**
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @return The id.
+     */
+    @java.lang.Override
+    public java.lang.String getId() {
+      return id_;
+    }
+    /**
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @return The bytes for id.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(id_);
+    }
+    /**
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @param value The id to set.
+     */
+    private void setId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      id_ = value;
+    }
+    /**
+     * <code>string id = 1 [json_name = "id"];</code>
+     */
+    private void clearId() {
+      
+      id_ = getDefaultInstance().getId();
+    }
+    /**
+     * <code>string id = 1 [json_name = "id"];</code>
+     * @param value The bytes for id to set.
+     */
+    private void setIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      id_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.GetProgramVersionRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * One earlier program's document (from GetProgramResponse.history).
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.GetProgramVersionRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.GetProgramVersionRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetProgramVersionRequest)
+        workout.v1.WorkoutOuterClass.GetProgramVersionRequestOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.GetProgramVersionRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string id = 1 [json_name = "id"];</code>
+       * @return The id.
+       */
+      @java.lang.Override
+      public java.lang.String getId() {
+        return instance.getId();
+      }
+      /**
+       * <code>string id = 1 [json_name = "id"];</code>
+       * @return The bytes for id.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getIdBytes() {
+        return instance.getIdBytes();
+      }
+      /**
+       * <code>string id = 1 [json_name = "id"];</code>
+       * @param value The id to set.
+       * @return This builder for chaining.
+       */
+      public Builder setId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setId(value);
+        return this;
+      }
+      /**
+       * <code>string id = 1 [json_name = "id"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearId() {
+        copyOnWrite();
+        instance.clearId();
+        return this;
+      }
+      /**
+       * <code>string id = 1 [json_name = "id"];</code>
+       * @param value The bytes for id to set.
+       * @return This builder for chaining.
+       */
+      public Builder setIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setIdBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetProgramVersionRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.GetProgramVersionRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "id_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.GetProgramVersionRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.GetProgramVersionRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.GetProgramVersionRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetProgramVersionRequest)
+    private static final workout.v1.WorkoutOuterClass.GetProgramVersionRequest DEFAULT_INSTANCE;
+    static {
+      GetProgramVersionRequest defaultInstance = new GetProgramVersionRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetProgramVersionRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetProgramVersionRequest> PARSER;
+
+    public static com.google.protobuf.Parser<GetProgramVersionRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface GetProgramVersionResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.GetProgramVersionResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     * @return Whether the summary field is set.
+     */
+    boolean hasSummary();
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     * @return The summary.
+     */
+    workout.v1.WorkoutOuterClass.ProgramSummary getSummary();
+
+    /**
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @return The programJson.
+     */
+    java.lang.String getProgramJson();
+    /**
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @return The bytes for programJson.
+     */
+    com.google.protobuf.ByteString
+        getProgramJsonBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.GetProgramVersionResponse}
+   */
+  public  static final class GetProgramVersionResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          GetProgramVersionResponse, GetProgramVersionResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.GetProgramVersionResponse)
+      GetProgramVersionResponseOrBuilder {
+    private GetProgramVersionResponse() {
+      programJson_ = "";
+    }
+    public static final int SUMMARY_FIELD_NUMBER = 1;
+    private workout.v1.WorkoutOuterClass.ProgramSummary summary_;
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    @java.lang.Override
+    public boolean hasSummary() {
+      return summary_ != null;
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgramSummary getSummary() {
+      return summary_ == null ? workout.v1.WorkoutOuterClass.ProgramSummary.getDefaultInstance() : summary_;
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    private void setSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  summary_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  if (summary_ != null &&
+          summary_ != workout.v1.WorkoutOuterClass.ProgramSummary.getDefaultInstance()) {
+        summary_ =
+          workout.v1.WorkoutOuterClass.ProgramSummary.newBuilder(summary_).mergeFrom(value).buildPartial();
+      } else {
+        summary_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    private void clearSummary() {  summary_ = null;
+      
+    }
+
+    public static final int PROGRAM_JSON_FIELD_NUMBER = 2;
+    private java.lang.String programJson_;
+    /**
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @return The programJson.
+     */
+    @java.lang.Override
+    public java.lang.String getProgramJson() {
+      return programJson_;
+    }
+    /**
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @return The bytes for programJson.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProgramJsonBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(programJson_);
+    }
+    /**
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @param value The programJson to set.
+     */
+    private void setProgramJson(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      programJson_ = value;
+    }
+    /**
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     */
+    private void clearProgramJson() {
+      
+      programJson_ = getDefaultInstance().getProgramJson();
+    }
+    /**
+     * <code>string program_json = 2 [json_name = "programJson"];</code>
+     * @param value The bytes for programJson to set.
+     */
+    private void setProgramJsonBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      programJson_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.GetProgramVersionResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.GetProgramVersionResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.GetProgramVersionResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.GetProgramVersionResponse)
+        workout.v1.WorkoutOuterClass.GetProgramVersionResponseOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.GetProgramVersionResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      @java.lang.Override
+      public boolean hasSummary() {
+        return instance.hasSummary();
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgramSummary getSummary() {
+        return instance.getSummary();
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder setSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.setSummary(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder setSummary(
+          workout.v1.WorkoutOuterClass.ProgramSummary.Builder builderForValue) {
+        copyOnWrite();
+        instance.setSummary(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder mergeSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.mergeSummary(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder clearSummary() {  copyOnWrite();
+        instance.clearSummary();
+        return this;
+      }
+
+      /**
+       * <code>string program_json = 2 [json_name = "programJson"];</code>
+       * @return The programJson.
+       */
+      @java.lang.Override
+      public java.lang.String getProgramJson() {
+        return instance.getProgramJson();
+      }
+      /**
+       * <code>string program_json = 2 [json_name = "programJson"];</code>
+       * @return The bytes for programJson.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProgramJsonBytes() {
+        return instance.getProgramJsonBytes();
+      }
+      /**
+       * <code>string program_json = 2 [json_name = "programJson"];</code>
+       * @param value The programJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgramJson(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProgramJson(value);
+        return this;
+      }
+      /**
+       * <code>string program_json = 2 [json_name = "programJson"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProgramJson() {
+        copyOnWrite();
+        instance.clearProgramJson();
+        return this;
+      }
+      /**
+       * <code>string program_json = 2 [json_name = "programJson"];</code>
+       * @param value The bytes for programJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgramJsonBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProgramJsonBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.GetProgramVersionResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.GetProgramVersionResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "summary_",
+              "programJson_",
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\t\u0002\u0208" +
+                "";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.GetProgramVersionResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.GetProgramVersionResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.GetProgramVersionResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.GetProgramVersionResponse)
+    private static final workout.v1.WorkoutOuterClass.GetProgramVersionResponse DEFAULT_INSTANCE;
+    static {
+      GetProgramVersionResponse defaultInstance = new GetProgramVersionResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        GetProgramVersionResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.GetProgramVersionResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<GetProgramVersionResponse> PARSER;
+
+    public static com.google.protobuf.Parser<GetProgramVersionResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface ProgramProblemOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ProgramProblem)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+     * </pre>
+     *
+     * <code>string path = 1 [json_name = "path"];</code>
+     * @return The path.
+     */
+    java.lang.String getPath();
+    /**
+     * <pre>
+     * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+     * </pre>
+     *
+     * <code>string path = 1 [json_name = "path"];</code>
+     * @return The bytes for path.
+     */
+    com.google.protobuf.ByteString
+        getPathBytes();
+
+    /**
+     * <code>string message = 2 [json_name = "message"];</code>
+     * @return The message.
+     */
+    java.lang.String getMessage();
+    /**
+     * <code>string message = 2 [json_name = "message"];</code>
+     * @return The bytes for message.
+     */
+    com.google.protobuf.ByteString
+        getMessageBytes();
+
+    /**
+     * <code>bool error = 3 [json_name = "error"];</code>
+     * @return The error.
+     */
+    boolean getError();
+  }
+  /**
+   * <pre>
+   * Something wrong with a draft. A program with any `error` is refused;
+   * warnings are only said.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.ProgramProblem}
+   */
+  public  static final class ProgramProblem extends
+      com.google.protobuf.GeneratedMessageLite<
+          ProgramProblem, ProgramProblem.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ProgramProblem)
+      ProgramProblemOrBuilder {
+    private ProgramProblem() {
+      path_ = "";
+      message_ = "";
+    }
+    public static final int PATH_FIELD_NUMBER = 1;
+    private java.lang.String path_;
+    /**
+     * <pre>
+     * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+     * </pre>
+     *
+     * <code>string path = 1 [json_name = "path"];</code>
+     * @return The path.
+     */
+    @java.lang.Override
+    public java.lang.String getPath() {
+      return path_;
+    }
+    /**
+     * <pre>
+     * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+     * </pre>
+     *
+     * <code>string path = 1 [json_name = "path"];</code>
+     * @return The bytes for path.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getPathBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(path_);
+    }
+    /**
+     * <pre>
+     * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+     * </pre>
+     *
+     * <code>string path = 1 [json_name = "path"];</code>
+     * @param value The path to set.
+     */
+    private void setPath(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      path_ = value;
+    }
+    /**
+     * <pre>
+     * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+     * </pre>
+     *
+     * <code>string path = 1 [json_name = "path"];</code>
+     */
+    private void clearPath() {
+      
+      path_ = getDefaultInstance().getPath();
+    }
+    /**
+     * <pre>
+     * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+     * </pre>
+     *
+     * <code>string path = 1 [json_name = "path"];</code>
+     * @param value The bytes for path to set.
+     */
+    private void setPathBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      path_ = value.toStringUtf8();
+      
+    }
+
+    public static final int MESSAGE_FIELD_NUMBER = 2;
+    private java.lang.String message_;
+    /**
+     * <code>string message = 2 [json_name = "message"];</code>
+     * @return The message.
+     */
+    @java.lang.Override
+    public java.lang.String getMessage() {
+      return message_;
+    }
+    /**
+     * <code>string message = 2 [json_name = "message"];</code>
+     * @return The bytes for message.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getMessageBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(message_);
+    }
+    /**
+     * <code>string message = 2 [json_name = "message"];</code>
+     * @param value The message to set.
+     */
+    private void setMessage(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      message_ = value;
+    }
+    /**
+     * <code>string message = 2 [json_name = "message"];</code>
+     */
+    private void clearMessage() {
+      
+      message_ = getDefaultInstance().getMessage();
+    }
+    /**
+     * <code>string message = 2 [json_name = "message"];</code>
+     * @param value The bytes for message to set.
+     */
+    private void setMessageBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      message_ = value.toStringUtf8();
+      
+    }
+
+    public static final int ERROR_FIELD_NUMBER = 3;
+    private boolean error_;
+    /**
+     * <code>bool error = 3 [json_name = "error"];</code>
+     * @return The error.
+     */
+    @java.lang.Override
+    public boolean getError() {
+      return error_;
+    }
+    /**
+     * <code>bool error = 3 [json_name = "error"];</code>
+     * @param value The error to set.
+     */
+    private void setError(boolean value) {
+      
+      error_ = value;
+    }
+    /**
+     * <code>bool error = 3 [json_name = "error"];</code>
+     */
+    private void clearError() {
+      
+      error_ = false;
+    }
+
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ProgramProblem parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.ProgramProblem prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * Something wrong with a draft. A program with any `error` is refused;
+     * warnings are only said.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.ProgramProblem}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.ProgramProblem, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ProgramProblem)
+        workout.v1.WorkoutOuterClass.ProgramProblemOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.ProgramProblem.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+       * </pre>
+       *
+       * <code>string path = 1 [json_name = "path"];</code>
+       * @return The path.
+       */
+      @java.lang.Override
+      public java.lang.String getPath() {
+        return instance.getPath();
+      }
+      /**
+       * <pre>
+       * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+       * </pre>
+       *
+       * <code>string path = 1 [json_name = "path"];</code>
+       * @return The bytes for path.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getPathBytes() {
+        return instance.getPathBytes();
+      }
+      /**
+       * <pre>
+       * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+       * </pre>
+       *
+       * <code>string path = 1 [json_name = "path"];</code>
+       * @param value The path to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPath(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setPath(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+       * </pre>
+       *
+       * <code>string path = 1 [json_name = "path"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPath() {
+        copyOnWrite();
+        instance.clearPath();
+        return this;
+      }
+      /**
+       * <pre>
+       * Where: `progressions.squat_lp.reps`, `exercises[3].muscles`.
+       * </pre>
+       *
+       * <code>string path = 1 [json_name = "path"];</code>
+       * @param value The bytes for path to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPathBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setPathBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string message = 2 [json_name = "message"];</code>
+       * @return The message.
+       */
+      @java.lang.Override
+      public java.lang.String getMessage() {
+        return instance.getMessage();
+      }
+      /**
+       * <code>string message = 2 [json_name = "message"];</code>
+       * @return The bytes for message.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getMessageBytes() {
+        return instance.getMessageBytes();
+      }
+      /**
+       * <code>string message = 2 [json_name = "message"];</code>
+       * @param value The message to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMessage(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setMessage(value);
+        return this;
+      }
+      /**
+       * <code>string message = 2 [json_name = "message"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMessage() {
+        copyOnWrite();
+        instance.clearMessage();
+        return this;
+      }
+      /**
+       * <code>string message = 2 [json_name = "message"];</code>
+       * @param value The bytes for message to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMessageBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setMessageBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>bool error = 3 [json_name = "error"];</code>
+       * @return The error.
+       */
+      @java.lang.Override
+      public boolean getError() {
+        return instance.getError();
+      }
+      /**
+       * <code>bool error = 3 [json_name = "error"];</code>
+       * @param value The error to set.
+       * @return This builder for chaining.
+       */
+      public Builder setError(boolean value) {
+        copyOnWrite();
+        instance.setError(value);
+        return this;
+      }
+      /**
+       * <code>bool error = 3 [json_name = "error"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearError() {
+        copyOnWrite();
+        instance.clearError();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ProgramProblem)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.ProgramProblem();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "path_",
+              "message_",
+              "error_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0007";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.ProgramProblem> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.ProgramProblem.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.ProgramProblem>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ProgramProblem)
+    private static final workout.v1.WorkoutOuterClass.ProgramProblem DEFAULT_INSTANCE;
+    static {
+      ProgramProblem defaultInstance = new ProgramProblem();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ProgramProblem.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.ProgramProblem getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ProgramProblem> PARSER;
+
+    public static com.google.protobuf.Parser<ProgramProblem> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface ValidateProgramRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ValidateProgramRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The programJson.
+     */
+    java.lang.String getProgramJson();
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The bytes for programJson.
+     */
+    com.google.protobuf.ByteString
+        getProgramJsonBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.ValidateProgramRequest}
+   */
+  public  static final class ValidateProgramRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          ValidateProgramRequest, ValidateProgramRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ValidateProgramRequest)
+      ValidateProgramRequestOrBuilder {
+    private ValidateProgramRequest() {
+      programJson_ = "";
+    }
+    public static final int PROGRAM_JSON_FIELD_NUMBER = 1;
+    private java.lang.String programJson_;
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The programJson.
+     */
+    @java.lang.Override
+    public java.lang.String getProgramJson() {
+      return programJson_;
+    }
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The bytes for programJson.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProgramJsonBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(programJson_);
+    }
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @param value The programJson to set.
+     */
+    private void setProgramJson(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      programJson_ = value;
+    }
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     */
+    private void clearProgramJson() {
+      
+      programJson_ = getDefaultInstance().getProgramJson();
+    }
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @param value The bytes for programJson to set.
+     */
+    private void setProgramJsonBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      programJson_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.ValidateProgramRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.ValidateProgramRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.ValidateProgramRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ValidateProgramRequest)
+        workout.v1.WorkoutOuterClass.ValidateProgramRequestOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.ValidateProgramRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @return The programJson.
+       */
+      @java.lang.Override
+      public java.lang.String getProgramJson() {
+        return instance.getProgramJson();
+      }
+      /**
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @return The bytes for programJson.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProgramJsonBytes() {
+        return instance.getProgramJsonBytes();
+      }
+      /**
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @param value The programJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgramJson(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProgramJson(value);
+        return this;
+      }
+      /**
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProgramJson() {
+        copyOnWrite();
+        instance.clearProgramJson();
+        return this;
+      }
+      /**
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @param value The bytes for programJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgramJsonBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProgramJsonBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ValidateProgramRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.ValidateProgramRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "programJson_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.ValidateProgramRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.ValidateProgramRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.ValidateProgramRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ValidateProgramRequest)
+    private static final workout.v1.WorkoutOuterClass.ValidateProgramRequest DEFAULT_INSTANCE;
+    static {
+      ValidateProgramRequest defaultInstance = new ValidateProgramRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ValidateProgramRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.ValidateProgramRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ValidateProgramRequest> PARSER;
+
+    public static com.google.protobuf.Parser<ValidateProgramRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface ValidateProgramResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ValidateProgramResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.ProgramProblem> 
+        getProblemsList();
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    workout.v1.WorkoutOuterClass.ProgramProblem getProblems(int index);
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    int getProblemsCount();
+  }
+  /**
+   * Protobuf type {@code workout.v1.ValidateProgramResponse}
+   */
+  public  static final class ValidateProgramResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          ValidateProgramResponse, ValidateProgramResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ValidateProgramResponse)
+      ValidateProgramResponseOrBuilder {
+    private ValidateProgramResponse() {
+      problems_ = emptyProtobufList();
+    }
+    public static final int PROBLEMS_FIELD_NUMBER = 1;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ProgramProblem> problems_;
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.ProgramProblem> getProblemsList() {
+      return problems_;
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.ProgramProblemOrBuilder> 
+        getProblemsOrBuilderList() {
+      return problems_;
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    @java.lang.Override
+    public int getProblemsCount() {
+      return problems_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgramProblem getProblems(int index) {
+      return problems_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.ProgramProblemOrBuilder getProblemsOrBuilder(
+        int index) {
+      return problems_.get(index);
+    }
+    private void ensureProblemsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ProgramProblem> tmp = problems_;
+      if (!tmp.isModifiable()) {
+        problems_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void setProblems(
+        int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+      value.getClass();
+  ensureProblemsIsMutable();
+      problems_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void addProblems(workout.v1.WorkoutOuterClass.ProgramProblem value) {
+      value.getClass();
+  ensureProblemsIsMutable();
+      problems_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void addProblems(
+        int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+      value.getClass();
+  ensureProblemsIsMutable();
+      problems_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void addAllProblems(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ProgramProblem> values) {
+      ensureProblemsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, problems_);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void clearProblems() {
+      problems_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void removeProblems(int index) {
+      ensureProblemsIsMutable();
+      problems_.remove(index);
+    }
+
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.ValidateProgramResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.ValidateProgramResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.ValidateProgramResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ValidateProgramResponse)
+        workout.v1.WorkoutOuterClass.ValidateProgramResponseOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.ValidateProgramResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.ProgramProblem> getProblemsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getProblemsList());
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      @java.lang.Override
+      public int getProblemsCount() {
+        return instance.getProblemsCount();
+      }/**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgramProblem getProblems(int index) {
+        return instance.getProblems(index);
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder setProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+        copyOnWrite();
+        instance.setProblems(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder setProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem.Builder builderForValue) {
+        copyOnWrite();
+        instance.setProblems(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(workout.v1.WorkoutOuterClass.ProgramProblem value) {
+        copyOnWrite();
+        instance.addProblems(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+        copyOnWrite();
+        instance.addProblems(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(
+          workout.v1.WorkoutOuterClass.ProgramProblem.Builder builderForValue) {
+        copyOnWrite();
+        instance.addProblems(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem.Builder builderForValue) {
+        copyOnWrite();
+        instance.addProblems(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addAllProblems(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ProgramProblem> values) {
+        copyOnWrite();
+        instance.addAllProblems(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder clearProblems() {
+        copyOnWrite();
+        instance.clearProblems();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder removeProblems(int index) {
+        copyOnWrite();
+        instance.removeProblems(index);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ValidateProgramResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.ValidateProgramResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "problems_",
+              workout.v1.WorkoutOuterClass.ProgramProblem.class,
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0001\u0000\u0001\u001b";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.ValidateProgramResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.ValidateProgramResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.ValidateProgramResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ValidateProgramResponse)
+    private static final workout.v1.WorkoutOuterClass.ValidateProgramResponse DEFAULT_INSTANCE;
+    static {
+      ValidateProgramResponse defaultInstance = new ValidateProgramResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ValidateProgramResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.ValidateProgramResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ValidateProgramResponse> PARSER;
+
+    public static com.google.protobuf.Parser<ValidateProgramResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface SetProgramRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SetProgramRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The programJson.
+     */
+    java.lang.String getProgramJson();
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The bytes for programJson.
+     */
+    com.google.protobuf.ByteString
+        getProgramJsonBytes();
+
+    /**
+     * <code>string note = 2 [json_name = "note"];</code>
+     * @return The note.
+     */
+    java.lang.String getNote();
+    /**
+     * <code>string note = 2 [json_name = "note"];</code>
+     * @return The bytes for note.
+     */
+    com.google.protobuf.ByteString
+        getNoteBytes();
+
+    /**
+     * <pre>
+     * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+     * from an assistant.
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @return The author.
+     */
+    java.lang.String getAuthor();
+    /**
+     * <pre>
+     * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+     * from an assistant.
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @return The bytes for author.
+     */
+    com.google.protobuf.ByteString
+        getAuthorBytes();
+  }
+  /**
+   * <pre>
+   * Replaces the program. Refused, nothing recorded, when it has errors.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.SetProgramRequest}
+   */
+  public  static final class SetProgramRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          SetProgramRequest, SetProgramRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SetProgramRequest)
+      SetProgramRequestOrBuilder {
+    private SetProgramRequest() {
+      programJson_ = "";
+      note_ = "";
+      author_ = "";
+    }
+    public static final int PROGRAM_JSON_FIELD_NUMBER = 1;
+    private java.lang.String programJson_;
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The programJson.
+     */
+    @java.lang.Override
+    public java.lang.String getProgramJson() {
+      return programJson_;
+    }
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The bytes for programJson.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProgramJsonBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(programJson_);
+    }
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @param value The programJson to set.
+     */
+    private void setProgramJson(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      programJson_ = value;
+    }
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     */
+    private void clearProgramJson() {
+      
+      programJson_ = getDefaultInstance().getProgramJson();
+    }
+    /**
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @param value The bytes for programJson to set.
+     */
+    private void setProgramJsonBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      programJson_ = value.toStringUtf8();
+      
+    }
+
+    public static final int NOTE_FIELD_NUMBER = 2;
+    private java.lang.String note_;
+    /**
+     * <code>string note = 2 [json_name = "note"];</code>
+     * @return The note.
+     */
+    @java.lang.Override
+    public java.lang.String getNote() {
+      return note_;
+    }
+    /**
+     * <code>string note = 2 [json_name = "note"];</code>
+     * @return The bytes for note.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getNoteBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(note_);
+    }
+    /**
+     * <code>string note = 2 [json_name = "note"];</code>
+     * @param value The note to set.
+     */
+    private void setNote(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      note_ = value;
+    }
+    /**
+     * <code>string note = 2 [json_name = "note"];</code>
+     */
+    private void clearNote() {
+      
+      note_ = getDefaultInstance().getNote();
+    }
+    /**
+     * <code>string note = 2 [json_name = "note"];</code>
+     * @param value The bytes for note to set.
+     */
+    private void setNoteBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      note_ = value.toStringUtf8();
+      
+    }
+
+    public static final int AUTHOR_FIELD_NUMBER = 3;
+    private java.lang.String author_;
+    /**
+     * <pre>
+     * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+     * from an assistant.
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @return The author.
+     */
+    @java.lang.Override
+    public java.lang.String getAuthor() {
+      return author_;
+    }
+    /**
+     * <pre>
+     * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+     * from an assistant.
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @return The bytes for author.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getAuthorBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(author_);
+    }
+    /**
+     * <pre>
+     * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+     * from an assistant.
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @param value The author to set.
+     */
+    private void setAuthor(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      author_ = value;
+    }
+    /**
+     * <pre>
+     * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+     * from an assistant.
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     */
+    private void clearAuthor() {
+      
+      author_ = getDefaultInstance().getAuthor();
+    }
+    /**
+     * <pre>
+     * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+     * from an assistant.
+     * </pre>
+     *
+     * <code>string author = 3 [json_name = "author"];</code>
+     * @param value The bytes for author to set.
+     */
+    private void setAuthorBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      author_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SetProgramRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * Replaces the program. Refused, nothing recorded, when it has errors.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.SetProgramRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.SetProgramRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SetProgramRequest)
+        workout.v1.WorkoutOuterClass.SetProgramRequestOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.SetProgramRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @return The programJson.
+       */
+      @java.lang.Override
+      public java.lang.String getProgramJson() {
+        return instance.getProgramJson();
+      }
+      /**
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @return The bytes for programJson.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProgramJsonBytes() {
+        return instance.getProgramJsonBytes();
+      }
+      /**
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @param value The programJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgramJson(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProgramJson(value);
+        return this;
+      }
+      /**
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProgramJson() {
+        copyOnWrite();
+        instance.clearProgramJson();
+        return this;
+      }
+      /**
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @param value The bytes for programJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgramJsonBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProgramJsonBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string note = 2 [json_name = "note"];</code>
+       * @return The note.
+       */
+      @java.lang.Override
+      public java.lang.String getNote() {
+        return instance.getNote();
+      }
+      /**
+       * <code>string note = 2 [json_name = "note"];</code>
+       * @return The bytes for note.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getNoteBytes() {
+        return instance.getNoteBytes();
+      }
+      /**
+       * <code>string note = 2 [json_name = "note"];</code>
+       * @param value The note to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNote(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setNote(value);
+        return this;
+      }
+      /**
+       * <code>string note = 2 [json_name = "note"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearNote() {
+        copyOnWrite();
+        instance.clearNote();
+        return this;
+      }
+      /**
+       * <code>string note = 2 [json_name = "note"];</code>
+       * @param value The bytes for note to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNoteBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setNoteBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+       * from an assistant.
+       * </pre>
+       *
+       * <code>string author = 3 [json_name = "author"];</code>
+       * @return The author.
+       */
+      @java.lang.Override
+      public java.lang.String getAuthor() {
+        return instance.getAuthor();
+      }
+      /**
+       * <pre>
+       * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+       * from an assistant.
+       * </pre>
+       *
+       * <code>string author = 3 [json_name = "author"];</code>
+       * @return The bytes for author.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getAuthorBytes() {
+        return instance.getAuthorBytes();
+      }
+      /**
+       * <pre>
+       * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+       * from an assistant.
+       * </pre>
+       *
+       * <code>string author = 3 [json_name = "author"];</code>
+       * @param value The author to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAuthor(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setAuthor(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+       * from an assistant.
+       * </pre>
+       *
+       * <code>string author = 3 [json_name = "author"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearAuthor() {
+        copyOnWrite();
+        instance.clearAuthor();
+        return this;
+      }
+      /**
+       * <pre>
+       * Set by the host, not the caller: "app" on the phone, "mcp:&lt;client&gt;"
+       * from an assistant.
+       * </pre>
+       *
+       * <code>string author = 3 [json_name = "author"];</code>
+       * @param value The bytes for author to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAuthorBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setAuthorBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SetProgramRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.SetProgramRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "programJson_",
+              "note_",
+              "author_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SetProgramRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.SetProgramRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SetProgramRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SetProgramRequest)
+    private static final workout.v1.WorkoutOuterClass.SetProgramRequest DEFAULT_INSTANCE;
+    static {
+      SetProgramRequest defaultInstance = new SetProgramRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SetProgramRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SetProgramRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SetProgramRequest> PARSER;
+
+    public static com.google.protobuf.Parser<SetProgramRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface SetProgramResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SetProgramResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.ProgramProblem> 
+        getProblemsList();
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    workout.v1.WorkoutOuterClass.ProgramProblem getProblems(int index);
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    int getProblemsCount();
+
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+     * @return Whether the summary field is set.
+     */
+    boolean hasSummary();
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+     * @return The summary.
+     */
+    workout.v1.WorkoutOuterClass.ProgramSummary getSummary();
+  }
+  /**
+   * Protobuf type {@code workout.v1.SetProgramResponse}
+   */
+  public  static final class SetProgramResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          SetProgramResponse, SetProgramResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SetProgramResponse)
+      SetProgramResponseOrBuilder {
+    private SetProgramResponse() {
+      problems_ = emptyProtobufList();
+    }
+    public static final int PROBLEMS_FIELD_NUMBER = 1;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ProgramProblem> problems_;
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.ProgramProblem> getProblemsList() {
+      return problems_;
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.ProgramProblemOrBuilder> 
+        getProblemsOrBuilderList() {
+      return problems_;
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    @java.lang.Override
+    public int getProblemsCount() {
+      return problems_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgramProblem getProblems(int index) {
+      return problems_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.ProgramProblemOrBuilder getProblemsOrBuilder(
+        int index) {
+      return problems_.get(index);
+    }
+    private void ensureProblemsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ProgramProblem> tmp = problems_;
+      if (!tmp.isModifiable()) {
+        problems_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void setProblems(
+        int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+      value.getClass();
+  ensureProblemsIsMutable();
+      problems_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void addProblems(workout.v1.WorkoutOuterClass.ProgramProblem value) {
+      value.getClass();
+  ensureProblemsIsMutable();
+      problems_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void addProblems(
+        int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+      value.getClass();
+  ensureProblemsIsMutable();
+      problems_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void addAllProblems(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ProgramProblem> values) {
+      ensureProblemsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, problems_);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void clearProblems() {
+      problems_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void removeProblems(int index) {
+      ensureProblemsIsMutable();
+      problems_.remove(index);
+    }
+
+    public static final int SUMMARY_FIELD_NUMBER = 2;
+    private workout.v1.WorkoutOuterClass.ProgramSummary summary_;
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+     */
+    @java.lang.Override
+    public boolean hasSummary() {
+      return summary_ != null;
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgramSummary getSummary() {
+      return summary_ == null ? workout.v1.WorkoutOuterClass.ProgramSummary.getDefaultInstance() : summary_;
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+     */
+    private void setSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  summary_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  if (summary_ != null &&
+          summary_ != workout.v1.WorkoutOuterClass.ProgramSummary.getDefaultInstance()) {
+        summary_ =
+          workout.v1.WorkoutOuterClass.ProgramSummary.newBuilder(summary_).mergeFrom(value).buildPartial();
+      } else {
+        summary_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+     */
+    private void clearSummary() {  summary_ = null;
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SetProgramResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.SetProgramResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.SetProgramResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SetProgramResponse)
+        workout.v1.WorkoutOuterClass.SetProgramResponseOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.SetProgramResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.ProgramProblem> getProblemsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getProblemsList());
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      @java.lang.Override
+      public int getProblemsCount() {
+        return instance.getProblemsCount();
+      }/**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgramProblem getProblems(int index) {
+        return instance.getProblems(index);
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder setProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+        copyOnWrite();
+        instance.setProblems(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder setProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem.Builder builderForValue) {
+        copyOnWrite();
+        instance.setProblems(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(workout.v1.WorkoutOuterClass.ProgramProblem value) {
+        copyOnWrite();
+        instance.addProblems(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+        copyOnWrite();
+        instance.addProblems(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(
+          workout.v1.WorkoutOuterClass.ProgramProblem.Builder builderForValue) {
+        copyOnWrite();
+        instance.addProblems(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem.Builder builderForValue) {
+        copyOnWrite();
+        instance.addProblems(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addAllProblems(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ProgramProblem> values) {
+        copyOnWrite();
+        instance.addAllProblems(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder clearProblems() {
+        copyOnWrite();
+        instance.clearProblems();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder removeProblems(int index) {
+        copyOnWrite();
+        instance.removeProblems(index);
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+       */
+      @java.lang.Override
+      public boolean hasSummary() {
+        return instance.hasSummary();
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgramSummary getSummary() {
+        return instance.getSummary();
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+       */
+      public Builder setSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.setSummary(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+       */
+      public Builder setSummary(
+          workout.v1.WorkoutOuterClass.ProgramSummary.Builder builderForValue) {
+        copyOnWrite();
+        instance.setSummary(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+       */
+      public Builder mergeSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.mergeSummary(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 2 [json_name = "summary"];</code>
+       */
+      public Builder clearSummary() {  copyOnWrite();
+        instance.clearSummary();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SetProgramResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.SetProgramResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "problems_",
+              workout.v1.WorkoutOuterClass.ProgramProblem.class,
+              "summary_",
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0001\u0000\u0001\u001b\u0002\t" +
+                "";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SetProgramResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.SetProgramResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SetProgramResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SetProgramResponse)
+    private static final workout.v1.WorkoutOuterClass.SetProgramResponse DEFAULT_INSTANCE;
+    static {
+      SetProgramResponse defaultInstance = new SetProgramResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SetProgramResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SetProgramResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SetProgramResponse> PARSER;
+
+    public static com.google.protobuf.Parser<SetProgramResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface ResetProgramRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ResetProgramRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @return The to.
+     */
+    java.lang.String getTo();
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @return The bytes for to.
+     */
+    com.google.protobuf.ByteString
+        getToBytes();
+  }
+  /**
+   * <pre>
+   * Back to the built-in rules, or an earlier program's, the workouts as
+   * they are now kept.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.ResetProgramRequest}
+   */
+  public  static final class ResetProgramRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          ResetProgramRequest, ResetProgramRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ResetProgramRequest)
+      ResetProgramRequestOrBuilder {
+    private ResetProgramRequest() {
+      to_ = "";
+    }
+    public static final int TO_FIELD_NUMBER = 1;
+    private java.lang.String to_;
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @return The to.
+     */
+    @java.lang.Override
+    public java.lang.String getTo() {
+      return to_;
+    }
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @return The bytes for to.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getToBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(to_);
+    }
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @param value The to to set.
+     */
+    private void setTo(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      to_ = value;
+    }
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     */
+    private void clearTo() {
+      
+      to_ = getDefaultInstance().getTo();
+    }
+    /**
+     * <pre>
+     * An earlier program's id (from GetProgramResponse.history); empty for
+     * the built-in rules.
+     * </pre>
+     *
+     * <code>string to = 1 [json_name = "to"];</code>
+     * @param value The bytes for to to set.
+     */
+    private void setToBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      to_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.ResetProgramRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * Back to the built-in rules, or an earlier program's, the workouts as
+     * they are now kept.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.ResetProgramRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.ResetProgramRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ResetProgramRequest)
+        workout.v1.WorkoutOuterClass.ResetProgramRequestOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.ResetProgramRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * An earlier program's id (from GetProgramResponse.history); empty for
+       * the built-in rules.
+       * </pre>
+       *
+       * <code>string to = 1 [json_name = "to"];</code>
+       * @return The to.
+       */
+      @java.lang.Override
+      public java.lang.String getTo() {
+        return instance.getTo();
+      }
+      /**
+       * <pre>
+       * An earlier program's id (from GetProgramResponse.history); empty for
+       * the built-in rules.
+       * </pre>
+       *
+       * <code>string to = 1 [json_name = "to"];</code>
+       * @return The bytes for to.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getToBytes() {
+        return instance.getToBytes();
+      }
+      /**
+       * <pre>
+       * An earlier program's id (from GetProgramResponse.history); empty for
+       * the built-in rules.
+       * </pre>
+       *
+       * <code>string to = 1 [json_name = "to"];</code>
+       * @param value The to to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTo(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setTo(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * An earlier program's id (from GetProgramResponse.history); empty for
+       * the built-in rules.
+       * </pre>
+       *
+       * <code>string to = 1 [json_name = "to"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTo() {
+        copyOnWrite();
+        instance.clearTo();
+        return this;
+      }
+      /**
+       * <pre>
+       * An earlier program's id (from GetProgramResponse.history); empty for
+       * the built-in rules.
+       * </pre>
+       *
+       * <code>string to = 1 [json_name = "to"];</code>
+       * @param value The bytes for to to set.
+       * @return This builder for chaining.
+       */
+      public Builder setToBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setToBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ResetProgramRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.ResetProgramRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "to_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.ResetProgramRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.ResetProgramRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.ResetProgramRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ResetProgramRequest)
+    private static final workout.v1.WorkoutOuterClass.ResetProgramRequest DEFAULT_INSTANCE;
+    static {
+      ResetProgramRequest defaultInstance = new ResetProgramRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ResetProgramRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.ResetProgramRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ResetProgramRequest> PARSER;
+
+    public static com.google.protobuf.Parser<ResetProgramRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface ResetProgramResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ResetProgramResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     * @return Whether the summary field is set.
+     */
+    boolean hasSummary();
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     * @return The summary.
+     */
+    workout.v1.WorkoutOuterClass.ProgramSummary getSummary();
+  }
+  /**
+   * Protobuf type {@code workout.v1.ResetProgramResponse}
+   */
+  public  static final class ResetProgramResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          ResetProgramResponse, ResetProgramResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ResetProgramResponse)
+      ResetProgramResponseOrBuilder {
+    private ResetProgramResponse() {
+    }
+    public static final int SUMMARY_FIELD_NUMBER = 1;
+    private workout.v1.WorkoutOuterClass.ProgramSummary summary_;
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    @java.lang.Override
+    public boolean hasSummary() {
+      return summary_ != null;
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgramSummary getSummary() {
+      return summary_ == null ? workout.v1.WorkoutOuterClass.ProgramSummary.getDefaultInstance() : summary_;
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    private void setSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  summary_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+      value.getClass();
+  if (summary_ != null &&
+          summary_ != workout.v1.WorkoutOuterClass.ProgramSummary.getDefaultInstance()) {
+        summary_ =
+          workout.v1.WorkoutOuterClass.ProgramSummary.newBuilder(summary_).mergeFrom(value).buildPartial();
+      } else {
+        summary_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+     */
+    private void clearSummary() {  summary_ = null;
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.ResetProgramResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.ResetProgramResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.ResetProgramResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ResetProgramResponse)
+        workout.v1.WorkoutOuterClass.ResetProgramResponseOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.ResetProgramResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      @java.lang.Override
+      public boolean hasSummary() {
+        return instance.hasSummary();
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgramSummary getSummary() {
+        return instance.getSummary();
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder setSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.setSummary(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder setSummary(
+          workout.v1.WorkoutOuterClass.ProgramSummary.Builder builderForValue) {
+        copyOnWrite();
+        instance.setSummary(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder mergeSummary(workout.v1.WorkoutOuterClass.ProgramSummary value) {
+        copyOnWrite();
+        instance.mergeSummary(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.ProgramSummary summary = 1 [json_name = "summary"];</code>
+       */
+      public Builder clearSummary() {  copyOnWrite();
+        instance.clearSummary();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ResetProgramResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.ResetProgramResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "summary_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\t";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.ResetProgramResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.ResetProgramResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.ResetProgramResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ResetProgramResponse)
+    private static final workout.v1.WorkoutOuterClass.ResetProgramResponse DEFAULT_INSTANCE;
+    static {
+      ResetProgramResponse defaultInstance = new ResetProgramResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ResetProgramResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.ResetProgramResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ResetProgramResponse> PARSER;
+
+    public static com.google.protobuf.Parser<ResetProgramResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface SimulateProgramRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SimulateProgramRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * Empty: the current program.
+     * </pre>
+     *
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The programJson.
+     */
+    java.lang.String getProgramJson();
+    /**
+     * <pre>
+     * Empty: the current program.
+     * </pre>
+     *
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The bytes for programJson.
+     */
+    com.google.protobuf.ByteString
+        getProgramJsonBytes();
+
+    /**
+     * <pre>
+     * forward; at most 60
+     * </pre>
+     *
+     * <code>int32 sessions = 2 [json_name = "sessions"];</code>
+     * @return The sessions.
+     */
+    int getSessions();
+
+    /**
+     * <pre>
+     * 0 = 2
+     * </pre>
+     *
+     * <code>int32 every_days = 3 [json_name = "everyDays"];</code>
+     * @return The everyDays.
+     */
+    int getEveryDays();
+
+    /**
+     * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+     * @return The enum numeric value on the wire for effort.
+     */
+    int getEffortValue();
+    /**
+     * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+     * @return The effort.
+     */
+    workout.v1.WorkoutOuterClass.SimulatedEffort getEffort();
+
+    /**
+     * <code>int32 miss_every = 5 [json_name = "missEvery"];</code>
+     * @return The missEvery.
+     */
+    int getMissEvery();
+
+    /**
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @return The templateId.
+     */
+    java.lang.String getTemplateId();
+    /**
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @return The bytes for templateId.
+     */
+    com.google.protobuf.ByteString
+        getTemplateIdBytes();
+
+    /**
+     * <pre>
+     * 0 = the program's default
+     * </pre>
+     *
+     * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
+     * @return The budgetMinutes.
+     */
+    int getBudgetMinutes();
+
+    /**
+     * <pre>
+     * At most this many past workouts, newest kept; 0 = none.
+     * </pre>
+     *
+     * <code>int32 history = 8 [json_name = "history"];</code>
+     * @return The history.
+     */
+    int getHistory();
+  }
+  /**
+   * <pre>
+   * A draft run without being set. Over the history: each finished
+   * workout's lifts planned by the draft as of just before it, beside what
+   * was planned and done. Forward: `sessions` workouts from now, the
+   * rotation's in turn (or `template_id`'s every time), `every_days` apart,
+   * each done as `effort` says, through the same API the app uses.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.SimulateProgramRequest}
+   */
+  public  static final class SimulateProgramRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          SimulateProgramRequest, SimulateProgramRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SimulateProgramRequest)
+      SimulateProgramRequestOrBuilder {
+    private SimulateProgramRequest() {
+      programJson_ = "";
+      templateId_ = "";
+    }
+    public static final int PROGRAM_JSON_FIELD_NUMBER = 1;
+    private java.lang.String programJson_;
+    /**
+     * <pre>
+     * Empty: the current program.
+     * </pre>
+     *
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The programJson.
+     */
+    @java.lang.Override
+    public java.lang.String getProgramJson() {
+      return programJson_;
+    }
+    /**
+     * <pre>
+     * Empty: the current program.
+     * </pre>
+     *
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @return The bytes for programJson.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProgramJsonBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(programJson_);
+    }
+    /**
+     * <pre>
+     * Empty: the current program.
+     * </pre>
+     *
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @param value The programJson to set.
+     */
+    private void setProgramJson(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      programJson_ = value;
+    }
+    /**
+     * <pre>
+     * Empty: the current program.
+     * </pre>
+     *
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     */
+    private void clearProgramJson() {
+      
+      programJson_ = getDefaultInstance().getProgramJson();
+    }
+    /**
+     * <pre>
+     * Empty: the current program.
+     * </pre>
+     *
+     * <code>string program_json = 1 [json_name = "programJson"];</code>
+     * @param value The bytes for programJson to set.
+     */
+    private void setProgramJsonBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      programJson_ = value.toStringUtf8();
+      
+    }
+
+    public static final int SESSIONS_FIELD_NUMBER = 2;
+    private int sessions_;
+    /**
+     * <pre>
+     * forward; at most 60
+     * </pre>
+     *
+     * <code>int32 sessions = 2 [json_name = "sessions"];</code>
+     * @return The sessions.
+     */
+    @java.lang.Override
+    public int getSessions() {
+      return sessions_;
+    }
+    /**
+     * <pre>
+     * forward; at most 60
+     * </pre>
+     *
+     * <code>int32 sessions = 2 [json_name = "sessions"];</code>
+     * @param value The sessions to set.
+     */
+    private void setSessions(int value) {
+      
+      sessions_ = value;
+    }
+    /**
+     * <pre>
+     * forward; at most 60
+     * </pre>
+     *
+     * <code>int32 sessions = 2 [json_name = "sessions"];</code>
+     */
+    private void clearSessions() {
+      
+      sessions_ = 0;
+    }
+
+    public static final int EVERY_DAYS_FIELD_NUMBER = 3;
+    private int everyDays_;
+    /**
+     * <pre>
+     * 0 = 2
+     * </pre>
+     *
+     * <code>int32 every_days = 3 [json_name = "everyDays"];</code>
+     * @return The everyDays.
+     */
+    @java.lang.Override
+    public int getEveryDays() {
+      return everyDays_;
+    }
+    /**
+     * <pre>
+     * 0 = 2
+     * </pre>
+     *
+     * <code>int32 every_days = 3 [json_name = "everyDays"];</code>
+     * @param value The everyDays to set.
+     */
+    private void setEveryDays(int value) {
+      
+      everyDays_ = value;
+    }
+    /**
+     * <pre>
+     * 0 = 2
+     * </pre>
+     *
+     * <code>int32 every_days = 3 [json_name = "everyDays"];</code>
+     */
+    private void clearEveryDays() {
+      
+      everyDays_ = 0;
+    }
+
+    public static final int EFFORT_FIELD_NUMBER = 4;
+    private int effort_;
+    /**
+     * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+     * @return The enum numeric value on the wire for effort.
+     */
+    @java.lang.Override
+    public int getEffortValue() {
+      return effort_;
+    }
+    /**
+     * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+     * @return The effort.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.SimulatedEffort getEffort() {
+      workout.v1.WorkoutOuterClass.SimulatedEffort result = workout.v1.WorkoutOuterClass.SimulatedEffort.forNumber(effort_);
+      return result == null ? workout.v1.WorkoutOuterClass.SimulatedEffort.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+     * @param value The enum numeric value on the wire for effort to set.
+     */
+    private void setEffortValue(int value) {
+        effort_ = value;
+    }
+    /**
+     * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+     * @param value The effort to set.
+     */
+    private void setEffort(workout.v1.WorkoutOuterClass.SimulatedEffort value) {
+      effort_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+     */
+    private void clearEffort() {
+      
+      effort_ = 0;
+    }
+
+    public static final int MISS_EVERY_FIELD_NUMBER = 5;
+    private int missEvery_;
+    /**
+     * <code>int32 miss_every = 5 [json_name = "missEvery"];</code>
+     * @return The missEvery.
+     */
+    @java.lang.Override
+    public int getMissEvery() {
+      return missEvery_;
+    }
+    /**
+     * <code>int32 miss_every = 5 [json_name = "missEvery"];</code>
+     * @param value The missEvery to set.
+     */
+    private void setMissEvery(int value) {
+      
+      missEvery_ = value;
+    }
+    /**
+     * <code>int32 miss_every = 5 [json_name = "missEvery"];</code>
+     */
+    private void clearMissEvery() {
+      
+      missEvery_ = 0;
+    }
+
+    public static final int TEMPLATE_ID_FIELD_NUMBER = 6;
+    private java.lang.String templateId_;
+    /**
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @return The templateId.
+     */
+    @java.lang.Override
+    public java.lang.String getTemplateId() {
+      return templateId_;
+    }
+    /**
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @return The bytes for templateId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getTemplateIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(templateId_);
+    }
+    /**
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @param value The templateId to set.
+     */
+    private void setTemplateId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      templateId_ = value;
+    }
+    /**
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     */
+    private void clearTemplateId() {
+      
+      templateId_ = getDefaultInstance().getTemplateId();
+    }
+    /**
+     * <code>string template_id = 6 [json_name = "templateId"];</code>
+     * @param value The bytes for templateId to set.
+     */
+    private void setTemplateIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      templateId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int BUDGET_MINUTES_FIELD_NUMBER = 7;
+    private int budgetMinutes_;
+    /**
+     * <pre>
+     * 0 = the program's default
+     * </pre>
+     *
+     * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
+     * @return The budgetMinutes.
+     */
+    @java.lang.Override
+    public int getBudgetMinutes() {
+      return budgetMinutes_;
+    }
+    /**
+     * <pre>
+     * 0 = the program's default
+     * </pre>
+     *
+     * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
+     * @param value The budgetMinutes to set.
+     */
+    private void setBudgetMinutes(int value) {
+      
+      budgetMinutes_ = value;
+    }
+    /**
+     * <pre>
+     * 0 = the program's default
+     * </pre>
+     *
+     * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
+     */
+    private void clearBudgetMinutes() {
+      
+      budgetMinutes_ = 0;
+    }
+
+    public static final int HISTORY_FIELD_NUMBER = 8;
+    private int history_;
+    /**
+     * <pre>
+     * At most this many past workouts, newest kept; 0 = none.
+     * </pre>
+     *
+     * <code>int32 history = 8 [json_name = "history"];</code>
+     * @return The history.
+     */
+    @java.lang.Override
+    public int getHistory() {
+      return history_;
+    }
+    /**
+     * <pre>
+     * At most this many past workouts, newest kept; 0 = none.
+     * </pre>
+     *
+     * <code>int32 history = 8 [json_name = "history"];</code>
+     * @param value The history to set.
+     */
+    private void setHistory(int value) {
+      
+      history_ = value;
+    }
+    /**
+     * <pre>
+     * At most this many past workouts, newest kept; 0 = none.
+     * </pre>
+     *
+     * <code>int32 history = 8 [json_name = "history"];</code>
+     */
+    private void clearHistory() {
+      
+      history_ = 0;
+    }
+
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SimulateProgramRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * A draft run without being set. Over the history: each finished
+     * workout's lifts planned by the draft as of just before it, beside what
+     * was planned and done. Forward: `sessions` workouts from now, the
+     * rotation's in turn (or `template_id`'s every time), `every_days` apart,
+     * each done as `effort` says, through the same API the app uses.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.SimulateProgramRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.SimulateProgramRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SimulateProgramRequest)
+        workout.v1.WorkoutOuterClass.SimulateProgramRequestOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.SimulateProgramRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * Empty: the current program.
+       * </pre>
+       *
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @return The programJson.
+       */
+      @java.lang.Override
+      public java.lang.String getProgramJson() {
+        return instance.getProgramJson();
+      }
+      /**
+       * <pre>
+       * Empty: the current program.
+       * </pre>
+       *
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @return The bytes for programJson.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProgramJsonBytes() {
+        return instance.getProgramJsonBytes();
+      }
+      /**
+       * <pre>
+       * Empty: the current program.
+       * </pre>
+       *
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @param value The programJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgramJson(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProgramJson(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Empty: the current program.
+       * </pre>
+       *
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProgramJson() {
+        copyOnWrite();
+        instance.clearProgramJson();
+        return this;
+      }
+      /**
+       * <pre>
+       * Empty: the current program.
+       * </pre>
+       *
+       * <code>string program_json = 1 [json_name = "programJson"];</code>
+       * @param value The bytes for programJson to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgramJsonBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProgramJsonBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * forward; at most 60
+       * </pre>
+       *
+       * <code>int32 sessions = 2 [json_name = "sessions"];</code>
+       * @return The sessions.
+       */
+      @java.lang.Override
+      public int getSessions() {
+        return instance.getSessions();
+      }
+      /**
+       * <pre>
+       * forward; at most 60
+       * </pre>
+       *
+       * <code>int32 sessions = 2 [json_name = "sessions"];</code>
+       * @param value The sessions to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSessions(int value) {
+        copyOnWrite();
+        instance.setSessions(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * forward; at most 60
+       * </pre>
+       *
+       * <code>int32 sessions = 2 [json_name = "sessions"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSessions() {
+        copyOnWrite();
+        instance.clearSessions();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * 0 = 2
+       * </pre>
+       *
+       * <code>int32 every_days = 3 [json_name = "everyDays"];</code>
+       * @return The everyDays.
+       */
+      @java.lang.Override
+      public int getEveryDays() {
+        return instance.getEveryDays();
+      }
+      /**
+       * <pre>
+       * 0 = 2
+       * </pre>
+       *
+       * <code>int32 every_days = 3 [json_name = "everyDays"];</code>
+       * @param value The everyDays to set.
+       * @return This builder for chaining.
+       */
+      public Builder setEveryDays(int value) {
+        copyOnWrite();
+        instance.setEveryDays(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * 0 = 2
+       * </pre>
+       *
+       * <code>int32 every_days = 3 [json_name = "everyDays"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearEveryDays() {
+        copyOnWrite();
+        instance.clearEveryDays();
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+       * @return The enum numeric value on the wire for effort.
+       */
+      @java.lang.Override
+      public int getEffortValue() {
+        return instance.getEffortValue();
+      }
+      /**
+       * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+       * @param value The effort to set.
+       * @return This builder for chaining.
+       */
+      public Builder setEffortValue(int value) {
+        copyOnWrite();
+        instance.setEffortValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+       * @return The effort.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.SimulatedEffort getEffort() {
+        return instance.getEffort();
+      }
+      /**
+       * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+       * @param value The enum numeric value on the wire for effort to set.
+       * @return This builder for chaining.
+       */
+      public Builder setEffort(workout.v1.WorkoutOuterClass.SimulatedEffort value) {
+        copyOnWrite();
+        instance.setEffort(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.SimulatedEffort effort = 4 [json_name = "effort"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearEffort() {
+        copyOnWrite();
+        instance.clearEffort();
+        return this;
+      }
+
+      /**
+       * <code>int32 miss_every = 5 [json_name = "missEvery"];</code>
+       * @return The missEvery.
+       */
+      @java.lang.Override
+      public int getMissEvery() {
+        return instance.getMissEvery();
+      }
+      /**
+       * <code>int32 miss_every = 5 [json_name = "missEvery"];</code>
+       * @param value The missEvery to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMissEvery(int value) {
+        copyOnWrite();
+        instance.setMissEvery(value);
+        return this;
+      }
+      /**
+       * <code>int32 miss_every = 5 [json_name = "missEvery"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMissEvery() {
+        copyOnWrite();
+        instance.clearMissEvery();
+        return this;
+      }
+
+      /**
+       * <code>string template_id = 6 [json_name = "templateId"];</code>
+       * @return The templateId.
+       */
+      @java.lang.Override
+      public java.lang.String getTemplateId() {
+        return instance.getTemplateId();
+      }
+      /**
+       * <code>string template_id = 6 [json_name = "templateId"];</code>
+       * @return The bytes for templateId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getTemplateIdBytes() {
+        return instance.getTemplateIdBytes();
+      }
+      /**
+       * <code>string template_id = 6 [json_name = "templateId"];</code>
+       * @param value The templateId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTemplateId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setTemplateId(value);
+        return this;
+      }
+      /**
+       * <code>string template_id = 6 [json_name = "templateId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTemplateId() {
+        copyOnWrite();
+        instance.clearTemplateId();
+        return this;
+      }
+      /**
+       * <code>string template_id = 6 [json_name = "templateId"];</code>
+       * @param value The bytes for templateId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTemplateIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setTemplateIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * 0 = the program's default
+       * </pre>
+       *
+       * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
+       * @return The budgetMinutes.
+       */
+      @java.lang.Override
+      public int getBudgetMinutes() {
+        return instance.getBudgetMinutes();
+      }
+      /**
+       * <pre>
+       * 0 = the program's default
+       * </pre>
+       *
+       * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
+       * @param value The budgetMinutes to set.
+       * @return This builder for chaining.
+       */
+      public Builder setBudgetMinutes(int value) {
+        copyOnWrite();
+        instance.setBudgetMinutes(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * 0 = the program's default
+       * </pre>
+       *
+       * <code>int32 budget_minutes = 7 [json_name = "budgetMinutes"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearBudgetMinutes() {
+        copyOnWrite();
+        instance.clearBudgetMinutes();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * At most this many past workouts, newest kept; 0 = none.
+       * </pre>
+       *
+       * <code>int32 history = 8 [json_name = "history"];</code>
+       * @return The history.
+       */
+      @java.lang.Override
+      public int getHistory() {
+        return instance.getHistory();
+      }
+      /**
+       * <pre>
+       * At most this many past workouts, newest kept; 0 = none.
+       * </pre>
+       *
+       * <code>int32 history = 8 [json_name = "history"];</code>
+       * @param value The history to set.
+       * @return This builder for chaining.
+       */
+      public Builder setHistory(int value) {
+        copyOnWrite();
+        instance.setHistory(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * At most this many past workouts, newest kept; 0 = none.
+       * </pre>
+       *
+       * <code>int32 history = 8 [json_name = "history"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearHistory() {
+        copyOnWrite();
+        instance.clearHistory();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SimulateProgramRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.SimulateProgramRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "programJson_",
+              "sessions_",
+              "everyDays_",
+              "effort_",
+              "missEvery_",
+              "templateId_",
+              "budgetMinutes_",
+              "history_",
+            };
+            java.lang.String info =
+                "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0000\u0000\u0001\u0208\u0002\u0004\u0003\u0004" +
+                "\u0004\f\u0005\u0004\u0006\u0208\u0007\u0004\b\u0004";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SimulateProgramRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.SimulateProgramRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SimulateProgramRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SimulateProgramRequest)
+    private static final workout.v1.WorkoutOuterClass.SimulateProgramRequest DEFAULT_INSTANCE;
+    static {
+      SimulateProgramRequest defaultInstance = new SimulateProgramRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SimulateProgramRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SimulateProgramRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SimulateProgramRequest> PARSER;
+
+    public static com.google.protobuf.Parser<SimulateProgramRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface SimulatedLiftOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SimulatedLift)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string exercise = 1 [json_name = "exercise"];</code>
+     * @return The exercise.
+     */
+    java.lang.String getExercise();
+    /**
+     * <code>string exercise = 1 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
+     */
+    com.google.protobuf.ByteString
+        getExerciseBytes();
+
+    /**
+     * <pre>
+     * As the draft plans it.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+     * @return Whether the decision field is set.
+     */
+    boolean hasDecision();
+    /**
+     * <pre>
+     * As the draft plans it.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+     * @return The decision.
+     */
+    workout.v1.WorkoutOuterClass.ExerciseDecision getDecision();
+
+    /**
+     * <pre>
+     * History: the decision recorded then, and the heaviest working set done
+     * (weight lb, reps). Forward: unset, and what the effort did.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+     * @return Whether the recorded field is set.
+     */
+    boolean hasRecorded();
+    /**
+     * <pre>
+     * History: the decision recorded then, and the heaviest working set done
+     * (weight lb, reps). Forward: unset, and what the effort did.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+     * @return The recorded.
+     */
+    workout.v1.WorkoutOuterClass.ExerciseDecision getRecorded();
+
+    /**
+     * <code>float done_weight = 4 [json_name = "doneWeight"];</code>
+     * @return The doneWeight.
+     */
+    float getDoneWeight();
+
+    /**
+     * <code>int32 done_reps = 5 [json_name = "doneReps"];</code>
+     * @return The doneReps.
+     */
+    int getDoneReps();
+
+    /**
+     * <pre>
+     * Every rep of every working set.
+     * </pre>
+     *
+     * <code>bool hit = 6 [json_name = "hit"];</code>
+     * @return The hit.
+     */
+    boolean getHit();
+  }
+  /**
+   * Protobuf type {@code workout.v1.SimulatedLift}
+   */
+  public  static final class SimulatedLift extends
+      com.google.protobuf.GeneratedMessageLite<
+          SimulatedLift, SimulatedLift.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SimulatedLift)
+      SimulatedLiftOrBuilder {
+    private SimulatedLift() {
+      exercise_ = "";
+    }
+    public static final int EXERCISE_FIELD_NUMBER = 1;
+    private java.lang.String exercise_;
+    /**
+     * <code>string exercise = 1 [json_name = "exercise"];</code>
+     * @return The exercise.
+     */
+    @java.lang.Override
+    public java.lang.String getExercise() {
+      return exercise_;
+    }
+    /**
+     * <code>string exercise = 1 [json_name = "exercise"];</code>
+     * @return The bytes for exercise.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getExerciseBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(exercise_);
+    }
+    /**
+     * <code>string exercise = 1 [json_name = "exercise"];</code>
+     * @param value The exercise to set.
+     */
+    private void setExercise(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      exercise_ = value;
+    }
+    /**
+     * <code>string exercise = 1 [json_name = "exercise"];</code>
+     */
+    private void clearExercise() {
+      
+      exercise_ = getDefaultInstance().getExercise();
+    }
+    /**
+     * <code>string exercise = 1 [json_name = "exercise"];</code>
+     * @param value The bytes for exercise to set.
+     */
+    private void setExerciseBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      exercise_ = value.toStringUtf8();
+      
+    }
+
+    public static final int DECISION_FIELD_NUMBER = 2;
+    private workout.v1.WorkoutOuterClass.ExerciseDecision decision_;
+    /**
+     * <pre>
+     * As the draft plans it.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+     */
+    @java.lang.Override
+    public boolean hasDecision() {
+      return decision_ != null;
+    }
+    /**
+     * <pre>
+     * As the draft plans it.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ExerciseDecision getDecision() {
+      return decision_ == null ? workout.v1.WorkoutOuterClass.ExerciseDecision.getDefaultInstance() : decision_;
+    }
+    /**
+     * <pre>
+     * As the draft plans it.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+     */
+    private void setDecision(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
+      value.getClass();
+  decision_ = value;
+      
+      }
+    /**
+     * <pre>
+     * As the draft plans it.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeDecision(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
+      value.getClass();
+  if (decision_ != null &&
+          decision_ != workout.v1.WorkoutOuterClass.ExerciseDecision.getDefaultInstance()) {
+        decision_ =
+          workout.v1.WorkoutOuterClass.ExerciseDecision.newBuilder(decision_).mergeFrom(value).buildPartial();
+      } else {
+        decision_ = value;
+      }
+      
+    }
+    /**
+     * <pre>
+     * As the draft plans it.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+     */
+    private void clearDecision() {  decision_ = null;
+      
+    }
+
+    public static final int RECORDED_FIELD_NUMBER = 3;
+    private workout.v1.WorkoutOuterClass.ExerciseDecision recorded_;
+    /**
+     * <pre>
+     * History: the decision recorded then, and the heaviest working set done
+     * (weight lb, reps). Forward: unset, and what the effort did.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+     */
+    @java.lang.Override
+    public boolean hasRecorded() {
+      return recorded_ != null;
+    }
+    /**
+     * <pre>
+     * History: the decision recorded then, and the heaviest working set done
+     * (weight lb, reps). Forward: unset, and what the effort did.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ExerciseDecision getRecorded() {
+      return recorded_ == null ? workout.v1.WorkoutOuterClass.ExerciseDecision.getDefaultInstance() : recorded_;
+    }
+    /**
+     * <pre>
+     * History: the decision recorded then, and the heaviest working set done
+     * (weight lb, reps). Forward: unset, and what the effort did.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+     */
+    private void setRecorded(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
+      value.getClass();
+  recorded_ = value;
+      
+      }
+    /**
+     * <pre>
+     * History: the decision recorded then, and the heaviest working set done
+     * (weight lb, reps). Forward: unset, and what the effort did.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeRecorded(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
+      value.getClass();
+  if (recorded_ != null &&
+          recorded_ != workout.v1.WorkoutOuterClass.ExerciseDecision.getDefaultInstance()) {
+        recorded_ =
+          workout.v1.WorkoutOuterClass.ExerciseDecision.newBuilder(recorded_).mergeFrom(value).buildPartial();
+      } else {
+        recorded_ = value;
+      }
+      
+    }
+    /**
+     * <pre>
+     * History: the decision recorded then, and the heaviest working set done
+     * (weight lb, reps). Forward: unset, and what the effort did.
+     * </pre>
+     *
+     * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+     */
+    private void clearRecorded() {  recorded_ = null;
+      
+    }
+
+    public static final int DONE_WEIGHT_FIELD_NUMBER = 4;
+    private float doneWeight_;
+    /**
+     * <code>float done_weight = 4 [json_name = "doneWeight"];</code>
+     * @return The doneWeight.
+     */
+    @java.lang.Override
+    public float getDoneWeight() {
+      return doneWeight_;
+    }
+    /**
+     * <code>float done_weight = 4 [json_name = "doneWeight"];</code>
+     * @param value The doneWeight to set.
+     */
+    private void setDoneWeight(float value) {
+      
+      doneWeight_ = value;
+    }
+    /**
+     * <code>float done_weight = 4 [json_name = "doneWeight"];</code>
+     */
+    private void clearDoneWeight() {
+      
+      doneWeight_ = 0F;
+    }
+
+    public static final int DONE_REPS_FIELD_NUMBER = 5;
+    private int doneReps_;
+    /**
+     * <code>int32 done_reps = 5 [json_name = "doneReps"];</code>
+     * @return The doneReps.
+     */
+    @java.lang.Override
+    public int getDoneReps() {
+      return doneReps_;
+    }
+    /**
+     * <code>int32 done_reps = 5 [json_name = "doneReps"];</code>
+     * @param value The doneReps to set.
+     */
+    private void setDoneReps(int value) {
+      
+      doneReps_ = value;
+    }
+    /**
+     * <code>int32 done_reps = 5 [json_name = "doneReps"];</code>
+     */
+    private void clearDoneReps() {
+      
+      doneReps_ = 0;
+    }
+
+    public static final int HIT_FIELD_NUMBER = 6;
+    private boolean hit_;
+    /**
+     * <pre>
+     * Every rep of every working set.
+     * </pre>
+     *
+     * <code>bool hit = 6 [json_name = "hit"];</code>
+     * @return The hit.
+     */
+    @java.lang.Override
+    public boolean getHit() {
+      return hit_;
+    }
+    /**
+     * <pre>
+     * Every rep of every working set.
+     * </pre>
+     *
+     * <code>bool hit = 6 [json_name = "hit"];</code>
+     * @param value The hit to set.
+     */
+    private void setHit(boolean value) {
+      
+      hit_ = value;
+    }
+    /**
+     * <pre>
+     * Every rep of every working set.
+     * </pre>
+     *
+     * <code>bool hit = 6 [json_name = "hit"];</code>
+     */
+    private void clearHit() {
+      
+      hit_ = false;
+    }
+
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedLift parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SimulatedLift prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.SimulatedLift}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.SimulatedLift, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SimulatedLift)
+        workout.v1.WorkoutOuterClass.SimulatedLiftOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.SimulatedLift.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string exercise = 1 [json_name = "exercise"];</code>
+       * @return The exercise.
+       */
+      @java.lang.Override
+      public java.lang.String getExercise() {
+        return instance.getExercise();
+      }
+      /**
+       * <code>string exercise = 1 [json_name = "exercise"];</code>
+       * @return The bytes for exercise.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getExerciseBytes() {
+        return instance.getExerciseBytes();
+      }
+      /**
+       * <code>string exercise = 1 [json_name = "exercise"];</code>
+       * @param value The exercise to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExercise(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setExercise(value);
+        return this;
+      }
+      /**
+       * <code>string exercise = 1 [json_name = "exercise"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearExercise() {
+        copyOnWrite();
+        instance.clearExercise();
+        return this;
+      }
+      /**
+       * <code>string exercise = 1 [json_name = "exercise"];</code>
+       * @param value The bytes for exercise to set.
+       * @return This builder for chaining.
+       */
+      public Builder setExerciseBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setExerciseBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * As the draft plans it.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+       */
+      @java.lang.Override
+      public boolean hasDecision() {
+        return instance.hasDecision();
+      }
+      /**
+       * <pre>
+       * As the draft plans it.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ExerciseDecision getDecision() {
+        return instance.getDecision();
+      }
+      /**
+       * <pre>
+       * As the draft plans it.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+       */
+      public Builder setDecision(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
+        copyOnWrite();
+        instance.setDecision(value);
+        return this;
+        }
+      /**
+       * <pre>
+       * As the draft plans it.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+       */
+      public Builder setDecision(
+          workout.v1.WorkoutOuterClass.ExerciseDecision.Builder builderForValue) {
+        copyOnWrite();
+        instance.setDecision(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * As the draft plans it.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+       */
+      public Builder mergeDecision(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
+        copyOnWrite();
+        instance.mergeDecision(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * As the draft plans it.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision decision = 2 [json_name = "decision"];</code>
+       */
+      public Builder clearDecision() {  copyOnWrite();
+        instance.clearDecision();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * History: the decision recorded then, and the heaviest working set done
+       * (weight lb, reps). Forward: unset, and what the effort did.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+       */
+      @java.lang.Override
+      public boolean hasRecorded() {
+        return instance.hasRecorded();
+      }
+      /**
+       * <pre>
+       * History: the decision recorded then, and the heaviest working set done
+       * (weight lb, reps). Forward: unset, and what the effort did.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ExerciseDecision getRecorded() {
+        return instance.getRecorded();
+      }
+      /**
+       * <pre>
+       * History: the decision recorded then, and the heaviest working set done
+       * (weight lb, reps). Forward: unset, and what the effort did.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+       */
+      public Builder setRecorded(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
+        copyOnWrite();
+        instance.setRecorded(value);
+        return this;
+        }
+      /**
+       * <pre>
+       * History: the decision recorded then, and the heaviest working set done
+       * (weight lb, reps). Forward: unset, and what the effort did.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+       */
+      public Builder setRecorded(
+          workout.v1.WorkoutOuterClass.ExerciseDecision.Builder builderForValue) {
+        copyOnWrite();
+        instance.setRecorded(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * History: the decision recorded then, and the heaviest working set done
+       * (weight lb, reps). Forward: unset, and what the effort did.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+       */
+      public Builder mergeRecorded(workout.v1.WorkoutOuterClass.ExerciseDecision value) {
+        copyOnWrite();
+        instance.mergeRecorded(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * History: the decision recorded then, and the heaviest working set done
+       * (weight lb, reps). Forward: unset, and what the effort did.
+       * </pre>
+       *
+       * <code>.workout.v1.ExerciseDecision recorded = 3 [json_name = "recorded"];</code>
+       */
+      public Builder clearRecorded() {  copyOnWrite();
+        instance.clearRecorded();
+        return this;
+      }
+
+      /**
+       * <code>float done_weight = 4 [json_name = "doneWeight"];</code>
+       * @return The doneWeight.
+       */
+      @java.lang.Override
+      public float getDoneWeight() {
+        return instance.getDoneWeight();
+      }
+      /**
+       * <code>float done_weight = 4 [json_name = "doneWeight"];</code>
+       * @param value The doneWeight to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDoneWeight(float value) {
+        copyOnWrite();
+        instance.setDoneWeight(value);
+        return this;
+      }
+      /**
+       * <code>float done_weight = 4 [json_name = "doneWeight"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearDoneWeight() {
+        copyOnWrite();
+        instance.clearDoneWeight();
+        return this;
+      }
+
+      /**
+       * <code>int32 done_reps = 5 [json_name = "doneReps"];</code>
+       * @return The doneReps.
+       */
+      @java.lang.Override
+      public int getDoneReps() {
+        return instance.getDoneReps();
+      }
+      /**
+       * <code>int32 done_reps = 5 [json_name = "doneReps"];</code>
+       * @param value The doneReps to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDoneReps(int value) {
+        copyOnWrite();
+        instance.setDoneReps(value);
+        return this;
+      }
+      /**
+       * <code>int32 done_reps = 5 [json_name = "doneReps"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearDoneReps() {
+        copyOnWrite();
+        instance.clearDoneReps();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * Every rep of every working set.
+       * </pre>
+       *
+       * <code>bool hit = 6 [json_name = "hit"];</code>
+       * @return The hit.
+       */
+      @java.lang.Override
+      public boolean getHit() {
+        return instance.getHit();
+      }
+      /**
+       * <pre>
+       * Every rep of every working set.
+       * </pre>
+       *
+       * <code>bool hit = 6 [json_name = "hit"];</code>
+       * @param value The hit to set.
+       * @return This builder for chaining.
+       */
+      public Builder setHit(boolean value) {
+        copyOnWrite();
+        instance.setHit(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Every rep of every working set.
+       * </pre>
+       *
+       * <code>bool hit = 6 [json_name = "hit"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearHit() {
+        copyOnWrite();
+        instance.clearHit();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SimulatedLift)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.SimulatedLift();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "exercise_",
+              "decision_",
+              "recorded_",
+              "doneWeight_",
+              "doneReps_",
+              "hit_",
+            };
+            java.lang.String info =
+                "\u0000\u0006\u0000\u0000\u0001\u0006\u0006\u0000\u0000\u0000\u0001\u0208\u0002\t" +
+                "\u0003\t\u0004\u0001\u0005\u0004\u0006\u0007";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SimulatedLift> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.SimulatedLift.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SimulatedLift>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SimulatedLift)
+    private static final workout.v1.WorkoutOuterClass.SimulatedLift DEFAULT_INSTANCE;
+    static {
+      SimulatedLift defaultInstance = new SimulatedLift();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SimulatedLift.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SimulatedLift getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SimulatedLift> PARSER;
+
+    public static com.google.protobuf.Parser<SimulatedLift> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface SimulatedWorkoutOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SimulatedWorkout)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>int64 at = 1 [json_name = "at"];</code>
+     * @return The at.
+     */
+    long getAt();
+
+    /**
+     * <code>string template_id = 2 [json_name = "templateId"];</code>
+     * @return The templateId.
+     */
+    java.lang.String getTemplateId();
+    /**
+     * <code>string template_id = 2 [json_name = "templateId"];</code>
+     * @return The bytes for templateId.
+     */
+    com.google.protobuf.ByteString
+        getTemplateIdBytes();
+
+    /**
+     * <code>string name = 3 [json_name = "name"];</code>
+     * @return The name.
+     */
+    java.lang.String getName();
+    /**
+     * <code>string name = 3 [json_name = "name"];</code>
+     * @return The bytes for name.
+     */
+    com.google.protobuf.ByteString
+        getNameBytes();
+
+    /**
+     * <pre>
+     * From history (true) or projected forward.
+     * </pre>
+     *
+     * <code>bool past = 4 [json_name = "past"];</code>
+     * @return The past.
+     */
+    boolean getPast();
+
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.SimulatedLift> 
+        getLiftsList();
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    workout.v1.WorkoutOuterClass.SimulatedLift getLifts(int index);
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    int getLiftsCount();
+  }
+  /**
+   * Protobuf type {@code workout.v1.SimulatedWorkout}
+   */
+  public  static final class SimulatedWorkout extends
+      com.google.protobuf.GeneratedMessageLite<
+          SimulatedWorkout, SimulatedWorkout.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SimulatedWorkout)
+      SimulatedWorkoutOrBuilder {
+    private SimulatedWorkout() {
+      templateId_ = "";
+      name_ = "";
+      lifts_ = emptyProtobufList();
+    }
+    public static final int AT_FIELD_NUMBER = 1;
+    private long at_;
+    /**
+     * <code>int64 at = 1 [json_name = "at"];</code>
+     * @return The at.
+     */
+    @java.lang.Override
+    public long getAt() {
+      return at_;
+    }
+    /**
+     * <code>int64 at = 1 [json_name = "at"];</code>
+     * @param value The at to set.
+     */
+    private void setAt(long value) {
+      
+      at_ = value;
+    }
+    /**
+     * <code>int64 at = 1 [json_name = "at"];</code>
+     */
+    private void clearAt() {
+      
+      at_ = 0L;
+    }
+
+    public static final int TEMPLATE_ID_FIELD_NUMBER = 2;
+    private java.lang.String templateId_;
+    /**
+     * <code>string template_id = 2 [json_name = "templateId"];</code>
+     * @return The templateId.
+     */
+    @java.lang.Override
+    public java.lang.String getTemplateId() {
+      return templateId_;
+    }
+    /**
+     * <code>string template_id = 2 [json_name = "templateId"];</code>
+     * @return The bytes for templateId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getTemplateIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(templateId_);
+    }
+    /**
+     * <code>string template_id = 2 [json_name = "templateId"];</code>
+     * @param value The templateId to set.
+     */
+    private void setTemplateId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      templateId_ = value;
+    }
+    /**
+     * <code>string template_id = 2 [json_name = "templateId"];</code>
+     */
+    private void clearTemplateId() {
+      
+      templateId_ = getDefaultInstance().getTemplateId();
+    }
+    /**
+     * <code>string template_id = 2 [json_name = "templateId"];</code>
+     * @param value The bytes for templateId to set.
+     */
+    private void setTemplateIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      templateId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int NAME_FIELD_NUMBER = 3;
+    private java.lang.String name_;
+    /**
+     * <code>string name = 3 [json_name = "name"];</code>
+     * @return The name.
+     */
+    @java.lang.Override
+    public java.lang.String getName() {
+      return name_;
+    }
+    /**
+     * <code>string name = 3 [json_name = "name"];</code>
+     * @return The bytes for name.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getNameBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(name_);
+    }
+    /**
+     * <code>string name = 3 [json_name = "name"];</code>
+     * @param value The name to set.
+     */
+    private void setName(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      name_ = value;
+    }
+    /**
+     * <code>string name = 3 [json_name = "name"];</code>
+     */
+    private void clearName() {
+      
+      name_ = getDefaultInstance().getName();
+    }
+    /**
+     * <code>string name = 3 [json_name = "name"];</code>
+     * @param value The bytes for name to set.
+     */
+    private void setNameBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      name_ = value.toStringUtf8();
+      
+    }
+
+    public static final int PAST_FIELD_NUMBER = 4;
+    private boolean past_;
+    /**
+     * <pre>
+     * From history (true) or projected forward.
+     * </pre>
+     *
+     * <code>bool past = 4 [json_name = "past"];</code>
+     * @return The past.
+     */
+    @java.lang.Override
+    public boolean getPast() {
+      return past_;
+    }
+    /**
+     * <pre>
+     * From history (true) or projected forward.
+     * </pre>
+     *
+     * <code>bool past = 4 [json_name = "past"];</code>
+     * @param value The past to set.
+     */
+    private void setPast(boolean value) {
+      
+      past_ = value;
+    }
+    /**
+     * <pre>
+     * From history (true) or projected forward.
+     * </pre>
+     *
+     * <code>bool past = 4 [json_name = "past"];</code>
+     */
+    private void clearPast() {
+      
+      past_ = false;
+    }
+
+    public static final int LIFTS_FIELD_NUMBER = 5;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.SimulatedLift> lifts_;
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.SimulatedLift> getLiftsList() {
+      return lifts_;
+    }
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.SimulatedLiftOrBuilder> 
+        getLiftsOrBuilderList() {
+      return lifts_;
+    }
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    @java.lang.Override
+    public int getLiftsCount() {
+      return lifts_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.SimulatedLift getLifts(int index) {
+      return lifts_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.SimulatedLiftOrBuilder getLiftsOrBuilder(
+        int index) {
+      return lifts_.get(index);
+    }
+    private void ensureLiftsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.SimulatedLift> tmp = lifts_;
+      if (!tmp.isModifiable()) {
+        lifts_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    private void setLifts(
+        int index, workout.v1.WorkoutOuterClass.SimulatedLift value) {
+      value.getClass();
+  ensureLiftsIsMutable();
+      lifts_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    private void addLifts(workout.v1.WorkoutOuterClass.SimulatedLift value) {
+      value.getClass();
+  ensureLiftsIsMutable();
+      lifts_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    private void addLifts(
+        int index, workout.v1.WorkoutOuterClass.SimulatedLift value) {
+      value.getClass();
+  ensureLiftsIsMutable();
+      lifts_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    private void addAllLifts(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.SimulatedLift> values) {
+      ensureLiftsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, lifts_);
+    }
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    private void clearLifts() {
+      lifts_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+     */
+    private void removeLifts(int index) {
+      ensureLiftsIsMutable();
+      lifts_.remove(index);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SimulatedWorkout prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.SimulatedWorkout}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.SimulatedWorkout, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SimulatedWorkout)
+        workout.v1.WorkoutOuterClass.SimulatedWorkoutOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.SimulatedWorkout.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>int64 at = 1 [json_name = "at"];</code>
+       * @return The at.
+       */
+      @java.lang.Override
+      public long getAt() {
+        return instance.getAt();
+      }
+      /**
+       * <code>int64 at = 1 [json_name = "at"];</code>
+       * @param value The at to set.
+       * @return This builder for chaining.
+       */
+      public Builder setAt(long value) {
+        copyOnWrite();
+        instance.setAt(value);
+        return this;
+      }
+      /**
+       * <code>int64 at = 1 [json_name = "at"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearAt() {
+        copyOnWrite();
+        instance.clearAt();
+        return this;
+      }
+
+      /**
+       * <code>string template_id = 2 [json_name = "templateId"];</code>
+       * @return The templateId.
+       */
+      @java.lang.Override
+      public java.lang.String getTemplateId() {
+        return instance.getTemplateId();
+      }
+      /**
+       * <code>string template_id = 2 [json_name = "templateId"];</code>
+       * @return The bytes for templateId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getTemplateIdBytes() {
+        return instance.getTemplateIdBytes();
+      }
+      /**
+       * <code>string template_id = 2 [json_name = "templateId"];</code>
+       * @param value The templateId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTemplateId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setTemplateId(value);
+        return this;
+      }
+      /**
+       * <code>string template_id = 2 [json_name = "templateId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearTemplateId() {
+        copyOnWrite();
+        instance.clearTemplateId();
+        return this;
+      }
+      /**
+       * <code>string template_id = 2 [json_name = "templateId"];</code>
+       * @param value The bytes for templateId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setTemplateIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setTemplateIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string name = 3 [json_name = "name"];</code>
+       * @return The name.
+       */
+      @java.lang.Override
+      public java.lang.String getName() {
+        return instance.getName();
+      }
+      /**
+       * <code>string name = 3 [json_name = "name"];</code>
+       * @return The bytes for name.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getNameBytes() {
+        return instance.getNameBytes();
+      }
+      /**
+       * <code>string name = 3 [json_name = "name"];</code>
+       * @param value The name to set.
+       * @return This builder for chaining.
+       */
+      public Builder setName(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setName(value);
+        return this;
+      }
+      /**
+       * <code>string name = 3 [json_name = "name"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearName() {
+        copyOnWrite();
+        instance.clearName();
+        return this;
+      }
+      /**
+       * <code>string name = 3 [json_name = "name"];</code>
+       * @param value The bytes for name to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNameBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setNameBytes(value);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * From history (true) or projected forward.
+       * </pre>
+       *
+       * <code>bool past = 4 [json_name = "past"];</code>
+       * @return The past.
+       */
+      @java.lang.Override
+      public boolean getPast() {
+        return instance.getPast();
+      }
+      /**
+       * <pre>
+       * From history (true) or projected forward.
+       * </pre>
+       *
+       * <code>bool past = 4 [json_name = "past"];</code>
+       * @param value The past to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPast(boolean value) {
+        copyOnWrite();
+        instance.setPast(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * From history (true) or projected forward.
+       * </pre>
+       *
+       * <code>bool past = 4 [json_name = "past"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPast() {
+        copyOnWrite();
+        instance.clearPast();
+        return this;
+      }
+
+      /**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.SimulatedLift> getLiftsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getLiftsList());
+      }
+      /**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      @java.lang.Override
+      public int getLiftsCount() {
+        return instance.getLiftsCount();
+      }/**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.SimulatedLift getLifts(int index) {
+        return instance.getLifts(index);
+      }
+      /**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      public Builder setLifts(
+          int index, workout.v1.WorkoutOuterClass.SimulatedLift value) {
+        copyOnWrite();
+        instance.setLifts(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      public Builder setLifts(
+          int index, workout.v1.WorkoutOuterClass.SimulatedLift.Builder builderForValue) {
+        copyOnWrite();
+        instance.setLifts(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      public Builder addLifts(workout.v1.WorkoutOuterClass.SimulatedLift value) {
+        copyOnWrite();
+        instance.addLifts(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      public Builder addLifts(
+          int index, workout.v1.WorkoutOuterClass.SimulatedLift value) {
+        copyOnWrite();
+        instance.addLifts(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      public Builder addLifts(
+          workout.v1.WorkoutOuterClass.SimulatedLift.Builder builderForValue) {
+        copyOnWrite();
+        instance.addLifts(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      public Builder addLifts(
+          int index, workout.v1.WorkoutOuterClass.SimulatedLift.Builder builderForValue) {
+        copyOnWrite();
+        instance.addLifts(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      public Builder addAllLifts(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.SimulatedLift> values) {
+        copyOnWrite();
+        instance.addAllLifts(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      public Builder clearLifts() {
+        copyOnWrite();
+        instance.clearLifts();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.SimulatedLift lifts = 5 [json_name = "lifts"];</code>
+       */
+      public Builder removeLifts(int index) {
+        copyOnWrite();
+        instance.removeLifts(index);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SimulatedWorkout)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.SimulatedWorkout();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "at_",
+              "templateId_",
+              "name_",
+              "past_",
+              "lifts_",
+              workout.v1.WorkoutOuterClass.SimulatedLift.class,
+            };
+            java.lang.String info =
+                "\u0000\u0005\u0000\u0000\u0001\u0005\u0005\u0000\u0001\u0000\u0001\u0002\u0002\u0208" +
+                "\u0003\u0208\u0004\u0007\u0005\u001b";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SimulatedWorkout> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.SimulatedWorkout.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SimulatedWorkout>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SimulatedWorkout)
+    private static final workout.v1.WorkoutOuterClass.SimulatedWorkout DEFAULT_INSTANCE;
+    static {
+      SimulatedWorkout defaultInstance = new SimulatedWorkout();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SimulatedWorkout.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SimulatedWorkout getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SimulatedWorkout> PARSER;
+
+    public static com.google.protobuf.Parser<SimulatedWorkout> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface SimulateProgramResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.SimulateProgramResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.ProgramProblem> 
+        getProblemsList();
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    workout.v1.WorkoutOuterClass.ProgramProblem getProblems(int index);
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    int getProblemsCount();
+
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.SimulatedWorkout> 
+        getWorkoutsList();
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    workout.v1.WorkoutOuterClass.SimulatedWorkout getWorkouts(int index);
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    int getWorkoutsCount();
+  }
+  /**
+   * Protobuf type {@code workout.v1.SimulateProgramResponse}
+   */
+  public  static final class SimulateProgramResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          SimulateProgramResponse, SimulateProgramResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.SimulateProgramResponse)
+      SimulateProgramResponseOrBuilder {
+    private SimulateProgramResponse() {
+      problems_ = emptyProtobufList();
+      workouts_ = emptyProtobufList();
+    }
+    public static final int PROBLEMS_FIELD_NUMBER = 1;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ProgramProblem> problems_;
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.ProgramProblem> getProblemsList() {
+      return problems_;
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.ProgramProblemOrBuilder> 
+        getProblemsOrBuilderList() {
+      return problems_;
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    @java.lang.Override
+    public int getProblemsCount() {
+      return problems_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ProgramProblem getProblems(int index) {
+      return problems_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.ProgramProblemOrBuilder getProblemsOrBuilder(
+        int index) {
+      return problems_.get(index);
+    }
+    private void ensureProblemsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ProgramProblem> tmp = problems_;
+      if (!tmp.isModifiable()) {
+        problems_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void setProblems(
+        int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+      value.getClass();
+  ensureProblemsIsMutable();
+      problems_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void addProblems(workout.v1.WorkoutOuterClass.ProgramProblem value) {
+      value.getClass();
+  ensureProblemsIsMutable();
+      problems_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void addProblems(
+        int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+      value.getClass();
+  ensureProblemsIsMutable();
+      problems_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void addAllProblems(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ProgramProblem> values) {
+      ensureProblemsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, problems_);
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void clearProblems() {
+      problems_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+     */
+    private void removeProblems(int index) {
+      ensureProblemsIsMutable();
+      problems_.remove(index);
+    }
+
+    public static final int WORKOUTS_FIELD_NUMBER = 2;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.SimulatedWorkout> workouts_;
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.SimulatedWorkout> getWorkoutsList() {
+      return workouts_;
+    }
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.SimulatedWorkoutOrBuilder> 
+        getWorkoutsOrBuilderList() {
+      return workouts_;
+    }
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    @java.lang.Override
+    public int getWorkoutsCount() {
+      return workouts_.size();
+    }
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.SimulatedWorkout getWorkouts(int index) {
+      return workouts_.get(index);
+    }
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.SimulatedWorkoutOrBuilder getWorkoutsOrBuilder(
+        int index) {
+      return workouts_.get(index);
+    }
+    private void ensureWorkoutsIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.SimulatedWorkout> tmp = workouts_;
+      if (!tmp.isModifiable()) {
+        workouts_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    private void setWorkouts(
+        int index, workout.v1.WorkoutOuterClass.SimulatedWorkout value) {
+      value.getClass();
+  ensureWorkoutsIsMutable();
+      workouts_.set(index, value);
+    }
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    private void addWorkouts(workout.v1.WorkoutOuterClass.SimulatedWorkout value) {
+      value.getClass();
+  ensureWorkoutsIsMutable();
+      workouts_.add(value);
+    }
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    private void addWorkouts(
+        int index, workout.v1.WorkoutOuterClass.SimulatedWorkout value) {
+      value.getClass();
+  ensureWorkoutsIsMutable();
+      workouts_.add(index, value);
+    }
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    private void addAllWorkouts(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.SimulatedWorkout> values) {
+      ensureWorkoutsIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, workouts_);
+    }
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    private void clearWorkouts() {
+      workouts_ = emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * oldest first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+     */
+    private void removeWorkouts(int index) {
+      ensureWorkoutsIsMutable();
+      workouts_.remove(index);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.SimulateProgramResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.SimulateProgramResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.SimulateProgramResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.SimulateProgramResponse)
+        workout.v1.WorkoutOuterClass.SimulateProgramResponseOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.SimulateProgramResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.ProgramProblem> getProblemsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getProblemsList());
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      @java.lang.Override
+      public int getProblemsCount() {
+        return instance.getProblemsCount();
+      }/**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ProgramProblem getProblems(int index) {
+        return instance.getProblems(index);
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder setProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+        copyOnWrite();
+        instance.setProblems(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder setProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem.Builder builderForValue) {
+        copyOnWrite();
+        instance.setProblems(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(workout.v1.WorkoutOuterClass.ProgramProblem value) {
+        copyOnWrite();
+        instance.addProblems(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem value) {
+        copyOnWrite();
+        instance.addProblems(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(
+          workout.v1.WorkoutOuterClass.ProgramProblem.Builder builderForValue) {
+        copyOnWrite();
+        instance.addProblems(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addProblems(
+          int index, workout.v1.WorkoutOuterClass.ProgramProblem.Builder builderForValue) {
+        copyOnWrite();
+        instance.addProblems(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder addAllProblems(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ProgramProblem> values) {
+        copyOnWrite();
+        instance.addAllProblems(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder clearProblems() {
+        copyOnWrite();
+        instance.clearProblems();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.ProgramProblem problems = 1 [json_name = "problems"];</code>
+       */
+      public Builder removeProblems(int index) {
+        copyOnWrite();
+        instance.removeProblems(index);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.SimulatedWorkout> getWorkoutsList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getWorkoutsList());
+      }
+      /**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      @java.lang.Override
+      public int getWorkoutsCount() {
+        return instance.getWorkoutsCount();
+      }/**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.SimulatedWorkout getWorkouts(int index) {
+        return instance.getWorkouts(index);
+      }
+      /**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      public Builder setWorkouts(
+          int index, workout.v1.WorkoutOuterClass.SimulatedWorkout value) {
+        copyOnWrite();
+        instance.setWorkouts(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      public Builder setWorkouts(
+          int index, workout.v1.WorkoutOuterClass.SimulatedWorkout.Builder builderForValue) {
+        copyOnWrite();
+        instance.setWorkouts(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      public Builder addWorkouts(workout.v1.WorkoutOuterClass.SimulatedWorkout value) {
+        copyOnWrite();
+        instance.addWorkouts(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      public Builder addWorkouts(
+          int index, workout.v1.WorkoutOuterClass.SimulatedWorkout value) {
+        copyOnWrite();
+        instance.addWorkouts(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      public Builder addWorkouts(
+          workout.v1.WorkoutOuterClass.SimulatedWorkout.Builder builderForValue) {
+        copyOnWrite();
+        instance.addWorkouts(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      public Builder addWorkouts(
+          int index, workout.v1.WorkoutOuterClass.SimulatedWorkout.Builder builderForValue) {
+        copyOnWrite();
+        instance.addWorkouts(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      public Builder addAllWorkouts(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.SimulatedWorkout> values) {
+        copyOnWrite();
+        instance.addAllWorkouts(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      public Builder clearWorkouts() {
+        copyOnWrite();
+        instance.clearWorkouts();
+        return this;
+      }
+      /**
+       * <pre>
+       * oldest first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.SimulatedWorkout workouts = 2 [json_name = "workouts"];</code>
+       */
+      public Builder removeWorkouts(int index) {
+        copyOnWrite();
+        instance.removeWorkouts(index);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.SimulateProgramResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.SimulateProgramResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "problems_",
+              workout.v1.WorkoutOuterClass.ProgramProblem.class,
+              "workouts_",
+              workout.v1.WorkoutOuterClass.SimulatedWorkout.class,
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0002\u0000\u0001\u001b\u0002\u001b" +
+                "";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.SimulateProgramResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.SimulateProgramResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.SimulateProgramResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.SimulateProgramResponse)
+    private static final workout.v1.WorkoutOuterClass.SimulateProgramResponse DEFAULT_INSTANCE;
+    static {
+      SimulateProgramResponse defaultInstance = new SimulateProgramResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        SimulateProgramResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.SimulateProgramResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<SimulateProgramResponse> PARSER;
+
+    public static com.google.protobuf.Parser<SimulateProgramResponse> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface ExerciseInfoOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ExerciseInfo)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string key = 1 [json_name = "key"];</code>
+     * @return The key.
+     */
+    java.lang.String getKey();
+    /**
+     * <code>string key = 1 [json_name = "key"];</code>
+     * @return The bytes for key.
+     */
+    com.google.protobuf.ByteString
+        getKeyBytes();
+
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @return The name.
+     */
+    java.lang.String getName();
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @return The bytes for name.
+     */
+    com.google.protobuf.ByteString
+        getNameBytes();
+
+    /**
+     * <code>string short_name = 3 [json_name = "shortName"];</code>
+     * @return The shortName.
+     */
+    java.lang.String getShortName();
+    /**
+     * <code>string short_name = 3 [json_name = "shortName"];</code>
+     * @return The bytes for shortName.
+     */
+    com.google.protobuf.ByteString
+        getShortNameBytes();
+
+    /**
+     * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+     * @return The enum numeric value on the wire for equipment.
+     */
+    int getEquipmentValue();
+    /**
+     * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+     * @return The equipment.
+     */
+    workout.v1.WorkoutOuterClass.EquipmentKind getEquipment();
+
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @return A list containing the muscles.
+     */
+    java.util.List<workout.v1.Settings.MuscleGroup> getMusclesList();
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @return The count of muscles.
+     */
+    int getMusclesCount();
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @param index The index of the element to return.
+     * @return The muscles at the given index.
+     */
+    workout.v1.Settings.MuscleGroup getMuscles(int index);
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @return A list containing the enum numeric values on the wire for muscles.
+     */
+    java.util.List<java.lang.Integer>
+    getMusclesValueList();
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @param index The index of the value to return.
+     * @return The enum numeric value on the wire of muscles at the given index.
+     */
+    int getMusclesValue(int index);
+
+    /**
+     * <code>string description = 6 [json_name = "description"];</code>
+     * @return The description.
+     */
+    java.lang.String getDescription();
+    /**
+     * <code>string description = 6 [json_name = "description"];</code>
+     * @return The bytes for description.
+     */
+    com.google.protobuf.ByteString
+        getDescriptionBytes();
+
+    /**
+     * <code>string class_name = 7 [json_name = "className"];</code>
+     * @return The className.
+     */
+    java.lang.String getClassName();
+    /**
+     * <code>string class_name = 7 [json_name = "className"];</code>
+     * @return The bytes for className.
+     */
+    com.google.protobuf.ByteString
+        getClassNameBytes();
+
+    /**
+     * <code>string progression = 8 [json_name = "progression"];</code>
+     * @return The progression.
+     */
+    java.lang.String getProgression();
+    /**
+     * <code>string progression = 8 [json_name = "progression"];</code>
+     * @return The bytes for progression.
+     */
+    com.google.protobuf.ByteString
+        getProgressionBytes();
+  }
+  /**
+   * <pre>
+   * An exercise as every screen shows it, from the program.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.ExerciseInfo}
+   */
+  public  static final class ExerciseInfo extends
+      com.google.protobuf.GeneratedMessageLite<
+          ExerciseInfo, ExerciseInfo.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ExerciseInfo)
+      ExerciseInfoOrBuilder {
+    private ExerciseInfo() {
+      key_ = "";
+      name_ = "";
+      shortName_ = "";
+      muscles_ = emptyIntList();
+      description_ = "";
+      className_ = "";
+      progression_ = "";
+    }
+    public static final int KEY_FIELD_NUMBER = 1;
+    private java.lang.String key_;
+    /**
+     * <code>string key = 1 [json_name = "key"];</code>
+     * @return The key.
+     */
+    @java.lang.Override
+    public java.lang.String getKey() {
+      return key_;
+    }
+    /**
+     * <code>string key = 1 [json_name = "key"];</code>
+     * @return The bytes for key.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getKeyBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(key_);
+    }
+    /**
+     * <code>string key = 1 [json_name = "key"];</code>
+     * @param value The key to set.
+     */
+    private void setKey(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      key_ = value;
+    }
+    /**
+     * <code>string key = 1 [json_name = "key"];</code>
+     */
+    private void clearKey() {
+      
+      key_ = getDefaultInstance().getKey();
+    }
+    /**
+     * <code>string key = 1 [json_name = "key"];</code>
+     * @param value The bytes for key to set.
+     */
+    private void setKeyBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      key_ = value.toStringUtf8();
+      
+    }
+
+    public static final int NAME_FIELD_NUMBER = 2;
+    private java.lang.String name_;
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @return The name.
+     */
+    @java.lang.Override
+    public java.lang.String getName() {
+      return name_;
+    }
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @return The bytes for name.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getNameBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(name_);
+    }
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @param value The name to set.
+     */
+    private void setName(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      name_ = value;
+    }
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     */
+    private void clearName() {
+      
+      name_ = getDefaultInstance().getName();
+    }
+    /**
+     * <code>string name = 2 [json_name = "name"];</code>
+     * @param value The bytes for name to set.
+     */
+    private void setNameBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      name_ = value.toStringUtf8();
+      
+    }
+
+    public static final int SHORT_NAME_FIELD_NUMBER = 3;
+    private java.lang.String shortName_;
+    /**
+     * <code>string short_name = 3 [json_name = "shortName"];</code>
+     * @return The shortName.
+     */
+    @java.lang.Override
+    public java.lang.String getShortName() {
+      return shortName_;
+    }
+    /**
+     * <code>string short_name = 3 [json_name = "shortName"];</code>
+     * @return The bytes for shortName.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getShortNameBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(shortName_);
+    }
+    /**
+     * <code>string short_name = 3 [json_name = "shortName"];</code>
+     * @param value The shortName to set.
+     */
+    private void setShortName(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      shortName_ = value;
+    }
+    /**
+     * <code>string short_name = 3 [json_name = "shortName"];</code>
+     */
+    private void clearShortName() {
+      
+      shortName_ = getDefaultInstance().getShortName();
+    }
+    /**
+     * <code>string short_name = 3 [json_name = "shortName"];</code>
+     * @param value The bytes for shortName to set.
+     */
+    private void setShortNameBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      shortName_ = value.toStringUtf8();
+      
+    }
+
+    public static final int EQUIPMENT_FIELD_NUMBER = 4;
+    private int equipment_;
+    /**
+     * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+     * @return The enum numeric value on the wire for equipment.
+     */
+    @java.lang.Override
+    public int getEquipmentValue() {
+      return equipment_;
+    }
+    /**
+     * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+     * @return The equipment.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.EquipmentKind getEquipment() {
+      workout.v1.WorkoutOuterClass.EquipmentKind result = workout.v1.WorkoutOuterClass.EquipmentKind.forNumber(equipment_);
+      return result == null ? workout.v1.WorkoutOuterClass.EquipmentKind.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+     * @param value The enum numeric value on the wire for equipment to set.
+     */
+    private void setEquipmentValue(int value) {
+        equipment_ = value;
+    }
+    /**
+     * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+     * @param value The equipment to set.
+     */
+    private void setEquipment(workout.v1.WorkoutOuterClass.EquipmentKind value) {
+      equipment_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+     */
+    private void clearEquipment() {
+      
+      equipment_ = 0;
+    }
+
+    public static final int MUSCLES_FIELD_NUMBER = 5;
+    private com.google.protobuf.Internal.IntList muscles_;
+    private static final com.google.protobuf.Internal.ListAdapter.Converter<
+        java.lang.Integer, workout.v1.Settings.MuscleGroup> muscles_converter_ =
+            new com.google.protobuf.Internal.ListAdapter.Converter<
+                java.lang.Integer, workout.v1.Settings.MuscleGroup>() {
+              @java.lang.Override
+              public workout.v1.Settings.MuscleGroup convert(java.lang.Integer from) {
+                workout.v1.Settings.MuscleGroup result = workout.v1.Settings.MuscleGroup.forNumber(from);
+                return result == null ? workout.v1.Settings.MuscleGroup.UNRECOGNIZED : result;
+              }
+            };
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @return A list containing the muscles.
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.Settings.MuscleGroup> getMusclesList() {
+      return new com.google.protobuf.Internal.ListAdapter<
+          java.lang.Integer, workout.v1.Settings.MuscleGroup>(muscles_, muscles_converter_);
+    }
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @return The count of muscles.
+     */
+    @java.lang.Override
+    public int getMusclesCount() {
+      return muscles_.size();
+    }
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @param index The index of the element to return.
+     * @return The muscles at the given index.
+     */
+    @java.lang.Override
+    public workout.v1.Settings.MuscleGroup getMuscles(int index) {
+      workout.v1.Settings.MuscleGroup result = workout.v1.Settings.MuscleGroup.forNumber(muscles_.getInt(index));
+      return result == null ? workout.v1.Settings.MuscleGroup.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @return A list containing the enum numeric values on the wire for muscles.
+     */
+    @java.lang.Override
+    public java.util.List<java.lang.Integer>
+    getMusclesValueList() {
+      return muscles_;
+    }
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @param index The index of the value to return.
+     * @return The enum numeric value on the wire of muscles at the given index.
+     */
+    @java.lang.Override
+    public int getMusclesValue(int index) {
+      return muscles_.getInt(index);
+    }
+    private int musclesMemoizedSerializedSize;
+    private void ensureMusclesIsMutable() {
+      com.google.protobuf.Internal.IntList tmp = muscles_;
+      if (!tmp.isModifiable()) {
+        muscles_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+      }
+    }
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @param index The index to set the value at.
+     * @param value The muscles to set.
+     */
+    private void setMuscles(
+        int index, workout.v1.Settings.MuscleGroup value) {
+      value.getClass();
+  ensureMusclesIsMutable();
+      muscles_.setInt(index, value.getNumber());
+    }
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @param value The muscles to add.
+     */
+    private void addMuscles(workout.v1.Settings.MuscleGroup value) {
+      value.getClass();
+  ensureMusclesIsMutable();
+      muscles_.addInt(value.getNumber());
+    }
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @param values The muscles to add.
+     */
+    private void addAllMuscles(
+        java.lang.Iterable<? extends workout.v1.Settings.MuscleGroup> values) {
+      ensureMusclesIsMutable();
+      for (workout.v1.Settings.MuscleGroup value : values) {
+        muscles_.addInt(value.getNumber());
+      }
+    }
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     */
+    private void clearMuscles() {
+      muscles_ = emptyIntList();
+    }
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @param value The enum numeric value on the wire for muscles to set.
+     */
+    private void setMusclesValue(
+        int index, int value) {
+      ensureMusclesIsMutable();
+      muscles_.setInt(index, value);
+    }
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @param value The enum numeric value on the wire for muscles to add.
+     */
+    private void addMusclesValue(int value) {
+      ensureMusclesIsMutable();
+      muscles_.addInt(value);
+    }
+    /**
+     * <pre>
+     * primary first
+     * </pre>
+     *
+     * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+     * @param values The enum numeric values on the wire for muscles to add.
+     */
+    private void addAllMusclesValue(
+        java.lang.Iterable<java.lang.Integer> values) {
+      ensureMusclesIsMutable();
+      for (int value : values) {
+        muscles_.addInt(value);
+      }
+    }
+
+    public static final int DESCRIPTION_FIELD_NUMBER = 6;
+    private java.lang.String description_;
+    /**
+     * <code>string description = 6 [json_name = "description"];</code>
+     * @return The description.
+     */
+    @java.lang.Override
+    public java.lang.String getDescription() {
+      return description_;
+    }
+    /**
+     * <code>string description = 6 [json_name = "description"];</code>
+     * @return The bytes for description.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getDescriptionBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(description_);
+    }
+    /**
+     * <code>string description = 6 [json_name = "description"];</code>
+     * @param value The description to set.
+     */
+    private void setDescription(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      description_ = value;
+    }
+    /**
+     * <code>string description = 6 [json_name = "description"];</code>
+     */
+    private void clearDescription() {
+      
+      description_ = getDefaultInstance().getDescription();
+    }
+    /**
+     * <code>string description = 6 [json_name = "description"];</code>
+     * @param value The bytes for description to set.
+     */
+    private void setDescriptionBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      description_ = value.toStringUtf8();
+      
+    }
+
+    public static final int CLASS_NAME_FIELD_NUMBER = 7;
+    private java.lang.String className_;
+    /**
+     * <code>string class_name = 7 [json_name = "className"];</code>
+     * @return The className.
+     */
+    @java.lang.Override
+    public java.lang.String getClassName() {
+      return className_;
+    }
+    /**
+     * <code>string class_name = 7 [json_name = "className"];</code>
+     * @return The bytes for className.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getClassNameBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(className_);
+    }
+    /**
+     * <code>string class_name = 7 [json_name = "className"];</code>
+     * @param value The className to set.
+     */
+    private void setClassName(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      className_ = value;
+    }
+    /**
+     * <code>string class_name = 7 [json_name = "className"];</code>
+     */
+    private void clearClassName() {
+      
+      className_ = getDefaultInstance().getClassName();
+    }
+    /**
+     * <code>string class_name = 7 [json_name = "className"];</code>
+     * @param value The bytes for className to set.
+     */
+    private void setClassNameBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      className_ = value.toStringUtf8();
+      
+    }
+
+    public static final int PROGRESSION_FIELD_NUMBER = 8;
+    private java.lang.String progression_;
+    /**
+     * <code>string progression = 8 [json_name = "progression"];</code>
+     * @return The progression.
+     */
+    @java.lang.Override
+    public java.lang.String getProgression() {
+      return progression_;
+    }
+    /**
+     * <code>string progression = 8 [json_name = "progression"];</code>
+     * @return The bytes for progression.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getProgressionBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(progression_);
+    }
+    /**
+     * <code>string progression = 8 [json_name = "progression"];</code>
+     * @param value The progression to set.
+     */
+    private void setProgression(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      progression_ = value;
+    }
+    /**
+     * <code>string progression = 8 [json_name = "progression"];</code>
+     */
+    private void clearProgression() {
+      
+      progression_ = getDefaultInstance().getProgression();
+    }
+    /**
+     * <code>string progression = 8 [json_name = "progression"];</code>
+     * @param value The bytes for progression to set.
+     */
+    private void setProgressionBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      progression_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.ExerciseInfo prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * An exercise as every screen shows it, from the program.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.ExerciseInfo}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.ExerciseInfo, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ExerciseInfo)
+        workout.v1.WorkoutOuterClass.ExerciseInfoOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.ExerciseInfo.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string key = 1 [json_name = "key"];</code>
+       * @return The key.
+       */
+      @java.lang.Override
+      public java.lang.String getKey() {
+        return instance.getKey();
+      }
+      /**
+       * <code>string key = 1 [json_name = "key"];</code>
+       * @return The bytes for key.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getKeyBytes() {
+        return instance.getKeyBytes();
+      }
+      /**
+       * <code>string key = 1 [json_name = "key"];</code>
+       * @param value The key to set.
+       * @return This builder for chaining.
+       */
+      public Builder setKey(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setKey(value);
+        return this;
+      }
+      /**
+       * <code>string key = 1 [json_name = "key"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearKey() {
+        copyOnWrite();
+        instance.clearKey();
+        return this;
+      }
+      /**
+       * <code>string key = 1 [json_name = "key"];</code>
+       * @param value The bytes for key to set.
+       * @return This builder for chaining.
+       */
+      public Builder setKeyBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setKeyBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string name = 2 [json_name = "name"];</code>
+       * @return The name.
+       */
+      @java.lang.Override
+      public java.lang.String getName() {
+        return instance.getName();
+      }
+      /**
+       * <code>string name = 2 [json_name = "name"];</code>
+       * @return The bytes for name.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getNameBytes() {
+        return instance.getNameBytes();
+      }
+      /**
+       * <code>string name = 2 [json_name = "name"];</code>
+       * @param value The name to set.
+       * @return This builder for chaining.
+       */
+      public Builder setName(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setName(value);
+        return this;
+      }
+      /**
+       * <code>string name = 2 [json_name = "name"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearName() {
+        copyOnWrite();
+        instance.clearName();
+        return this;
+      }
+      /**
+       * <code>string name = 2 [json_name = "name"];</code>
+       * @param value The bytes for name to set.
+       * @return This builder for chaining.
+       */
+      public Builder setNameBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setNameBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string short_name = 3 [json_name = "shortName"];</code>
+       * @return The shortName.
+       */
+      @java.lang.Override
+      public java.lang.String getShortName() {
+        return instance.getShortName();
+      }
+      /**
+       * <code>string short_name = 3 [json_name = "shortName"];</code>
+       * @return The bytes for shortName.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getShortNameBytes() {
+        return instance.getShortNameBytes();
+      }
+      /**
+       * <code>string short_name = 3 [json_name = "shortName"];</code>
+       * @param value The shortName to set.
+       * @return This builder for chaining.
+       */
+      public Builder setShortName(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setShortName(value);
+        return this;
+      }
+      /**
+       * <code>string short_name = 3 [json_name = "shortName"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearShortName() {
+        copyOnWrite();
+        instance.clearShortName();
+        return this;
+      }
+      /**
+       * <code>string short_name = 3 [json_name = "shortName"];</code>
+       * @param value The bytes for shortName to set.
+       * @return This builder for chaining.
+       */
+      public Builder setShortNameBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setShortNameBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+       * @return The enum numeric value on the wire for equipment.
+       */
+      @java.lang.Override
+      public int getEquipmentValue() {
+        return instance.getEquipmentValue();
+      }
+      /**
+       * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+       * @param value The equipment to set.
+       * @return This builder for chaining.
+       */
+      public Builder setEquipmentValue(int value) {
+        copyOnWrite();
+        instance.setEquipmentValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+       * @return The equipment.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.EquipmentKind getEquipment() {
+        return instance.getEquipment();
+      }
+      /**
+       * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+       * @param value The enum numeric value on the wire for equipment to set.
+       * @return This builder for chaining.
+       */
+      public Builder setEquipment(workout.v1.WorkoutOuterClass.EquipmentKind value) {
+        copyOnWrite();
+        instance.setEquipment(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.EquipmentKind equipment = 4 [json_name = "equipment"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearEquipment() {
+        copyOnWrite();
+        instance.clearEquipment();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @return A list containing the muscles.
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.Settings.MuscleGroup> getMusclesList() {
+        return instance.getMusclesList();
+      }
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @return The count of muscles.
+       */
+      @java.lang.Override
+      public int getMusclesCount() {
+        return instance.getMusclesCount();
+      }
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @param index The index of the element to return.
+       * @return The muscles at the given index.
+       */
+      @java.lang.Override
+      public workout.v1.Settings.MuscleGroup getMuscles(int index) {
+        return instance.getMuscles(index);
+      }
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @param index The index to set the value at.
+       * @param value The muscles to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMuscles(
+          int index, workout.v1.Settings.MuscleGroup value) {
+        copyOnWrite();
+        instance.setMuscles(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @param value The muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addMuscles(workout.v1.Settings.MuscleGroup value) {
+        copyOnWrite();
+        instance.addMuscles(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @param values The muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllMuscles(
+          java.lang.Iterable<? extends workout.v1.Settings.MuscleGroup> values) {
+        copyOnWrite();
+        instance.addAllMuscles(values);  return this;
+      }
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMuscles() {
+        copyOnWrite();
+        instance.clearMuscles();
+        return this;
+      }
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @return A list containing the enum numeric values on the wire for muscles.
+       */
+      @java.lang.Override
+      public java.util.List<java.lang.Integer>
+      getMusclesValueList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getMusclesValueList());
+      }
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @param index The index of the value to return.
+       * @return The enum numeric value on the wire of muscles at the given index.
+       */
+      @java.lang.Override
+      public int getMusclesValue(int index) {
+        return instance.getMusclesValue(index);
+      }
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @param index The index to set the value at.
+       * @param value The enum numeric value on the wire for muscles to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMusclesValue(
+          int index, int value) {
+        copyOnWrite();
+        instance.setMusclesValue(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @param value The enum numeric value on the wire for muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addMusclesValue(int value) {
+        instance.addMusclesValue(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * primary first
+       * </pre>
+       *
+       * <code>repeated .workout.v1.MuscleGroup muscles = 5 [json_name = "muscles"];</code>
+       * @param values The enum numeric values on the wire for muscles to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllMusclesValue(
+          java.lang.Iterable<java.lang.Integer> values) {
+        copyOnWrite();
+        instance.addAllMusclesValue(values);
+        return this;
+      }
+
+      /**
+       * <code>string description = 6 [json_name = "description"];</code>
+       * @return The description.
+       */
+      @java.lang.Override
+      public java.lang.String getDescription() {
+        return instance.getDescription();
+      }
+      /**
+       * <code>string description = 6 [json_name = "description"];</code>
+       * @return The bytes for description.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getDescriptionBytes() {
+        return instance.getDescriptionBytes();
+      }
+      /**
+       * <code>string description = 6 [json_name = "description"];</code>
+       * @param value The description to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDescription(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setDescription(value);
+        return this;
+      }
+      /**
+       * <code>string description = 6 [json_name = "description"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearDescription() {
+        copyOnWrite();
+        instance.clearDescription();
+        return this;
+      }
+      /**
+       * <code>string description = 6 [json_name = "description"];</code>
+       * @param value The bytes for description to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDescriptionBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setDescriptionBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string class_name = 7 [json_name = "className"];</code>
+       * @return The className.
+       */
+      @java.lang.Override
+      public java.lang.String getClassName() {
+        return instance.getClassName();
+      }
+      /**
+       * <code>string class_name = 7 [json_name = "className"];</code>
+       * @return The bytes for className.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getClassNameBytes() {
+        return instance.getClassNameBytes();
+      }
+      /**
+       * <code>string class_name = 7 [json_name = "className"];</code>
+       * @param value The className to set.
+       * @return This builder for chaining.
+       */
+      public Builder setClassName(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setClassName(value);
+        return this;
+      }
+      /**
+       * <code>string class_name = 7 [json_name = "className"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearClassName() {
+        copyOnWrite();
+        instance.clearClassName();
+        return this;
+      }
+      /**
+       * <code>string class_name = 7 [json_name = "className"];</code>
+       * @param value The bytes for className to set.
+       * @return This builder for chaining.
+       */
+      public Builder setClassNameBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setClassNameBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string progression = 8 [json_name = "progression"];</code>
+       * @return The progression.
+       */
+      @java.lang.Override
+      public java.lang.String getProgression() {
+        return instance.getProgression();
+      }
+      /**
+       * <code>string progression = 8 [json_name = "progression"];</code>
+       * @return The bytes for progression.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getProgressionBytes() {
+        return instance.getProgressionBytes();
+      }
+      /**
+       * <code>string progression = 8 [json_name = "progression"];</code>
+       * @param value The progression to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgression(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setProgression(value);
+        return this;
+      }
+      /**
+       * <code>string progression = 8 [json_name = "progression"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearProgression() {
+        copyOnWrite();
+        instance.clearProgression();
+        return this;
+      }
+      /**
+       * <code>string progression = 8 [json_name = "progression"];</code>
+       * @param value The bytes for progression to set.
+       * @return This builder for chaining.
+       */
+      public Builder setProgressionBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setProgressionBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ExerciseInfo)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.ExerciseInfo();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "key_",
+              "name_",
+              "shortName_",
+              "equipment_",
+              "muscles_",
+              "description_",
+              "className_",
+              "progression_",
+            };
+            java.lang.String info =
+                "\u0000\b\u0000\u0000\u0001\b\b\u0000\u0001\u0000\u0001\u0208\u0002\u0208\u0003\u0208" +
+                "\u0004\f\u0005,\u0006\u0208\u0007\u0208\b\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.ExerciseInfo> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.ExerciseInfo.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.ExerciseInfo>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ExerciseInfo)
+    private static final workout.v1.WorkoutOuterClass.ExerciseInfo DEFAULT_INSTANCE;
+    static {
+      ExerciseInfo defaultInstance = new ExerciseInfo();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ExerciseInfo.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.ExerciseInfo getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ExerciseInfo> PARSER;
+
+    public static com.google.protobuf.Parser<ExerciseInfo> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface PlateProfileOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.PlateProfile)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>float bar = 1 [json_name = "bar"];</code>
+     * @return The bar.
+     */
+    float getBar();
+
+    /**
+     * <code>repeated float plates = 2 [json_name = "plates"];</code>
+     * @return A list containing the plates.
+     */
+    java.util.List<java.lang.Float> getPlatesList();
+    /**
+     * <code>repeated float plates = 2 [json_name = "plates"];</code>
+     * @return The count of plates.
+     */
+    int getPlatesCount();
+    /**
+     * <code>repeated float plates = 2 [json_name = "plates"];</code>
+     * @param index The index of the element to return.
+     * @return The plates at the given index.
+     */
+    float getPlates(int index);
+  }
+  /**
+   * <pre>
+   * Bar and plates in one unit's own scale, heaviest plate first.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.PlateProfile}
+   */
+  public  static final class PlateProfile extends
+      com.google.protobuf.GeneratedMessageLite<
+          PlateProfile, PlateProfile.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.PlateProfile)
+      PlateProfileOrBuilder {
+    private PlateProfile() {
+      plates_ = emptyFloatList();
+    }
+    public static final int BAR_FIELD_NUMBER = 1;
+    private float bar_;
+    /**
+     * <code>float bar = 1 [json_name = "bar"];</code>
+     * @return The bar.
+     */
+    @java.lang.Override
+    public float getBar() {
+      return bar_;
+    }
+    /**
+     * <code>float bar = 1 [json_name = "bar"];</code>
+     * @param value The bar to set.
+     */
+    private void setBar(float value) {
+      
+      bar_ = value;
+    }
+    /**
+     * <code>float bar = 1 [json_name = "bar"];</code>
+     */
+    private void clearBar() {
+      
+      bar_ = 0F;
+    }
+
+    public static final int PLATES_FIELD_NUMBER = 2;
+    private com.google.protobuf.Internal.FloatList plates_;
+    /**
+     * <code>repeated float plates = 2 [json_name = "plates"];</code>
+     * @return A list containing the plates.
+     */
+    @java.lang.Override
+    public java.util.List<java.lang.Float>
+        getPlatesList() {
+      return plates_;
+    }
+    /**
+     * <code>repeated float plates = 2 [json_name = "plates"];</code>
+     * @return The count of plates.
+     */
+    @java.lang.Override
+    public int getPlatesCount() {
+      return plates_.size();
+    }
+    /**
+     * <code>repeated float plates = 2 [json_name = "plates"];</code>
+     * @param index The index of the element to return.
+     * @return The plates at the given index.
+     */
+    @java.lang.Override
+    public float getPlates(int index) {
+      return plates_.getFloat(index);
+    }
+    private int platesMemoizedSerializedSize = -1;
+    private void ensurePlatesIsMutable() {
+      com.google.protobuf.Internal.FloatList tmp = plates_;
+      if (!tmp.isModifiable()) {
+        plates_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+    /**
+     * <code>repeated float plates = 2 [json_name = "plates"];</code>
+     * @param index The index to set the value at.
+     * @param value The plates to set.
+     */
+    private void setPlates(
+        int index, float value) {
+      ensurePlatesIsMutable();
+      plates_.setFloat(index, value);
+    }
+    /**
+     * <code>repeated float plates = 2 [json_name = "plates"];</code>
+     * @param value The plates to add.
+     */
+    private void addPlates(float value) {
+      ensurePlatesIsMutable();
+      plates_.addFloat(value);
+    }
+    /**
+     * <code>repeated float plates = 2 [json_name = "plates"];</code>
+     * @param values The plates to add.
+     */
+    private void addAllPlates(
+        java.lang.Iterable<? extends java.lang.Float> values) {
+      ensurePlatesIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, plates_);
+    }
+    /**
+     * <code>repeated float plates = 2 [json_name = "plates"];</code>
+     */
+    private void clearPlates() {
+      plates_ = emptyFloatList();
+    }
+
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.PlateProfile parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.PlateProfile prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * Bar and plates in one unit's own scale, heaviest plate first.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.PlateProfile}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.PlateProfile, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.PlateProfile)
+        workout.v1.WorkoutOuterClass.PlateProfileOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.PlateProfile.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>float bar = 1 [json_name = "bar"];</code>
+       * @return The bar.
+       */
+      @java.lang.Override
+      public float getBar() {
+        return instance.getBar();
+      }
+      /**
+       * <code>float bar = 1 [json_name = "bar"];</code>
+       * @param value The bar to set.
+       * @return This builder for chaining.
+       */
+      public Builder setBar(float value) {
+        copyOnWrite();
+        instance.setBar(value);
+        return this;
+      }
+      /**
+       * <code>float bar = 1 [json_name = "bar"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearBar() {
+        copyOnWrite();
+        instance.clearBar();
+        return this;
+      }
+
+      /**
+       * <code>repeated float plates = 2 [json_name = "plates"];</code>
+       * @return A list containing the plates.
+       */
+      @java.lang.Override
+      public java.util.List<java.lang.Float>
+          getPlatesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getPlatesList());
+      }
+      /**
+       * <code>repeated float plates = 2 [json_name = "plates"];</code>
+       * @return The count of plates.
+       */
+      @java.lang.Override
+      public int getPlatesCount() {
+        return instance.getPlatesCount();
+      }
+      /**
+       * <code>repeated float plates = 2 [json_name = "plates"];</code>
+       * @param index The index of the element to return.
+       * @return The plates at the given index.
+       */
+      @java.lang.Override
+      public float getPlates(int index) {
+        return instance.getPlates(index);
+      }
+      /**
+       * <code>repeated float plates = 2 [json_name = "plates"];</code>
+       * @param value The plates to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPlates(
+          int index, float value) {
+        copyOnWrite();
+        instance.setPlates(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated float plates = 2 [json_name = "plates"];</code>
+       * @param value The plates to add.
+       * @return This builder for chaining.
+       */
+      public Builder addPlates(float value) {
+        copyOnWrite();
+        instance.addPlates(value);
+        return this;
+      }
+      /**
+       * <code>repeated float plates = 2 [json_name = "plates"];</code>
+       * @param values The plates to add.
+       * @return This builder for chaining.
+       */
+      public Builder addAllPlates(
+          java.lang.Iterable<? extends java.lang.Float> values) {
+        copyOnWrite();
+        instance.addAllPlates(values);
+        return this;
+      }
+      /**
+       * <code>repeated float plates = 2 [json_name = "plates"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPlates() {
+        copyOnWrite();
+        instance.clearPlates();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.PlateProfile)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.PlateProfile();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "bar_",
+              "plates_",
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0001\u0000\u0001\u0001\u0002$";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.PlateProfile> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.PlateProfile.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.PlateProfile>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.PlateProfile)
+    private static final workout.v1.WorkoutOuterClass.PlateProfile DEFAULT_INSTANCE;
+    static {
+      PlateProfile defaultInstance = new PlateProfile();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        PlateProfile.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.PlateProfile getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<PlateProfile> PARSER;
+
+    public static com.google.protobuf.Parser<PlateProfile> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface ListExercisesRequestOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ListExercisesRequest)
+      com.google.protobuf.MessageLiteOrBuilder {
+  }
+  /**
+   * Protobuf type {@code workout.v1.ListExercisesRequest}
+   */
+  public  static final class ListExercisesRequest extends
+      com.google.protobuf.GeneratedMessageLite<
+          ListExercisesRequest, ListExercisesRequest.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ListExercisesRequest)
+      ListExercisesRequestOrBuilder {
+    private ListExercisesRequest() {
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.ListExercisesRequest prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.ListExercisesRequest}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.ListExercisesRequest, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ListExercisesRequest)
+        workout.v1.WorkoutOuterClass.ListExercisesRequestOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.ListExercisesRequest.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ListExercisesRequest)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.ListExercisesRequest();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = null;java.lang.String info =
+                "\u0000\u0000";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.ListExercisesRequest> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.ListExercisesRequest.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.ListExercisesRequest>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ListExercisesRequest)
+    private static final workout.v1.WorkoutOuterClass.ListExercisesRequest DEFAULT_INSTANCE;
+    static {
+      ListExercisesRequest defaultInstance = new ListExercisesRequest();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ListExercisesRequest.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.ListExercisesRequest getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ListExercisesRequest> PARSER;
+
+    public static com.google.protobuf.Parser<ListExercisesRequest> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface ListExercisesResponseOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.ListExercisesResponse)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    java.util.List<workout.v1.WorkoutOuterClass.ExerciseInfo> 
+        getExercisesList();
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    workout.v1.WorkoutOuterClass.ExerciseInfo getExercises(int index);
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    int getExercisesCount();
+
+    /**
+     * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+     * @return Whether the lb field is set.
+     */
+    boolean hasLb();
+    /**
+     * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+     * @return The lb.
+     */
+    workout.v1.WorkoutOuterClass.PlateProfile getLb();
+
+    /**
+     * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+     * @return Whether the kg field is set.
+     */
+    boolean hasKg();
+    /**
+     * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+     * @return The kg.
+     */
+    workout.v1.WorkoutOuterClass.PlateProfile getKg();
+  }
+  /**
+   * Protobuf type {@code workout.v1.ListExercisesResponse}
+   */
+  public  static final class ListExercisesResponse extends
+      com.google.protobuf.GeneratedMessageLite<
+          ListExercisesResponse, ListExercisesResponse.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.ListExercisesResponse)
+      ListExercisesResponseOrBuilder {
+    private ListExercisesResponse() {
+      exercises_ = emptyProtobufList();
+    }
+    public static final int EXERCISES_FIELD_NUMBER = 1;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseInfo> exercises_;
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.WorkoutOuterClass.ExerciseInfo> getExercisesList() {
+      return exercises_;
+    }
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    public java.util.List<? extends workout.v1.WorkoutOuterClass.ExerciseInfoOrBuilder> 
+        getExercisesOrBuilderList() {
+      return exercises_;
+    }
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    @java.lang.Override
+    public int getExercisesCount() {
+      return exercises_.size();
+    }
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.ExerciseInfo getExercises(int index) {
+      return exercises_.get(index);
+    }
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    public workout.v1.WorkoutOuterClass.ExerciseInfoOrBuilder getExercisesOrBuilder(
+        int index) {
+      return exercises_.get(index);
+    }
+    private void ensureExercisesIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.WorkoutOuterClass.ExerciseInfo> tmp = exercises_;
+      if (!tmp.isModifiable()) {
+        exercises_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    private void setExercises(
+        int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+      value.getClass();
+  ensureExercisesIsMutable();
+      exercises_.set(index, value);
+    }
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    private void addExercises(workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+      value.getClass();
+  ensureExercisesIsMutable();
+      exercises_.add(value);
+    }
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    private void addExercises(
+        int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+      value.getClass();
+  ensureExercisesIsMutable();
+      exercises_.add(index, value);
+    }
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    private void addAllExercises(
+        java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseInfo> values) {
+      ensureExercisesIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, exercises_);
+    }
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    private void clearExercises() {
+      exercises_ = emptyProtobufList();
+    }
+    /**
+     * <pre>
+     * In the program's order (the picker's).
+     * </pre>
+     *
+     * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+     */
+    private void removeExercises(int index) {
+      ensureExercisesIsMutable();
+      exercises_.remove(index);
+    }
+
+    public static final int LB_FIELD_NUMBER = 2;
+    private workout.v1.WorkoutOuterClass.PlateProfile lb_;
+    /**
+     * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+     */
+    @java.lang.Override
+    public boolean hasLb() {
+      return lb_ != null;
+    }
+    /**
+     * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.PlateProfile getLb() {
+      return lb_ == null ? workout.v1.WorkoutOuterClass.PlateProfile.getDefaultInstance() : lb_;
+    }
+    /**
+     * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+     */
+    private void setLb(workout.v1.WorkoutOuterClass.PlateProfile value) {
+      value.getClass();
+  lb_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeLb(workout.v1.WorkoutOuterClass.PlateProfile value) {
+      value.getClass();
+  if (lb_ != null &&
+          lb_ != workout.v1.WorkoutOuterClass.PlateProfile.getDefaultInstance()) {
+        lb_ =
+          workout.v1.WorkoutOuterClass.PlateProfile.newBuilder(lb_).mergeFrom(value).buildPartial();
+      } else {
+        lb_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+     */
+    private void clearLb() {  lb_ = null;
+      
+    }
+
+    public static final int KG_FIELD_NUMBER = 3;
+    private workout.v1.WorkoutOuterClass.PlateProfile kg_;
+    /**
+     * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+     */
+    @java.lang.Override
+    public boolean hasKg() {
+      return kg_ != null;
+    }
+    /**
+     * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.PlateProfile getKg() {
+      return kg_ == null ? workout.v1.WorkoutOuterClass.PlateProfile.getDefaultInstance() : kg_;
+    }
+    /**
+     * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+     */
+    private void setKg(workout.v1.WorkoutOuterClass.PlateProfile value) {
+      value.getClass();
+  kg_ = value;
+      
+      }
+    /**
+     * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeKg(workout.v1.WorkoutOuterClass.PlateProfile value) {
+      value.getClass();
+  if (kg_ != null &&
+          kg_ != workout.v1.WorkoutOuterClass.PlateProfile.getDefaultInstance()) {
+        kg_ =
+          workout.v1.WorkoutOuterClass.PlateProfile.newBuilder(kg_).mergeFrom(value).buildPartial();
+      } else {
+        kg_ = value;
+      }
+      
+    }
+    /**
+     * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+     */
+    private void clearKg() {  kg_ = null;
+      
+    }
+
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.ListExercisesResponse prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.ListExercisesResponse}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.ListExercisesResponse, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.ListExercisesResponse)
+        workout.v1.WorkoutOuterClass.ListExercisesResponseOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.ListExercisesResponse.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.WorkoutOuterClass.ExerciseInfo> getExercisesList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getExercisesList());
+      }
+      /**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      @java.lang.Override
+      public int getExercisesCount() {
+        return instance.getExercisesCount();
+      }/**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.ExerciseInfo getExercises(int index) {
+        return instance.getExercises(index);
+      }
+      /**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      public Builder setExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+        copyOnWrite();
+        instance.setExercises(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      public Builder setExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo.Builder builderForValue) {
+        copyOnWrite();
+        instance.setExercises(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+        copyOnWrite();
+        instance.addExercises(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo value) {
+        copyOnWrite();
+        instance.addExercises(index, value);
+        return this;
+      }
+      /**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(
+          workout.v1.WorkoutOuterClass.ExerciseInfo.Builder builderForValue) {
+        copyOnWrite();
+        instance.addExercises(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      public Builder addExercises(
+          int index, workout.v1.WorkoutOuterClass.ExerciseInfo.Builder builderForValue) {
+        copyOnWrite();
+        instance.addExercises(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      public Builder addAllExercises(
+          java.lang.Iterable<? extends workout.v1.WorkoutOuterClass.ExerciseInfo> values) {
+        copyOnWrite();
+        instance.addAllExercises(values);
+        return this;
+      }
+      /**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      public Builder clearExercises() {
+        copyOnWrite();
+        instance.clearExercises();
+        return this;
+      }
+      /**
+       * <pre>
+       * In the program's order (the picker's).
+       * </pre>
+       *
+       * <code>repeated .workout.v1.ExerciseInfo exercises = 1 [json_name = "exercises"];</code>
+       */
+      public Builder removeExercises(int index) {
+        copyOnWrite();
+        instance.removeExercises(index);
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+       */
+      @java.lang.Override
+      public boolean hasLb() {
+        return instance.hasLb();
+      }
+      /**
+       * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.PlateProfile getLb() {
+        return instance.getLb();
+      }
+      /**
+       * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+       */
+      public Builder setLb(workout.v1.WorkoutOuterClass.PlateProfile value) {
+        copyOnWrite();
+        instance.setLb(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+       */
+      public Builder setLb(
+          workout.v1.WorkoutOuterClass.PlateProfile.Builder builderForValue) {
+        copyOnWrite();
+        instance.setLb(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+       */
+      public Builder mergeLb(workout.v1.WorkoutOuterClass.PlateProfile value) {
+        copyOnWrite();
+        instance.mergeLb(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.PlateProfile lb = 2 [json_name = "lb"];</code>
+       */
+      public Builder clearLb() {  copyOnWrite();
+        instance.clearLb();
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+       */
+      @java.lang.Override
+      public boolean hasKg() {
+        return instance.hasKg();
+      }
+      /**
+       * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.PlateProfile getKg() {
+        return instance.getKg();
+      }
+      /**
+       * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+       */
+      public Builder setKg(workout.v1.WorkoutOuterClass.PlateProfile value) {
+        copyOnWrite();
+        instance.setKg(value);
+        return this;
+        }
+      /**
+       * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+       */
+      public Builder setKg(
+          workout.v1.WorkoutOuterClass.PlateProfile.Builder builderForValue) {
+        copyOnWrite();
+        instance.setKg(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+       */
+      public Builder mergeKg(workout.v1.WorkoutOuterClass.PlateProfile value) {
+        copyOnWrite();
+        instance.mergeKg(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.PlateProfile kg = 3 [json_name = "kg"];</code>
+       */
+      public Builder clearKg() {  copyOnWrite();
+        instance.clearKg();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.ListExercisesResponse)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.ListExercisesResponse();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "exercises_",
+              workout.v1.WorkoutOuterClass.ExerciseInfo.class,
+              "lb_",
+              "kg_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0001\u0000\u0001\u001b\u0002\t" +
+                "\u0003\t";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.ListExercisesResponse> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.ListExercisesResponse.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.ListExercisesResponse>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.ListExercisesResponse)
+    private static final workout.v1.WorkoutOuterClass.ListExercisesResponse DEFAULT_INSTANCE;
+    static {
+      ListExercisesResponse defaultInstance = new ListExercisesResponse();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        ListExercisesResponse.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.ListExercisesResponse getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<ListExercisesResponse> PARSER;
+
+    public static com.google.protobuf.Parser<ListExercisesResponse> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }

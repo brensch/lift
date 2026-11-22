@@ -33,7 +33,7 @@ void main() {
   test('a write fires, a read that stores nothing does not', () async {
     await core.call(
       'StartWorkout',
-      StartWorkoutRequest(name: 'Test', exercises: [Exercise.EXERCISE_SQUAT]),
+      StartWorkoutRequest(name: 'Test', exercises: ['squat']),
       StartWorkoutResponse.fromBuffer,
     );
     await settle();
@@ -46,7 +46,7 @@ void main() {
   test('a read that records late heart rate fires', () async {
     final started = await core.call(
       'StartWorkout',
-      StartWorkoutRequest(name: 'Test', exercises: [Exercise.EXERCISE_SQUAT]),
+      StartWorkoutRequest(name: 'Test', exercises: ['squat']),
       StartWorkoutResponse.fromBuffer,
     );
     await core.call(

@@ -112,14 +112,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _editTemplates() =>
       showTemplateLibrary(context, provider: context.read<WorkoutProvider>());
 
-  /// Edit a workout (null: a new one). Editing a library workout makes it
-  /// the user's own in place, never a second copy: nothing changes until
-  /// Save there, and backing out leaves it following the library.
+  /// Edit a workout (null: a new one). Nothing changes until Save.
   Future<void> _editTemplate(WorkoutTemplate? template) => showTemplateEditor(
     context,
     template: template,
     provider: context.read<WorkoutProvider>(),
-    personalise: template?.coupled ?? false,
   );
 
   Future<void> _confirmDeleteTemplate(WorkoutTemplate template) async {
@@ -919,7 +916,7 @@ class TemplateChip extends StatelessWidget {
             padding: const EdgeInsets.only(right: 3),
             child: Icon(AppIcons.star, size: 14, color: cs.primary),
           ),
-        if (!template.coupled)
+        if (template.originLibraryId.isEmpty)
           Padding(
             padding: const EdgeInsets.only(right: 4),
             child: Icon(AppIcons.copy, size: 14, color: cs.primary),
@@ -1014,7 +1011,7 @@ class SelectedTemplateCard extends StatelessWidget {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                    if (!template.coupled) const PersonalTag(),
+                    if (template.originLibraryId.isEmpty) const PersonalTag(),
                     if (recommended && reason.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(top: 2),
@@ -1039,9 +1036,9 @@ class SelectedTemplateCard extends StatelessWidget {
                   if (value == 'delete') onDelete();
                   if (value == 'rotation') onToggleRotation();
                 },
-                // Every workout is edited the same way (a library one
-                // becomes yours on Save) and goes in or out of the rotation.
-                // A library one is removed from your list; your own, deleted.
+                // Every workout is edited the same way and goes in or out
+                // of the rotation. A library copy is removed from your list
+                // (it can be added again); your own, deleted.
                 itemBuilder: (_) => [
                   PopupMenuItem(
                     value: 'rotation',
@@ -1055,7 +1052,7 @@ class SelectedTemplateCard extends StatelessWidget {
                   PopupMenuItem(
                     value: 'delete',
                     child: Text(
-                      template.coupled
+                      template.originLibraryId.isNotEmpty
                           ? copy.library.remove
                           : copy.library.delete,
                     ),

@@ -349,7 +349,6 @@ class Heartbeat extends $pb.GeneratedMessage {
 enum SyncResponse_Kind {
   head,
   joinRequests,
-  library,
   events,
   session,
   partnerEvents,
@@ -360,7 +359,6 @@ class SyncResponse extends $pb.GeneratedMessage {
   factory SyncResponse({
     $fixnum.Int64? head,
     $2.GetJoinRequestsResponse? joinRequests,
-    $1.ListTemplateLibraryResponse? library,
     Events? events,
     $2.Session? session,
     PartnerEvents? partnerEvents,
@@ -368,7 +366,6 @@ class SyncResponse extends $pb.GeneratedMessage {
     final result = create();
     if (head != null) result.head = head;
     if (joinRequests != null) result.joinRequests = joinRequests;
-    if (library != null) result.library = library;
     if (events != null) result.events = events;
     if (session != null) result.session = session;
     if (partnerEvents != null) result.partnerEvents = partnerEvents;
@@ -388,7 +385,6 @@ class SyncResponse extends $pb.GeneratedMessage {
       {
     1: SyncResponse_Kind.head,
     3: SyncResponse_Kind.joinRequests,
-    4: SyncResponse_Kind.library,
     5: SyncResponse_Kind.events,
     6: SyncResponse_Kind.session,
     7: SyncResponse_Kind.partnerEvents,
@@ -398,12 +394,10 @@ class SyncResponse extends $pb.GeneratedMessage {
       _omitMessageNames ? '' : 'SyncResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [1, 3, 4, 5, 6, 7])
+    ..oo(0, [1, 3, 5, 6, 7])
     ..aInt64(1, _omitFieldNames ? '' : 'head')
     ..aOM<$2.GetJoinRequestsResponse>(3, _omitFieldNames ? '' : 'joinRequests',
         subBuilder: $2.GetJoinRequestsResponse.create)
-    ..aOM<$1.ListTemplateLibraryResponse>(4, _omitFieldNames ? '' : 'library',
-        subBuilder: $1.ListTemplateLibraryResponse.create)
     ..aOM<Events>(5, _omitFieldNames ? '' : 'events', subBuilder: Events.create)
     ..aOM<$2.Session>(6, _omitFieldNames ? '' : 'session',
         subBuilder: $2.Session.create)
@@ -432,14 +426,12 @@ class SyncResponse extends $pb.GeneratedMessage {
 
   @$pb.TagNumber(1)
   @$pb.TagNumber(3)
-  @$pb.TagNumber(4)
   @$pb.TagNumber(5)
   @$pb.TagNumber(6)
   @$pb.TagNumber(7)
   SyncResponse_Kind whichKind() => _SyncResponse_KindByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(1)
   @$pb.TagNumber(3)
-  @$pb.TagNumber(4)
   @$pb.TagNumber(5)
   @$pb.TagNumber(6)
   @$pb.TagNumber(7)
@@ -467,55 +459,42 @@ class SyncResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(3)
   $2.GetJoinRequestsResponse ensureJoinRequests() => $_ensure(1);
 
-  /// The template library as the server has it: what coupled templates
-  /// follow. Sent on connect.
-  @$pb.TagNumber(4)
-  $1.ListTemplateLibraryResponse get library => $_getN(2);
-  @$pb.TagNumber(4)
-  set library($1.ListTemplateLibraryResponse value) => $_setField(4, value);
-  @$pb.TagNumber(4)
-  $core.bool hasLibrary() => $_has(2);
-  @$pb.TagNumber(4)
-  void clearLibrary() => $_clearField(4);
-  @$pb.TagNumber(4)
-  $1.ListTemplateLibraryResponse ensureLibrary() => $_ensure(2);
-
   /// Events in the server's order, each with its seq.
   @$pb.TagNumber(5)
-  Events get events => $_getN(3);
+  Events get events => $_getN(2);
   @$pb.TagNumber(5)
   set events(Events value) => $_setField(5, value);
   @$pb.TagNumber(5)
-  $core.bool hasEvents() => $_has(3);
+  $core.bool hasEvents() => $_has(2);
   @$pb.TagNumber(5)
   void clearEvents() => $_clearField(5);
   @$pb.TagNumber(5)
-  Events ensureEvents() => $_ensure(3);
+  Events ensureEvents() => $_ensure(2);
 
   /// The caller's session, whole: who else is in it. Empty session_id
   /// when not in one.
   @$pb.TagNumber(6)
-  $2.Session get session => $_getN(4);
+  $2.Session get session => $_getN(3);
   @$pb.TagNumber(6)
   set session($2.Session value) => $_setField(6, value);
   @$pb.TagNumber(6)
-  $core.bool hasSession() => $_has(4);
+  $core.bool hasSession() => $_has(3);
   @$pb.TagNumber(6)
   void clearSession() => $_clearField(6);
   @$pb.TagNumber(6)
-  $2.Session ensureSession() => $_ensure(4);
+  $2.Session ensureSession() => $_ensure(3);
 
   /// A session partner's workout, as events.
   @$pb.TagNumber(7)
-  PartnerEvents get partnerEvents => $_getN(5);
+  PartnerEvents get partnerEvents => $_getN(4);
   @$pb.TagNumber(7)
   set partnerEvents(PartnerEvents value) => $_setField(7, value);
   @$pb.TagNumber(7)
-  $core.bool hasPartnerEvents() => $_has(5);
+  $core.bool hasPartnerEvents() => $_has(4);
   @$pb.TagNumber(7)
   void clearPartnerEvents() => $_clearField(7);
   @$pb.TagNumber(7)
-  PartnerEvents ensurePartnerEvents() => $_ensure(5);
+  PartnerEvents ensurePartnerEvents() => $_ensure(4);
 }
 
 class PartnerEvents extends $pb.GeneratedMessage {

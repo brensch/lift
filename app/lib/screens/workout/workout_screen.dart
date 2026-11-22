@@ -331,7 +331,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         // Catalog order keeps the additions deterministic.
         final ordered = [
           for (final info in exerciseCatalog)
-            if (selected.contains(info.exercise)) info.exercise,
+            if (selected.contains(info.key)) info.key,
         ];
         unawaited(wp.addPrescribedExercises(ordered));
       },

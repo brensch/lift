@@ -40,12 +40,12 @@ import 'screens/progress_screen.dart';
 import 'screens/history_screen.dart';
 import 'screens/learn_screen.dart';
 import 'screens/exercise_detail_screen.dart';
-import 'gen/workout/v1/workout.pbenum.dart';
 import 'screens/sound_settings_screen.dart';
 import 'screens/debug_notifications_screen.dart';
 import 'screens/debug_logs_screen.dart';
 import 'screens/add_passkey_screen.dart';
 import 'screens/passkeys_screen.dart';
+import 'screens/program_screen.dart';
 import 'screens/settings_screen.dart';
 import 'screens/your_data_screen.dart';
 import 'screens/app_icon_screen.dart';
@@ -394,16 +394,18 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             GoRoute(
               path: '/exercise/:ex',
               builder: (_, state) {
-                final v = int.tryParse(state.pathParameters['ex'] ?? '') ?? 0;
                 return ExerciseDetailScreen(
-                  exercise:
-                      Exercise.valueOf(v) ?? Exercise.EXERCISE_UNSPECIFIED,
+                  exercise: state.pathParameters['ex'] ?? '',
                 );
               },
             ),
             GoRoute(
               path: '/sound-settings',
               builder: (_, __) => const SoundSettingsScreen(),
+            ),
+            GoRoute(
+              path: '/program',
+              builder: (_, __) => const ProgramScreen(),
             ),
             GoRoute(
               path: '/passkeys',

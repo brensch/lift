@@ -1,10 +1,11 @@
 //! Weekly volume per muscle, and the template suggestion built on it.
 //!
 //! Volume is the clearest dose-response lever in hypertrophy training, so
-//! the app makes it visible: weighted hard sets per muscle over a rolling
-//! 7 days, against a 10–20 band. A completed working set counts 1.0 for
-//! the exercise's primary muscle and 0.5 for each secondary; warmups and
-//! cancelled sets count 0.
+//! the app makes it visible: weighted hard sets per muscle over the
+//! program's window (`volume.window_days`), against its band
+//! (`target_low`–`target_high`). A completed working set counts 1.0 for
+//! the exercise's primary muscle and `secondary_credit` for each other;
+//! warmups and cancelled sets count 0.
 //!
 //! The suggestion is a pure sort over the user's rotation by the deficit
 //! of the muscles that have recovered, leaving out templates whose first
@@ -13,28 +14,25 @@
 //! between sessions, it has gone wrong.
 
 use std::cmp::Ordering;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 
-use crate::exercise_catalog::{muscles, primary_muscle, ALL_MUSCLES};
 use crate::history::WorkoutRecord;
-use crate::pb::{
-    Exercise, MuscleGroup, MuscleVolume, RecoveringMuscle, SuggestionMuscle, SuggestionReason,
-    WorkoutTemplate,
-};
+use crate::pb::{MuscleVolume, RecoveringMuscle, SuggestionMuscle, SuggestionReason};
+use crate::plan::DAY;
+use crate::program::{Muscle, Program, WorkoutDef};
 use crate::recovery::MuscleRecovery;
 
-pub const VOLUME_WINDOW_SECONDS: i64 = 7 * 24 * 3600;
-pub const VOLUME_TARGET_LOW: i32 = 10;
-pub const VOLUME_TARGET_HIGH: i32 = 20;
-const SECONDARY_WEIGHT: f32 = 0.5;
-
-/// Weighted hard sets per muscle in the last 7 days. Counts completed,
-/// non-warmup, non-cancelled sets from every workout in the window — the
-/// in-progress one included, so the display moves while you train.
-/// Calibration rungs count as warmups.
-pub fn muscle_volume_7d(history: &[WorkoutRecord], now: i64) -> Vec<MuscleVolume> {
-    let cutoff = now - VOLUME_WINDOW_SECONDS;
-    let mut sets: HashMap<MuscleGroup, f32> = HashMap::new();
+/// Weighted hard sets per muscle in the program's window. Counts
+/// completed, non-warmup, non-cancelled sets from every workout in the
+/// window — the in-progress one included, so the display moves while you
+/// train. Calibration rungs count as warmups.
+pub fn weekly_sets(
+    program: &Program,
+    history: &[WorkoutRecord],
+    now: i64,
+) -> BTreeMap<Muscle, f32> {
+    let cutoff = now - program.volume.window_days * DAY;
+    let mut sets: BTreeMap<Muscle, f32> = BTreeMap::new();
 
     for record in history {
         let proposed_by_id: HashMap<&str, _> = record
@@ -52,42 +50,31 @@ pub fn muscle_volume_7d(history: &[WorkoutRecord], now: i64) -> Vec<MuscleVolume
             if !proposed.is_working() || proposed.cancelled {
                 continue;
             }
-            let Ok(ex) = Exercise::try_from(proposed.exercise) else {
-                continue;
-            };
-            for (muscle, credit) in credit(ex) {
+            for (muscle, credit) in program.credit(&proposed.exercise) {
                 *sets.entry(muscle).or_insert(0.0) += credit;
             }
         }
     }
-
-    volume_rows(&sets)
+    sets
 }
 
-/// What one working set of `ex` counts for each muscle it trains: 1.0 for
-/// the primary, 0.5 for each secondary.
-pub fn credit(ex: Exercise) -> impl Iterator<Item = (MuscleGroup, f32)> {
-    muscles(ex).iter().enumerate().map(|(idx, muscle)| {
-        let credit = if idx == 0 { 1.0 } else { SECONDARY_WEIGHT };
-        (*muscle, credit)
-    })
+/// The window's sets per muscle, against the band, as Home shows them.
+pub fn muscle_volume(program: &Program, history: &[WorkoutRecord], now: i64) -> Vec<MuscleVolume> {
+    volume_rows(program, &weekly_sets(program, history, now))
 }
 
 /// Every muscle's sets, against the volume band.
-pub fn volume_rows(sets: &HashMap<MuscleGroup, f32>) -> Vec<MuscleVolume> {
-    ALL_MUSCLES
+pub fn volume_rows(program: &Program, sets: &BTreeMap<Muscle, f32>) -> Vec<MuscleVolume> {
+    Muscle::ALL
         .iter()
         .map(|muscle| MuscleVolume {
-            muscle: *muscle as i32,
+            muscle: muscle.to_proto() as i32,
             completed_sets_7d: sets.get(muscle).copied().unwrap_or(0.0),
-            target_low: VOLUME_TARGET_LOW,
-            target_high: VOLUME_TARGET_HIGH,
+            target_low: program.volume.target_low,
+            target_high: program.volume.target_high,
         })
         .collect()
 }
-
-/// A template within this fraction of the best score is tied with it.
-pub const TIE_FRACTION: f32 = 0.8;
 
 /// The suggestion: a rotation template and why.
 #[derive(Clone, Debug, PartialEq)]
@@ -97,11 +84,10 @@ pub struct Suggestion {
 }
 
 /// A template's distinct primary muscles, in exercise order.
-pub fn primary_muscles(exercises: &[i32]) -> Vec<MuscleGroup> {
+pub fn primary_muscles(program: &Program, exercises: &[String]) -> Vec<Muscle> {
     let mut out = Vec::new();
-    for ex in exercises.iter().filter_map(|e| Exercise::try_from(*e).ok()) {
-        let muscle = primary_muscle(ex);
-        if muscle != MuscleGroup::Unspecified && !out.contains(&muscle) {
+    for muscle in exercises.iter().filter_map(|ex| program.primary_muscle(ex)) {
+        if !out.contains(&muscle) {
             out.push(muscle);
         }
     }
@@ -115,8 +101,8 @@ pub fn primary_muscles(exercises: &[i32]) -> Vec<MuscleGroup> {
 ///         recovered now of max(0, target_low − sets_7d)
 ///
 /// A template whose first lift's primary muscle is still recovering is
-/// left out. Of the rest, every template within [TIE_FRACTION] of the best
-/// score is tied; the tie goes to the one started least recently (never
+/// left out. Of the rest, every template within `volume.tie_fraction` of
+/// the best score is tied; the tie goes to the one started least recently (never
 /// started first), so the rotation turns over instead of one broad
 /// template winning every day. When none of them is both recovered and
 /// behind, the one started least recently (`fallback`). When every
@@ -124,25 +110,25 @@ pub fn primary_muscles(exercises: &[i32]) -> Vec<MuscleGroup> {
 /// soonest (`first_lift_recovering`). Reserves (templates out of
 /// rotation) are never picked; None when nothing is in rotation.
 pub fn suggest_template(
-    templates: &[WorkoutTemplate],
+    program: &Program,
     volume: &[MuscleVolume],
     recovery: &[MuscleRecovery],
     now: i64,
     last_started: &HashMap<String, i64>,
 ) -> Option<Suggestion> {
-    let sets = |muscle: MuscleGroup| {
+    let sets = |muscle: Muscle| {
         volume
             .iter()
-            .find(|v| v.muscle == muscle as i32)
-            .map_or((0.0, VOLUME_TARGET_LOW), |v| {
+            .find(|v| v.muscle == muscle.to_proto() as i32)
+            .map_or((0.0, program.volume.target_low), |v| {
                 (v.completed_sets_7d, v.target_low)
             })
     };
-    let deficit = |muscle: MuscleGroup| {
+    let deficit = |muscle: Muscle| {
         let (done, target) = sets(muscle);
         (target as f32 - done).max(0.0)
     };
-    let recovering = |muscle: MuscleGroup| {
+    let recovering = |muscle: Muscle| {
         recovery
             .iter()
             .find(|r| r.muscle == muscle)
@@ -150,25 +136,25 @@ pub fn suggest_template(
     };
 
     struct Scored<'a> {
-        template: &'a WorkoutTemplate,
+        template: &'a WorkoutDef,
         index: usize,
         started: i64,
         score: f32,
-        behind: Vec<MuscleGroup>,
+        behind: Vec<Muscle>,
         /// The first lift's muscle, while it recovers.
         blocked: Option<&'a MuscleRecovery>,
     }
-    let by_deficit = |a: &MuscleGroup, b: &MuscleGroup| {
+    let by_deficit = |a: &Muscle, b: &Muscle| {
         deficit(*b)
             .partial_cmp(&deficit(*a))
             .unwrap_or(Ordering::Equal)
-            .then((*a as i32).cmp(&(*b as i32)))
+            .then((a.to_proto() as i32).cmp(&(b.to_proto() as i32)))
     };
     let mut scored = Vec::new();
-    let mut ruled_out: Vec<MuscleGroup> = Vec::new();
-    for (index, template) in templates.iter().filter(|t| t.in_rotation).enumerate() {
+    let mut ruled_out: Vec<Muscle> = Vec::new();
+    for (index, template) in program.workouts.iter().filter(|t| t.rotation).enumerate() {
         let mut behind = Vec::new();
-        for muscle in primary_muscles(&template.exercises) {
+        for muscle in primary_muscles(program, &template.exercises) {
             if deficit(muscle) <= 0.0 {
                 continue;
             }
@@ -184,10 +170,9 @@ pub fn suggest_template(
         let first = template
             .exercises
             .iter()
-            .filter_map(|e| Exercise::try_from(*e).ok())
-            .find(|e| *e != Exercise::Unspecified);
+            .find_map(|ex| program.primary_muscle(ex));
         scored.push(Scored {
-            blocked: first.and_then(|ex| recovering(primary_muscle(ex))),
+            blocked: first.and_then(recovering),
             template,
             index,
             started: last_started.get(&template.id).copied().unwrap_or(0),
@@ -213,7 +198,7 @@ pub fn suggest_template(
         ready
             .iter()
             .copied()
-            .filter(|s| fallback || s.score >= best * TIE_FRACTION)
+            .filter(|s| fallback || s.score >= best * program.volume.tie_fraction)
             .min_by(least_recent)?
     };
 
@@ -227,7 +212,7 @@ pub fn suggest_template(
                 .map(|m| {
                     let (done, target) = sets(*m);
                     SuggestionMuscle {
-                        muscle: *m as i32,
+                        muscle: m.to_proto() as i32,
                         sets_7d: done,
                         target,
                     }
@@ -237,14 +222,14 @@ pub fn suggest_template(
                 .iter()
                 .filter_map(|m| recovering(*m))
                 .map(|r| RecoveringMuscle {
-                    muscle: r.muscle as i32,
+                    muscle: r.muscle.to_proto() as i32,
                     hours_remaining: r.hours_remaining(now) as i32,
                 })
                 .collect(),
             fallback,
             first_lift_recovering: winner.blocked.filter(|_| ready.is_empty()).map(|r| {
                 RecoveringMuscle {
-                    muscle: r.muscle as i32,
+                    muscle: r.muscle.to_proto() as i32,
                     hours_remaining: r.hours_remaining(now) as i32,
                 }
             }),
@@ -255,16 +240,16 @@ pub fn suggest_template(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pb::{CompletedSet, ProposedSet, Workout};
+    use crate::pb::{CompletedSet, MuscleGroup, ProposedSet, Workout};
 
-    fn record_with_sets(at: i64, sets: &[(Exercise, bool)]) -> WorkoutRecord {
+    fn record_with_sets(at: i64, sets: &[(&str, bool)]) -> WorkoutRecord {
         let mut proposed = Vec::new();
         let mut completed = Vec::new();
         for (i, (ex, warmup)) in sets.iter().enumerate() {
             let id = format!("s{i}");
             proposed.push(ProposedSet {
                 id: id.clone(),
-                exercise: *ex as i32,
+                exercise: ex.to_string(),
                 target_reps: 10,
                 warmup: *warmup,
                 ..Default::default()
@@ -308,12 +293,12 @@ mod tests {
         let history = vec![record_with_sets(
             now - 3600,
             &[
-                (Exercise::BenchPress, false),
-                (Exercise::BenchPress, false),
-                (Exercise::BenchPress, false),
+                ("bench_press", false),
+                ("bench_press", false),
+                ("bench_press", false),
             ],
         )];
-        let volume = muscle_volume_7d(&history, now);
+        let volume = muscle_volume(&Program::builtin(), &history, now);
         assert_eq!(volume_for(&volume, MuscleGroup::Chest), 3.0);
         assert_eq!(volume_for(&volume, MuscleGroup::Triceps), 1.5);
         assert_eq!(volume_for(&volume, MuscleGroup::Quads), 0.0);
@@ -325,39 +310,35 @@ mod tests {
     fn warmups_and_old_sets_are_excluded() {
         let now = 1_000_000;
         let history = vec![
-            record_with_sets(
-                now - 3600,
-                &[(Exercise::Squat, true), (Exercise::Squat, false)],
-            ),
-            record_with_sets(
-                now - VOLUME_WINDOW_SECONDS - 100,
-                &[(Exercise::Squat, false)],
-            ),
+            record_with_sets(now - 3600, &[("squat", true), ("squat", false)]),
+            record_with_sets(now - 7 * DAY - 100, &[("squat", false)]),
         ];
-        let volume = muscle_volume_7d(&history, now);
+        let volume = muscle_volume(&Program::builtin(), &history, now);
         assert_eq!(volume_for(&volume, MuscleGroup::Quads), 1.0);
     }
 
-    fn template(id: &str, exercises: &[Exercise]) -> WorkoutTemplate {
-        WorkoutTemplate {
+    fn template(id: &str, exercises: &[&str]) -> WorkoutDef {
+        WorkoutDef {
             id: id.to_string(),
             name: id.to_string(),
-            exercises: exercises.iter().map(|e| *e as i32).collect(),
-            in_rotation: true,
-            ..Default::default()
+            exercises: exercises.iter().map(|e| e.to_string()).collect(),
+            rotation: true,
+            notes: String::new(),
+            from_library: String::new(),
         }
     }
 
     fn suggest(
-        templates: &[WorkoutTemplate],
+        templates: &[WorkoutDef],
         history: &[WorkoutRecord],
         now: i64,
         last: &HashMap<String, i64>,
     ) -> Option<Suggestion> {
+        let program = Program::builtin().with_workouts(templates.to_vec());
         suggest_template(
-            templates,
-            &muscle_volume_7d(history, now),
-            &per_muscle_recovery(history),
+            &program,
+            &muscle_volume(&program, history, now),
+            &per_muscle_recovery(&program, history),
             now,
             last,
         )
@@ -373,11 +354,11 @@ mod tests {
         // Ten leg extensions three days ago: quads covered and rested.
         let history = vec![record_with_sets(
             now - 3 * 86_400,
-            &[(Exercise::LegExtension, false); 10],
+            &[("leg_extension", false); 10],
         )];
         let templates = vec![
-            template("legs", &[Exercise::Squat, Exercise::LegExtension]),
-            template("pull", &[Exercise::BarbellRow, Exercise::BarbellCurl]),
+            template("legs", &["squat", "leg_extension"]),
+            template("pull", &["barbell_row", "barbell_curl"]),
         ];
         let got = suggest(&templates, &history, now, &HashMap::new()).expect("a suggestion");
         assert_eq!(got.template_id, "pull");
@@ -387,7 +368,10 @@ mod tests {
             vec![MuscleGroup::Back as i32, MuscleGroup::Biceps as i32]
         );
         assert_eq!(got.reason.behind[0].sets_7d, 0.0);
-        assert_eq!(got.reason.behind[0].target, VOLUME_TARGET_LOW);
+        assert_eq!(
+            got.reason.behind[0].target,
+            Program::builtin().volume.target_low
+        );
         assert!(got.reason.recovering.is_empty());
         assert!(!got.reason.fallback);
     }
@@ -399,20 +383,10 @@ mod tests {
     #[test]
     fn recovering_muscles_score_nothing() {
         let now = 1_000_000;
-        let history = vec![record_with_sets(
-            now - 20 * 3600,
-            &[(Exercise::Squat, false)],
-        )];
+        let history = vec![record_with_sets(now - 20 * 3600, &[("squat", false)])];
         let templates = vec![
-            template(
-                "legs",
-                &[
-                    Exercise::RomanianDeadlift,
-                    Exercise::Squat,
-                    Exercise::HipThrust,
-                ],
-            ),
-            template("arms", &[Exercise::BarbellCurl]),
+            template("legs", &["romanian_deadlift", "squat", "hip_thrust"]),
+            template("arms", &["barbell_curl"]),
         ];
         let got = suggest(&templates, &history, now, &HashMap::new()).expect("a suggestion");
         // Legs: glutes (9.5 behind) and quads (9) recovering, so only
@@ -444,15 +418,8 @@ mod tests {
     fn ties_within_a_fifth_go_to_the_least_recent() {
         let now = 1_000_000;
         // Nothing done: chest, back and biceps 10 behind each.
-        let big = template(
-            "big",
-            &[
-                Exercise::BenchPress,
-                Exercise::BarbellRow,
-                Exercise::BarbellCurl,
-            ],
-        );
-        let pull = template("pull", &[Exercise::BarbellRow, Exercise::BarbellCurl]);
+        let big = template("big", &["bench_press", "barbell_row", "barbell_curl"]);
+        let pull = template("pull", &["barbell_row", "barbell_curl"]);
         let mut last = HashMap::new();
         last.insert("big".to_string(), now - 86_400);
         last.insert("pull".to_string(), now - 2 * 86_400);
@@ -462,19 +429,9 @@ mod tests {
 
         // Core 5 behind as well: 25 against 30 is a tie, and the template
         // started earlier wins it.
-        let pull_core = template(
-            "pull_core",
-            &[
-                Exercise::BarbellRow,
-                Exercise::BarbellCurl,
-                Exercise::Crunch,
-            ],
-        );
+        let pull_core = template("pull_core", &["barbell_row", "barbell_curl", "crunch"]);
         last.insert("pull_core".to_string(), now - 2 * 86_400);
-        let history = vec![record_with_sets(
-            now - 3 * 86_400,
-            &[(Exercise::Crunch, false); 5],
-        )];
+        let history = vec![record_with_sets(now - 3 * 86_400, &[("crunch", false); 5])];
         let got = suggest(&[big.clone(), pull_core.clone()], &history, now, &last).unwrap();
         assert_eq!(got.template_id, "pull_core", "it won the tie on its score");
 
@@ -491,26 +448,16 @@ mod tests {
     fn a_recovering_first_lift_leaves_the_template_out() {
         let now = 1_000_000;
         // Bench started 21 hours ago: chest has 27 hours to go, triceps 15.
-        let history = vec![record_with_sets(
-            now - 20 * 3600,
-            &[(Exercise::BenchPress, false)],
-        )];
-        let push = template(
-            "push",
-            &[
-                Exercise::BenchPress,
-                Exercise::OverheadPress,
-                Exercise::LateralRaise,
-            ],
-        );
-        let arms = template("arms", &[Exercise::BarbellCurl]);
+        let history = vec![record_with_sets(now - 20 * 3600, &[("bench_press", false)])];
+        let push = template("push", &["bench_press", "overhead_press", "lateral_raise"]);
+        let arms = template("arms", &["barbell_curl"]);
         let got = suggest(&[push.clone(), arms], &history, now, &HashMap::new()).unwrap();
         assert_eq!(got.template_id, "arms", "push opens on chest");
         assert!(got.reason.first_lift_recovering.is_none());
 
         // Only templates that open on something recovering: the one that
         // comes back first, whoever is behind.
-        let dips = template("dips", &[Exercise::SkullCrusher, Exercise::BarbellCurl]);
+        let dips = template("dips", &["skull_crusher", "barbell_curl"]);
         let got = suggest(&[push, dips], &history, now, &HashMap::new()).unwrap();
         assert_eq!(got.template_id, "dips", "triceps back before chest");
         let waiting = got.reason.first_lift_recovering.expect("says so");
@@ -527,14 +474,8 @@ mod tests {
     fn nothing_behind_falls_back_to_the_least_recent() {
         let now = 1_000_000;
         // Quads rested and past ten this week.
-        let history = vec![record_with_sets(
-            now - 3 * 86_400,
-            &[(Exercise::Squat, false); 12],
-        )];
-        let templates = vec![
-            template("a", &[Exercise::Squat]),
-            template("b", &[Exercise::LegPress]),
-        ];
+        let history = vec![record_with_sets(now - 3 * 86_400, &[("squat", false); 12])];
+        let templates = vec![template("a", &["squat"]), template("b", &["leg_press"])];
         let mut last = HashMap::new();
         last.insert("a".to_string(), now - 2 * 86_400);
         last.insert("b".to_string(), now - 5 * 86_400);
@@ -549,9 +490,9 @@ mod tests {
     #[test]
     fn reserves_are_never_suggested() {
         let now = 1_000_000;
-        let mut legs = template("legs", &[Exercise::Squat, Exercise::RomanianDeadlift]);
-        legs.in_rotation = false;
-        let arms = template("arms", &[Exercise::BarbellCurl]);
+        let mut legs = template("legs", &["squat", "romanian_deadlift"]);
+        legs.rotation = false;
+        let arms = template("arms", &["barbell_curl"]);
         let got = suggest(&[legs.clone(), arms], &[], now, &HashMap::new()).unwrap();
         assert_eq!(got.template_id, "arms");
         assert!(suggest(&[legs], &[], now, &HashMap::new()).is_none());

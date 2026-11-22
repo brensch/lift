@@ -8,7 +8,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 
 import 'support/scenario.dart';
 
@@ -38,9 +37,7 @@ void main() {
       reason: 'app should show the partner join',
     );
     final sessionId = s.accountSync.session.sessionId;
-    await s.startWorkoutInApp('Squat day', [
-      MapEntry(Exercise.EXERCISE_SQUAT, 45.0),
-    ]);
+    await s.startWorkoutInApp('Squat day', [MapEntry('squat', 45.0)]);
     var recorded = false;
     for (var i = 0; i < 20 && !recorded; i++) {
       recorded = s.workout.workout?.sessionId == sessionId;

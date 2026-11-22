@@ -3,7 +3,6 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:schlift/gen/workout/v1/workout.pbgrpc.dart';
 
 import 'support/scenario.dart';
 
@@ -22,9 +21,9 @@ void main() {
     final api = await s.api.login(username);
     for (var i = 0; i < 5; i++) {
       await api.doWorkout('Workout ${i + 1}', [
-        MapEntry(Exercise.EXERCISE_SQUAT, 45 + i * 5.0),
-        MapEntry(Exercise.EXERCISE_BENCH_PRESS, 45 + i * 2.5),
-        MapEntry(Exercise.EXERCISE_BARBELL_ROW, 45 + i * 5.0),
+        MapEntry('squat', 45 + i * 5.0),
+        MapEntry('bench_press', 45 + i * 2.5),
+        MapEntry('barbell_row', 45 + i * 5.0),
       ]);
     }
     s.note('Seeded 5 progressive workouts', kind: 'api');

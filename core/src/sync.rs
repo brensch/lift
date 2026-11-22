@@ -96,15 +96,15 @@ impl<'de> Visitor<'de> for AtMost {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::events::{Fact, TemplateDeleted};
+    use crate::events::{Fact, WorkoutDiscarded};
 
     fn event(n: usize) -> Event {
         Event {
             seq: 0,
             id: format!("e{n}"),
             at: 1,
-            fact: Fact::TemplateDeleted(TemplateDeleted {
-                template_id: "t".into(),
+            fact: Fact::WorkoutDiscarded(WorkoutDiscarded {
+                workout_id: "w".into(),
             }),
         }
     }

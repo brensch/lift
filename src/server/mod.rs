@@ -2,6 +2,7 @@ use crate::db::ServerDb;
 use crate::time::now_unix;
 use schlift::workout::v1::admin_service_server::AdminService;
 use schlift::workout::v1::analytics_service_server::AnalyticsService;
+use schlift::workout::v1::assistant_service_server::AssistantService;
 use schlift::workout::v1::auth_service_server::AuthService;
 use schlift::workout::v1::multiplayer_service_server::MultiplayerService;
 use schlift::workout::v1::settings_service_server::SettingsService;
@@ -17,6 +18,7 @@ use tracing::info;
 use uuid::Uuid;
 
 mod analytics;
+mod assistant;
 mod auth;
 mod multiplayer;
 #[cfg(test)]
@@ -30,6 +32,7 @@ mod user;
 mod workout;
 
 pub use analytics::{ServerAdminService, ServerAnalyticsService};
+pub use assistant::ServerAssistantService;
 pub use auth::ServerAuthService;
 pub use multiplayer::ServerMultiplayerService;
 pub use settings::ServerSettingsService;

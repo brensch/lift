@@ -7,6 +7,10 @@
 //! that is intended, `GOLDEN=views` rewrites the views to review in the diff.
 //! `GOLDEN=history` records a new history, for a new kind of fact.
 //!
+//! Once, for programs, the history was moved by `schlift_core::migrate`
+//! rather than recorded again: the moved history's views were checked to be
+//! the earlier core's, exercise numbers read as keys.
+//!
 //! A second history, `golden_every_fact_*`, holds every kind of fact and is
 //! read in full (see the end of this file).
 
@@ -165,7 +169,7 @@ fn views_full(account: &Account) -> Value {
     json!({
         "views": views(account),
         "workouts": workouts,
-        "templates": account.templates,
+        "templates": account.program.workouts,
         "starting_weights": account.starting_weights,
         "overrides": format!("{:?}", account.overrides),
     })

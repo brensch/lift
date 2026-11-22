@@ -2,22 +2,27 @@
 //! records an event (or a few) and answers from the account after it; a read
 //! only looks. The phone calls these through [`call`] with the request's
 //! proto bytes, so the app keeps its generated request and response types.
+//!
+//! The program is the account's every training rule
+//! (`crate::program`). The template editor, the rotation and onboarding
+//! edit it: each is one `ProgramSet`, the whole document with the change
+//! made. An assistant sets it whole (`set_program`).
 
 use std::collections::{BTreeSet, HashMap};
 
 use prost::Message;
 
-use crate::account::{follows, Account, CoreError};
+use crate::account::{Account, CoreError, ProgramVersion};
 use crate::events::*;
-use crate::exercise_catalog::all_exercises;
 use crate::history::{done_set_ids, WorkoutRecord};
 use crate::ids::derived_id;
 use crate::pb::*;
 use crate::plan::Planner;
-use crate::progress::{compute_exercise_progress, compute_workout_summary};
+use crate::program::{self, Problem, Program, ProgramRef, WorkoutDef, GUIDE};
+use crate::progress::{compute_exercise_progress, compute_workout_summary, name_lifts};
 use crate::recovery::per_muscle_recovery;
 use crate::rotation::rotation_check;
-use crate::volume::{muscle_volume_7d, suggest_template};
+use crate::volume::{muscle_volume, suggest_template};
 use crate::workout::{
     apply_answer_rung_to_active, get_workout_response_from_active, rung_append_lifted,
     start_workout_response_from_active,
@@ -31,16 +36,19 @@ pub struct Call<'a> {
     pub event_id: String,
     /// What this call recorded, for the host to store and sync.
     pub events: Vec<Event>,
-    /// The template library coupled templates follow.
-    pub library: &'a [LibraryTemplate],
 }
 
 /// The longest motivational quote a workout keeps.
 const MAX_MOTIVATION_CHARS: usize = 500;
+/// The longest note a program is set with.
+const MAX_NOTE_CHARS: usize = 300;
+
+/// Who set a program from the app.
+pub const AUTHOR_APP: &str = "app";
 
 impl<'a> Call<'a> {
     pub fn view(&self) -> View<'_> {
-        View::new(self.account, self.now).with_library(self.library)
+        View::new(self.account, self.now)
     }
 
     pub fn new(account: &'a mut Account, now: i64, event_id: impl Into<String>) -> Self {
@@ -49,29 +57,15 @@ impl<'a> Call<'a> {
             now,
             event_id: event_id.into(),
             events: Vec::new(),
-            library: crate::template_library::library(),
         }
     }
 
-    /// Follow [library] (the server's) instead of the one built in.
-    pub fn with_library(mut self, library: &'a [LibraryTemplate]) -> Self {
-        self.library = library;
-        self
-    }
-
-    /// The library entries for [ids], as they are now.
-    fn library_entries(&self, ids: &[String]) -> Result<Vec<LibraryTemplate>, CoreError> {
-        ids.iter()
-            .map(|id| {
-                self.library
-                    .iter()
-                    .find(|e| &e.id == id)
-                    .cloned()
-                    .ok_or_else(|| {
-                        CoreError::InvalidArgument(format!("unknown library template {id:?}"))
-                    })
-            })
-            .collect()
+    /// The id the next event this call records takes.
+    fn next_event_id(&self) -> String {
+        match self.events.len() {
+            0 => self.event_id.clone(),
+            n => derived_id(&self.event_id, n),
+        }
     }
 
     /// Record one fact: applied to the account and kept, or (on an error)
@@ -79,10 +73,7 @@ impl<'a> Call<'a> {
     /// history until the server gives it one. One that would not read back
     /// once stored (a NaN or infinite number in it) is refused.
     fn record(&mut self, fact: Fact) -> Result<String, CoreError> {
-        let id = match self.events.len() {
-            0 => self.event_id.clone(),
-            n => derived_id(&self.event_id, n),
-        };
+        let id = self.next_event_id();
         let event = Event {
             seq: 0,
             id: id.clone(),
@@ -139,20 +130,19 @@ impl<'a> Call<'a> {
 
     // ── Workouts ──
 
-    /// A start: the template's exercises (a coupled one's from the library
-    /// of now) and name, and each lift's decision, planned at the start's
-    /// time in its budget — all recorded on the event.
+    /// A start: the template's exercises and name, and each lift's
+    /// decision, planned by the program at the start's time in its budget —
+    /// all recorded on the event, with the program's id.
     pub fn start_workout(
         &mut self,
         mut req: StartWorkoutRequest,
     ) -> Result<StartWorkoutResponse, CoreError> {
-        if let Some(template) = self.account.template(&req.template_id) {
-            let resolved = self.view().resolved(template);
+        if let Some(template) = self.account.program.workout(&req.template_id) {
             if req.exercises.is_empty() {
-                req.exercises = resolved.exercises;
+                req.exercises = template.exercises.clone();
             }
             if req.name.is_empty() {
-                req.name = resolved.name;
+                req.name = template.name.clone();
             }
         }
         let started_at = if req.started_at > 0 {
@@ -160,24 +150,25 @@ impl<'a> Call<'a> {
         } else {
             self.now
         };
-        req.decisions = Planner::new(self.account, started_at).workout(
-            &exercises(&req.exercises),
-            &[],
-            req.budget_minutes,
-        );
-        check_decisions(&req.decisions)?;
+        let exercises = known_exercises(&self.account.program, &req.exercises);
+        let decisions =
+            Planner::new(self.account, started_at).workout(&exercises, &[], req.budget_minutes);
+        check_decisions(&decisions)?;
         if req.name.is_empty() {
             req.name = "Workout".to_string();
         }
+        let rules = Some(Box::new(self.account.program.rules_for(&exercises)));
         let id = self.record(Fact::WorkoutStarted(WorkoutStarted {
             name: req.name,
             unit: self.account.unit().to_proto(),
             started_at,
             template_id: req.template_id,
-            exercises: req.exercises,
+            exercises,
             budget_minutes: req.budget_minutes,
-            decisions: req.decisions,
+            decisions,
             motivation: req.motivation.chars().take(MAX_MOTIVATION_CHARS).collect(),
+            program_id: self.account.program_id().to_string(),
+            rules,
         }))?;
         Ok(start_workout_response_from_active(
             self.view().workout(&id)?,
@@ -210,7 +201,7 @@ impl<'a> Call<'a> {
     /// New lifts mid-workout (one already in it is not added again),
     /// planned now in the workout's budget around the lifts still in it,
     /// which keep their decisions.
-    fn add_exercises(&mut self, mut req: AddExercisesRequest) -> Result<String, CoreError> {
+    fn add_exercises(&mut self, req: AddExercisesRequest) -> Result<String, CoreError> {
         let record = self.view().workout(&req.workout_id)?;
         // Each lift still in it once, by its latest decision: one removed
         // and added again has an older log too.
@@ -220,7 +211,7 @@ impl<'a> Call<'a> {
             .filter_map(|log| log.decision.as_ref())
             .filter(|d| {
                 record
-                    .decision(d.exercise)
+                    .decision(&d.exercise)
                     .is_some_and(|latest| std::ptr::eq(latest, *d))
             })
             .filter(|d| {
@@ -232,16 +223,22 @@ impl<'a> Call<'a> {
             .cloned()
             .collect();
         let budget = planned.first().map(|d| d.budget_minutes).unwrap_or(0);
-        let added: Vec<Exercise> = exercises(&req.exercises)
+        let added: Vec<String> = known_exercises(&self.account.program, &req.exercises)
             .into_iter()
-            .filter(|ex| planned.iter().all(|d| d.exercise != *ex as i32))
+            .filter(|ex| planned.iter().all(|d| &d.exercise != ex))
             .collect();
-        req.decisions = Planner::new(self.account, self.now).workout(&added, &planned, budget);
-        check_decisions(&req.decisions)?;
+        if added.is_empty() {
+            return Err(CoreError::FailedPrecondition(
+                "Every lift is in the workout already".into(),
+            ));
+        }
+        let decisions = Planner::new(self.account, self.now).workout(&added, &planned, budget);
+        check_decisions(&decisions)?;
         self.record(Fact::ExercisesAdded(ExercisesAdded {
             workout_id: req.workout_id,
-            exercises: req.exercises,
-            decisions: req.decisions,
+            definitions: self.account.program.definitions(&added),
+            exercises: added,
+            decisions,
         }))
     }
 
@@ -320,56 +317,155 @@ impl<'a> Call<'a> {
         Ok(())
     }
 
-    // ── Home, templates, overrides ──
+    // ── The program ──
 
-    pub fn save_template(
+    /// Record `program` as the account's, by `author`, when it checks out:
+    /// no errors in it, and every exercise the account has used still in
+    /// it. Returns the problems either way; nothing is recorded with an
+    /// error among them.
+    pub fn record_program(
         &mut self,
-        mut req: SaveTemplateRequest,
-    ) -> Result<SaveTemplateResponse, CoreError> {
-        let given = req
-            .template
-            .as_ref()
-            .map(|t| t.id.clone())
-            .unwrap_or_default();
-        if let (Some(existing), Some(saved)) = (self.account.template(&given), &mut req.template) {
-            let shown = self.view().resolved(existing);
-            if existing.coupled
-                && !req.unlink
-                && shown.name == saved.name
-                && shown.exercises == saved.exercises
-            {
-                // Saving a coupled template as the library has it changes
-                // nothing but, maybe, whether it is in rotation: that is
-                // saved on the stored copy, so it stays coupled.
-                if existing.in_rotation == saved.in_rotation {
-                    return Ok(SaveTemplateResponse {
-                        template: Some(shown),
-                    });
-                }
-                saved.name = existing.name.clone();
-                saved.exercises = existing.exercises.clone();
+        program: Program,
+        author: &str,
+        note: &str,
+    ) -> Result<Vec<Problem>, CoreError> {
+        let mut problems = program::check(&program);
+        problems.extend(program::validate_for_account(
+            &program,
+            &self.account.exercises_used(),
+        ));
+        if problems.iter().any(|p| p.error) {
+            return Ok(problems);
+        }
+        self.record(Fact::ProgramSet(ProgramSet {
+            program: ProgramRef::new(program),
+            author: author.to_string(),
+            note: note.chars().take(MAX_NOTE_CHARS).collect(),
+        }))?;
+        Ok(problems)
+    }
+
+    /// One edit to the program's workouts, recorded: refused, recording
+    /// nothing, when it would leave the program with an error.
+    fn edit(&mut self, edit: WorkoutsEdit) -> Result<(), CoreError> {
+        self.record(Fact::ProgramEdited(ProgramEdited { edit }))?;
+        Ok(())
+    }
+
+    pub fn set_program(&mut self, req: SetProgramRequest) -> Result<SetProgramResponse, CoreError> {
+        let (program, mut problems) = program::validate(&req.program_json);
+        let author = if req.author.is_empty() {
+            AUTHOR_APP
+        } else {
+            req.author.as_str()
+        };
+        if let Some(program) = program.filter(|_| !problems.iter().any(|p| p.error)) {
+            problems = self.record_program(program, author, &req.note)?;
+        }
+        let set = !problems.iter().any(|p| p.error);
+        Ok(SetProgramResponse {
+            problems: problems.iter().map(problem_proto).collect(),
+            summary: set.then(|| self.view().program_summary()),
+        })
+    }
+
+    /// Back to the built-in rules, or to an earlier program's (`to`), the
+    /// workouts as they are now kept — and any exercise of the program's own
+    /// they or the history name, so nothing is lost.
+    pub fn reset_program(
+        &mut self,
+        req: ResetProgramRequest,
+    ) -> Result<ResetProgramResponse, CoreError> {
+        let current = self.account.program.clone();
+        let (rules, note) = if req.to.is_empty() {
+            (Program::builtin(), String::new())
+        } else {
+            let version = self
+                .account
+                .programs
+                .iter()
+                .find(|v| v.id == req.to)
+                .ok_or_else(|| CoreError::NotFound("No such program".into()))?;
+            let name = if version.program.name.is_empty() {
+                "an earlier program".to_string()
             } else {
-                // Anything else is a real change to what the user sees, even
-                // if it happens to match the copy stored when the template
-                // was added.
-                req.unlink = existing.coupled;
+                version.program.name.clone()
+            };
+            (version.program.clone(), format!("Back to {name}"))
+        };
+        let mut program = rules.with_workouts(current.workouts.clone());
+        let mut keep: BTreeSet<String> = self.account.exercises_used();
+        keep.extend(current.workouts.iter().flat_map(|w| w.exercises.clone()));
+        let fallback_class = program.classes.keys().next().cloned().unwrap_or_default();
+        for key in keep {
+            if program.knows(&key) {
+                continue;
+            }
+            if let Some(def) = current.exercise(&key) {
+                let mut def = def.clone();
+                // Its own progression only if the rules it goes back to
+                // have one by that name; otherwise its class's.
+                if def
+                    .progression
+                    .as_ref()
+                    .is_some_and(|p| !program.progressions.contains_key(p))
+                {
+                    def.progression = None;
+                }
+                if !program.classes.contains_key(&def.class) {
+                    def.class = fallback_class.clone();
+                }
+                program.exercises.push(def);
             }
         }
+        let problems = self.record_program(program, AUTHOR_APP, &note)?;
+        if let Some(p) = problems.into_iter().find(|p| p.error) {
+            return Err(CoreError::FailedPrecondition(problem_text(&p)));
+        }
+        Ok(ResetProgramResponse {
+            summary: Some(self.view().program_summary()),
+        })
+    }
+
+    // ── Templates: the program's workouts ──
+
+    /// Make (empty id) or change one of the program's workouts. Its
+    /// exercises are the ones the program knows, each once.
+    pub fn save_template(
+        &mut self,
+        req: SaveTemplateRequest,
+    ) -> Result<SaveTemplateResponse, CoreError> {
         let template = req
             .template
             .ok_or_else(|| CoreError::InvalidArgument("template is required".into()))?;
-        let event_id = self.record(Fact::TemplateSaved(TemplateSaved {
-            template,
-            unlink: req.unlink,
-        }))?;
-        // A new template takes the event's first derived id.
-        let id = if given.is_empty() {
-            derived_id(&event_id, 0)
-        } else {
-            given
+        if template.name.trim().is_empty() {
+            return Err(CoreError::InvalidArgument("A template needs a name".into()));
+        }
+        let exercises = known_exercises(&self.account.program, &template.exercises);
+        if exercises.is_empty() {
+            return Err(CoreError::InvalidArgument(
+                "A template needs at least one exercise".into(),
+            ));
+        }
+        let existing = self.account.program.workout(&template.id);
+        let workout = WorkoutDef {
+            id: if template.id.is_empty() {
+                derived_id(&self.next_event_id(), 0)
+            } else {
+                template.id.clone()
+            },
+            name: template.name.trim().to_string(),
+            exercises,
+            rotation: template.in_rotation,
+            notes: template.notes.clone(),
+            from_library: existing.map(|w| w.from_library.clone()).unwrap_or_default(),
         };
+        let id = workout.id.clone();
+        if existing != Some(&workout) {
+            self.edit(WorkoutsEdit::Save { workout })?;
+        }
         Ok(SaveTemplateResponse {
-            template: self.account.template(&id).cloned(),
+            template: self.account.program.workout(&id).map(template_of),
         })
     }
 
@@ -377,20 +473,30 @@ impl<'a> Call<'a> {
         &mut self,
         req: DeleteTemplateRequest,
     ) -> Result<DeleteTemplateResponse, CoreError> {
-        self.record(Fact::TemplateDeleted(TemplateDeleted {
-            template_id: req.template_id,
-        }))?;
+        if self.account.program.workout(&req.template_id).is_some() {
+            self.edit(WorkoutsEdit::Delete {
+                workout_id: req.template_id,
+            })?;
+        }
         Ok(DeleteTemplateResponse {})
     }
 
+    /// The workouts in this order (any not named keep theirs, after); with
+    /// `rotation_count`, the first that many are the rotation, the rest
+    /// reserves.
     pub fn reorder_templates(
         &mut self,
         req: ReorderTemplatesRequest,
     ) -> Result<ReorderTemplatesResponse, CoreError> {
-        self.record(Fact::TemplatesReordered(TemplatesReordered {
-            template_ids: req.template_ids,
+        if req.rotation_count.is_some_and(|n| n < 0) {
+            return Err(CoreError::InvalidArgument(
+                "rotation_count is negative".into(),
+            ));
+        }
+        self.edit(WorkoutsEdit::Reorder {
+            workout_ids: req.template_ids,
             rotation_count: req.rotation_count,
-        }))?;
+        })?;
         Ok(ReorderTemplatesResponse {})
     }
 
@@ -398,7 +504,7 @@ impl<'a> Call<'a> {
         &mut self,
         req: SetOverrideRequest,
     ) -> Result<SetOverrideResponse, CoreError> {
-        let exercise = req.exercise();
+        let exercise = req.exercise.clone();
         self.record(Fact::OverrideSet(OverrideSet {
             exercise: req.exercise,
             weight: req.weight,
@@ -406,59 +512,80 @@ impl<'a> Call<'a> {
             sets: req.sets,
         }))?;
         Ok(SetOverrideResponse {
-            plan: Some(self.view().exercise_plan(exercise, 0)),
+            plan: Some(self.view().exercise_plan(&exercise, 0)),
         })
     }
 
+    /// Sign-up: the unit and the starting weights `strength` picks, then —
+    /// the first time, while the program has no workouts — the library
+    /// entries chosen (the defaults when none are) as the rotation.
     pub fn complete_onboarding(
         &mut self,
-        mut req: CompleteOnboardingRequest,
+        req: CompleteOnboardingRequest,
     ) -> Result<CompleteOnboardingResponse, CoreError> {
-        req.library_entries = if req.library_ids.is_empty() {
-            self.library
+        let first = self.account.program.workouts.is_empty();
+        let entries: Vec<LibraryTemplate> = if req.library_ids.is_empty() {
+            crate::template_library::library()
                 .iter()
                 .filter(|e| e.is_default)
                 .cloned()
                 .collect()
         } else {
-            self.library_entries(&req.library_ids)?
+            library_entries(&req.library_ids)?
         };
         let unit = crate::weight_units::unit_from_proto(req.unit);
-        req.starting_weights = req
-            .strength
-            .map(|strength| exercise_weights(strength, unit))
-            .unwrap_or_default();
+        let starting_weights = match (first, req.strength) {
+            (true, Some(strength)) => exercise_weights(&self.account.program, strength, unit),
+            _ => Vec::new(),
+        };
+        let event_id = self.next_event_id();
+        let workouts = if first {
+            entries
+                .iter()
+                .enumerate()
+                .map(|(n, entry)| library_copy(entry, true, &event_id, n))
+                .collect()
+        } else {
+            Vec::new()
+        };
         self.record(Fact::Onboarded(Onboarded {
             unit: req.unit,
-            library_entries: req.library_entries,
             strength: req.strength,
-            starting_weights: req.starting_weights,
+            starting_weights,
+            workouts,
         }))?;
         Ok(CompleteOnboardingResponse {})
     }
 
+    /// Copy library entries into the program's workouts, skipping any the
+    /// user already has (a workout copied from it).
     pub fn add_library_templates(
         &mut self,
-        mut req: AddLibraryTemplatesRequest,
+        req: AddLibraryTemplatesRequest,
     ) -> Result<AddLibraryTemplatesResponse, CoreError> {
-        // An entry the user already has (following it, or their own made
-        // from it) is not added again: no duplicates.
-        req.library_ids
-            .retain(|id| !self.account.has_library_entry(id));
-        let entries = self.library_entries(&req.library_ids)?;
+        let wanted: Vec<String> = req
+            .library_ids
+            .into_iter()
+            .filter(|id| !has_library_entry(&self.account.program, id))
+            .collect();
+        let entries = library_entries(&wanted)?;
         if !entries.is_empty() {
-            self.record(Fact::LibraryTemplatesAdded(LibraryTemplatesAdded {
-                entries,
-                in_rotation: req.in_rotation,
-            }))?;
+            let event_id = self.next_event_id();
+            let workouts = entries
+                .iter()
+                .enumerate()
+                .map(|(n, entry)| library_copy(entry, req.in_rotation, &event_id, n))
+                .collect();
+            self.edit(WorkoutsEdit::Add { workouts })?;
         }
         Ok(AddLibraryTemplatesResponse {})
     }
 
     /// A ready-made plan as the rotation: its entries the user lacks are
-    /// added, then one reorder puts the user's template for each entry
-    /// first, in the plan's order, as the rotation, and every other
-    /// template after it (the old rotation first) as a reserve.
+    /// copied in, then the user's workout for each entry goes first, in the
+    /// plan's order, as the rotation, and every other workout after it (the
+    /// old rotation first) as a reserve. One program edit; nothing is
+    /// deleted.
     pub fn apply_library_plan(
         &mut self,
         req: ApplyLibraryPlanRequest,
@@ -470,45 +597,48 @@ impl<'a> Call<'a> {
         let missing: Vec<String> = plan
             .library_ids
             .iter()
-            .filter(|id| !self.account.has_library_entry(id))
+            .filter(|id| !has_library_entry(&self.account.program, id))
             .cloned()
             .collect();
-        if !missing.is_empty() {
-            let entries = self.library_entries(&missing)?;
-            self.record(Fact::LibraryTemplatesAdded(LibraryTemplatesAdded {
-                entries,
-                in_rotation: false,
-            }))?;
+        let entries = library_entries(&missing)?;
+        if !entries.is_empty() {
+            let event_id = self.next_event_id();
+            let workouts = entries
+                .iter()
+                .enumerate()
+                .map(|(n, entry)| library_copy(entry, false, &event_id, n))
+                .collect();
+            self.edit(WorkoutsEdit::Add { workouts })?;
         }
-        let templates = &self.account.templates;
+        let workouts = &self.account.program.workouts;
         let mut rotation: Vec<String> = Vec::with_capacity(plan.library_ids.len());
         for id in &plan.library_ids {
-            // One already in the rotation before any other made from it.
-            let from = |t: &&WorkoutTemplate| follows(t, id);
-            let mine = templates
+            // One already in the rotation before any other copied from it.
+            let from = |w: &&WorkoutDef| w.from_library == *id;
+            let mine = workouts
                 .iter()
                 .filter(from)
-                .find(|t| t.in_rotation && !rotation.contains(&t.id))
+                .find(|w| w.rotation && !rotation.contains(&w.id))
                 .or_else(|| {
-                    templates
+                    workouts
                         .iter()
                         .filter(from)
-                        .find(|t| !rotation.contains(&t.id))
+                        .find(|w| !rotation.contains(&w.id))
                 })
-                .ok_or_else(|| CoreError::NotFound(format!("no template for {id:?}")))?;
+                .ok_or_else(|| CoreError::NotFound(format!("no workout for {id:?}")))?;
             rotation.push(mine.id.clone());
         }
-        let rest = templates
+        let rest = workouts
             .iter()
-            .filter(|t| t.in_rotation)
-            .chain(templates.iter().filter(|t| !t.in_rotation))
-            .filter(|t| !rotation.contains(&t.id))
-            .map(|t| t.id.clone());
-        let template_ids: Vec<String> = rotation.iter().cloned().chain(rest).collect();
-        self.record(Fact::TemplatesReordered(TemplatesReordered {
-            template_ids,
+            .filter(|w| w.rotation)
+            .chain(workouts.iter().filter(|w| !w.rotation))
+            .filter(|w| !rotation.contains(&w.id))
+            .map(|w| w.id.clone());
+        let workout_ids: Vec<String> = rotation.iter().cloned().chain(rest).collect();
+        self.edit(WorkoutsEdit::Reorder {
+            workout_ids,
             rotation_count: Some(rotation.len() as i32),
-        }))?;
+        })?;
         Ok(ApplyLibraryPlanResponse {})
     }
 
@@ -600,10 +730,11 @@ fn workout_fact(mutation: workout_mutation::Mutation, now: i64) -> Fact {
             exercise: r.exercise,
             proposed_set_id: r.proposed_set_id,
         }),
+        // Planned by `Call::add_exercises`; one reaching here has none.
         M::AddExercises(r) => Fact::ExercisesAdded(ExercisesAdded {
             workout_id: r.workout_id,
             exercises: r.exercises,
-            decisions: r.decisions,
+            ..Default::default()
         }),
         M::AdjustExerciseWeight(r) => Fact::ExerciseAdjusted(ExerciseAdjusted {
             workout_id: r.workout_id,
@@ -636,38 +767,15 @@ fn workout_fact(mutation: workout_mutation::Mutation, now: i64) -> Fact {
 pub struct View<'a> {
     pub account: &'a Account,
     pub now: i64,
-    /// The template library coupled templates follow.
-    pub library: &'a [LibraryTemplate],
 }
 
 impl<'a> View<'a> {
     pub fn new(account: &'a Account, now: i64) -> Self {
-        Self {
-            account,
-            now,
-            library: crate::template_library::library(),
-        }
+        Self { account, now }
     }
 
-    /// Follow [library] (the server's) instead of the one built in.
-    pub fn with_library(mut self, library: &'a [LibraryTemplate]) -> Self {
-        self.library = library;
-        self
-    }
-
-    /// A template as it's shown and started: a coupled one takes its
-    /// library entry's name and exercises, while the entry exists.
-    pub fn resolved(&self, template: &WorkoutTemplate) -> WorkoutTemplate {
-        let mut out = template.clone();
-        if let Some(entry) = self
-            .library
-            .iter()
-            .find(|e| template.coupled && e.id == template.library_id)
-        {
-            out.name = entry.name.clone();
-            out.exercises = entry.exercises.clone();
-        }
-        out
+    fn program(&self) -> &'a Program {
+        &self.account.program
     }
 
     /// "Save these lifts as a template?" for a workout: the lifts with a
@@ -675,14 +783,14 @@ impl<'a> View<'a> {
     /// template it started from. None when nothing was done, or the
     /// template it started from is gone.
     fn template_offer(&self, record: &WorkoutRecord) -> Option<TemplateOffer> {
-        let mut exercises: Vec<i32> = Vec::new();
+        let mut exercises: Vec<String> = Vec::new();
         for set in &record.proposed_sets {
             let done = record
                 .completed_sets
                 .iter()
                 .any(|c| c.proposed_set_id == set.id);
             if done && !set.warmup && !set.cancelled && !exercises.contains(&set.exercise) {
-                exercises.push(set.exercise);
+                exercises.push(set.exercise.clone());
             }
         }
         if exercises.is_empty() {
@@ -695,13 +803,13 @@ impl<'a> View<'a> {
                 ..Default::default()
             });
         }
-        let template = self.resolved(self.account.template(template_id)?);
-        let planned: BTreeSet<i32> = template.exercises.iter().copied().collect();
+        let template = self.program().workout(template_id)?;
+        let planned: BTreeSet<&String> = template.exercises.iter().collect();
         let same =
             planned.len() == exercises.len() && exercises.iter().all(|e| planned.contains(e));
-        (!same).then_some(TemplateOffer {
-            template_id: template.id,
-            template_name: template.name,
+        (!same).then(|| TemplateOffer {
+            template_id: template.id.clone(),
+            template_name: template.name.clone(),
             exercises,
         })
     }
@@ -718,6 +826,7 @@ impl<'a> View<'a> {
         let record = self.workout(id)?;
         let mut response = get_workout_response_from_active(record, self.now);
         response.rung_outcomes = self.rung_outcomes(record, &response.rung_question_set_id);
+
         // Cancelled rows mark a lift stopped early for the plan; the app
         // never shows them.
         response.proposed_sets.retain(|s| !s.cancelled);
@@ -729,11 +838,8 @@ impl<'a> View<'a> {
         {
             let planner = Planner::new(self.account, self.now);
             for lift in &mut summary.exercises {
-                let Ok(exercise) = Exercise::try_from(lift.exercise) else {
-                    continue;
-                };
                 lift.estimated_max_after = planner
-                    .walk(exercise)
+                    .walk(&lift.exercise)
                     .points
                     .into_iter()
                     .find(|(workout_id, _)| *workout_id == record.workout.id)
@@ -751,7 +857,7 @@ impl<'a> View<'a> {
             .proposed_sets
             .iter()
             .find(|s| s.id == set_id)
-            .map(|s| s.exercise)
+            .map(|s| s.exercise.clone())
         else {
             return Vec::new();
         };
@@ -837,13 +943,14 @@ impl<'a> View<'a> {
             workouts: self
                 .finished()
                 .into_iter()
-                .map(|r| WorkoutWithSummary {
-                    summary: Some(compute_workout_summary(
-                        &r.workout,
-                        &r.proposed_sets,
-                        &r.completed_sets,
-                    )),
-                    workout: Some(r.workout.clone()),
+                .map(|r| {
+                    let mut summary =
+                        compute_workout_summary(&r.workout, &r.proposed_sets, &r.completed_sets);
+                    name_lifts(&mut summary, &r.program);
+                    WorkoutWithSummary {
+                        summary: Some(summary),
+                        workout: Some(r.workout.clone()),
+                    }
                 })
                 .collect(),
         }
@@ -865,7 +972,8 @@ impl<'a> View<'a> {
                         .total_volume
                 })
                 .sum(),
-            exercises: self.with_estimated_max(compute_exercise_progress(&finished)),
+            exercises: self
+                .with_estimated_max(compute_exercise_progress(&finished, self.program())),
         }
     }
 
@@ -873,10 +981,11 @@ impl<'a> View<'a> {
     fn with_estimated_max(&self, mut series: Vec<ExerciseProgress>) -> Vec<ExerciseProgress> {
         let planner = Planner::new(self.account, self.now);
         for progress in &mut series {
-            let Ok(exercise) = Exercise::try_from(progress.exercise) else {
-                continue;
-            };
-            let maxes: HashMap<String, f32> = planner.walk(exercise).points.into_iter().collect();
+            let maxes: HashMap<String, f32> = planner
+                .walk(&progress.exercise)
+                .points
+                .into_iter()
+                .collect();
             for point in &mut progress.points {
                 point.estimated_max = maxes.get(&point.workout_id).copied().unwrap_or(0.0);
             }
@@ -894,19 +1003,20 @@ impl<'a> View<'a> {
     }
 
     /// One lift's plan at now, on its own in `budget_minutes` (0 = the
-    /// default).
-    pub fn exercise_plan(&self, exercise: Exercise, budget_minutes: i32) -> ExercisePlan {
+    /// program's default).
+    pub fn exercise_plan(&self, exercise: &str, budget_minutes: i32) -> ExercisePlan {
         let planner = Planner::new(self.account, self.now);
         let decision = planner
-            .workout(&[exercise], &[], budget_minutes)
+            .workout(&[exercise.to_string()], &[], budget_minutes)
             .pop()
             .unwrap_or_default();
         planner.view(decision)
     }
 
     /// `exercises` planned at now as one workout in `budget_minutes` (0 =
-    /// the default): what starting a template of them would record.
-    pub fn template_plan(&self, exercises: &[i32], budget_minutes: i32) -> TemplatePlan {
+    /// the program's default): what starting a template of them would
+    /// record.
+    pub fn template_plan(&self, exercises: &[String], budget_minutes: i32) -> TemplatePlan {
         self.plan_template(
             &Planner::new(self.account, self.now),
             exercises,
@@ -917,10 +1027,10 @@ impl<'a> View<'a> {
     fn plan_template(
         &self,
         planner: &Planner,
-        values: &[i32],
+        exercises: &[String],
         budget_minutes: i32,
     ) -> TemplatePlan {
-        let lifts = exercises(values);
+        let lifts = known_exercises(planner.program(), exercises);
         let decisions = planner.workout(&lifts, &[], budget_minutes);
         TemplatePlan {
             template_id: String::new(),
@@ -944,25 +1054,27 @@ impl<'a> View<'a> {
     }
 
     /// Everything the home screen needs, in one response, with every lift
-    /// planned at now in `budget_minutes` (0 = the default).
+    /// planned at now in `budget_minutes` (0 = the program's default).
     pub fn home(&self, budget_minutes: i32) -> GetHomeResponse {
-        let budget = if budget_minutes > 0 {
-            budget_minutes
-        } else {
-            crate::plan::DEFAULT_BUDGET_MINUTES
-        };
+        let program = self.program();
         let planner = Planner::new(self.account, self.now);
-        let plans = all_exercises()
-            .into_iter()
-            .filter_map(|exercise| planner.workout(&[exercise], &[], budget).pop())
+        let budget = planner.budget(budget_minutes);
+        let plans = program
+            .exercises
+            .iter()
+            .filter_map(|e| {
+                planner
+                    .workout(std::slice::from_ref(&e.key), &[], budget)
+                    .pop()
+            })
             .map(|decision| planner.view(decision))
             .collect();
-        let volume = muscle_volume_7d(&self.account.workouts, self.now);
-        let muscle_recovery = per_muscle_recovery(&self.account.workouts);
+        let volume = muscle_volume(program, &self.account.workouts, self.now);
+        let muscle_recovery = per_muscle_recovery(program, &self.account.workouts);
         let recovery = muscle_recovery
             .iter()
             .map(|entry| MuscleRecoveryStatus {
-                muscle: entry.muscle as i32,
+                muscle: entry.muscle.to_proto() as i32,
                 hours_remaining: entry.hours_remaining(self.now),
                 recovered: entry.is_recovered(self.now),
             })
@@ -977,28 +1089,17 @@ impl<'a> View<'a> {
                 *at = (*at).max(r.workout.start_time);
             }
         }
-        let templates: Vec<WorkoutTemplate> = self
-            .account
-            .templates
-            .iter()
-            .map(|t| self.resolved(t))
-            .collect();
-        let suggestion = suggest_template(
-            &templates,
-            &volume,
-            &muscle_recovery,
-            self.now,
-            &last_started,
-        );
+        let suggestion =
+            suggest_template(program, &volume, &muscle_recovery, self.now, &last_started);
         // The library entries the user does not have, for the check's
         // additions.
-        let addable: Vec<LibraryTemplate> = self
-            .library
+        let addable: Vec<LibraryTemplate> = crate::template_library::library()
             .iter()
-            .filter(|e| !self.account.has_library_entry(&e.id))
+            .filter(|e| !has_library_entry(program, &e.id))
             .cloned()
             .collect();
-        let template_plans = templates
+        let template_plans = program
+            .workouts
             .iter()
             .map(|t| TemplatePlan {
                 template_id: t.id.clone(),
@@ -1007,16 +1108,18 @@ impl<'a> View<'a> {
             .collect();
 
         GetHomeResponse {
-            onboarded: !templates.is_empty() || !self.account.workouts.is_empty(),
+            onboarded: self.account.onboarded
+                || !program.workouts.is_empty()
+                || !self.account.workouts.is_empty(),
             plans,
             template_plans,
             budget_minutes: budget,
             active_workout_id: self.account.active_workout_id.clone(),
             volume,
             recovery,
-            rotation_check: Some(rotation_check(&templates, &addable)),
+            rotation_check: Some(rotation_check(program, &addable)),
             addable_library_ids: addable.iter().map(|e| e.id.clone()).collect(),
-            current_plan_id: current_plan(&templates)
+            current_plan_id: current_plan(program)
                 .map(|p| p.id.clone())
                 .unwrap_or_default(),
             suggested_template_id: suggestion
@@ -1024,7 +1127,8 @@ impl<'a> View<'a> {
                 .map(|s| s.template_id.clone())
                 .unwrap_or_default(),
             suggestion_reason: suggestion.map(|s| s.reason),
-            templates,
+            templates: program.workouts.iter().map(template_of).collect(),
+            program: Some(self.program_summary()),
         }
     }
 
@@ -1035,7 +1139,7 @@ impl<'a> View<'a> {
         let unit = crate::weight_units::unit_from_proto(req.unit);
         let steps = (0..=100)
             .map(|step| StartingWeightsStep {
-                weights: exercise_weights(step as f32 / 100.0, unit),
+                weights: exercise_weights(self.program(), step as f32 / 100.0, unit),
             })
             .collect();
         Ok(GetStartingWeightsResponse { steps })
@@ -1043,17 +1147,8 @@ impl<'a> View<'a> {
 
     pub fn list_template_library(&self) -> ListTemplateLibraryResponse {
         ListTemplateLibraryResponse {
-            templates: self.library.to_vec(),
-            // Only the plans whose every entry the library has.
-            plans: crate::template_library::plans()
-                .iter()
-                .filter(|p| {
-                    p.library_ids
-                        .iter()
-                        .all(|id| self.library.iter().any(|e| &e.id == id))
-                })
-                .cloned()
-                .collect(),
+            templates: crate::template_library::library().to_vec(),
+            plans: crate::template_library::plans().to_vec(),
         }
     }
 
@@ -1062,26 +1157,199 @@ impl<'a> View<'a> {
             settings: self.account.settings.clone(),
         }
     }
+
+    // ── The program ──
+
+    /// The program that plans, in brief.
+    pub fn program_summary(&self) -> ProgramSummary {
+        match self.account.programs.last() {
+            Some(version) => version_summary(version),
+            None => ProgramSummary {
+                name: Program::builtin().name.clone(),
+                author: "builtin".into(),
+                builtin_rules: true,
+                ..Default::default()
+            },
+        }
+    }
+
+    pub fn get_program(&self) -> GetProgramResponse {
+        let versions = &self.account.programs;
+        GetProgramResponse {
+            summary: Some(self.program_summary()),
+            program_json: self.program().to_json(),
+            history: versions.iter().rev().skip(1).map(version_summary).collect(),
+            guide: GUIDE.to_string(),
+        }
+    }
+
+    pub fn get_program_version(
+        &self,
+        req: GetProgramVersionRequest,
+    ) -> Result<GetProgramVersionResponse, CoreError> {
+        let version = self
+            .account
+            .programs
+            .iter()
+            .find(|v| v.id == req.id)
+            .ok_or_else(|| CoreError::NotFound("No such program".into()))?;
+        Ok(GetProgramVersionResponse {
+            summary: Some(version_summary(version)),
+            program_json: version.program.to_json(),
+        })
+    }
+
+    /// A draft's problems, the account's own included (an exercise it has
+    /// history for, left out).
+    pub fn validate_program(
+        &self,
+        req: ValidateProgramRequest,
+    ) -> Result<ValidateProgramResponse, CoreError> {
+        let (program, mut problems) = program::validate(&req.program_json);
+        if let Some(program) = &program {
+            problems.extend(program::validate_for_account(
+                program,
+                &self.account.exercises_used(),
+            ));
+        }
+        Ok(ValidateProgramResponse {
+            problems: problems.iter().map(problem_proto).collect(),
+        })
+    }
+
+    pub fn simulate_program(
+        &self,
+        req: SimulateProgramRequest,
+    ) -> Result<SimulateProgramResponse, CoreError> {
+        Ok(crate::simulate::simulate(self.account, self.now, &req))
+    }
+
+    /// The program's exercises as every screen shows them, and the plates.
+    pub fn list_exercises(&self) -> ListExercisesResponse {
+        let program = self.program();
+        let plates = &program.equipment.plates;
+        ListExercisesResponse {
+            exercises: program
+                .exercises
+                .iter()
+                .map(|e| exercise_info(program, e))
+                .collect(),
+            lb: Some(PlateProfile {
+                bar: plates.bar.lb,
+                plates: plates.lb.clone(),
+            }),
+            kg: Some(PlateProfile {
+                bar: plates.bar.kg,
+                plates: plates.kg.clone(),
+            }),
+        }
+    }
+}
+
+/// An exercise as every screen shows it.
+pub fn exercise_info(program: &Program, e: &crate::program::ExerciseDef) -> ExerciseInfo {
+    ExerciseInfo {
+        key: e.key.clone(),
+        name: e.name.clone(),
+        short_name: e.short_name.clone(),
+        equipment: e.equipment.to_proto() as i32,
+        muscles: e.muscles.iter().map(|m| m.to_proto() as i32).collect(),
+        description: e.description.clone(),
+        class_name: e.class.clone(),
+        progression: program.progression_name(&e.key).to_string(),
+    }
+}
+
+fn version_summary(version: &ProgramVersion) -> ProgramSummary {
+    ProgramSummary {
+        id: version.id.clone(),
+        name: version.program.name.clone(),
+        author: version.author.clone(),
+        note: version.note.clone(),
+        set_at: version.at,
+        builtin_rules: version.program.uses_builtin_rules(),
+    }
+}
+
+pub fn problem_proto(p: &Problem) -> ProgramProblem {
+    ProgramProblem {
+        path: p.path.clone(),
+        message: p.message.clone(),
+        error: p.error,
+    }
+}
+
+fn problem_text(p: &Problem) -> String {
+    if p.path.is_empty() {
+        p.message.clone()
+    } else {
+        format!("{}: {}", p.path, p.message)
+    }
+}
+
+/// One of the program's workouts as the API shows it.
+pub fn template_of(w: &WorkoutDef) -> WorkoutTemplate {
+    WorkoutTemplate {
+        id: w.id.clone(),
+        name: w.name.clone(),
+        exercises: w.exercises.clone(),
+        in_rotation: w.rotation,
+        origin_library_id: w.from_library.clone(),
+        notes: w.notes.clone(),
+    }
+}
+
+/// A library entry as one of the program's workouts, its id the `n`th
+/// derived from the event that copies it.
+fn library_copy(entry: &LibraryTemplate, rotation: bool, event_id: &str, n: usize) -> WorkoutDef {
+    WorkoutDef {
+        id: derived_id(event_id, n),
+        name: entry.name.clone(),
+        exercises: entry.exercises.clone(),
+        rotation,
+        notes: String::new(),
+        from_library: entry.id.clone(),
+    }
+}
+
+/// The user has a workout copied from library entry `id`.
+fn has_library_entry(program: &Program, id: &str) -> bool {
+    program.workouts.iter().any(|w| w.from_library == id)
+}
+
+/// The library entries for `ids`.
+fn library_entries(ids: &[String]) -> Result<Vec<LibraryTemplate>, CoreError> {
+    let library = crate::template_library::library();
+    ids.iter()
+        .map(|id| {
+            library
+                .iter()
+                .find(|e| &e.id == id)
+                .cloned()
+                .ok_or_else(|| {
+                    CoreError::InvalidArgument(format!("unknown library template {id:?}"))
+                })
+        })
+        .collect()
 }
 
 /// The ready-made plan the rotation already is: the same workouts, each
-/// following or made from one of the plan's entries. The order is not
-/// compared (the suggestion does not go through the rotation in order).
-fn current_plan(templates: &[WorkoutTemplate]) -> Option<&'static LibraryPlan> {
-    let rotation: Vec<&WorkoutTemplate> = templates.iter().filter(|t| t.in_rotation).collect();
+/// copied from one of the plan's entries. The order is not compared (the
+/// suggestion does not go through the rotation in order).
+fn current_plan(program: &Program) -> Option<&'static LibraryPlan> {
+    let rotation: Vec<&WorkoutDef> = program.workouts.iter().filter(|t| t.rotation).collect();
     crate::template_library::plans().iter().find(|plan| {
         let mut left: Vec<&String> = plan.library_ids.iter().collect();
         rotation.len() == left.len()
-            && rotation.iter().all(|t| {
-                let at = |id: &str| left.iter().position(|l| l.as_str() == id);
-                match at(&t.library_id).or_else(|| at(&t.origin_library_id)) {
+            && rotation
+                .iter()
+                .all(|t| match left.iter().position(|l| **l == t.from_library) {
                     Some(i) => {
                         left.remove(i);
                         true
                     }
                     None => false,
-                }
-            })
+                })
     })
 }
 
@@ -1099,13 +1367,13 @@ fn check_decisions(decisions: &[ExerciseDecision]) -> Result<(), CoreError> {
     Ok(())
 }
 
-/// The valid exercises of a list, in order, each once: a workout has a lift
-/// at most once.
-fn exercises(values: &[i32]) -> Vec<Exercise> {
-    let mut out: Vec<Exercise> = Vec::new();
-    for ex in values.iter().filter_map(|v| Exercise::try_from(*v).ok()) {
-        if ex != Exercise::Unspecified && !out.contains(&ex) {
-            out.push(ex);
+/// The exercises of a list the program knows, in order, each once: a
+/// workout has a lift at most once.
+fn known_exercises(program: &Program, keys: &[String]) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for key in keys {
+        if program.knows(key) && !out.contains(key) {
+            out.push(key.clone());
         }
     }
     out
@@ -1113,13 +1381,14 @@ fn exercises(values: &[i32]) -> Vec<Exercise> {
 
 /// The main lifts' starting weights at `strength` on the setup slider.
 fn exercise_weights(
+    program: &Program,
     strength: f32,
     unit: crate::weight_units::AppWeightUnit,
 ) -> Vec<ExerciseWeight> {
-    crate::onboarding::starting_weights_for_strength(strength, unit)
+    crate::onboarding::starting_weights_for_strength(program, strength, unit)
         .into_iter()
         .map(|(exercise, weight_lb)| ExerciseWeight {
-            exercise: exercise as i32,
+            exercise,
             weight_lb,
         })
         .collect()
@@ -1160,6 +1429,8 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "ApplyLibraryPlan" => apply_library_plan,
             "UpdateSetting" => update_setting,
             "ImportHistory" => import_history,
+            "SetProgram" => set_program,
+            "ResetProgram" => reset_program,
         }
         reads {
             "GetWorkout" => get_workout,
@@ -1168,6 +1439,9 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "GetStartingWeights" => get_starting_weights,
             "GetHome" => get_home,
             "GetTemplatePlan" => get_template_plan,
+            "GetProgramVersion" => get_program_version,
+            "ValidateProgram" => validate_program,
+            "SimulateProgram" => simulate_program,
         }
         plain {
             "GetActiveWorkout" => get_active_workout,
@@ -1175,6 +1449,8 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "GetExerciseProgress" => get_exercise_progress,
             "ListTemplateLibrary" => list_template_library,
             "GetSettings" => get_settings,
+            "GetProgram" => get_program,
+            "ListExercises" => list_exercises,
         }
     })
 }

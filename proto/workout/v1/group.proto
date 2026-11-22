@@ -123,6 +123,10 @@ message ParticipantStatus {
   // As GetWorkoutResponse.first_time_set_ids.
   repeated string first_time_set_ids = 12;
 
+  // As GetWorkoutResponse.exercises: their lifts as their program defines
+  // them, so a lift of their own has its name here too.
+  repeated ExerciseInfo exercises = 13;
+
   reserved 8, 9;
   reserved "rest_until", "has_active_set";
 }

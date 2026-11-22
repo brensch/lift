@@ -1,0 +1,1160 @@
+{
+  "schema": "schlift.program/v1",
+  "name": "Schlift",
+  "notes": "The built-in program. Every lift has an estimated max, walked from its sessions; the class gives the rep range, rest and warmups; the time budget gives the sets, to the muscles furthest behind this week.",
+  "exercises": [
+    {
+      "key": "squat",
+      "name": "Squat",
+      "short_name": "Squat",
+      "equipment": "barbell",
+      "muscles": [
+        "quads",
+        "glutes"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "bench_press",
+      "name": "Bench Press",
+      "short_name": "Bench",
+      "equipment": "barbell",
+      "muscles": [
+        "chest",
+        "triceps",
+        "shoulders"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "deadlift",
+      "name": "Deadlift",
+      "short_name": "Deads",
+      "equipment": "barbell",
+      "muscles": [
+        "back",
+        "hamstrings",
+        "glutes"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "overhead_press",
+      "name": "Overhead Press",
+      "short_name": "OHP",
+      "equipment": "barbell",
+      "muscles": [
+        "shoulders",
+        "triceps"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "barbell_row",
+      "name": "Barbell Row",
+      "short_name": "Row",
+      "equipment": "barbell",
+      "muscles": [
+        "back",
+        "biceps"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "hip_thrust",
+      "name": "Hip Thrust",
+      "short_name": "Hip Thr",
+      "equipment": "barbell",
+      "muscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "bulgarian_split_squat",
+      "name": "Bulgarian Split Squat",
+      "short_name": "BSS",
+      "equipment": "dumbbell",
+      "muscles": [
+        "quads",
+        "glutes"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "romanian_deadlift",
+      "name": "Romanian Deadlift",
+      "short_name": "RDL",
+      "equipment": "barbell",
+      "muscles": [
+        "hamstrings",
+        "glutes"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "glute_bridge",
+      "name": "Glute Bridge",
+      "short_name": "Bridge",
+      "equipment": "barbell",
+      "muscles": [
+        "glutes"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "lunge",
+      "name": "Lunge",
+      "short_name": "Lunge",
+      "equipment": "dumbbell",
+      "muscles": [
+        "quads",
+        "glutes"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "leg_curl",
+      "name": "Leg Curl",
+      "short_name": "Curl",
+      "equipment": "machine",
+      "muscles": [
+        "hamstrings"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "incline_bench_press",
+      "name": "Incline Bench Press",
+      "short_name": "Inc Bench",
+      "equipment": "barbell",
+      "muscles": [
+        "chest",
+        "shoulders",
+        "triceps"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "dumbbell_bench_press",
+      "name": "Dumbbell Bench Press",
+      "short_name": "DB Bench",
+      "equipment": "dumbbell",
+      "muscles": [
+        "chest",
+        "triceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "incline_dumbbell_press",
+      "name": "Incline Dumbbell Press",
+      "short_name": "Inc DB",
+      "equipment": "dumbbell",
+      "muscles": [
+        "chest",
+        "shoulders",
+        "triceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "dumbbell_fly",
+      "name": "Dumbbell Fly",
+      "short_name": "DB Fly",
+      "equipment": "dumbbell",
+      "muscles": [
+        "chest"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "cable_fly",
+      "name": "Cable Fly",
+      "short_name": "Cbl Fly",
+      "equipment": "cable",
+      "muscles": [
+        "chest"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "push_up",
+      "name": "Push-Up",
+      "short_name": "Push-Up",
+      "equipment": "bodyweight",
+      "muscles": [
+        "chest",
+        "triceps"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "chest_dip",
+      "name": "Chest Dip",
+      "short_name": "Dip",
+      "equipment": "bodyweight",
+      "muscles": [
+        "chest",
+        "triceps"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "machine_chest_press",
+      "name": "Machine Chest Press",
+      "short_name": "Mch Press",
+      "equipment": "machine",
+      "muscles": [
+        "chest",
+        "triceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "pec_deck",
+      "name": "Pec Deck",
+      "short_name": "Pec Deck",
+      "equipment": "machine",
+      "muscles": [
+        "chest"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "pull_up",
+      "name": "Pull-Up",
+      "short_name": "Pull-Up",
+      "equipment": "bodyweight",
+      "muscles": [
+        "back",
+        "biceps"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "chin_up",
+      "name": "Chin-Up",
+      "short_name": "Chin-Up",
+      "equipment": "bodyweight",
+      "muscles": [
+        "back",
+        "biceps"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "lat_pulldown",
+      "name": "Lat Pulldown",
+      "short_name": "Pulldown",
+      "equipment": "cable",
+      "muscles": [
+        "back",
+        "biceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "seated_cable_row",
+      "name": "Seated Cable Row",
+      "short_name": "Cable Row",
+      "equipment": "cable",
+      "muscles": [
+        "back",
+        "biceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "dumbbell_row",
+      "name": "Dumbbell Row",
+      "short_name": "DB Row",
+      "equipment": "dumbbell",
+      "muscles": [
+        "back",
+        "biceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "t_bar_row",
+      "name": "T-Bar Row",
+      "short_name": "T-Bar",
+      "equipment": "barbell",
+      "muscles": [
+        "back",
+        "biceps"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "pendlay_row",
+      "name": "Pendlay Row",
+      "short_name": "Pendlay",
+      "equipment": "barbell",
+      "muscles": [
+        "back",
+        "biceps"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "face_pull",
+      "name": "Face Pull",
+      "short_name": "Face Pull",
+      "equipment": "cable",
+      "muscles": [
+        "shoulders",
+        "back"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "shrug",
+      "name": "Shrug",
+      "short_name": "Shrug",
+      "equipment": "barbell",
+      "muscles": [
+        "back"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "back_extension",
+      "name": "Back Extension",
+      "short_name": "Back Ext",
+      "equipment": "bodyweight",
+      "muscles": [
+        "back",
+        "glutes",
+        "hamstrings"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "dumbbell_shoulder_press",
+      "name": "Dumbbell Shoulder Press",
+      "short_name": "DB Press",
+      "equipment": "dumbbell",
+      "muscles": [
+        "shoulders",
+        "triceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "arnold_press",
+      "name": "Arnold Press",
+      "short_name": "Arnold",
+      "equipment": "dumbbell",
+      "muscles": [
+        "shoulders",
+        "triceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "lateral_raise",
+      "name": "Lateral Raise",
+      "short_name": "Lat Raise",
+      "equipment": "dumbbell",
+      "muscles": [
+        "shoulders"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "front_raise",
+      "name": "Front Raise",
+      "short_name": "Frnt Raise",
+      "equipment": "dumbbell",
+      "muscles": [
+        "shoulders"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "rear_delt_fly",
+      "name": "Rear Delt Fly",
+      "short_name": "Rear Delt",
+      "equipment": "dumbbell",
+      "muscles": [
+        "shoulders"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "upright_row",
+      "name": "Upright Row",
+      "short_name": "Up Row",
+      "equipment": "barbell",
+      "muscles": [
+        "shoulders",
+        "back"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "barbell_curl",
+      "name": "Barbell Curl",
+      "short_name": "BB Curl",
+      "equipment": "barbell",
+      "muscles": [
+        "biceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "dumbbell_curl",
+      "name": "Dumbbell Curl",
+      "short_name": "DB Curl",
+      "equipment": "dumbbell",
+      "muscles": [
+        "biceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "hammer_curl",
+      "name": "Hammer Curl",
+      "short_name": "Hammer",
+      "equipment": "dumbbell",
+      "muscles": [
+        "biceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "preacher_curl",
+      "name": "Preacher Curl",
+      "short_name": "Preacher",
+      "equipment": "barbell",
+      "muscles": [
+        "biceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "concentration_curl",
+      "name": "Concentration Curl",
+      "short_name": "Conc Curl",
+      "equipment": "dumbbell",
+      "muscles": [
+        "biceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "cable_curl",
+      "name": "Cable Curl",
+      "short_name": "Cbl Curl",
+      "equipment": "cable",
+      "muscles": [
+        "biceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "tricep_pushdown",
+      "name": "Tricep Pushdown",
+      "short_name": "Pushdown",
+      "equipment": "cable",
+      "muscles": [
+        "triceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "overhead_tricep_extension",
+      "name": "Overhead Tricep Extension",
+      "short_name": "OH Tri",
+      "equipment": "dumbbell",
+      "muscles": [
+        "triceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "skull_crusher",
+      "name": "Skull Crusher",
+      "short_name": "Skullcr",
+      "equipment": "barbell",
+      "muscles": [
+        "triceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "close_grip_bench_press",
+      "name": "Close-Grip Bench Press",
+      "short_name": "CGBP",
+      "equipment": "barbell",
+      "muscles": [
+        "triceps",
+        "chest"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "tricep_dip",
+      "name": "Tricep Dip",
+      "short_name": "Tri Dip",
+      "equipment": "bodyweight",
+      "muscles": [
+        "triceps",
+        "chest"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "tricep_kickback",
+      "name": "Tricep Kickback",
+      "short_name": "Kickback",
+      "equipment": "dumbbell",
+      "muscles": [
+        "triceps"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "front_squat",
+      "name": "Front Squat",
+      "short_name": "Frnt Sq",
+      "equipment": "barbell",
+      "muscles": [
+        "quads",
+        "glutes",
+        "core"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "leg_press",
+      "name": "Leg Press",
+      "short_name": "Leg Press",
+      "equipment": "machine",
+      "muscles": [
+        "quads",
+        "glutes"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "leg_extension",
+      "name": "Leg Extension",
+      "short_name": "Leg Ext",
+      "equipment": "machine",
+      "muscles": [
+        "quads"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "hack_squat",
+      "name": "Hack Squat",
+      "short_name": "Hack Sq",
+      "equipment": "machine",
+      "muscles": [
+        "quads",
+        "glutes"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "goblet_squat",
+      "name": "Goblet Squat",
+      "short_name": "Goblet",
+      "equipment": "dumbbell",
+      "muscles": [
+        "quads",
+        "glutes"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "walking_lunge",
+      "name": "Walking Lunge",
+      "short_name": "Wlk Lunge",
+      "equipment": "dumbbell",
+      "muscles": [
+        "quads",
+        "glutes"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "step_up",
+      "name": "Step-Up",
+      "short_name": "Step-Up",
+      "equipment": "dumbbell",
+      "muscles": [
+        "quads",
+        "glutes"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "calf_raise",
+      "name": "Calf Raise",
+      "short_name": "Calf",
+      "equipment": "dumbbell",
+      "muscles": [
+        "calves"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "seated_calf_raise",
+      "name": "Seated Calf Raise",
+      "short_name": "St Calf",
+      "equipment": "machine",
+      "muscles": [
+        "calves"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "nordic_curl",
+      "name": "Nordic Curl",
+      "short_name": "Nordic",
+      "equipment": "bodyweight",
+      "muscles": [
+        "hamstrings"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "good_morning",
+      "name": "Good Morning",
+      "short_name": "Good AM",
+      "equipment": "barbell",
+      "muscles": [
+        "hamstrings",
+        "glutes",
+        "back"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "glute_kickback",
+      "name": "Glute Kickback",
+      "short_name": "Glt Kick",
+      "equipment": "cable",
+      "muscles": [
+        "glutes"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "sumo_deadlift",
+      "name": "Sumo Deadlift",
+      "short_name": "Sumo DL",
+      "equipment": "barbell",
+      "muscles": [
+        "glutes",
+        "hamstrings",
+        "back"
+      ],
+      "class": "heavy",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "sumo_squat",
+      "name": "Sumo Squat",
+      "short_name": "Sumo Sq",
+      "equipment": "dumbbell",
+      "muscles": [
+        "glutes",
+        "quads"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "curtsy_lunge",
+      "name": "Curtsy Lunge",
+      "short_name": "Curtsy",
+      "equipment": "dumbbell",
+      "muscles": [
+        "glutes",
+        "quads"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "frog_pump",
+      "name": "Frog Pump",
+      "short_name": "Frog",
+      "equipment": "bodyweight",
+      "muscles": [
+        "glutes"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "single_leg_hip_thrust",
+      "name": "Single-Leg Hip Thrust",
+      "short_name": "SL Thrust",
+      "equipment": "bodyweight",
+      "muscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "cable_pull_through",
+      "name": "Cable Pull-Through",
+      "short_name": "Pull-Thru",
+      "equipment": "cable",
+      "muscles": [
+        "glutes",
+        "hamstrings"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "hip_abduction",
+      "name": "Hip Abduction",
+      "short_name": "Abduction",
+      "equipment": "machine",
+      "muscles": [
+        "glutes"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "hip_adduction",
+      "name": "Hip Adduction",
+      "short_name": "Adduction",
+      "equipment": "machine",
+      "muscles": [
+        "quads"
+      ],
+      "class": "standard",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "plank",
+      "name": "Plank",
+      "short_name": "Plank",
+      "equipment": "bodyweight",
+      "muscles": [
+        "core"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "hanging_leg_raise",
+      "name": "Hanging Leg Raise",
+      "short_name": "Leg Raise",
+      "equipment": "bodyweight",
+      "muscles": [
+        "core"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "cable_crunch",
+      "name": "Cable Crunch",
+      "short_name": "Cbl Crunch",
+      "equipment": "cable",
+      "muscles": [
+        "core"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "russian_twist",
+      "name": "Russian Twist",
+      "short_name": "Twist",
+      "equipment": "dumbbell",
+      "muscles": [
+        "core"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "ab_wheel_rollout",
+      "name": "Ab Wheel Rollout",
+      "short_name": "Ab Wheel",
+      "equipment": "bodyweight",
+      "muscles": [
+        "core"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "sit_up",
+      "name": "Sit-Up",
+      "short_name": "Sit-Up",
+      "equipment": "bodyweight",
+      "muscles": [
+        "core"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "crunch",
+      "name": "Crunch",
+      "short_name": "Crunch",
+      "equipment": "bodyweight",
+      "muscles": [
+        "core"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    },
+    {
+      "key": "mountain_climber",
+      "name": "Mountain Climber",
+      "short_name": "Mtn Climb",
+      "equipment": "bodyweight",
+      "muscles": [
+        "core"
+      ],
+      "class": "bodyweight",
+      "progression": null,
+      "description": ""
+    }
+  ],
+  "workouts": [],
+  "classes": {
+    "heavy": {
+      "rep_low": 5,
+      "rep_high": 8,
+      "rest_seconds": 180,
+      "warmups": true,
+      "progression": "estimated_max"
+    },
+    "standard": {
+      "rep_low": 8,
+      "rep_high": 12,
+      "rest_seconds": 120,
+      "warmups": false,
+      "progression": "estimated_max"
+    },
+    "bodyweight": {
+      "rep_low": 5,
+      "rep_high": 15,
+      "rest_seconds": 90,
+      "warmups": false,
+      "progression": "estimated_max"
+    }
+  },
+  "progressions": {
+    "estimated_max": {
+      "kind": "estimated_max"
+    }
+  },
+  "estimate": {
+    "divisor": 30.0,
+    "reserve_when_hit": 1.0,
+    "fatigue_per_set": 0.5
+  },
+  "time_off": [
+    {
+      "days": 42,
+      "factor": 0.8
+    },
+    {
+      "days": 21,
+      "factor": 0.9
+    }
+  ],
+  "sets": {
+    "default_budget_minutes": 60,
+    "min": 2,
+    "max": 5,
+    "override_sets": 5
+  },
+  "costs": {
+    "set_seconds": 40.0,
+    "warmup_seconds": 240.0,
+    "between_seconds": 120.0,
+    "learn_window_days": 28,
+    "learn_samples": 10,
+    "learn_min_set_seconds": 5.0,
+    "learn_min_gap_seconds": 10.0
+  },
+  "warmups": {
+    "ladder": [
+      {
+        "fraction": 0.4,
+        "reps": 5
+      },
+      {
+        "fraction": 0.55,
+        "reps": 5
+      },
+      {
+        "fraction": 0.7,
+        "reps": 3
+      },
+      {
+        "fraction": 0.85,
+        "reps": 2
+      }
+    ],
+    "rest_seconds": 30
+  },
+  "calibration": {
+    "reps": 5,
+    "rest_seconds": 90,
+    "start_fraction": 0.6,
+    "rung_factor": 1.1,
+    "max_rungs": 6,
+    "too_heavy_reps": 3,
+    "step_down": 0.8,
+    "max_jump_fraction": 2.0,
+    "reserve_zero_to_one": 0.5,
+    "reserve_two_to_four": 3.0,
+    "reserve_five_plus": 8.0
+  },
+  "volume": {
+    "window_days": 7,
+    "target_low": 10,
+    "target_high": 20,
+    "secondary_credit": 0.5,
+    "tie_fraction": 0.8
+  },
+  "recovery": {
+    "hours": {
+      "chest": 48,
+      "back": 48,
+      "quads": 48,
+      "hamstrings": 48,
+      "glutes": 48,
+      "shoulders": 36,
+      "biceps": 36,
+      "triceps": 36,
+      "calves": 24,
+      "core": 24
+    },
+    "default_hours": 48
+  },
+  "rotation_check": {
+    "sets_per_lift": 3.0,
+    "overlap_fraction": 0.7
+  },
+  "end_of_exercise_rest_seconds": 60,
+  "equipment": {
+    "barbell": {
+      "opener": null,
+      "step": {
+        "lb": 5.0,
+        "kg": 2.5
+      }
+    },
+    "dumbbell": {
+      "opener": {
+        "lb": 20.0,
+        "kg": 10.0
+      },
+      "step": {
+        "lb": 5.0,
+        "kg": 2.0
+      }
+    },
+    "machine": {
+      "opener": {
+        "lb": 40.0,
+        "kg": 20.0
+      },
+      "step": {
+        "lb": 5.0,
+        "kg": 2.5
+      }
+    },
+    "cable": {
+      "opener": {
+        "lb": 20.0,
+        "kg": 10.0
+      },
+      "step": {
+        "lb": 5.0,
+        "kg": 2.5
+      }
+    },
+    "bodyweight": {
+      "opener": {
+        "lb": 0.0,
+        "kg": 0.0
+      },
+      "step": {
+        "lb": 0.0,
+        "kg": 0.0
+      }
+    },
+    "plates": {
+      "bar": {
+        "lb": 45.0,
+        "kg": 20.0
+      },
+      "lb": [
+        45.0,
+        35.0,
+        25.0,
+        10.0,
+        5.0,
+        2.5
+      ],
+      "kg": [
+        25.0,
+        20.0,
+        15.0,
+        10.0,
+        5.0,
+        2.5,
+        1.25
+      ]
+    }
+  }
+}

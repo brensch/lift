@@ -4,7 +4,7 @@
 use schlift_core::account::Account;
 use schlift_core::api::View;
 use schlift_core::events::{Event, ExerciseAdjusted, Fact, WorkoutStarted};
-use schlift_core::pb::{Exercise, ExerciseDecision};
+use schlift_core::pb::ExerciseDecision;
 use std::sync::mpsc;
 use std::time::Duration;
 
@@ -30,9 +30,9 @@ fn started(weight: f32) -> Event {
             name: "Workout".into(),
             unit: 1,
             started_at: 1_700_000_000,
-            exercises: vec![Exercise::Squat as i32],
+            exercises: vec!["squat".to_string()],
             decisions: vec![ExerciseDecision {
-                exercise: Exercise::Squat as i32,
+                exercise: "squat".to_string(),
                 sets: 3,
                 reps: 5,
                 weight,
@@ -68,7 +68,7 @@ fn an_exercise_adjusted_to_an_absurd_weight_folds() {
                 at: 1_700_000_010,
                 fact: Fact::ExerciseAdjusted(ExerciseAdjusted {
                     workout_id: "w".into(),
-                    exercise: Exercise::Squat as i32,
+                    exercise: "squat".to_string(),
                     working_weight: 1e9,
                     target_reps: 5,
                     sets: 0,

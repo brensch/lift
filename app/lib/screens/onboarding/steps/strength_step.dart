@@ -34,10 +34,10 @@ class StrengthStep extends StatelessWidget {
   });
 
   static const _shown = [
-    (Exercise.EXERCISE_SQUAT, 'squat'),
-    (Exercise.EXERCISE_BENCH_PRESS, 'bench_press'),
-    (Exercise.EXERCISE_DEADLIFT, 'deadlift'),
-    (Exercise.EXERCISE_OVERHEAD_PRESS, 'overhead_press'),
+    ('squat', 'squat'),
+    ('bench_press', 'bench_press'),
+    ('deadlift', 'deadlift'),
+    ('overhead_press', 'overhead_press'),
   ];
 
   /// The creature for [strength]: the list in copy.yaml, chick first.

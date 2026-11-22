@@ -19,8 +19,8 @@ void main() {
   late ProviderHarness h;
   final navigator = GlobalKey<NavigatorState>();
 
-  const squat = Exercise.EXERCISE_SQUAT;
-  const raise = Exercise.EXERCISE_LATERAL_RAISE;
+  const squat = 'squat';
+  const raise = 'lateral_raise';
 
   Future<void> boot(WidgetTester tester) async {
     await tester.runAsync(() async {

@@ -321,11 +321,6 @@ class AccountSync extends ChangeNotifier
       case SyncResponse_Kind.joinRequests:
         _joinRequests = message.joinRequests;
         notifyListeners();
-      case SyncResponse_Kind.library:
-        // What coupled templates follow; a change shows on home.
-        if (await _core?.setLibrary(message.library.writeToBuffer()) ?? false) {
-          _changed();
-        }
       case SyncResponse_Kind.notSet:
         break;
     }

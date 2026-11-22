@@ -5,7 +5,6 @@ library;
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schlift/gen/workout/v1/wearable.pb.dart';
-import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/providers/workout_provider.dart';
 
 import '../support/provider_harness.dart';
@@ -19,8 +18,8 @@ void main() {
 
   setUp(() async {
     h = await ProviderHarness.boot();
-    await h.seedHistory({Exercise.EXERCISE_SQUAT: (185, 5)});
-    await h.start([Exercise.EXERCISE_SQUAT]);
+    await h.seedHistory({'squat': (185, 5)});
+    await h.start(['squat']);
     workoutId = h.provider.workout!.id;
     startMs = h.provider.workout!.startTime.toInt() * 1000;
   });

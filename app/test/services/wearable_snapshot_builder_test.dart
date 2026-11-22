@@ -33,7 +33,7 @@ void main() {
   test('a first-time set: the usual band, "Open phone!" for the weight, '
       'and the usual card once it is started', () async {
     // Never done: its first set is a calibration set with nothing known.
-    await h.start([Exercise.EXERCISE_DEADLIFT]);
+    await h.start(['deadlift']);
     final first = h.provider.doneTargetSet!;
     expect(first.calibration, isTrue);
 
@@ -64,7 +64,7 @@ void main() {
 
   test('a ramp set done in full: "Open phone!" for the weight, until '
       'answered', () async {
-    await h.start([Exercise.EXERCISE_DEADLIFT]);
+    await h.start(['deadlift']);
     final first = h.provider.doneTargetSet!;
     WearStatusCard card() => WearableSnapshotBuilder.build(
       workoutProvider: h.provider,
@@ -92,7 +92,7 @@ void main() {
   });
 
   test('a missed ramp set or the next set started: the usual card', () async {
-    await h.start([Exercise.EXERCISE_DEADLIFT]);
+    await h.start(['deadlift']);
     final first = h.provider.doneTargetSet!;
     await h.provider.completeSet(
       first.id,

@@ -247,6 +247,14 @@ const ParticipantStatus$json = {
       '5': 9,
       '10': 'firstTimeSetIds'
     },
+    {
+      '1': 'exercises',
+      '3': 13,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseInfo',
+      '10': 'exercises'
+    },
   ],
   '9': [
     {'1': 4, '2': 5},
@@ -267,8 +275,9 @@ final $typed_data.Uint8List participantStatusDescriptor = $convert.base64Decode(
     'dFIJbmV4dFVwU2V0EkcKDnN0YXRlX3NuYXBzaG90GAogASgLMiAud29ya291dC52MS5Xb3Jrb3'
     'V0U3RhdGVTbmFwc2hvdFINc3RhdGVTbmFwc2hvdBIqChFwYXNzZWRfd2FybXVwX2lkcxgLIAMo'
     'CVIPcGFzc2VkV2FybXVwSWRzEisKEmZpcnN0X3RpbWVfc2V0X2lkcxgMIAMoCVIPZmlyc3RUaW'
-    '1lU2V0SWRzSgQIBBAFSgQICBAJSgQICRAKUg9leGVyY2lzZV9ncm91cHNSCnJlc3RfdW50aWxS'
-    'Dmhhc19hY3RpdmVfc2V0');
+    '1lU2V0SWRzEjYKCWV4ZXJjaXNlcxgNIAMoCzIYLndvcmtvdXQudjEuRXhlcmNpc2VJbmZvUgll'
+    'eGVyY2lzZXNKBAgEEAVKBAgIEAlKBAgJEApSD2V4ZXJjaXNlX2dyb3Vwc1IKcmVzdF91bnRpbF'
+    'IOaGFzX2FjdGl2ZV9zZXQ=');
 
 @$core.Deprecated('Use trainingPartnerDescriptor instead')
 const TrainingPartner$json = {

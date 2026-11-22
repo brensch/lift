@@ -1,8 +1,6 @@
 syntax = "proto3";
 package workout.v1;
 
-import "workout/v1/workout.proto";
-
 // First-party usage analytics: which screens a signed-in user opened and for
 // how long, plus the admin-only read side. Nothing here leaves the server.
 
@@ -149,10 +147,15 @@ message TrainingDay {
 }
 
 message ExerciseUse {
-  Exercise exercise = 1;
+  string exercise = 5;
+  // The built-in program's name for it, or the key made readable for a
+  // lift of someone's own program.
+  string name = 6;
   int64 sets = 2;
   int64 lifters = 3;
   double volume_lb = 4;
+  // Exercises were enum numbers before they were keys.
+  reserved 1;
 }
 
 message GetTrainingStatsResponse {

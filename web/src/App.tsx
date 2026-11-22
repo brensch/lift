@@ -10,6 +10,7 @@ import { RecoverPage } from "@/pages/recover";
 import { DashboardPage } from "@/pages/dashboard";
 import { AdminPage } from "@/pages/admin";
 import { ChangesPage } from "@/pages/changes";
+import { ConnectPage } from "@/pages/connect";
 
 export default function App() {
   return (
@@ -27,6 +28,7 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage key="live" />} />
             <Route path="/demo" element={<DashboardPage key="demo" demo />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/connect" element={<ConnectPage />} />
           </Route>
         </Routes>
       </AuthProvider>

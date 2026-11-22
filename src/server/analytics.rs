@@ -51,7 +51,7 @@ fn training_stats(
     // Per UTC day: workouts started, and who started them.
     let mut daily: BTreeMap<i64, (i64, HashSet<String>)> = BTreeMap::new();
     // Per exercise: sets, volume, and who did it.
-    let mut exercises: HashMap<i32, (i64, f64, HashSet<String>)> = HashMap::new();
+    let mut exercises: HashMap<String, (i64, f64, HashSet<String>)> = HashMap::new();
 
     for (row, training) in accounts {
         let mut user = AdminUser {
@@ -87,7 +87,7 @@ fn training_stats(
             day.0 += 1;
             day.1.insert(row.user_id.clone());
             for exercise in &summary.exercises {
-                let used = exercises.entry(exercise.exercise).or_default();
+                let used = exercises.entry(exercise.exercise.clone()).or_default();
                 used.0 += exercise.total_sets as i64;
                 used.1 += exercise.total_volume as f64;
                 used.2.insert(row.user_id.clone());
@@ -131,6 +131,7 @@ fn training_stats(
     response.exercises = exercises
         .into_iter()
         .map(|(exercise, (sets, volume_lb, lifters))| ExerciseUse {
+            name: exercise_name(&exercise),
             exercise,
             sets,
             lifters: lifters.len() as i64,
@@ -415,7 +416,12 @@ impl AdminService for ServerAdminService {
                     workouts: View::new(account, now).list_workout_summaries().workouts,
                     lifting_now: account.active_workout().is_some(),
                 };
-                let templates = account.templates.iter().map(|t| t.name.clone()).collect();
+                let templates = account
+                    .program
+                    .workouts
+                    .iter()
+                    .map(|t| t.name.clone())
+                    .collect();
                 (training, templates)
             })
             .await
@@ -562,6 +568,21 @@ impl AdminService for ServerAdminService {
         Ok(Response::new(DecideRecoveryResponse {
             recovery: Some(recovery_request(recovery)),
         }))
+    }
+}
+
+/// What the admin page calls a lift: the built-in program's name, or the key
+/// made readable (`zercher_squat` → `Zercher squat`) for one of a lifter's
+/// own.
+fn exercise_name(key: &str) -> String {
+    if let Some(def) = schlift_core::program::Program::builtin().exercise(key) {
+        return def.name.clone();
+    }
+    let words = key.replace('_', " ");
+    let mut chars = words.chars();
+    match chars.next() {
+        Some(first) => first.to_uppercase().chain(chars).collect(),
+        None => String::new(),
     }
 }
 
@@ -844,7 +865,7 @@ mod tests {
                 total_volume: volume,
                 duration_seconds: 3_600,
                 exercises: vec![ExerciseSummary {
-                    exercise: Exercise::Squat as i32,
+                    exercise: "squat".to_string(),
                     total_sets: sets,
                     total_volume: volume,
                     ..Default::default()
@@ -946,7 +967,7 @@ mod tests {
         write(now - 3_600, &mut |call| {
             let started = call
                 .start_workout(StartWorkoutRequest {
-                    exercises: vec![Exercise::PullUp as i32],
+                    exercises: vec!["pull_up".to_string()],
                     ..Default::default()
                 })
                 .unwrap();

@@ -7,6 +7,7 @@ import '../gen/workout/v1/workout.pbgrpc.dart' show UserServiceClient;
 import '../gen/workout/v1/group.pbgrpc.dart';
 import '../gen/workout/v1/auth.pbgrpc.dart';
 import '../gen/workout/v1/analytics.pbgrpc.dart';
+import '../gen/workout/v1/assistant.pbgrpc.dart';
 import 'app_logger.dart';
 
 class AuthInterceptor extends ClientInterceptor {
@@ -173,6 +174,7 @@ class GrpcClient {
   late MultiplayerServiceClient multiplayerService;
   late AuthServiceClient authService;
   late AnalyticsServiceClient analyticsService;
+  late AssistantServiceClient assistantService;
 
   GrpcClient({required this.host, required this.port}) {
     authInterceptor = AuthInterceptor();
@@ -216,6 +218,10 @@ class GrpcClient {
     );
     authService = AuthServiceClient(channel, interceptors: _interceptors);
     analyticsService = AnalyticsServiceClient(
+      channel,
+      interceptors: _interceptors,
+    );
+    assistantService = AssistantServiceClient(
       channel,
       interceptors: _interceptors,
     );

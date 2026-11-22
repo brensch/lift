@@ -3,9 +3,12 @@
 Schlift is a strength-training app. A user composes workout templates, logs
 sets against the targets planned for them, and can share a live session with other
 lifters. The account lives on the phone and works fully offline: the Rust
-core (`core/`) is linked into the app and runs every rule there. The server
-keeps a synced copy for multiplayer, the web and analytics. The watch is a
-remote control and sensor for the phone.
+core (`core/`) is linked into the app and runs every rule there. What it
+tells the user to lift comes from the account's **program**, one JSON
+document of training rules, which an assistant (an LLM, over MCP) can
+rewrite. The server keeps a synced copy for multiplayer, the web,
+assistants and analytics. The watch is a remote control and sensor for the
+phone.
 
 ## Components
 
@@ -20,11 +23,13 @@ graph TB
         wear["Wear OS companion<br/>Kotlin"]
         watchos["Apple Watch companion<br/>SwiftUI"]
         webapp["Web<br/>React + Vite"]
+        assistant["Assistant<br/>MCP client"]
     end
 
     subgraph server["Backend — single Rust binary"]
         grpc["tonic gRPC<br/>+ tonic-web"]
         handlers["RPC handlers<br/>src/server/"]
+        mcp["MCP + OAuth<br/>src/mcp/"]
         core["core/ — the same crate<br/>Account, apply, api"]
         dbl["DB layer<br/>src/db/"]
     end
@@ -34,10 +39,13 @@ graph TB
     wear <-->|"Data Layer<br/>protobuf envelopes"| phone
     watchos <-->|"WatchConnectivity<br/>protobuf envelopes"| phone
     phone <-->|"gRPC: Sync stream,<br/>auth, multiplayer"| grpc
-    webapp -->|"gRPC-Web: reads"| grpc
+    webapp -->|"gRPC-Web: reads,<br/>assistant consent"| grpc
+    assistant -->|"HTTP JSON-RPC<br/>/api/mcp"| mcp
     grpc --> handlers
     handlers --> core
     handlers --> dbl
+    mcp --> core
+    mcp --> dbl
     dbl --> sqlite
 ```
 
@@ -49,17 +57,23 @@ account, so a watch works whenever the phone is reachable, network or not.
 
 ```
 core/               The domain, pure Rust (no IO): shared by phone and server
+  programs/         default.json (the built-in program), GUIDE.md (its fields)
   src/events.rs     Event and Fact: what is stored and synced
   src/account.rs    Account, apply, fold
   src/api.rs        The app's RPCs answered from an Account (View / Call)
+  src/program/      The program: types, validation, formulas, loading
+  src/plan.rs       The planner: interprets the program
+  src/simulate.rs   A draft program run over history and forward
+  src/migrate.rs    The one-time move of stored events to programs
   src/projection.rs The account as SQL tables, for an exported file
   src/workout/      Workout planning + state reduction
-  src/exercise_catalog.rs, exercise_progress.rs, volume.rs, …
+  src/exercise_progress.rs, volume.rs, …
   tests/api.rs      The API end to end
   examples/fuzz.rs  The invariant fuzzer
 src/                Rust backend
   server/           gRPC handlers, one module per service
-  db/               SQLite access: auth, sessions, the event store, migrations
+  mcp/              The MCP server and its OAuth endpoints, for assistants
+  db/               SQLite access: auth, sessions, the event store, assistants, migrations
 app/                Flutter app
   native/           The core's host shim: account file, flutter_rust_bridge API
   rust_builder/     cargokit: builds app/native into the app
@@ -71,7 +85,7 @@ app/                Flutter app
   lib/gen/          Generated Dart (protobuf, flutter_rust_bridge) — do not edit
   android/wear/     Wear OS companion (Kotlin)
   ios/SchliftWatch/ Apple Watch companion (SwiftUI)
-web/                React landing, routines, sign-in + dashboard, admin, privacy, account deletion
+web/                React landing, routines, sign-in + dashboard, admin, privacy, account deletion, /connect (assistant consent)
 proto/workout/v1/   Protobuf contracts — source of truth
 ```
 
@@ -143,7 +157,7 @@ graph LR
     internet(("Internet")) -->|"HTTPS<br/>schlift.com"| caddy["Caddy<br/>deploy/Caddyfile"]
 
     caddy -->|"POST /workout.v1.*<br/>h2c"| binary
-    caddy -->|"/api/*, /.well-known/*<br/>/apple-app-site-association"| binary
+    caddy -->|"/api/* (incl. /api/mcp), /.well-known/*<br/>/apple-app-site-association"| binary
     caddy -->|"everything else"| static["/opt/schlift/web<br/>SPA fallback"]
 
     subgraph unit["systemd: schlift.service"]

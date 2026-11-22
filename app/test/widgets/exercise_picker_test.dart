@@ -5,14 +5,40 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schlift/gen/copy.dart';
-import 'package:schlift/gen/workout/v1/workout.pbenum.dart';
+import 'package:schlift/gen/workout/v1/settings.pbenum.dart';
 import 'package:schlift/logic/exercises.dart';
 import 'package:schlift/theme/app_theme.dart';
 import 'package:schlift/widgets/exercise_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
-  setUp(() => SharedPreferences.setMockInitialValues({}));
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+    // The program's exercises, as the core lists them.
+    ExerciseCatalog.setProgram(const [
+      CatalogExercise(
+        key: 'squat',
+        name: 'Squat',
+        shortName: 'Squat',
+        muscles: [
+          MuscleGroup.MUSCLE_GROUP_QUADS,
+          MuscleGroup.MUSCLE_GROUP_GLUTES,
+        ],
+      ),
+      CatalogExercise(
+        key: 'bench_press',
+        name: 'Bench Press',
+        shortName: 'Bench',
+        muscles: [MuscleGroup.MUSCLE_GROUP_CHEST],
+      ),
+      CatalogExercise(
+        key: 'zercher_squat',
+        name: 'Zercher Squat',
+        shortName: 'Zercher',
+        muscles: [MuscleGroup.MUSCLE_GROUP_QUADS],
+      ),
+    ]);
+  });
 
   // The exercise drawings animate for ever, so there is no settling: pump
   // past the sheet's and the dialog's transitions instead.
@@ -22,8 +48,8 @@ void main() {
     }
   }
 
-  Future<List<Set<Exercise>>> open(WidgetTester tester) async {
-    final saved = <Set<Exercise>>[];
+  Future<List<Set<String>>> open(WidgetTester tester) async {
+    final saved = <Set<String>>[];
     await tester.pumpWidget(
       MaterialApp(
         theme: AppTheme.theme,
@@ -76,7 +102,7 @@ void main() {
     await tester.tap(find.text(copy.exercisePicker.save));
     await settle(tester);
     expect(saved, [
-      {exerciseCatalog.first.exercise},
+      {exerciseCatalog.first.key},
     ]);
     expect(find.text(copy.exercisePicker.title), findsNothing);
   });

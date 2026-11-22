@@ -14,9 +14,9 @@
 //! carries on syncing, and folds it once it is updated.
 
 use crate::pb::{
-    ExerciseDecision, ExerciseWeight, ImportedWorkout, LibraryTemplate, UserSetting,
-    WorkoutHeartRatePoint, WorkoutTemplate,
+    ExerciseDecision, ExerciseWeight, ImportedWorkout, UserSetting, WorkoutHeartRatePoint,
 };
+use crate::program::{ExerciseDef, ProgramRef, Rules, WorkoutDef};
 use serde::de::Error as _;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Map, Value};
@@ -119,7 +119,8 @@ impl Event {
         serde_json::to_string(self).is_ok_and(|json| serde_json::from_str::<Event>(&json).is_ok())
     }
 
-    /// Whether the plans it holds are ones an app could have made, by a wide
+    /// Whether the plans and programs it holds are ones an app could have
+    /// made (a program with no error in it), and for plans by a wide
     /// margin (a workout has each lift once; an override asks for at most 20
     /// sets; no history leads past a few thousand pounds). Folding costs grow
     /// with what a plan holds, and a pushed event is folded on the server and
@@ -134,6 +135,14 @@ impl Event {
         match &self.fact {
             Fact::WorkoutStarted(started) => sane(&started.decisions),
             Fact::ExercisesAdded(added) => sane(&added.decisions),
+            // A program is folded on every device: it must be one the core
+            // would set.
+            Fact::ProgramSet(set) => crate::program::check(&set.program).iter().all(|p| !p.error),
+            Fact::ProgramEdited(edited) => match &edited.edit {
+                WorkoutsEdit::Add { workouts } => workouts.len() <= 100,
+                WorkoutsEdit::Reorder { workout_ids, .. } => workout_ids.len() <= 1000,
+                _ => true,
+            },
             _ => true,
         }
     }
@@ -162,10 +171,8 @@ pub enum Fact {
     SessionSet(SessionSet),
     WorkoutEnded(WorkoutEnded),
     HeartRateRecorded(HeartRateRecorded),
-    TemplateSaved(TemplateSaved),
-    TemplateDeleted(TemplateDeleted),
-    TemplatesReordered(TemplatesReordered),
-    LibraryTemplatesAdded(LibraryTemplatesAdded),
+    ProgramSet(ProgramSet),
+    ProgramEdited(ProgramEdited),
     Onboarded(Onboarded),
     SettingUpdated(SettingUpdated),
     HistoryImported(HistoryImported),
@@ -194,10 +201,8 @@ impl Fact {
         "SessionSet",
         "WorkoutEnded",
         "HeartRateRecorded",
-        "TemplateSaved",
-        "TemplateDeleted",
-        "TemplatesReordered",
-        "LibraryTemplatesAdded",
+        "ProgramSet",
+        "ProgramEdited",
         "Onboarded",
         "SettingUpdated",
         "HistoryImported",
@@ -229,8 +234,8 @@ impl Fact {
     }
 }
 
-// Exercises are `crate::pb::Exercise` values and units `crate::pb::WeightUnit`
-// values, as numbers. Times are unix seconds unless named otherwise.
+// Exercises are the program's keys (`squat`), units `crate::pb::WeightUnit`
+// values as numbers. Times are unix seconds unless named otherwise.
 
 /// A workout began, its id the event's: each lift's decision, planned when
 /// it started and in its budget. Everything it needs to fold is in its own
@@ -245,11 +250,17 @@ pub struct WorkoutStarted {
     pub unit: i32,
     pub started_at: i64,
     pub template_id: String,
-    pub exercises: Vec<i32>,
+    pub exercises: Vec<String>,
     pub budget_minutes: i32,
     pub decisions: Vec<ExerciseDecision>,
     /// The workout's motivational quote, as picked at the start.
     pub motivation: String,
+    /// The `ProgramSet` it was planned under (its event's id); empty for
+    /// the built-in program.
+    pub program_id: String,
+    /// What laying its sets out reads, as that program had it; None for the
+    /// built-in rules.
+    pub rules: Option<Box<Rules>>,
 }
 
 /// A set was begun: the lift is under way.
@@ -304,7 +315,7 @@ pub struct RungAnswered {
 #[serde(default)]
 pub struct WarmupsSkipped {
     pub workout_id: String,
-    pub exercise: i32,
+    pub exercise: String,
     /// The one warmup skipped; empty for every undone warmup of the exercise.
     pub proposed_set_id: String,
 }
@@ -314,8 +325,10 @@ pub struct WarmupsSkipped {
 #[serde(default)]
 pub struct ExercisesAdded {
     pub workout_id: String,
-    pub exercises: Vec<i32>,
+    pub exercises: Vec<String>,
     pub decisions: Vec<ExerciseDecision>,
+    /// The added lifts as the program defined them, for laying them out.
+    pub definitions: Vec<ExerciseDef>,
 }
 
 /// A lift's weight (pounds) and reps changed by hand mid-workout.
@@ -323,7 +336,7 @@ pub struct ExercisesAdded {
 #[serde(default)]
 pub struct ExerciseAdjusted {
     pub workout_id: String,
-    pub exercise: i32,
+    pub exercise: String,
     pub working_weight: f32,
     pub target_reps: i32,
     /// How many working sets the exercise has from here on; 0 leaves them.
@@ -334,14 +347,14 @@ pub struct ExerciseAdjusted {
 #[serde(default)]
 pub struct ExerciseRemoved {
     pub workout_id: String,
-    pub exercise: i32,
+    pub exercise: String,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 #[serde(default)]
 pub struct ExercisesReordered {
     pub workout_id: String,
-    pub exercises: Vec<i32>,
+    pub exercises: Vec<String>,
 }
 
 /// The multiplayer session a workout was trained in.
@@ -414,47 +427,65 @@ impl HeartRateRecorded {
     }
 }
 
-/// A template made or changed; `unlink` makes a library one the user's own
-/// even when nothing about it changed.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
-#[serde(default)]
-pub struct TemplateSaved {
-    pub template: WorkoutTemplate,
-    pub unlink: bool,
+/// The account's program, whole, as validated when it was set: every
+/// exercise, workout, progression and number the planner reads. The
+/// latest one plans; workouts started under an earlier one keep it.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct ProgramSet {
+    pub program: ProgramRef,
+    /// Who set it: `app`, `migration` or `mcp:<client>`.
+    #[serde(default)]
+    pub author: String,
+    /// Their one line on why.
+    #[serde(default)]
+    pub note: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
-#[serde(default)]
-pub struct TemplateDeleted {
-    pub template_id: String,
+/// One change to the program's workouts, made in the app (the template
+/// editor, the rotation, the library). It applies to whatever program is
+/// current when it folds, so an edit made offline lands on a program set
+/// meanwhile instead of undoing it. One that would leave the program
+/// invalid (a workout of lifts it no longer has) folds as nothing.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct ProgramEdited {
+    pub edit: WorkoutsEdit,
 }
 
-/// The templates in this order; with `rotation_count`, the first that many
-/// are the rotation and the rest reserves.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
-#[serde(default)]
-pub struct TemplatesReordered {
-    pub template_ids: Vec<String>,
-    pub rotation_count: Option<i32>,
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(tag = "op", rename_all = "snake_case")]
+pub enum WorkoutsEdit {
+    /// The workout as given: in its place when the program has its id,
+    /// at the end when not.
+    Save {
+        workout: WorkoutDef,
+    },
+    Delete {
+        workout_id: String,
+    },
+    /// The workouts in this order (any not named after, as they were);
+    /// with `rotation_count`, those named in the first that many places are
+    /// the rotation and the others named are reserves.
+    Reorder {
+        workout_ids: Vec<String>,
+        rotation_count: Option<i32>,
+    },
+    /// Copies (of library entries) at the end; one whose id the program
+    /// has already is skipped.
+    Add {
+        workouts: Vec<WorkoutDef>,
+    },
 }
 
-/// Library templates copied into the user's list, as they were then.
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
-#[serde(default)]
-pub struct LibraryTemplatesAdded {
-    pub entries: Vec<LibraryTemplate>,
-    pub in_rotation: bool,
-}
-
-/// Sign-up's choices: the unit, the library templates that are the
-/// rotation (as they were then), and a starting weight per lift.
+/// Sign-up's choices: the unit, a starting weight per lift, and the
+/// workouts picked (library copies, the rotation), which join the program
+/// when it has none yet.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 #[serde(default)]
 pub struct Onboarded {
     pub unit: i32,
-    pub library_entries: Vec<LibraryTemplate>,
     pub strength: Option<f32>,
     pub starting_weights: Vec<ExerciseWeight>,
+    pub workouts: Vec<WorkoutDef>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
@@ -493,7 +524,7 @@ pub struct WorkoutEndMoved {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
 #[serde(default)]
 pub struct OverrideSet {
-    pub exercise: i32,
+    pub exercise: String,
     pub weight: f32,
     pub reps: i32,
     pub sets: Option<i32>,

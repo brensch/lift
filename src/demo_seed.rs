@@ -24,16 +24,14 @@ use crate::db::{DbResult, ServerDb};
 use crate::time::now_unix;
 use schlift::workout::v1::{
     workout_mutation, AddLibraryTemplatesRequest, AppendWorkoutMutationsRequest,
-    CompleteSetRequest, CompletedSet, Exercise, ExerciseDecision, ExerciseLog, ExerciseWeight,
-    ImportHistory, ImportedWorkout, ProposedSet, StartSetRequest, StartWorkoutRequest, Workout,
-    WorkoutMutation,
+    CompleteSetRequest, CompletedSet, ExerciseDecision, ExerciseLog, ExerciseWeight, ImportHistory,
+    ImportedWorkout, ProposedSet, StartSetRequest, StartWorkoutRequest, Workout, WorkoutMutation,
 };
 use schlift_core::account::Account;
 use schlift_core::api::Call;
 use schlift_core::events::Event;
-use schlift_core::exercise_catalog::{progression_increment_lb, rules, snap_weight_lb};
 use schlift_core::onboarding::starting_weights_for_strength;
-use schlift_core::plan::{is_bodyweight, max_needed};
+use schlift_core::program::Program;
 use schlift_core::weight_units::AppWeightUnit;
 use uuid::Uuid;
 
@@ -54,15 +52,15 @@ const TEMPLATES: &[&str] = &["stronglifts_a", "stronglifts_b"];
 /// climb the class's range a rep a session and the weight steps up past the
 /// top, from `opening`. Every ninth session the last set comes up a rep
 /// short. Simple and rising; the core's walk works out the max from it.
-fn session_of(ex: Exercise, opening: f32, n: i32) -> (f32, i32, bool) {
-    let r = rules(ex);
+fn session_of(p: &Program, ex: &str, opening: f32, n: i32) -> (f32, i32, bool) {
+    let r = p.class_of(ex);
     let span = r.rep_high - r.rep_low + 1;
     let reps = r.rep_low + n % span;
-    let weight = if is_bodyweight(ex) {
+    let weight = if p.is_bodyweight(ex) {
         0.0
     } else {
-        let step = progression_increment_lb(ex, AppWeightUnit::Lb);
-        snap_weight_lb(ex, opening + step * (n / span) as f32, AppWeightUnit::Lb)
+        let step = p.step_lb(ex, AppWeightUnit::Lb);
+        p.snap_lb(ex, opening + step * (n / span) as f32, AppWeightUnit::Lb)
     };
     (weight, reps, n % 9 == 8)
 }
@@ -72,36 +70,28 @@ fn session_of(ex: Exercise, opening: f32, n: i32) -> (f32, i32, bool) {
 fn session(
     name: &str,
     template_id: &str,
-    exercises: &[i32],
-    openings: &BTreeMap<i32, f32>,
-    done: &mut HashMap<i32, i32>,
+    exercises: &[String],
+    openings: &BTreeMap<String, f32>,
+    done: &mut HashMap<String, i32>,
     start: i64,
 ) -> ImportedWorkout {
+    let p = Program::builtin();
     let workout_id = Uuid::new_v4().to_string();
     let mut proposed = Vec::new();
     let mut completed = Vec::new();
     let mut logs = Vec::new();
     let mut clock = start + 120;
-    for &value in exercises {
-        let Ok(ex) = Exercise::try_from(value) else {
-            continue;
-        };
-        let r = rules(ex);
-        let n = done.entry(value).or_insert(0);
-        let opening = openings.get(&value).copied().unwrap_or(0.0);
-        let (weight, reps, missed) = session_of(ex, opening, *n);
+    for ex in exercises {
+        let ex = ex.as_str();
+        let r = p.class_of(ex).clone();
+        let n = done.entry(ex.to_string()).or_insert(0);
+        let opening = openings.get(ex).copied().unwrap_or(0.0);
+        let (weight, reps, missed) = session_of(&p, ex, opening, *n);
         *n += 1;
         let warmups: &[f32] = if r.warmups { &[0.5, 0.75] } else { &[] };
         let mut sets: Vec<(f32, i32, i32, bool)> = warmups
             .iter()
-            .map(|f| {
-                (
-                    snap_weight_lb(ex, weight * f, AppWeightUnit::Lb),
-                    5,
-                    5,
-                    true,
-                )
-            })
+            .map(|f| (p.snap_lb(ex, weight * f, AppWeightUnit::Lb), 5, 5, true))
             .collect();
         for set_no in 0..SETS {
             let actual = if missed && set_no == SETS - 1 {
@@ -118,7 +108,7 @@ fn session(
                 id: id.clone(),
                 workout_id: workout_id.clone(),
                 workout_order: proposed.len() as i32,
-                exercise: value,
+                exercise: ex.to_string(),
                 target_reps: target,
                 target_weight: w,
                 warmup,
@@ -140,7 +130,7 @@ fn session(
         }
         logs.push(ExerciseLog {
             decision: Some(ExerciseDecision {
-                exercise: value,
+                exercise: ex.to_string(),
                 sets: SETS,
                 reps,
                 weight,
@@ -148,7 +138,11 @@ fn session(
                 warmups: r.warmups,
                 rep_low: r.rep_low,
                 rep_high: r.rep_high,
-                max: max_needed(weight, reps, SETS, is_bodyweight(ex)),
+                max: p
+                    .estimate
+                    .max_needed(weight, reps, SETS, p.is_bodyweight(ex)),
+                progression: p.progression_name(ex).to_string(),
+                progression_kind: p.progression_of(ex).kind().to_string(),
                 budget_minutes: 60,
                 ..Default::default()
             }),
@@ -185,13 +179,13 @@ fn live_session(account: &mut Account, template_id: &str, now: i64) -> Vec<Event
                 ..Default::default()
             })
             .expect("the demo template starts");
-        let mut exercises: Vec<i32> = Vec::new();
+        let mut exercises: Vec<String> = Vec::new();
         for set in &started.proposed_sets {
             if !exercises.contains(&set.exercise) {
-                exercises.push(set.exercise);
+                exercises.push(set.exercise.clone());
             }
         }
-        let done: Vec<i32> = exercises.into_iter().take(LIVE_DONE_EXERCISES).collect();
+        let done: Vec<String> = exercises.into_iter().take(LIVE_DONE_EXERCISES).collect();
         let mut clock = start + 120;
         let mut last_done = start;
         for set in started
@@ -263,17 +257,16 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
             library_ids: TEMPLATES.iter().map(|id| id.to_string()).collect(),
             // The demo's workouts are its rotation, as onboarding's are.
             in_rotation: true,
-            ..Default::default()
         })
         .expect("the demo templates are in the library");
         events.append(&mut call.events);
     }
-    let templates = account.templates.clone();
+    let templates = account.program.workouts.clone();
 
-    let openings: BTreeMap<i32, f32> = starting_weights_for_strength(STRENGTH, AppWeightUnit::Lb)
-        .into_iter()
-        .map(|(ex, w)| (ex as i32, w))
-        .collect();
+    let openings: BTreeMap<String, f32> =
+        starting_weights_for_strength(&Program::builtin(), STRENGTH, AppWeightUnit::Lb)
+            .into_iter()
+            .collect();
     let mut done = HashMap::new();
     // Sessions on a Mon/Wed/Fri rhythm, most recent one two days ago so the
     // recovery view shows a mix of recovered and recovering muscles.
@@ -305,8 +298,8 @@ async fn seed_one(db: &ServerDb, username: &str, live: bool) -> DbResult<()> {
             workouts,
             starting_weights: openings
                 .iter()
-                .map(|(&exercise, &weight_lb)| ExerciseWeight {
-                    exercise,
+                .map(|(exercise, &weight_lb)| ExerciseWeight {
+                    exercise: exercise.clone(),
                     weight_lb,
                 })
                 .collect(),
@@ -344,7 +337,7 @@ mod tests {
         let account = db.read_account("demo-demo", Clone::clone).await.unwrap();
         assert_eq!(account.workouts.len() as i64, WEEKS * 3);
         assert!(account.active_workout_id.is_empty());
-        let walk = Planner::new(&account, now_unix()).walk(Exercise::Squat);
+        let walk = Planner::new(&account, now_unix()).walk("squat");
         let (first, last) = (walk.points.first().unwrap().1, walk.max.unwrap());
         assert!(last > first, "the squat's max rises: {first} -> {last}");
 

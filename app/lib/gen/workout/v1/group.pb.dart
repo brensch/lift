@@ -626,6 +626,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     $1.WorkoutStateSnapshot? stateSnapshot,
     $core.Iterable<$core.String>? passedWarmupIds,
     $core.Iterable<$core.String>? firstTimeSetIds,
+    $core.Iterable<$1.ExerciseInfo>? exercises,
   }) {
     final result = create();
     if (user != null) result.user = user;
@@ -637,6 +638,7 @@ class ParticipantStatus extends $pb.GeneratedMessage {
     if (stateSnapshot != null) result.stateSnapshot = stateSnapshot;
     if (passedWarmupIds != null) result.passedWarmupIds.addAll(passedWarmupIds);
     if (firstTimeSetIds != null) result.firstTimeSetIds.addAll(firstTimeSetIds);
+    if (exercises != null) result.exercises.addAll(exercises);
     return result;
   }
 
@@ -667,6 +669,8 @@ class ParticipantStatus extends $pb.GeneratedMessage {
         subBuilder: $1.WorkoutStateSnapshot.create)
     ..pPS(11, _omitFieldNames ? '' : 'passedWarmupIds')
     ..pPS(12, _omitFieldNames ? '' : 'firstTimeSetIds')
+    ..pPM<$1.ExerciseInfo>(13, _omitFieldNames ? '' : 'exercises',
+        subBuilder: $1.ExerciseInfo.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -757,6 +761,11 @@ class ParticipantStatus extends $pb.GeneratedMessage {
   /// As GetWorkoutResponse.first_time_set_ids.
   @$pb.TagNumber(12)
   $pb.PbList<$core.String> get firstTimeSetIds => $_getList(8);
+
+  /// As GetWorkoutResponse.exercises: their lifts as their program defines
+  /// them, so a lift of their own has its name here too.
+  @$pb.TagNumber(13)
+  $pb.PbList<$1.ExerciseInfo> get exercises => $_getList(9);
 }
 
 /// Someone the caller has shared at least one session with.

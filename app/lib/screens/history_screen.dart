@@ -383,7 +383,7 @@ class _HistoryItem {
   final Workout workout;
   final double volume;
   final int workingSets;
-  final List<Exercise> exercises;
+  final List<String> exercises;
   _HistoryItem({
     required this.workout,
     required this.volume,

@@ -2,16 +2,17 @@
 //! events. `apply` is the only way it changes, and it runs the same on the
 //! phone (to show a write now) and on the server (to keep its copy).
 
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet, HashSet};
 
-use crate::events::{Event, Fact, HistoryImported, Onboarded, OverrideSet, WorkoutStarted};
+use crate::events::{
+    Event, Fact, HistoryImported, OverrideSet, ProgramEdited, ProgramSet, WorkoutStarted,
+    WorkoutsEdit,
+};
 use crate::history::WorkoutRecord;
 use crate::ids::Ids;
-use crate::pb::{
-    user_setting, Exercise, ExerciseDecision, LibraryTemplate, UserSetting, WeightUnit,
-    WeightUnitConfig, Workout, WorkoutTemplate,
-};
+use crate::pb::{user_setting, ExerciseDecision, UserSetting, Workout};
 use crate::plan::Override;
+use crate::program::{Program, ProgramRef};
 use crate::weight_units::{unit_from_proto, AppWeightUnit};
 use crate::workout::{self as reducer, WorkoutError};
 
@@ -45,21 +46,37 @@ fn invalid(message: impl Into<String>) -> CoreError {
     CoreError::InvalidArgument(message.into())
 }
 
+/// One program the account has had: who set it, when and why.
+#[derive(Clone, Debug, PartialEq)]
+pub struct ProgramVersion {
+    /// The `ProgramSet` event's id.
+    pub id: String,
+    pub at: i64,
+    pub author: String,
+    pub note: String,
+    pub program: ProgramRef,
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Account {
     /// At most one per kind.
     pub settings: Vec<UserSetting>,
-    /// In the user's order.
-    pub templates: Vec<WorkoutTemplate>,
+    /// Every program set, oldest first. The last is the one that plans; with
+    /// none, the built-in program does.
+    pub programs: Vec<ProgramVersion>,
+    /// The program that plans: the last set, or the built-in one.
+    pub program: ProgramRef,
     /// Per exercise: the weight a lift never done calibrates from (lb),
     /// from onboarding or imported history.
-    pub starting_weights: BTreeMap<i32, f32>,
+    pub starting_weights: BTreeMap<String, f32>,
     /// Per exercise: the user's latest override.
-    pub overrides: BTreeMap<i32, Override>,
+    pub overrides: BTreeMap<String, Override>,
     /// In the order they were started.
     pub workouts: Vec<WorkoutRecord>,
     /// The workout under way, or empty.
     pub active_workout_id: String,
+    /// Sign-up is done.
+    pub onboarded: bool,
     /// Heart-rate readings are left out: the server never reads them (the
     /// phone shows them), and they are most of what an account holds.
     pub without_heart_rate: bool,
@@ -110,67 +127,33 @@ impl Account {
                     workout.heart_rate = samples;
                 }
             }
-            Fact::TemplateSaved(saved) => {
-                let mut template = saved.template.clone();
-                // A library template stays coupled only while it is saved
-                // unchanged; a real change makes it the user's own. New
-                // templates are always the user's own.
-                let keeps = self.template(&template.id).filter(|t| {
-                    !saved.unlink
-                        && t.coupled
-                        && t.name == template.name
-                        && t.exercises == template.exercises
-                });
-                match keeps {
-                    Some(existing) => {
-                        template.coupled = true;
-                        template.library_id = existing.library_id.clone();
-                    }
-                    None => {
-                        template.coupled = false;
-                        template.library_id.clear();
-                    }
-                }
-                // Where it came from outlives the coupling.
-                template.origin_library_id = self
-                    .template(&template.id)
-                    .map(|t| t.origin_library_id.clone())
-                    .unwrap_or_default();
-                self.save_template(template, at, &mut ids)?;
-            }
-            Fact::TemplateDeleted(deleted) => {
-                self.templates.retain(|t| t.id != deleted.template_id);
-            }
-            Fact::TemplatesReordered(reordered) => {
-                if reordered.rotation_count.is_some_and(|n| n < 0) {
-                    return Err(invalid("rotation_count is negative"));
-                }
-                for (order, id) in reordered.template_ids.iter().enumerate() {
-                    if let Some(t) = self.templates.iter_mut().find(|t| &t.id == id) {
-                        t.order = order as i32;
-                        if let Some(n) = reordered.rotation_count {
-                            t.in_rotation = (order as i32) < n;
-                        }
-                    }
-                }
-                self.sort_templates();
-            }
-            Fact::LibraryTemplatesAdded(added) => {
-                for entry in &added.entries {
-                    if self.templates.iter().any(|t| t.library_id == entry.id) {
-                        continue; // already in the user's list
-                    }
-                    self.save_template(library_copy(entry, added.in_rotation), at, &mut ids)?;
-                }
-            }
+            Fact::ProgramSet(set) => self.set_program(set, &event.id, at),
+            Fact::ProgramEdited(edited) => self.edit_program(edited)?,
             Fact::OverrideSet(set) => self.set_override(set, at)?,
-            Fact::Onboarded(onboarded) => self.complete_onboarding(onboarded, at, &mut ids)?,
-            Fact::SettingUpdated(updated) => {
-                let setting = updated.setting.clone();
-                let kind = setting_kind(&setting).ok_or_else(|| invalid("setting is empty"))?;
-                self.settings.retain(|s| setting_kind(s) != Some(kind));
-                self.settings.push(setting);
+            Fact::Onboarded(onboarded) => {
+                if onboarded.unit != crate::pb::WeightUnit::Unspecified as i32 {
+                    self.set_setting(UserSetting {
+                        setting: Some(user_setting::Setting::WeightUnit(
+                            crate::pb::WeightUnitConfig {
+                                unit: onboarded.unit,
+                            },
+                        )),
+                    })?;
+                }
+                for w in &onboarded.starting_weights {
+                    self.starting_weights
+                        .insert(w.exercise.clone(), w.weight_lb);
+                }
+                if self.program.workouts.is_empty() && !onboarded.workouts.is_empty() {
+                    self.edit_program(&ProgramEdited {
+                        edit: WorkoutsEdit::Add {
+                            workouts: onboarded.workouts.clone(),
+                        },
+                    })?;
+                }
+                self.onboarded = true;
             }
+            Fact::SettingUpdated(updated) => self.set_setting(updated.setting.clone())?,
             Fact::HistoryImported(imported) => self.import(imported),
             Fact::WorkoutDiscarded(discarded) => {
                 let index = self
@@ -208,6 +191,24 @@ impl Account {
             .unwrap_or(AppWeightUnit::Lb)
     }
 
+    /// The id of the program that plans; empty for the built-in one.
+    pub fn program_id(&self) -> &str {
+        self.programs.last().map_or("", |v| v.id.as_str())
+    }
+
+    /// The program set by event `id`; None for "" (the built-in one) or
+    /// one this account never had.
+    pub fn program_by_id(&self, id: &str) -> Option<&ProgramRef> {
+        if id.is_empty() {
+            return None;
+        }
+        self.programs
+            .iter()
+            .rev()
+            .find(|v| v.id == id)
+            .map(|v| &v.program)
+    }
+
     pub fn workout(&self, id: &str) -> Option<&WorkoutRecord> {
         self.workouts.iter().find(|r| r.workout.id == id)
     }
@@ -226,20 +227,25 @@ impl Account {
         self.workout(&self.active_workout_id)
     }
 
-    pub fn template(&self, id: &str) -> Option<&WorkoutTemplate> {
-        self.templates.iter().find(|t| t.id == id)
-    }
-
-    /// The user has [library_id]: a template follows it or was made from it.
-    pub fn has_library_entry(&self, library_id: &str) -> bool {
-        self.templates.iter().any(|t| follows(t, library_id))
+    /// Every exercise the account names in its history, overrides and
+    /// starting weights: what a program must keep.
+    pub fn exercises_used(&self) -> BTreeSet<String> {
+        let mut used: BTreeSet<String> = self
+            .workouts
+            .iter()
+            .flat_map(|r| r.proposed_sets.iter().map(|s| s.exercise.clone()))
+            .collect();
+        used.extend(self.overrides.keys().cloned());
+        used.extend(self.starting_weights.keys().cloned());
+        used.remove("");
+        used
     }
 
     // ── Writes ──
 
     /// A start: the workout, with the name and unit it started with, its
-    /// sets laid out from the decisions recorded on the event. Nothing else
-    /// of the account is read.
+    /// sets laid out from the decisions recorded on the event by the
+    /// program it was planned under. Nothing else of the account is read.
     fn start_workout(
         &mut self,
         req: &WorkoutStarted,
@@ -257,6 +263,11 @@ impl Account {
         let mut record = WorkoutRecord::new(workout, Vec::new(), Vec::new());
         let unit = unit_from_proto(req.unit);
         record.unit = unit;
+        record.program = req
+            .rules
+            .as_ref()
+            .map(|rules| ProgramRef::new(rules.program()))
+            .unwrap_or_else(Program::builtin);
         require_decisions(&record, &req.exercises, &req.decisions)?;
         reducer::apply_add_exercises(&mut record, &req.decisions, unit, ids)?;
         self.workouts.push(record);
@@ -316,6 +327,14 @@ impl Account {
             }
             Fact::ExercisesAdded(added) => {
                 require_decisions(&record, &added.exercises, &added.decisions)?;
+                if added
+                    .definitions
+                    .iter()
+                    .any(|d| !record.program.knows(&d.key))
+                {
+                    record.program =
+                        ProgramRef::new(record.program.with_exercises(&added.definitions));
+                }
                 reducer::apply_add_exercises(&mut record, &added.decisions, unit, ids)?
             }
             Fact::ExerciseAdjusted(adjusted) => {
@@ -346,52 +365,88 @@ impl Account {
         Ok(())
     }
 
-    /// Create (empty id) or update a template.
-    fn save_template(
-        &mut self,
-        mut template: WorkoutTemplate,
-        at: i64,
-        ids: &mut Ids,
-    ) -> Result<(), CoreError> {
-        if template.name.trim().is_empty() {
-            return Err(invalid("A template needs a name"));
+    /// A program, whole, as the one that plans from now on. Programs are
+    /// checked when recorded (`api::Call::set_program`, and the server for
+    /// a pushed one); the fold takes what was recorded.
+    fn set_program(&mut self, set: &ProgramSet, id: &str, at: i64) {
+        self.program = set.program.clone();
+        self.programs.push(ProgramVersion {
+            id: id.to_string(),
+            at,
+            author: set.author.clone(),
+            note: set.note.clone(),
+            program: set.program.clone(),
+        });
+    }
+
+    /// An edit to the current program's workouts, if the program it
+    /// leaves checks out.
+    fn edit_program(&mut self, edited: &ProgramEdited) -> Result<(), CoreError> {
+        let mut workouts = self.program.workouts.clone();
+        match &edited.edit {
+            WorkoutsEdit::Save { workout } => {
+                match workouts.iter_mut().find(|w| w.id == workout.id) {
+                    Some(existing) => *existing = workout.clone(),
+                    None => workouts.push(workout.clone()),
+                }
+            }
+            WorkoutsEdit::Delete { workout_id } => workouts.retain(|w| &w.id != workout_id),
+            WorkoutsEdit::Reorder {
+                workout_ids,
+                rotation_count,
+            } => {
+                if rotation_count.is_some_and(|n| n < 0) {
+                    return Err(invalid("rotation_count is negative"));
+                }
+                let rank = |id: &str| {
+                    workout_ids
+                        .iter()
+                        .position(|w| w == id)
+                        .unwrap_or(usize::MAX)
+                };
+                workouts.sort_by_key(|w| rank(&w.id));
+                // The split is by place in the list given, a workout named
+                // there but gone since counted: what the edit meant.
+                if let Some(n) = rotation_count {
+                    for w in workouts.iter_mut() {
+                        if let Some(at) = workout_ids.iter().position(|id| *id == w.id) {
+                            w.rotation = (at as i32) < *n;
+                        }
+                    }
+                }
+            }
+            WorkoutsEdit::Add { workouts: added } => {
+                for workout in added {
+                    if !workouts.iter().any(|w| w.id == workout.id) {
+                        workouts.push(workout.clone());
+                    }
+                }
+            }
         }
-        if template.exercises.is_empty() {
-            return Err(invalid("A template needs at least one exercise"));
+        let program = self.program.with_workouts(workouts);
+        if let Some(problem) = crate::program::check(&program)
+            .into_iter()
+            .find(|p| p.error)
+        {
+            return Err(invalid(format!("{}: {}", problem.path, problem.message)));
         }
-        if template.id.is_empty() {
-            template.id = ids.new_id();
-            template.created_at = at;
-            template.order = self
-                .templates
-                .iter()
-                .map(|t| t.order + 1)
-                .max()
-                .unwrap_or(0);
-        } else if let Some(existing) = self.template(&template.id) {
-            template.created_at = existing.created_at;
-            template.order = existing.order;
-        } else {
-            template.created_at = at;
-        }
-        template.updated_at = at;
-        self.templates.retain(|t| t.id != template.id);
-        self.templates.push(template);
-        self.sort_templates();
+        self.program = ProgramRef::new(program);
         Ok(())
     }
 
-    fn sort_templates(&mut self) {
-        self.templates.sort_by_key(|t| (t.order, t.created_at));
+    fn set_setting(&mut self, setting: UserSetting) -> Result<(), CoreError> {
+        let kind = setting_kind(&setting).ok_or_else(|| invalid("setting is empty"))?;
+        self.settings.retain(|s| setting_kind(s) != Some(kind));
+        self.settings.push(setting);
+        Ok(())
     }
 
     /// The user's own weight and reps (and maybe sets) for a lift, replacing
     /// any before; reps of 0 removes it.
     fn set_override(&mut self, req: &OverrideSet, at: i64) -> Result<(), CoreError> {
-        Exercise::try_from(req.exercise)
-            .ok()
-            .filter(|ex| *ex != Exercise::Unspecified)
-            .ok_or_else(|| invalid("Unknown exercise"))?;
+        if !self.program.knows(&req.exercise) {
+            return Err(invalid("Unknown exercise"));
+        }
         if req.reps <= 0 {
             self.overrides.remove(&req.exercise);
             return Ok(());
@@ -403,7 +458,7 @@ impl Account {
             return Err(invalid("Sets out of range"));
         }
         self.overrides.insert(
-            req.exercise,
+            req.exercise.clone(),
             Override {
                 at,
                 weight: req.weight,
@@ -411,37 +466,6 @@ impl Account {
                 sets: req.sets,
             },
         );
-        Ok(())
-    }
-
-    /// The unit always; then, the first time only (no templates yet): the
-    /// starting weights recorded on the event, and the library entries
-    /// ticked (the defaults when none are named).
-    fn complete_onboarding(
-        &mut self,
-        req: &Onboarded,
-        at: i64,
-        ids: &mut Ids,
-    ) -> Result<(), CoreError> {
-        if req.unit != WeightUnit::Unspecified as i32 {
-            self.settings
-                .retain(|s| setting_kind(s) != Some(SettingKind::WeightUnit));
-            self.settings.push(UserSetting {
-                setting: Some(user_setting::Setting::WeightUnit(WeightUnitConfig {
-                    unit: req.unit,
-                })),
-            });
-        }
-        if !self.templates.is_empty() {
-            return Ok(());
-        }
-        for w in &req.starting_weights {
-            self.starting_weights.insert(w.exercise, w.weight_lb);
-        }
-        // The workouts picked at onboarding are the rotation.
-        for entry in &req.library_entries {
-            self.save_template(library_copy(entry, true), at, ids)?;
-        }
         Ok(())
     }
 
@@ -466,36 +490,34 @@ impl Account {
                 },
                 exercise_logs: imported.exercise_logs.clone(),
                 unit: self.unit(),
+                program: self.program.clone(),
             });
         }
         self.workouts.sort_by_key(|r| r.workout.start_time);
         for w in &req.starting_weights {
-            self.starting_weights.insert(w.exercise, w.weight_lb);
+            self.starting_weights
+                .insert(w.exercise.clone(), w.weight_lb);
         }
     }
 }
 
 /// Every lift a start or an add names carries the decision recorded for
 /// it, unless the workout already has one. The sets are laid out from the
-/// decisions alone, so a lift named without one (a log from before plans
-/// were recorded) is refused rather than folded into an empty workout.
+/// decisions alone, so a lift named without one is refused rather than
+/// folded into an empty workout.
 fn require_decisions(
     record: &WorkoutRecord,
-    exercises: &[i32],
+    exercises: &[String],
     decisions: &[ExerciseDecision],
 ) -> Result<(), CoreError> {
-    let decided = |ex: i32| {
+    let decided = |ex: &str| {
         decisions.iter().any(|d| d.exercise == ex)
             || record
                 .exercise_logs
                 .iter()
                 .any(|log| log.decision.as_ref().is_some_and(|d| d.exercise == ex))
     };
-    let undecided = exercises
-        .iter()
-        .filter(|ex| Exercise::try_from(**ex).is_ok_and(|ex| ex != Exercise::Unspecified))
-        .any(|ex| !decided(*ex));
-    if undecided {
+    if exercises.iter().any(|ex| !ex.is_empty() && !decided(ex)) {
         return Err(invalid("A lift has no recorded decision"));
     }
     Ok(())
@@ -513,24 +535,4 @@ fn setting_kind(setting: &UserSetting) -> Option<SettingKind> {
         Some(user_setting::Setting::WeightUnit(_)) => Some(SettingKind::WeightUnit),
         None => None,
     }
-}
-
-/// A library entry in the user's list: a new template (empty id, given one
-/// and an order on save), coupled to the entry and made from it, in
-/// rotation or a reserve.
-fn library_copy(entry: &LibraryTemplate, in_rotation: bool) -> WorkoutTemplate {
-    WorkoutTemplate {
-        in_rotation,
-        name: entry.name.clone(),
-        exercises: entry.exercises.clone(),
-        library_id: entry.id.clone(),
-        origin_library_id: entry.id.clone(),
-        coupled: true,
-        ..Default::default()
-    }
-}
-
-/// [template] follows library entry [library_id] or was made from it.
-pub fn follows(template: &WorkoutTemplate, library_id: &str) -> bool {
-    template.library_id == library_id || template.origin_library_id == library_id
 }

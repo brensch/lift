@@ -179,7 +179,7 @@ mod session_history_tests {
         let mut call = schlift_core::api::Call::new(&mut account, at, Uuid::new_v4().to_string());
         let started = call
             .start_workout(StartWorkoutRequest {
-                exercises: vec![Exercise::PullUp as i32],
+                exercises: vec!["pull_up".to_string()],
                 ..Default::default()
             })
             .unwrap();

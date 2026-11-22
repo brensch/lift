@@ -600,9 +600,22 @@ mod tests {
         .await
         .unwrap()
         .unwrap();
+        let client = db
+            .register_assistant(u, &["https://claude.ai/cb".into()])
+            .await
+            .unwrap();
+        let consent = crate::db::Consent {
+            user_id: u.into(),
+            client_id: client.client_id,
+            redirect_uri: "https://claude.ai/cb".into(),
+            code_challenge: "c".into(),
+            scope: "program".into(),
+        };
+        db.issue_assistant_code(&consent).await.unwrap();
+        db.grant_assistant(&consent).await.unwrap();
         for sql in [
             r#"INSERT INTO account_events (user_id, seq, id, event)
-               VALUES (?, 1, 'e', '{"seq":1,"id":"e","at":1,"TemplateDeleted":{"template_id":"t"}}')"#,
+               VALUES (?, 1, 'e', '{"seq":1,"id":"e","at":1,"WorkoutDiscarded":{"workout_id":"w"}}')"#,
             "INSERT INTO page_views (user_id, app_session_id, seq, page, entered_at_ms)
              VALUES (?, 's', 1, 'home', 1)",
         ] {

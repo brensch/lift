@@ -67,7 +67,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -92384301;
+  int get rustContentHash => 1096010202;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -155,11 +155,6 @@ abstract class RustLibApi extends BaseApi {
     required String partner,
     required List<int> packed,
     required bool whole,
-  });
-
-  Future<bool> crateApiSetLibrary({
-    required int handle,
-    required List<int> packed,
   });
 }
 
@@ -777,40 +772,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   TaskConstMeta get kCrateApiReceivePartnerConstMeta => const TaskConstMeta(
     debugName: "receive_partner",
     argNames: ["handle", "partner", "packed", "whole"],
-  );
-
-  @override
-  Future<bool> crateApiSetLibrary({
-    required int handle,
-    required List<int> packed,
-  }) {
-    return handler.executeNormal(
-      NormalTask(
-        callFfi: (port_) {
-          final serializer = SseSerializer(generalizedFrbRustBinding);
-          sse_encode_u_32(handle, serializer);
-          sse_encode_list_prim_u_8_loose(packed, serializer);
-          pdeCallFfi(
-            generalizedFrbRustBinding,
-            serializer,
-            funcId: 20,
-            port: port_,
-          );
-        },
-        codec: SseCodec(
-          decodeSuccessData: sse_decode_bool,
-          decodeErrorData: sse_decode_String,
-        ),
-        constMeta: kCrateApiSetLibraryConstMeta,
-        argValues: [handle, packed],
-        apiImpl: this,
-      ),
-    );
-  }
-
-  TaskConstMeta get kCrateApiSetLibraryConstMeta => const TaskConstMeta(
-    debugName: "set_library",
-    argNames: ["handle", "packed"],
   );
 
   @protected

@@ -481,11 +481,11 @@ class Scenario {
 
   /// Every lift the default templates can prescribe.
   static const defaultTemplateLifts = [
-    Exercise.EXERCISE_SQUAT,
-    Exercise.EXERCISE_BARBELL_ROW,
-    Exercise.EXERCISE_BENCH_PRESS,
-    Exercise.EXERCISE_OVERHEAD_PRESS,
-    Exercise.EXERCISE_DEADLIFT,
+    'squat',
+    'barbell_row',
+    'bench_press',
+    'overhead_press',
+    'deadlift',
   ];
 
   /// The home card's start button.
@@ -570,7 +570,7 @@ class Scenario {
   /// at its weight (an override, so it skips the calibration ramp).
   Future<void> startWorkoutInApp(
     String name,
-    List<MapEntry<Exercise, double>> lifts, {
+    List<MapEntry<String, double>> lifts, {
     int sets = 5,
     int reps = 5,
   }) async {
@@ -603,7 +603,7 @@ class Scenario {
   /// at their weights, every working set done, ended.
   Future<void> doWorkoutInApp(
     String name,
-    List<MapEntry<Exercise, double>> lifts, {
+    List<MapEntry<String, double>> lifts, {
     int sets = 5,
     int reps = 5,
   }) async {
