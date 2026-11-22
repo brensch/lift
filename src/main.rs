@@ -2,7 +2,8 @@ use axum::{routing::get, Json};
 use http::{header::HeaderName, Method};
 use schlift::workout::v1::{
     admin_service_server::AdminServiceServer, analytics_service_server::AnalyticsServiceServer,
-    auth_service_server::AuthServiceServer, multiplayer_service_server::MultiplayerServiceServer,
+    assistant_service_server::AssistantServiceServer, auth_service_server::AuthServiceServer,
+    multiplayer_service_server::MultiplayerServiceServer,
     settings_service_server::SettingsServiceServer, sync_service_server::SyncServiceServer,
     user_service_server::UserServiceServer, workout_service_server::WorkoutServiceServer,
 };
@@ -13,14 +14,16 @@ mod auth;
 mod db;
 #[cfg(feature = "test-auth")]
 mod demo_seed;
+mod mcp;
 mod server;
 mod time;
 
 use auth::AuthState;
 use db::ServerDb;
 use server::{
-    ServerAdminService, ServerAnalyticsService, ServerAuthService, ServerMultiplayerService,
-    ServerSettingsService, ServerSyncService, ServerUserService, ServerWorkoutService,
+    ServerAdminService, ServerAnalyticsService, ServerAssistantService, ServerAuthService,
+    ServerMultiplayerService, ServerSettingsService, ServerSyncService, ServerUserService,
+    ServerWorkoutService,
 };
 use tracing::{error, info};
 use tracing_subscriber::{fmt, EnvFilter};
@@ -90,6 +93,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             HeaderName::from_static("x-user-agent"),
         ]);
 
+    let mcp = mcp::Mcp::new(server_db.clone());
     let grpc_router = tonic::service::Routes::new(tonic_web::enable(WorkoutServiceServer::new(
         ServerWorkoutService {
             db: server_db.clone(),
@@ -134,6 +138,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             db: server_db.clone(),
         },
     )))
+    .add_service(tonic_web::enable(AssistantServiceServer::new(
+        ServerAssistantService {
+            db: server_db.clone(),
+            mcp: mcp.clone(),
+        },
+    )))
     .into_axum_router();
 
     let app = axum::Router::new()
@@ -147,6 +157,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             "/apple-app-site-association",
             get(apple_app_site_association_handler),
         )
+        .merge(mcp::router(mcp))
         .fallback_service(grpc_router)
         .layer(cors);
 

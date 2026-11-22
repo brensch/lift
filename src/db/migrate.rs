@@ -79,6 +79,14 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 7 {
+        let mut tx = pool.begin().await?;
+        v7(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 7")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     Ok(())
 }
 
@@ -459,6 +467,51 @@ async fn v6(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
     Ok(())
 }
 
+/// Assistants connected over MCP (`db/assistants.rs`): the clients that
+/// registered, the codes a consent issued, the grants made and their
+/// tokens, each code and token stored as its hash. (`IF NOT EXISTS`: a
+/// database rewound to an earlier version in a test runs it again.)
+async fn v7(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS assistant_clients (
+             client_id TEXT PRIMARY KEY,
+             client_name TEXT NOT NULL,
+             -- A JSON array of the exact redirect URIs it registered.
+             redirect_uris TEXT NOT NULL,
+             created_at INTEGER NOT NULL
+         );
+         CREATE TABLE IF NOT EXISTS assistant_codes (
+             code_hash TEXT PRIMARY KEY,
+             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             client_id TEXT NOT NULL REFERENCES assistant_clients(client_id) ON DELETE CASCADE,
+             redirect_uri TEXT NOT NULL,
+             code_challenge TEXT NOT NULL,
+             scope TEXT NOT NULL,
+             expires_at INTEGER NOT NULL
+         );
+         CREATE TABLE IF NOT EXISTS assistant_grants (
+             grant_id TEXT PRIMARY KEY,
+             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             client_id TEXT NOT NULL REFERENCES assistant_clients(client_id) ON DELETE CASCADE,
+             scope TEXT NOT NULL,
+             created_at INTEGER NOT NULL,
+             last_used_at INTEGER NOT NULL DEFAULT 0
+         );
+         CREATE INDEX IF NOT EXISTS assistant_grants_user ON assistant_grants(user_id);
+         CREATE TABLE IF NOT EXISTS assistant_tokens (
+             token_hash TEXT PRIMARY KEY,
+             grant_id TEXT NOT NULL REFERENCES assistant_grants(grant_id) ON DELETE CASCADE,
+             -- 'access' or 'refresh'.
+             kind TEXT NOT NULL,
+             expires_at INTEGER NOT NULL
+         );
+         CREATE INDEX IF NOT EXISTS assistant_tokens_grant ON assistant_tokens(grant_id);",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::db::ServerDb;
@@ -513,7 +566,7 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-        assert_eq!(version, 6);
+        assert_eq!(version, 7);
         drop(db);
         // Opening again runs nothing.
         ServerDb::new_in_dir(&dir).await.unwrap();
