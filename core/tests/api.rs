@@ -3589,3 +3589,390 @@ mod sessions {
         assert_eq!(app.log.len(), logged, "no such workout: nothing logged");
     }
 }
+
+mod programs {
+    use super::*;
+    use schlift_core::program::{ExerciseDef, Program, Progression};
+
+    /// The account's program as a document to edit.
+    fn current(app: &App) -> Program {
+        (*app.account.program).clone()
+    }
+
+    fn set(app: &mut App, program: &Program, author: &str) -> SetProgramResponse {
+        app.call()
+            .set_program(SetProgramRequest {
+                program_json: program.to_json(),
+                note: "a test".into(),
+                author: author.into(),
+            })
+            .unwrap()
+    }
+
+    fn errors(problems: &[ProgramProblem]) -> Vec<String> {
+        problems
+            .iter()
+            .filter(|p| p.error)
+            .map(|p| format!("{}: {}", p.path, p.message))
+            .collect()
+    }
+
+    fn zercher() -> ExerciseDef {
+        ExerciseDef {
+            key: "zercher_squat".into(),
+            name: "Zercher Squat".into(),
+            short_name: "Zercher".into(),
+            equipment: schlift_core::program::EquipmentStyle::Barbell,
+            muscles: vec![
+                schlift_core::program::Muscle::Quads,
+                schlift_core::program::Muscle::Glutes,
+            ],
+            class: "heavy".into(),
+            progression: Some("lp".into()),
+            description: "The bar in the crooks of the elbows.".into(),
+        }
+    }
+
+    fn with_linear(mut p: Program) -> Program {
+        p.progressions.insert(
+            "lp".into(),
+            Progression::Linear {
+                sets: Some(3),
+                reps: 5,
+                increment_lb: 0.0,
+                deload_after_fails: 3,
+                deload_factor: 0.9,
+            },
+        );
+        p
+    }
+
+    /// A program set whole is the one that plans, is in the history with
+    /// who set it and why, and reads back through GetProgram.
+    #[test]
+    fn a_program_set_plans_and_is_kept() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let mut p = with_linear(current(&app));
+        p.name = "Linear".into();
+        for e in p.exercises.iter_mut().filter(|e| e.key == "squat") {
+            e.progression = Some("lp".into());
+        }
+        let response = set(&mut app, &p, "mcp:test");
+        assert_eq!(errors(&response.problems), Vec::<String>::new());
+        let summary = response.summary.unwrap();
+        assert_eq!(
+            (summary.name.as_str(), summary.author.as_str()),
+            ("Linear", "mcp:test")
+        );
+        assert_eq!(summary.note, "a test");
+
+        let squat = plan(&app, "squat");
+        assert_eq!(squat.progression, "lp");
+        assert_eq!(squat.progression_kind, "linear");
+        assert_eq!(squat.sets, 3, "the rule's sets, not the budget's");
+
+        let got = app.view().get_program();
+        assert_eq!(Program::parse(&got.program_json).unwrap(), p);
+        assert!(got.guide.contains("# Writing a Schlift program"));
+        assert_eq!(home(&mut app).program.unwrap().name, "Linear");
+        let version = app
+            .view()
+            .get_program_version(GetProgramVersionRequest { id: summary.id })
+            .unwrap();
+        assert_eq!(Program::parse(&version.program_json).unwrap(), p);
+    }
+
+    /// A draft with an error is refused and nothing is recorded: its
+    /// problems come back, each with its path.
+    #[test]
+    fn a_bad_program_is_refused() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let events = app.log.len();
+        let mut p = current(&app);
+        p.sets.max = 0;
+        let response = set(&mut app, &p, "mcp:test");
+        assert!(response.summary.is_none());
+        assert!(errors(&response.problems)
+            .iter()
+            .any(|e| e.starts_with("sets.max")));
+        let not_json = app
+            .call()
+            .set_program(SetProgramRequest {
+                program_json: "{".into(),
+                ..Default::default()
+            })
+            .unwrap();
+        assert!(!errors(&not_json.problems).is_empty());
+        assert_eq!(app.log.len(), events, "nothing recorded");
+        let checked = app
+            .view()
+            .validate_program(ValidateProgramRequest {
+                program_json: p.to_json(),
+            })
+            .unwrap();
+        assert_eq!(checked.problems, response.problems);
+    }
+
+    /// A program the account has history against can't drop the lifts in
+    /// it.
+    #[test]
+    fn a_program_keeps_the_lifts_the_account_has_done() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        import_session(&mut app, "squat", 200.0, 5, &[5, 5, 5], NOW - DAY);
+        let mut p = current(&app);
+        p.exercises.retain(|e| e.key != "squat");
+        for w in &mut p.workouts {
+            w.exercises.retain(|e| e != "squat");
+        }
+        let response = set(&mut app, &p, "mcp:test");
+        assert!(errors(&response.problems)
+            .iter()
+            .any(|e| e.contains("\"squat\" has history")));
+    }
+
+    /// An exercise the program adds is planned, ramped, laid out, lifted
+    /// and progressed like any other, and the app can list it.
+    #[test]
+    fn a_custom_exercise_trains_end_to_end() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let mut p = with_linear(current(&app));
+        p.exercises.push(zercher());
+        p.workouts.push(schlift_core::program::WorkoutDef {
+            id: "z".into(),
+            name: "Zercher day".into(),
+            exercises: vec!["zercher_squat".into(), "pull_up".into()],
+            rotation: true,
+            notes: String::new(),
+            from_library: String::new(),
+        });
+        assert_eq!(
+            errors(&set(&mut app, &p, "mcp:test").problems),
+            Vec::<String>::new()
+        );
+        let listed = app.view().list_exercises();
+        let info = listed
+            .exercises
+            .iter()
+            .find(|e| e.key == "zercher_squat")
+            .expect("listed");
+        assert_eq!(info.name, "Zercher Squat");
+        assert_eq!(info.progression, "lp");
+        assert_eq!(listed.lb.unwrap().bar, 45.0);
+
+        // Never done: it ramps.
+        let first = app
+            .call()
+            .start_workout(StartWorkoutRequest {
+                template_id: "z".into(),
+                ..Default::default()
+            })
+            .unwrap();
+        let d = decision(&first, "zercher_squat");
+        assert!(d.calibration);
+        assert_eq!((d.rep_low, d.rep_high), (5, 5));
+        app.call()
+            .discard_workout(DiscardWorkoutRequest {
+                workout_id: first.id,
+            })
+            .unwrap();
+
+        // With a session behind it: linear, five more pounds.
+        import_session(&mut app, "zercher_squat", 135.0, 5, &[5, 5, 5], NOW - DAY);
+        let next = plan(&app, "zercher_squat");
+        assert_eq!((next.weight, next.reps, next.sets), (140.0, 5, 3));
+        let started = app
+            .call()
+            .start_workout(StartWorkoutRequest {
+                template_id: "z".into(),
+                ..Default::default()
+            })
+            .unwrap();
+        assert_eq!(working(&started.proposed_sets, "zercher_squat").len(), 3);
+        assert!(
+            started
+                .proposed_sets
+                .iter()
+                .any(|s| s.exercise == "zercher_squat" && s.warmup),
+            "heavy: a warmup ladder"
+        );
+    }
+
+    /// An app edit made offline lands on a program set meanwhile instead
+    /// of undoing it.
+    #[test]
+    fn an_edit_rebases_onto_a_program_set_meanwhile() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let synced = app.log.clone();
+        let workout = app.account.program.workouts[0].clone();
+        // The phone, offline: renames a workout.
+        let mut phone = Account::fold(&synced);
+        let mut call = Call::new(&mut phone, NOW + 10, "phone");
+        let mut renamed = schlift_core::api::template_of(&workout);
+        renamed.name = "Mine".into();
+        call.save_template(SaveTemplateRequest {
+            template: Some(renamed),
+        })
+        .unwrap();
+        let edit = call.events.clone();
+        // The assistant, meanwhile: a new rule for squat.
+        let mut p = with_linear(current(&app));
+        p.name = "Assistant".into();
+        let mut server = Account::fold(&synced);
+        let mut call = Call::new(&mut server, NOW + 5, "assistant");
+        call.set_program(SetProgramRequest {
+            program_json: p.to_json(),
+            author: "mcp:test".into(),
+            ..Default::default()
+        })
+        .unwrap();
+        let program = call.events.clone();
+        // Placed: the assistant's program, then the phone's edit.
+        let log: Vec<Event> = synced
+            .iter()
+            .chain(&program)
+            .chain(&edit)
+            .cloned()
+            .collect();
+        let account = Account::fold(&log);
+        assert_eq!(account.program.name, "Assistant", "kept");
+        assert!(account.program.progressions.contains_key("lp"));
+        assert_eq!(account.program.workout(&workout.id).unwrap().name, "Mine");
+    }
+
+    /// A workout keeps the rules it was planned under: a program set while
+    /// it runs changes none of its sets, here or on a partner's phone.
+    #[test]
+    fn a_workout_keeps_its_rules() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        import_session(&mut app, "squat", 200.0, 5, &[5, 5, 5], NOW - DAY);
+        let mut p = current(&app);
+        p.warmups.ladder.truncate(2);
+        p.warmups.rest_seconds = 45;
+        set(&mut app, &p, "mcp:test");
+        let started = start(&mut app, &["squat"]);
+        let warmups = |sets: &[ProposedSet]| {
+            sets.iter()
+                .filter(|s| s.warmup)
+                .map(|s| (s.target_weight, s.rest_seconds))
+                .collect::<Vec<_>>()
+        };
+        let before = warmups(&started.proposed_sets);
+        assert_eq!(before.len(), 2);
+        assert_eq!(before[0].1, 45);
+        // Back to the built-in rules mid-workout.
+        app.call().reset_program(ResetProgramRequest {}).unwrap();
+        let after = app
+            .view()
+            .get_workout(GetWorkoutRequest {
+                workout_id: started.id.clone(),
+            })
+            .unwrap();
+        assert_eq!(warmups(&after.proposed_sets), before);
+        // A partner folds the same sets from the workout's events alone.
+        let shared: Vec<Event> = app
+            .log
+            .iter()
+            .filter(|e| schlift_core::session::shared_with_partners(&e.fact))
+            .filter(|e| e.workout_id() == Some(started.id.as_str()))
+            .cloned()
+            .collect();
+        let seen = schlift_core::session::partner_status(&shared, NOW - 60, 0, NOW).unwrap();
+        assert_eq!(seen.proposed_sets, after.proposed_sets);
+    }
+
+    /// Back to the built-in rules: the workouts stay, and so does a lift
+    /// of the program's own that they or the history name.
+    #[test]
+    fn a_reset_keeps_the_workouts_and_custom_lifts() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let mut p = with_linear(current(&app));
+        p.exercises.push(zercher());
+        set(&mut app, &p, "mcp:test");
+        import_session(&mut app, "zercher_squat", 135.0, 5, &[5, 5, 5], NOW - DAY);
+        let workouts = app.account.program.workouts.clone();
+        let summary = app
+            .call()
+            .reset_program(ResetProgramRequest {})
+            .unwrap()
+            .summary
+            .unwrap();
+        assert_eq!(summary.author, "app");
+        let program = &app.account.program;
+        assert_eq!(program.workouts, workouts);
+        let kept = program.exercise("zercher_squat").expect("kept");
+        assert_eq!(kept.progression, None, "on its class's rule again");
+        assert!(!program.progressions.contains_key("lp"));
+        assert_eq!(
+            plan(&app, "zercher_squat").progression_kind,
+            "estimated_max"
+        );
+    }
+
+    /// The simulator: forward under linear, a step a session while every
+    /// rep is hit; held when the last set falls short; and the history
+    /// planned again by a draft beside what was recorded.
+    #[test]
+    fn a_draft_can_be_simulated() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        import_session(&mut app, "squat", 200.0, 5, &[5, 5, 5], NOW - 3 * DAY);
+        import_session(&mut app, "squat", 205.0, 5, &[5, 5, 4], NOW - DAY);
+        let mut p = with_linear(current(&app));
+        for e in p.exercises.iter_mut().filter(|e| e.key == "squat") {
+            e.progression = Some("lp".into());
+        }
+        let squats = |effort: SimulatedEffort, sessions: i32| {
+            app.view()
+                .simulate_program(SimulateProgramRequest {
+                    program_json: p.to_json(),
+                    sessions,
+                    every_days: 2,
+                    effort: effort as i32,
+                    template_id: app.account.program.workouts[0].id.clone(),
+                    history: 2,
+                    ..Default::default()
+                })
+                .unwrap()
+        };
+        let run = squats(SimulatedEffort::AllHit, 3);
+        assert!(run.problems.iter().all(|p| !p.error));
+        let (past, ahead): (Vec<_>, Vec<_>) = run.workouts.iter().partition(|w| w.past);
+        assert_eq!(past.len(), 2);
+        let recorded_then = |w: &SimulatedWorkout| {
+            w.lifts
+                .iter()
+                .find(|l| l.exercise == "squat")
+                .map(|l| (l.decision.as_ref().unwrap().weight, l.done_weight, l.hit))
+        };
+        // The second past session: the draft would have said 205 after 200
+        // × 5 × 3; 205 was lifted, a rep short.
+        assert_eq!(recorded_then(past[1]), Some((205.0, 205.0, false)));
+        let weights: Vec<f32> = ahead.iter().map(|w| recorded_then(w).unwrap().0).collect();
+        assert_eq!(
+            weights,
+            vec![205.0, 210.0, 215.0],
+            "a miss holds, then a step a session"
+        );
+        let held = squats(SimulatedEffort::LastSetShort, 3);
+        let weights: Vec<f32> = held
+            .workouts
+            .iter()
+            .filter(|w| !w.past)
+            .map(|w| recorded_then(w).unwrap().0)
+            .collect();
+        assert_eq!(
+            weights,
+            vec![205.0, 205.0, 180.0],
+            "three misses: 90%, snapped down"
+        );
+        // Nothing of either is recorded.
+        assert_eq!(Account::fold(&app.log), app.account);
+    }
+}

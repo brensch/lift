@@ -105,11 +105,15 @@ fn backtest(account: &Account, draft: &Program, count: usize) -> Vec<SimulatedWo
                 ..account.clone()
             };
             let recorded = first_decisions(record);
-            let exercises: Vec<String> = recorded
-                .iter()
-                .map(|d| d.exercise.clone())
-                .filter(|ex| draft.knows(ex))
-                .collect();
+            // Its lifts in the order planned: by its decisions, or (history
+            // brought in without them) its sets.
+            let mut exercises: Vec<String> = recorded.iter().map(|d| d.exercise.clone()).collect();
+            for set in &record.proposed_sets {
+                if !exercises.contains(&set.exercise) {
+                    exercises.push(set.exercise.clone());
+                }
+            }
+            exercises.retain(|ex| draft.knows(ex));
             let budget = recorded.first().map_or(0, |d| d.budget_minutes);
             let planned =
                 Planner::with_program(&before, draft, start).workout(&exercises, &[], budget);

@@ -168,7 +168,25 @@ pub fn get_workout_response_from_active(active: &WorkoutRecord, now: i64) -> Get
         state_snapshot,
         summary,
         exercise_logs: active.exercise_logs.clone(),
+        exercises: workout_exercises(active),
     }
+}
+
+/// The workout's lifts, in the order they first appear, as the program it
+/// was planned under defines them.
+fn workout_exercises(active: &WorkoutRecord) -> Vec<crate::pb::ExerciseInfo> {
+    let mut keys: Vec<String> = Vec::new();
+    for set in &active.proposed_sets {
+        if !keys.contains(&set.exercise) {
+            keys.push(set.exercise.clone());
+        }
+    }
+    active
+        .program
+        .definitions(&keys)
+        .iter()
+        .map(|def| crate::api::exercise_info(&active.program, def))
+        .collect()
 }
 
 pub fn start_workout_response_from_active(
@@ -183,6 +201,7 @@ pub fn start_workout_response_from_active(
         completed_sets: resp.completed_sets,
         next_up_set: resp.next_up_set,
         state_snapshot: resp.state_snapshot,
+        exercises: resp.exercises,
         exercise_logs: resp.exercise_logs,
     }
 }
