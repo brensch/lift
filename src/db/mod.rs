@@ -10,6 +10,7 @@ use crate::time::now_unix;
 
 mod accounts;
 mod analytics;
+mod assistants;
 mod auth;
 mod changes;
 mod migrate;
@@ -20,6 +21,7 @@ mod session;
 pub use session::JOIN_REQUEST_TTL_SECONDS;
 
 pub use analytics::MAX_STATS_WINDOW_DAYS;
+pub use assistants::{Client, Consent};
 pub use recovery::{shown_code, Approval, Held, Recovery, RECOVERY_TTL_SECONDS};
 pub use training::AccountRow;
 
