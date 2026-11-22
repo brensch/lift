@@ -1,7 +1,12 @@
 # Programs as config
 
-**Status: being built** on the `program-config` branch. This file is the
-spec. The architecture docs are updated as each part lands.
+**Status: built** on the `program-config` branch. This was the spec; the
+architecture docs describe what was built. Where they differ, the code
+chose: app template edits are `ProgramEdited` ops rebased onto the current
+program (not whole `ProgramSet`s), `Onboarded` carries the workouts it
+copies (no `ProgramSet` follows), the MCP is at `/api/mcp`, its tables are
+`assistant_clients/codes/grants/tokens`, and assistants are listed on
+Settings → Program.
 
 ## The idea
 
@@ -225,7 +230,7 @@ The server's template library transport goes away. The library is
 
 ## The MCP
 
-The MCP is on the server binary at `/mcp` (Streamable HTTP, JSON-RPC 2.0).
+The MCP is on the server binary at `/api/mcp` (Streamable HTTP, JSON-RPC 2.0).
 
 ### Auth
 
@@ -237,8 +242,9 @@ The MCP uses OAuth 2.1 as the MCP authorisation spec describes it:
 - a consent page: sign in with your passkey, see the client's name, Allow.
 
 Access tokens are short-lived, with a rotating refresh token. Grants are
-server-owned rows in `mcp_clients`, `mcp_grants` and `mcp_tokens`, keyed to
-`users(id) ON DELETE CASCADE`. Settings → Connected assistants lists the
+server-owned rows in `assistant_clients`, `assistant_codes`,
+`assistant_grants` and `assistant_tokens`, keyed to
+`users(id) ON DELETE CASCADE`. Settings → Program lists the
 grants and revokes them.
 
 ### Tools

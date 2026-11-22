@@ -12,7 +12,7 @@ graph LR
     UI[Flutter screens] --> P[providers]
     P -->|method + proto bytes| N[app/native: Store]
     N --> C[core: Account, apply, api]
-    N --> F[(account file: events, pending, meta, library)]
+    N --> F[(account file: events, pending, meta)]
     N -.->|export| X[(exported file: events + readable tables)]
   end
   N -->|pending| S[AccountSync: Sync stream]
@@ -25,8 +25,8 @@ graph LR
 ## The account is a fold of events
 
 `core/src/account.rs`. Every write the app makes records an `Event`
-(`core/src/events.rs`): a workout started, a set done, a template saved, a
-setting changed. An event is a fact, stored and synced as JSON:
+(`core/src/events.rs`): a workout started, a set done, a program set or a
+template edited, a setting changed. An event is a fact, stored and synced as JSON:
 
 ```json
 {"seq":12,"id":"9b1c…","at":1793680431,"SetCompleted":{"workout_id":"…","proposed_set_id":"…","actual_reps":5,"actual_weight":135.0,"completed_at":1793680431}}
@@ -41,12 +41,41 @@ setting changed. An event is a fact, stored and synced as JSON:
 
 A fact is what the rules decided, never the request that led to it:
 `WorkoutStarted` carries every lift's decision (sets, reps, weight, the max
-and the reasons), `Onboarded` the starting weights and the library entries
-as they were, every time is filled in. The fold lays those out; it never
-plans and never consults the library, so a change to the rules, or to the
-app's requests, changes nothing already recorded. The protos are only the
-API: facts hold proto messages (a template, a decision) but are not
-messages themselves.
+and the reasons) and the program's rules it lays its sets out by,
+`Onboarded` the starting weights and the workouts copied from the library
+as they were, `ProgramSet` the whole program document, every time is
+filled in. The fold lays those out; it never plans and never consults the
+library, so a change to the rules, or to the app's requests, changes
+nothing already recorded. The protos are only the API: facts hold proto
+messages (a decision, a starting weight) but are not messages themselves.
+
+### The program in the log
+
+The account's training rules are its program (see
+[workout-lifecycle.md](workout-lifecycle.md#the-program)). Two facts change
+it:
+
+- **`ProgramSet { program, author, note }`** — the whole document, inline as
+  JSON, validated when it was recorded. `author` is `app`, `migration` or
+  `mcp:<client>`. The latest one plans; the account keeps every one by its
+  event id (`Account::programs`), so the history can be shown and an older
+  one set again. With none, the built-in program (`core/programs/default.json`,
+  no workouts) plans.
+- **`ProgramEdited { edit }`** — one change the app made to the program's
+  workouts (`save`, `delete`, `reorder` with an optional `rotation_count`,
+  `add` library copies). It is an op, not a document: it applies to
+  whatever program is current when it folds, so an edit made offline lands
+  on a program an assistant set meanwhile instead of undoing it. One that
+  would leave the program invalid folds as nothing.
+
+A workout records the program it was planned under: `WorkoutStarted`
+carries `program_id` (the `ProgramSet` event's id, `""` for the built-in)
+and `rules`, the part of that program laying its sets out reads (the
+estimate, warmups, calibration, equipment and the workout's own exercise
+definitions). `ExercisesAdded` carries the added lifts' `definitions` the
+same way. So a workout folds the same on a session partner's phone, which
+holds only that workout's events, and on a replay where a program set
+elsewhere was placed before a workout started offline.
 
 Facts are only ever added to. A field may be added (old events take its
 default); one renamed or removed — in a fact, or in a proto message a fact
@@ -87,10 +116,23 @@ log's shape.
 
 `core/src/api.rs` answers the app's RPCs from an `Account`, with the existing
 request and response protos. `View` is every read (home, a workout, history,
-progress, settings); `Call` adds the writes, each of which decides its fact,
+progress, settings, the program); `Call` adds the writes, each of which decides its fact,
 records it as one event (a batch of workout mutations records one each) and
 answers from the account after it. `api::call(call, "StartWorkout", bytes)` dispatches by gRPC method
 name, so the app keeps its generated types and only the transport changed.
+
+The program's RPCs are core-only (the phone and the server's MCP tools call
+them; no gRPC service exposes them): `GetProgram` (the current program's
+summary and JSON, the earlier ones, the guide), `GetProgramVersion` (one
+earlier document), `SetProgram` (validate against the account, then record
+`ProgramSet`), `ResetProgram` (the built-in rules with the current workouts
+and any of the program's own lifts they or the history name),
+`ValidateProgram` (a draft's problems, each with its path),
+`SimulateProgram` (`core/src/simulate.rs`: a draft run over the recorded
+history and forward N sessions; nothing is recorded) and `ListExercises`
+(the program's exercises as the app shows them). The template RPCs
+(`SaveTemplate`, `DeleteTemplate`, `ReorderTemplates`,
+`AddLibraryTemplates`, `ApplyLibraryPlan`) record `ProgramEdited`.
 
 ## On the phone
 
@@ -100,15 +142,18 @@ name, so the app keeps its generated types and only the transport changed.
   generate` in `app/`). Its `Store` keeps the account in memory and the file
   on disk: `events` (the history the server has placed, by seq),
   `pending` (this device's events it hasn't placed yet, in the order they
-  were recorded), `meta` (whose account) and `library` (the template library
-  the server last sent). The account is the history folded, with what's
-  pending on top. A write is in the file before the app is answered.
+  were recorded) and `meta` (whose account). The template library is built
+  into the core (`templates/library.yaml`); nothing of it is synced or
+  stored. The account is the history folded, with what's pending on top. A
+  write is in the file before the app is answered.
 - Heart rate is gathered in the file's own `heart_rate` table while a
   workout runs, and recorded once it ends: one `HeartRateRecorded` with
   every reading, compact (the first time, the gaps, the bpms). It is most of
   what an account holds, so a workout is one such event, not hundreds.
-- A file from before facts (`PRAGMA user_version` below the store's
-  `FORMAT`) has its events dropped on opening: the server sends them again.
+- A file from an earlier format (`PRAGMA user_version` below the store's
+  `FORMAT`, now 2: programs, exercises as keys) has its events dropped on
+  opening, placed and pending alike, and any old `library` table with
+  them: the server sends its migrated copy again.
 - The account is the user's: Settings → Export writes the log with the
   readable tables of `core/src/projection.rs` beside it (every workout, set
   and lift's decision as plain tables). Only an export has those tables.
@@ -184,11 +229,17 @@ bad wifi is found in seconds. The phone also sends HTTP/2 keepalive pings.
 - `account_events` is the history, `(user_id, seq, id, event)` with the
   event as JSON, and the only place the server keeps the account: it
   places and appends what is pushed, folding nothing (`src/db/accounts.rs`).
+  A pushed event is checked first (`Event::plans_are_sane`): a
+  `ProgramSet` must hold a program with no errors, since every device
+  folds it.
   No workout, set or template is copied into a table, and nothing of an
   account is held in memory.
 - The workout reads the web makes (`WorkoutService`, `SettingsService`) are
   answered by the core's `View` over the account folded from its history
-  then — the same code as the phone.
+  then — the same code as the phone. An assistant's MCP tools read the
+  same way, and `set_program` writes through the core's `Call` and places
+  the `ProgramSet` like a pushed event, so the person's phones hear it
+  over Sync ([backend.md](backend.md#mcp-assistants)).
 - Changes are told only to the streams they concern (`src/db/changes.rs`):
   an account's new events, membership and join requests to that user's
   streams, a session's to its members' — however many are connected, a

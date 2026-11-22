@@ -10,7 +10,7 @@ log is made and synced.
 ```mermaid
 graph LR
     log["Event log<br/>(the truth)"] -->|"Account::fold"| acc["Account<br/>in memory"]
-    acc -->|"projection.rs<br/>(export only)"| tables["Exported file<br/>workouts, sets, heart rate,<br/>exercise decisions, templates"]
+    acc -->|"projection.rs<br/>(export only)"| tables["Exported file<br/>workouts, sets, heart rate,<br/>exercise decisions, programs,<br/>templates, exercises"]
 ```
 
 ## The event log
@@ -28,13 +28,17 @@ one fact — `WorkoutStarted` (with each lift's decision), `SetStarted`,
 `SetCompleted`, `SetEdited`, `SetUndone`, `RungAnswered`, `WarmupsSkipped`,
 `ExercisesAdded`, `ExerciseAdjusted`, `ExerciseRemoved`,
 `ExercisesReordered`, `SessionSet`, `WorkoutEnded`, `HeartRateRecorded`,
-`TemplateSaved`, `TemplateDeleted`, `TemplatesReordered`,
-`LibraryTemplatesAdded`, `Onboarded`, `SettingUpdated`, `HistoryImported`,
-`OverrideSet`, `WorkoutDiscarded`, `WorkoutEndMoved`. A kind this version
-doesn't know is kept and folds as nothing.
+`ProgramSet` (the whole program document), `ProgramEdited` (one app edit
+to its workouts), `Onboarded` (with the workouts it copies in),
+`SettingUpdated`, `HistoryImported`, `OverrideSet`, `WorkoutDiscarded`,
+`WorkoutEndMoved`. A kind this version doesn't know is kept and folds as
+nothing. Exercises are named everywhere by their program key (`squat`,
+`bench_press`), a string; see
+[local-first.md](local-first.md#the-program-in-the-log) for the program
+facts.
 
 `seq` runs 1, 2, 3… with no gaps, given by the server; a pending event has
-none yet. Ids the event creates (the workout, its sets, a template) derive
+none yet. Ids the event creates (the workout, its sets, a copied workout) derive
 from the event's `id` (`core/src/ids.rs`), so a replay rebuilds them
 exactly. Facts are only added to, never renamed: see
 [local-first.md](local-first.md#the-account-is-a-fold-of-events).
@@ -42,12 +46,15 @@ exactly. Facts are only added to, never renamed: see
 ## The account
 
 `Account` (`core/src/account.rs`) is what the fold produces: settings,
-templates, the starting weights (per lift, from onboarding or imported
+the program that plans and every program set before it (`programs`, by
+event id; the workouts, i.e. the templates, are part of the program), the
+starting weights (per lift, from onboarding or imported
 history), the user's overrides (per lift: weight, reps, maybe sets, and
 when), every workout (`WorkoutRecord`: the workout, its proposed and
 completed sets, heart rate, and per lift its `ExerciseLog` — the decision
 it was laid out from and every weight change since), and the active
-workout's id. Nothing else is kept: each lift's estimated max is walked
+workout's id. Each `WorkoutRecord` also holds the program its sets were
+laid out by (from the start's recorded `rules`). Nothing else is kept: each lift's estimated max is walked
 from the workouts whenever a plan is made (`core/src/plan.rs`). The
 account is never stored whole; the phone holds it in memory while the
 account is open, and the server folds it from its history only when the
@@ -85,7 +92,7 @@ erDiagram
         TEXT id PK
         TEXT workout_id
         INTEGER workout_order
-        INTEGER exercise "enum"
+        TEXT exercise "program key"
         INTEGER target_reps
         REAL target_weight
         INTEGER warmup
@@ -113,7 +120,7 @@ erDiagram
         TEXT id PK "workout id : position"
         TEXT workout_id
         INTEGER position "the order planned"
-        INTEGER exercise "enum"
+        TEXT exercise "program key"
         INTEGER sets
         INTEGER reps
         REAL weight
@@ -123,9 +130,14 @@ erDiagram
     }
 ```
 
-`WORKOUT_SCHEMA` (above) and `ACCOUNT_SCHEMA` (`workout_templates`) are
-what an export contains. The phone's live file holds only `meta`, `events`,
-`pending` and `library`; the server's holds only `account_events` for the account.
+`WORKOUT_SCHEMA` (above) and `ACCOUNT_SCHEMA` are what an export
+contains. `ACCOUNT_SCHEMA` is `programs` (every program the account has
+had: id, when, author, note, `current`, and the document as JSON),
+`workout_templates` (the current program's workouts in order, with
+`in_rotation` and `from_library`) and `exercises` (the current program's
+exercises: key, names, equipment, muscles, class, progression). The
+phone's live file holds only `meta`, `events`, `pending` and `heart_rate`;
+the server's holds only `account_events` for the account.
 
 - **`end_time = 0` means in progress.** There is no status column;
   zero-as-null is the convention.
@@ -144,66 +156,72 @@ what an export contains. The phone's live file holds only `meta`, `events`,
 
 ### Template library
 
-`templates/library.yaml` is the source of truth for the templates everyone
-can pick from: `groups` (key + label, in display order) and `templates`
+`templates/library.yaml` is the source of truth for the workouts everyone
+can copy: `groups` (key + label, in display order) and `templates`
 (stable `id`, `name`, `group`, `blurb`, optional `default: true`, and the
-exercises as `Exercise` enum names without the `EXERCISE_` prefix), and
-`plans`: ready-made rotations (stable `id`, `name`, `blurb`, and
+exercises as keys of the built-in program, `core/programs/default.json`),
+and `plans`: ready-made rotations (stable `id`, `name`, `blurb`, and
 `templates`, a list of template ids). The core embeds the file at build
 time (`core/src/template_library.rs`; `cargo test` fails on an unknown
-exercise name, or a plan naming an unknown or repeated template).
+exercise key, or a plan naming an unknown or repeated template).
 
-**Editing the defaults:** change the YAML and deploy the backend. The server
-sends its library down every Sync stream on connect; the phone keeps it in
-its account file (`library` table) and the core reads it from there. Until
-the first sync, the copy built into the app stands in.
+**Editing the defaults:** change the YAML and release the app; the
+website's `/routines` picks it up on its next build. Nothing of the
+library is synced: the server does not send it, and the phone stores none
+of it.
 
-- A library template in a user's list is **coupled** (`coupled = true`,
-  `library_id` = the entry): its name and exercises are the library's
-  current ones (`View::resolved`). The stored name and exercises are only a
-  fallback for an entry the server no longer has.
-- **The fold never reads the library.** Writes that use it record what they
-  used: `AddLibraryTemplates.entries`, `CompleteOnboarding.library_entries`,
-  and a coupled start carries its exercises in `StartWorkout.exercises`.
-  So the phone and the server fold the same log to the same account
-  whatever library each has.
-- A `SaveTemplate` that changes a coupled template's name or exercises
-  makes it the user's own **in place** (same id, so the workouts recorded
-  against it stay with it): it stops following the library. So does one
-  with `unlink` (the app's Clone: the editor opens on the template and Save
-  records it as the user's own, changed or not; backing out records
-  nothing); saved unchanged without it, it stays coupled. A `CloneTemplate`
-  event in a log folds the same way as `unlink`. Templates made
-  from scratch are never coupled.
-- `origin_library_id` is the entry a template was added from, and unlike
-  `library_id` it is kept when the template becomes the user's own. A user
-  **has** an entry when a template follows it or was made from it
-  (`Account::has_library_entry`); `AddLibraryTemplates` drops such an
-  entry before it records the event, so no entry is added twice. The fold
-  itself skips only an entry a template still follows, so older logs fold
-  as they did.
+- **A library entry is copied, never followed.** Copying one makes a
+  workout of the user's program (`WorkoutDef`) with the entry's name and
+  exercises and `from_library` (`WorkoutTemplate.origin_library_id`) set
+  to the entry's id. From then on it is the user's own: renaming it or
+  changing its lifts is an ordinary `SaveTemplate`, and a later change to
+  the YAML never reaches it.
+- **The fold never reads the library.** The copies are on the events:
+  `Onboarded.workouts` and `ProgramEdited`'s `add` op hold the workouts
+  whole. So the phone and the server fold the same log to the same
+  account whatever library each build has.
+- A user **has** an entry when a workout of theirs was copied from it
+  (`from_library`). `AddLibraryTemplates` skips such an entry, so none is
+  added twice; the fold's `add` skips a workout whose id the program has.
 - Every workout keeps its own exercises and sets plus `template_id`, so a
-  change to a default never rewrites a past session.
+  change to a template never rewrites a past session.
 - In the app's Manage sheet a library workout the user does not have is
   added to the rotation with + (`AddLibraryTemplates`, `in_rotation`;
   without it an entry is added as a reserve); the user's own are dragged
   within or between the rotation and the reserves (one
   `ReorderTemplates` with `rotation_count`: the order, and where the
   rotation ends), opened in the editor, or deleted.
-- A ready-made plan is applied with `ApplyLibraryPlan(plan_id)`, which
-  records existing events, no kind of its own: an `AddLibraryTemplates`
+- A ready-made plan is applied with `ApplyLibraryPlan(plan_id)`: an `add`
   (as reserves) for the plan's entries the user does not have, then one
-  `ReorderTemplates` whose first `rotation_count` ids are the user's
-  template for each entry in the plan's order (one already in the
-  rotation first, else the first following or made from it, so a
-  personalised copy is used rather than a second one), and after them
-  every other template, the old rotation first, as reserves. Nothing is
-  deleted. Plans come from the copy built into the core, not the
-  server's sync; `ListTemplateLibrary` lists those whose every entry the
-  library in use has.
+  `reorder` whose first `rotation_count` ids are the user's workout for
+  each entry in the plan's order (one already in the rotation first, else
+  the first copied from it), and after them every other workout, the old
+  rotation first, as reserves. Nothing is deleted.
   Never reuse or rename an id in the YAML.
 - The website's `/routines` page is rendered from the same YAML at build
-  time (`web/scripts/sync-content.mjs`), not from an RPC.
+  time (`web/scripts/sync-content.mjs`, which names the lifts from
+  `core/programs/default.json`), not from an RPC.
+
+## Migration to programs
+
+Accounts recorded before programs were moved once, by the server's
+schema step 6 (`src/db/migrate.rs`), which runs `core/src/migrate.rs` over
+each account's stored JSON:
+
+- exercise enum numbers become the built-in program's keys, everywhere;
+- the template facts (`TemplateSaved`, `TemplateDeleted`,
+  `TemplatesReordered`, `LibraryTemplatesAdded`, and `Onboarded`'s
+  `library_entries`) are folded the old way, coupled templates resolved
+  against the library built in, and become one `ProgramSet` (the built-in
+  rules with those workouts, author `migration`) where the first of them
+  was;
+- an event that would not read even moved is dropped, as the old fold
+  dropped it, and seqs are renumbered from 1.
+
+There is no compatibility layer. The phone's store `FORMAT` went to 2, so
+every phone drops its local log and pulls the moved one; `MIN_APP_VERSION`
+refuses older apps. `core/tests/testdata/stored_events_before_programs.json`
+is the old corpus the migration is tested on.
 
 ## Server tables
 
@@ -219,6 +237,9 @@ erDiagram
     users ||--o{ account_events : "logs"
     users ||--o{ session_members : "trains in"
     users ||--o{ page_views : "visits"
+    users ||--o{ assistant_grants : "allows"
+    assistant_clients ||--o{ assistant_grants : "is granted"
+    assistant_grants ||--o{ assistant_tokens : "holds"
 
     users {
         TEXT id PK
@@ -276,6 +297,26 @@ erDiagram
         INTEGER entered_at_ms
         INTEGER duration_ms
     }
+    assistant_clients {
+        TEXT client_id PK
+        TEXT client_name
+        TEXT redirect_uris "JSON array"
+        INTEGER created_at
+    }
+    assistant_grants {
+        TEXT grant_id PK
+        TEXT user_id FK
+        TEXT client_id FK
+        TEXT scope
+        INTEGER created_at
+        INTEGER last_used_at
+    }
+    assistant_tokens {
+        TEXT token_hash PK "SHA-256 of the token"
+        TEXT grant_id FK
+        TEXT kind "access / refresh"
+        INTEGER expires_at
+    }
     auth_attempts {
         TEXT attempt_id PK "user id or challenge id"
         TEXT kind
@@ -294,6 +335,7 @@ erDiagram
 | `account_events` | Every account's log. See [above](#the-event-log) |
 | `session_members` | Every `(session, user)` that joined. The current session is the row with `left_at = 0`, at most one per user (a partial unique index). See [multiplayer.md](multiplayer.md) |
 | `page_views` | One row per screen visit, keyed `(user_id, app_session_id, seq)` so a retried upload is ignored. See [analytics.md](analytics.md) |
+| `assistant_clients`, `assistant_codes`, `assistant_grants`, `assistant_tokens` | Assistants connected over MCP (`src/db/assistants.rs`, schema step 7): the OAuth clients that registered, the one-use codes a consent issued (bound to the PKCE challenge, 10 minutes), the grants a person made, and each grant's access (1 hour) and refresh (60 days, replaced on each use) tokens. Codes and tokens are stored as their SHA-256. See [backend.md](backend.md#mcp-assistants) |
 | `auth_attempts` | One row per passkey ceremony the server started (`kind`: `register` / `login` / `recovery`); `outcome` is `started` / `ok` / `rejected` / `client_error`. No username, no `user_id` |
 
 Not stored, only in memory:
@@ -310,5 +352,6 @@ CASCADE`. Deleting an account (`delete_user_account_and_data`,
 `src/db/auth.rs`) is `DELETE FROM users WHERE id = ?` plus the account's
 registration row in `auth_attempts` (keyed by the user id it created); the
 cascade takes the events, passkeys, logins, recovery requests, session
-memberships and page views. A test discovers every table with a `user_id` column and fails if one
+memberships, page views, and assistant codes and grants (a grant's
+tokens go with it). A test discovers every table with a `user_id` column and fails if one
 does not cascade.

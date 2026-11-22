@@ -1,10 +1,11 @@
 # Backend
 
-A single Rust binary (`src/main.rs`) serving eight gRPC services over tonic,
-with `tonic-web` for browser clients and a small axum health endpoint. The
-domain lives in the `core/` crate, which the phone runs too; the backend
-stores each account's event log, folds it with the same core, and handles
-what needs a server: auth, multiplayer, the web's reads and analytics.
+A single Rust binary (`src/main.rs`) serving nine gRPC services over tonic,
+with `tonic-web` for browser clients, and on axum a health endpoint and the
+MCP server for assistants (`src/mcp/`). The domain lives in the `core/`
+crate, which the phone runs too; the backend stores each account's event
+log, folds it with the same core, and handles what needs a server: auth,
+multiplayer, the web's reads, assistants and analytics.
 
 ## Module map
 
@@ -19,13 +20,19 @@ graph TD
         us["user.rs"]
         au["auth.rs"]
         an["analytics.rs"]
+        asv["assistant.rs<br/>consent, connected assistants"]
         su["support.rs"]
+    end
+
+    subgraph mcpm["src/mcp/ — assistants"]
+        mm["mod.rs<br/>JSON-RPC, OAuth endpoints"]
+        mt["tools.rs"]
     end
 
     subgraph core["core/ — the domain"]
         acc["account.rs<br/>Account, apply, fold"]
         api["api.rs<br/>View / Call"]
-        rules["plan.rs, workout/,<br/>exercise_progress.rs, volume.rs, …"]
+        rules["program/, plan.rs, simulate.rs,<br/>workout/, exercise_progress.rs, volume.rs, …"]
     end
 
     subgraph data["src/db/ — ServerDb"]
@@ -33,6 +40,7 @@ graph TD
         dauth["auth.rs"]
         dses["session.rs"]
         dan["analytics.rs"]
+        dass["assistants.rs<br/>OAuth clients, grants, tokens"]
         dmig["migrate.rs<br/>schema, user_version"]
     end
 
@@ -40,6 +48,11 @@ graph TD
     sqlite[("SQLite")]
 
     main --> svc
+    main --> mcpm
+    mt --> api
+    mt --> dacc
+    mm --> dass
+    asv --> dass
     sy --> dacc
     w --> api
     su --> dacc
@@ -64,14 +77,18 @@ graph TD
 | `server/user.rs` | `GetUser`, `UpdateMyProfile` |
 | `server/auth.rs` | Passkey RPC surface (delegates to `auth.rs`) |
 | `server/analytics.rs` | Page views, admin stats |
+| `server/assistant.rs` | `AssistantService`: the website's `/connect` consent (`DescribeConnect`, `AnswerConnect`) and the app's connected assistants (`ListAssistants`, `RevokeAssistant`) |
+| `mcp/mod.rs` | The MCP endpoint (`/api/mcp`) and the OAuth endpoints it signs in with |
+| `mcp/tools.rs` | The assistant's tools, through the core's `View` and `Call` |
 | `db/accounts.rs` | `account_events`: placing pushes, reading history, folding on request |
 | `db/changes.rs` | Changes told to the streams they concern, by user or session |
 | `db/session.rs` | `session_members`, invite tokens, join requests (in memory) |
+| `db/assistants.rs` | `assistant_clients`, `assistant_codes`, `assistant_grants`, `assistant_tokens` |
 | `db/migrate.rs` | The schema, one version at a time (`PRAGMA user_version`) |
 | `db/` | All of the server's SQL. The only other SQL is `core/src/projection.rs`, which writes the phone's export. |
 | `demo_seed.rs` | Demo accounts (`SEED_DEMO_USER`, `test-auth` builds only): plain rising sessions imported with `ImportHistory` (`HistoryImported`) (the core's walk works out each lift's max), a live session through the real start |
 
-The rules — the plan, the reducer, volume, summaries — are in
+The rules — the program, the plan, the reducer, volume, summaries — are in
 `core/`; see [local-first.md](local-first.md) and
 [workout-lifecycle.md](workout-lifecycle.md).
 
@@ -88,7 +105,10 @@ folding nothing, in one transaction on the one write connection — so pushes
 are placed one at a time, each after the last:
 
 1. Skips events it already holds, by id (a device resends until it hears
-   back).
+   back). Before that the Sync handler refuses a push holding an event that
+   won't read back or whose plans or program no app makes
+   (`Event::plans_are_sane`: a `ProgramSet` must check out with no error,
+   since every device folds it).
 2. Reads the head and gives the rest the next seqs, in the order sent.
 3. Inserts them. One racing the account's deletion fails on the foreign key.
 4. Tells that account's streams the placed events (`Change::Account`): to
@@ -133,7 +153,7 @@ single-instance.
 
 ### Storage follows authority
 
-What the phone makes is account events: `account_events.event` is the
+What the phone (or an assistant, through the core) makes is account events: `account_events.event` is the
 event as JSON, stored as placed and never interpreted by SQL. What
 the server owns (users, passkeys, logins, who trained together, telemetry)
 is plain columns, with no proto blobs, and every `user_id` references
@@ -163,6 +183,15 @@ event as JSON. It converts nothing: a database whose events are still the
 requests that made them (proto blobs) is refused, and is converted out of
 band first by folding every account both ways, with the core that wrote it
 and this one, and writing the facts only if each comes out the same.
+
+Steps 3–5 add a session member's workout and passkey recoveries.
+
+Step 6 moves every account to programs: each account's stored events are
+read as JSON, run through `schlift_core::migrate` (exercises to keys, the
+template facts to one `ProgramSet`, seqs from 1) and written back. See
+[data-model.md](data-model.md#migration-to-programs).
+
+Step 7 creates the assistant tables (`db/assistants.rs`).
 
 ## Service surface
 
@@ -198,14 +227,22 @@ graph LR
         x1["RecordPageViews / GetAdminStatus / GetStats"]
         x2["GetTrainingStats / ListRecoveries / DecideRecovery"]
     end
+    subgraph "AssistantService"
+        as1["DescribeConnect / AnswerConnect"]
+        as2["ListAssistants / RevokeAssistant"]
+    end
 ```
 
 There are no per-write workout RPCs: every write to an account is an event
-that arrives over `Sync`, and a device catches up over the same stream.
+that arrives over `Sync` (or, for a program an assistant sets, is placed by
+the MCP server), and a device catches up over the same stream. The
+program RPCs (`GetProgram`, `SetProgram`, `SimulateProgram`, …) are the
+core's, answered on the phone; no gRPC service exposes them.
 
 Every RPC except the auth handshake (which includes `RecoveryStart`,
 `RecoveryFinish` and `RecoveryStatus`: their caller has lost their passkey),
-`ReportAuthFailure` and `Logout` (which only deletes the token it is sent)
+`ReportAuthFailure`, `Logout` (which only deletes the token it is sent) and
+`DescribeConnect` (shown before signing in; nothing in it is the person's)
 begins with
 `authed_user_id(&request, &self.db)`, which validates the bearer token against
 `logins` (by the token's SHA-256). There is no middleware doing this — it is called explicitly in
@@ -220,6 +257,44 @@ without a query per change.
 `Session` (`current_session` in `src/server/multiplayer.rs`) carries who
 else is in the caller's session. "Who's up next" is derived on the client from
 them.
+
+## MCP: assistants
+
+An assistant (an LLM client such as Claude) reads a person's training and
+sets their program over MCP (`src/mcp/`), Streamable HTTP with JSON-RPC 2.0
+at `POST /api/mcp` (`initialize`, `ping`, `tools/list`, `tools/call`; no
+server-sent stream). It signs in the way the MCP authorization spec
+describes, OAuth 2.1:
+
+| Endpoint | |
+|---|---|
+| `/.well-known/oauth-protected-resource` | Which authorization server signs in for `/api/mcp`: this one |
+| `/.well-known/oauth-authorization-server` | Its metadata |
+| `/api/oauth/register` | Dynamic client registration (RFC 7591): public clients, no secret. A redirect URI must be https, http to loopback, or a native app's own scheme |
+| `/connect` (website) | The authorization endpoint: `web/src/pages/connect.tsx` signs the person in with their passkey, shows the client and what it may do (`CAN`), and on Allow calls `AnswerConnect`, which issues a code bound to the PKCE challenge (S256 only) |
+| `/api/oauth/token` | Exchanges the code with its verifier for an access token (1 hour) and a refresh token (60 days); each refresh replaces both |
+
+An unauthenticated call to `/api/mcp` gets a 401 with
+`WWW-Authenticate: Bearer resource_metadata=…`. There is one scope,
+`program`. A grant is server-owned rows (`db/assistants.rs`, see
+[data-model.md](data-model.md#server-tables)); the app's Settings →
+Program and the website's `/connect` (opened without a request) list them
+and revoke them.
+
+The tools (`mcp/tools.rs`):
+
+| Tool | Does |
+|---|---|
+| `read_guide` | `core/programs/GUIDE.md`: what a program is, every field |
+| `get_program` | The current document, who set it and why, the earlier ones |
+| `get_profile` | Unit, the workouts and the rotation's suggestion, starting weights, overrides, this week's volume, what is recovering, and per lift its estimated max, last session and next plan |
+| `get_history` | Finished workouts, each lift's planned and done sets (by lift, since, limit) |
+| `validate_program` | A draft's problems, each with its path |
+| `simulate_program` | A draft over the recorded history and forward (`SimulateProgram`) |
+| `set_program` | `SetProgram` with author `mcp:<client name>` and the assistant's note, then the event placed with `push_events` and streamed to the phones |
+
+Reads fold the account as the website's do. The only write is
+`set_program`: an assistant can't record or delete training.
 
 ## Error handling
 
@@ -249,8 +324,13 @@ and message before unwinding.
   once-a-minute recheck is due), a deleted partner out of the
   session, a new profile to partners without the body weight, a device
   catching up and hearing the others, and a stranger turned away.
-- `src/db/migrate.rs` — a fresh database starts at the latest version, and
-  one from before versions is converted.
+- `src/db/migrate.rs` — a fresh database starts at the latest version, one
+  from before versions is converted, and an account stored before programs
+  moves to them (step 6).
+- `src/mcp/tests.rs` — only safe redirect URIs register; an assistant
+  registers, is allowed, exchanges and refreshes its tokens, and sets a
+  program through the tools.
+- `src/db/assistants.rs` — a grant from consent to revocation.
 - `src/demo_seed.rs` — both demo users seed, and the walk over their
   history rises.
 - `src/server/multiplayer_tests.rs` — session roster and training-together

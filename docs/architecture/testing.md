@@ -5,7 +5,7 @@ testing is. Each layer catches something the others cannot.
 
 ```mermaid
 graph TD
-    A["Core unit tests<br/>the plan, session outcomes, classes, volume, reducer"] --> B["Core API tests<br/>core/tests/api.rs — the app's calls end to end"]
+    A["Core unit tests<br/>the program, the plan, session outcomes, volume, reducer"] --> B["Core API tests<br/>core/tests/api.rs — the app's calls end to end"]
     B --> C["Invariant fuzzer<br/>core/examples/fuzz.rs — randomised sequences"]
     B --> D["Server + store tests<br/>sync, multiplayer, deletion, the phone's file"]
     B --> E["Dart tests<br/>providers against the host build of the core"]
@@ -24,7 +24,7 @@ make e2e                               # e2e scenarios, side by side
 
 Pure and fast, inline in their modules under `core/src/`:
 
-- `plan.rs` — the walk and the plan: a set's Epley estimate with reserve
+- `plan/tests.rs` — the walk and the plan: a set's Epley estimate with reserve
   and fatigue, a hit nudging the max a rep up, stepping up past the top of
   the range, a miss resetting the max to what the sets showed, a lowered
   weight and stopping early holding it, time off after a hit, a lift never
@@ -32,13 +32,25 @@ Pure and fast, inline in their modules under `core/src/`:
   bodyweight rep maxes, rounding down giving an extra rep before a plate;
   the set allocation (the budget, the 2-set floor, the 5-set cap, the
   weekly deficit, override sets kept) and learned timings replacing the
-  defaults at ten samples.
+  defaults at ten samples; and each progression kind: `linear` adding a
+  step, holding and deloading (and after time off), `double` climbing reps
+  then weight, `fixed`, `cycle` stepping by session, `formula` planning
+  from its expressions and a failing one falling back, and a lift never
+  done ramping under any rule.
 - `exercise_progress.rs` — what a session says about a lift: sets in the
   order done and judged by their own targets, a rushed miss or an undone
   working set stopping it early, rungs apart and warmups left out.
-- `exercise_catalog.rs` — every exercise is classified (the scan is pinned,
-  so a `_ =>` fallback cannot quietly misfile a new lift), the class rules,
-  plate snapping.
+- `program/tests.rs`, `program/formula.rs` — the built-in program is valid
+  and round-trips; an unknown field is an error; names resolve and numbers
+  are in range; a custom exercise checks out; formulas are checked before
+  they are set, follow precedence, use variables, functions and lets, and
+  name their mistakes; a program keeps what the account used; the guide
+  covers every field of the document.
+- `migrate.rs` — the old corpus
+  (`core/tests/testdata/stored_events_before_programs.json`) moves: every
+  fact reads and folds with nothing lost but the template facts, which
+  become the program, and moving is a fixed point; coupled templates
+  become the library's entries.
 - `volume.rs` — the 7-day window, primary/secondary weighting, and the
   suggestion: recovered muscles only, a template whose first lift is
   recovering left out (and the one back soonest when every one is), the
@@ -60,11 +72,16 @@ next plan follows from the session. Each reason (and the plan against last
 time first), time away cutting the max,
 an override as a new start, the budget setting the sets (and "needs N
 min"), Home's preview equal to a start at the same moment and budget and
-to the template editor's `GetTemplatePlan`, a Clone saved unchanged, an
+to the template editor's `GetTemplatePlan`, library copies (onboarding,
+adding without duplicating, into the rotation, the plans), an
 added lift fitting around the planned ones, a started workout following
 its recorded decision whatever the rules say now, a lift without its
 decision refused, every weight-log cause, the ramp, and the kg path live
-here, because they only appear **between** two calls.
+here, because they only appear **between** two calls. So do the program's:
+a program set plans and is kept, a bad one is refused, one can't drop a
+lift the account has done, a custom exercise trains end to end, an app
+edit rebases onto a program set meanwhile, a workout keeps its rules, a
+reset keeps the workouts and custom lifts, and a draft can be simulated.
 
 **Every test also checks that replaying its recorded events rebuilds exactly
 the same account** — the property the phone and the server both rely on.
@@ -123,7 +140,12 @@ And after each user: **replaying the event log rebuilds the account**.
 make fuzz-api                                   # random seed
 make fuzz-api FUZZ_USERS=20 FUZZ_SESSIONS=25    # heavier
 cargo run --release -p schlift-core --example fuzz -- --seed 42   # replay a failure
+cargo run --release -p schlift-core --example fuzz -- --seed 42 --dump-dir out/   # each user's log as JSON
 ```
+
+`--dump-dir` writes every user's event log, so two builds can be checked
+to plan the same seed identically. The fuzzer runs on the built-in
+program.
 
 A failure groups violations by invariant and prints the seed to reproduce it.
 Exit status is non-zero, so it gates CI (`make fuzz-api-ci`, the `fuzz` job
@@ -161,17 +183,29 @@ confirm it trips.
 - `src/db/migrate.rs` — a fresh database starts at the latest version, a
   database from before versions is converted (users out of their blob,
   admins, live logins hashed, dead ones and orphaned events dropped, stale
-  session memberships closed, the old tables gone), and step two refuses
-  events not yet converted to facts.
+  session memberships closed, the old tables gone), step two refuses
+  events not yet converted to facts, and an account stored before
+  programs moves (step 6: its templates are its program's workouts, a
+  `ProgramSet` in place of the template facts, seqs from 1).
+- `src/mcp/tests.rs`, `src/db/assistants.rs` — only safe redirect URIs
+  register; an assistant registers, is allowed, trades its code (with the
+  PKCE verifier) and refreshes its tokens, validates and sets a program
+  (a broken one refused); a grant from consent to revocation.
 - `core/tests/stored_events.rs` — one of every fact, as stored
   (`core/tests/testdata/stored_events.json`), still reads and writes back
   the same: no field renamed or removed. A new fact must be added there.
+  The file was made once from `stored_events_before_programs.json` by the
+  migration.
 - `testkit/tests/golden.rs` — twelve weeks of a seeded lifter's training, as
   stored (`testkit/tests/testdata/golden_events.json.zst`), still fold to
   the same account, read as the app reads it (home, workouts, progress,
   settings: `golden_views.json`). `GOLDEN=views` rewrites the views to
   review a deliberate change in the diff. The lifter (`schlift_testkit`)
   trains through the phone's own store; the load test's clients use it too.
+  For programs the history was moved by the migration rather than
+  recorded again, its views checked to be the earlier core's. A second
+  history (`golden_every_fact_*`) holds every kind of fact, an assistant's
+  program and app edits to it included.
 - `core/src/session.rs` — a session partner's phone, holding only their
   workout's events, sees exactly what their own screen shows (in pounds and
   kilos); only workout facts are shared; a partner goes off show after
@@ -191,7 +225,7 @@ confirm it trips.
   account, someone else's file is refused, its own events leave `pending`
   once placed, another device's go first and its own replay after, what the
   server lacks is offered again, heart rate is gathered and recorded once
-  when the workout ends, a file from before facts drops its events
+  when the workout ends, a file from an earlier format drops its events
   for the server to resend, an export opens as the same account.
 
 ## Dart tests — against the real core
