@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS proposed_sets (
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     workout_order INTEGER NOT NULL,
-    exercise INTEGER NOT NULL,
+    exercise TEXT NOT NULL,
     target_reps INTEGER NOT NULL,
     target_weight REAL NOT NULL,
     warmup INTEGER NOT NULL DEFAULT 0,
@@ -75,7 +75,7 @@ CREATE TABLE IF NOT EXISTS exercise_decisions (
     user_id TEXT NOT NULL,
     workout_id TEXT NOT NULL,
     position INTEGER NOT NULL,
-    exercise INTEGER NOT NULL,
+    exercise TEXT NOT NULL,
     sets INTEGER NOT NULL,
     reps INTEGER NOT NULL,
     weight REAL NOT NULL,
@@ -88,20 +88,41 @@ CREATE INDEX IF NOT EXISTS idx_exercise_decisions_workout
     ON exercise_decisions(workout_id, position);
 "#;
 
-/// The rest of the account.
+/// The rest of the account: every program it has had (the document as
+/// JSON), and the current one's workouts and exercises as rows.
 pub const ACCOUNT_SCHEMA: &str = r#"
+CREATE TABLE IF NOT EXISTS programs (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    set_at INTEGER NOT NULL,
+    author TEXT NOT NULL,
+    note TEXT NOT NULL DEFAULT '',
+    current INTEGER NOT NULL DEFAULT 0,
+    document TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS workout_templates (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
-    template_order INTEGER NOT NULL,
+    position INTEGER NOT NULL,
     exercises TEXT NOT NULL,
-    library_id TEXT NOT NULL DEFAULT '',
-    coupled INTEGER NOT NULL DEFAULT 0,
-    created_at INTEGER NOT NULL,
-    updated_at INTEGER NOT NULL,
     in_rotation INTEGER NOT NULL DEFAULT 0,
-    origin_library_id TEXT NOT NULL DEFAULT ''
+    from_library TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT ''
+);
+
+CREATE TABLE IF NOT EXISTS exercises (
+    key TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    short_name TEXT NOT NULL,
+    equipment TEXT NOT NULL,
+    muscles TEXT NOT NULL,
+    class TEXT NOT NULL,
+    progression TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT ''
 );
 "#;
 
@@ -114,7 +135,9 @@ pub const READABLE_TABLES: &[&str] = &[
     "completed_sets",
     "workout_heart_rate_samples",
     "exercise_decisions",
+    "programs",
     "workout_templates",
+    "exercises",
 ];
 
 /// A value to bind.
@@ -203,7 +226,7 @@ fn workout_rows(user_id: &str, record: &WorkoutRecord) -> Vec<Statement> {
                 user_id.into(),
                 set.workout_id.as_str().into(),
                 set.workout_order.into(),
-                set.exercise.into(),
+                set.exercise.as_str().into(),
                 set.target_reps.into(),
                 set.target_weight.into(),
                 set.warmup.into(),
@@ -246,7 +269,7 @@ fn workout_rows(user_id: &str, record: &WorkoutRecord) -> Vec<Statement> {
                 user_id.into(),
                 w.id.as_str().into(),
                 (n as i64).into(),
-                d.exercise.into(),
+                d.exercise.as_str().into(),
                 d.sets.into(),
                 d.reps.into(),
                 d.weight.into(),
@@ -274,29 +297,62 @@ fn workout_rows(user_id: &str, record: &WorkoutRecord) -> Vec<Statement> {
 /// Every readable row of the account, into empty tables: an export.
 pub fn account_export_statements(user_id: &str, account: &Account) -> Vec<Statement> {
     let mut out = Vec::new();
-    for t in &account.templates {
-        let exercises = t
-            .exercises
-            .iter()
-            .map(|e| e.to_string())
-            .collect::<Vec<_>>()
-            .join(",");
+    let current = account.program_id().to_string();
+    for version in &account.programs {
         out.push(statement(
-            "INSERT INTO workout_templates (id, user_id, name, template_order, exercises,
-             library_id, coupled, created_at, updated_at, in_rotation, origin_library_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO programs (id, user_id, set_at, author, note, current, document)
+             VALUES (?, ?, ?, ?, ?, ?, ?)",
+            vec![
+                version.id.as_str().into(),
+                user_id.into(),
+                version.at.into(),
+                version.author.as_str().into(),
+                version.note.as_str().into(),
+                (version.id == current).into(),
+                version.program.to_json().into(),
+            ],
+        ));
+    }
+    let program = &account.program;
+    for (n, t) in program.workouts.iter().enumerate() {
+        out.push(statement(
+            "INSERT INTO workout_templates (id, user_id, name, position, exercises,
+             in_rotation, from_library, notes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             vec![
                 t.id.as_str().into(),
                 user_id.into(),
                 t.name.as_str().into(),
-                t.order.into(),
-                exercises.into(),
-                t.library_id.as_str().into(),
-                t.coupled.into(),
-                t.created_at.into(),
-                t.updated_at.into(),
-                t.in_rotation.into(),
-                t.origin_library_id.as_str().into(),
+                (n as i64).into(),
+                t.exercises.join(",").into(),
+                t.rotation.into(),
+                t.from_library.as_str().into(),
+                t.notes.as_str().into(),
+            ],
+        ));
+    }
+    for (n, e) in program.exercises.iter().enumerate() {
+        let text = |v: serde_json::Value| v.as_str().unwrap_or_default().to_string();
+        let muscles: Vec<String> = e
+            .muscles
+            .iter()
+            .map(|m| text(serde_json::to_value(m).unwrap_or_default()))
+            .collect();
+        out.push(statement(
+            "INSERT INTO exercises (key, user_id, position, name, short_name, equipment,
+             muscles, class, progression, description)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            vec![
+                e.key.as_str().into(),
+                user_id.into(),
+                (n as i64).into(),
+                e.name.as_str().into(),
+                e.short_name.as_str().into(),
+                text(serde_json::to_value(e.equipment).unwrap_or_default()).into(),
+                muscles.join(",").into(),
+                e.class.as_str().into(),
+                program.progression_name(&e.key).into(),
+                e.description.as_str().into(),
             ],
         ));
     }

@@ -149,10 +149,12 @@ message TrainingDay {
 }
 
 message ExerciseUse {
-  Exercise exercise = 1;
+  string exercise = 5;
   int64 sets = 2;
   int64 lifters = 3;
   double volume_lb = 4;
+  // Exercises were enum numbers before they were keys.
+  reserved 1;
 }
 
 message GetTrainingStatsResponse {
