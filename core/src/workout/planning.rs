@@ -6,48 +6,37 @@
 //! the calibration ramp's appends, which the reducer drives.
 
 use super::*;
-use crate::exercise_catalog::{progression_increment_lb, snap_down_weight_lb, snap_weight_lb};
 use crate::history::done_set_ids;
 use crate::ids::Ids;
-use crate::pb::{Exercise, ExerciseDecision, ExerciseLog, WeightChange, WeightChangeCause};
-use crate::weight_units::{bar_weight, plates, simplest_loadable_near, AppWeightUnit};
+use crate::pb::{ExerciseDecision, ExerciseLog, WeightChange, WeightChangeCause};
+use crate::plan::Shape;
+use crate::program::Program;
+use crate::weight_units::{simplest_loadable_near, AppWeightUnit};
 
-const WARMUP_REST_SECONDS: i32 = 30;
-/// A calibration rung is always five reps, rested 90 s whatever happened.
-pub const CALIBRATION_REPS: i32 = 5;
-pub const CALIBRATION_REST_SECONDS: i32 = 90;
-/// The ramp stops here: the sixth rung settles it whatever it did.
-pub const MAX_CALIBRATION_RUNGS: usize = 6;
-/// Each rung climbs by at least this fraction of the current weight.
-const CALIBRATION_RUNG_FRACTION: f32 = 1.10;
-/// A rung done with fewer reps than this was too heavy to say anything:
-/// 0 reps would make the max the weight itself, 1–2 is a guess. It does
-/// not end the ramp; the next rung steps down (`CALIBRATION_STEP_DOWN`).
-/// A rung with this many reps or more, short of five, settles the ramp.
-pub const TOO_HEAVY_REPS: i32 = 3;
-/// A too-heavy rung's next rung is this fraction of it: a fifth lighter.
-const CALIBRATION_STEP_DOWN: f32 = 0.8;
-
-/// Four warmups (5/5/3/2) climbing to the working weight, each expressed as the
-/// simplest plate step-up in `unit` — empty bar first, then loads that prefer
-/// one big plate over several small ones. Computed in the display unit and
-/// returned in pounds (storage). The single source of warmup generation — the
-/// app renders these, it never computes them.
-fn generate_warmup_defs(working_weight_lb: f32, unit: AppWeightUnit) -> Vec<(f32, i32)> {
-    let reps = [5, 5, 3, 2];
-    let pcts = [0.40_f32, 0.55_f32, 0.70_f32, 0.85_f32];
-    let bar = bar_weight(unit);
-    let pl = plates(unit);
+/// The program's warmup ladder (`warmups.ladder`) climbing to the working
+/// weight, each step expressed as the simplest plate step-up in `unit` —
+/// empty bar first, then loads that prefer one big plate over several
+/// small ones. Computed in the display unit and returned in pounds
+/// (storage). The single source of warmup generation — the app renders
+/// these, it never computes them.
+fn generate_warmup_defs(
+    program: &Program,
+    working_weight_lb: f32,
+    unit: AppWeightUnit,
+) -> Vec<(f32, i32)> {
+    let bar = program.equipment.plates.bar(unit);
+    let pl = program.equipment.plates.plates(unit);
     let smallest = pl.last().copied().unwrap_or(2.5);
 
     let working = unit.from_lb(working_weight_lb);
     // Warmups must sit below the working weight by at least one small plate.
     let max = (working - smallest).max(smallest);
 
-    let mut out = Vec::with_capacity(4);
+    let ladder = &program.warmups.ladder;
+    let mut out = Vec::with_capacity(ladder.len());
     let mut prev = 0.0_f32; // in display units
-    for (idx, pct) in pcts.iter().enumerate() {
-        let target = working * pct;
+    for (idx, step) in ladder.iter().enumerate() {
+        let target = working * step.fraction;
         let mut chosen = if idx == 0 && max >= bar {
             bar // start with the empty bar
         } else {
@@ -63,7 +52,7 @@ fn generate_warmup_defs(working_weight_lb: f32, unit: AppWeightUnit) -> Vec<(f32
             continue;
         }
         prev = chosen;
-        out.push((unit.to_lb(chosen), reps[idx]));
+        out.push((unit.to_lb(chosen), step.reps));
     }
 
     out
@@ -71,7 +60,7 @@ fn generate_warmup_defs(working_weight_lb: f32, unit: AppWeightUnit) -> Vec<(f32
 
 fn make_set(
     workout_id: &str,
-    exercise: i32,
+    exercise: &str,
     reps: i32,
     weight: f32,
     warmup: bool,
@@ -81,7 +70,7 @@ fn make_set(
         id: String::new(), // the caller gives it one
         workout_id: workout_id.to_string(),
         workout_order: 0, // assigned by renumbering
-        exercise,
+        exercise: exercise.to_string(),
         target_reps: reps,
         target_weight: weight,
         warmup,
@@ -96,13 +85,14 @@ fn make_set(
 /// straight into the first working set, so it rests `rest` like one
 /// rather than the short between-warmups rest.
 fn warmup_sets(
+    program: &Program,
     workout_id: &str,
-    exercise: i32,
+    exercise: &str,
     working_weight: f32,
     rest: i32,
     unit: AppWeightUnit,
 ) -> Vec<ProposedSet> {
-    let defs = generate_warmup_defs(working_weight, unit);
+    let defs = generate_warmup_defs(program, working_weight, unit);
     let count = defs.len();
     defs.into_iter()
         .enumerate()
@@ -110,86 +100,87 @@ fn warmup_sets(
             let rest = if idx + 1 == count {
                 rest
             } else {
-                WARMUP_REST_SECONDS
+                program.warmups.rest_seconds
             };
             make_set(workout_id, exercise, reps, weight, true, rest)
         })
         .collect()
 }
 
-/// One rung of the calibration ramp: five reps at `weight`, 90 s rest.
-pub fn calibration_set(workout_id: &str, exercise: i32, weight: f32) -> ProposedSet {
-    let mut set = make_set(
-        workout_id,
-        exercise,
-        CALIBRATION_REPS,
-        weight,
-        false,
-        CALIBRATION_REST_SECONDS,
-    );
+/// One rung of the calibration ramp: the program's rung reps at `weight`,
+/// its rung rest whatever happened.
+pub fn calibration_set(
+    program: &Program,
+    workout_id: &str,
+    exercise: &str,
+    weight: f32,
+) -> ProposedSet {
+    let c = &program.calibration;
+    let mut set = make_set(workout_id, exercise, c.reps, weight, false, c.rest_seconds);
     set.calibration = true;
     set
 }
 
 /// The next rung up from `weight`: the larger of one equipment step and
-/// 10%, snapped to what the exercise can load.
-pub fn next_calibration_weight(exercise: i32, weight: f32, unit: AppWeightUnit) -> f32 {
-    let Ok(ex) = Exercise::try_from(exercise) else {
-        return weight;
-    };
-    let step = progression_increment_lb(ex, unit);
-    snap_weight_lb(
-        ex,
-        (weight + step).max(weight * CALIBRATION_RUNG_FRACTION),
+/// `calibration.rung_factor`, snapped to what the exercise can load.
+pub fn next_calibration_weight(
+    program: &Program,
+    exercise: &str,
+    weight: f32,
+    unit: AppWeightUnit,
+) -> f32 {
+    let step = program.step_lb(exercise, unit);
+    program.snap_lb(
+        exercise,
+        (weight + step).max(weight * program.calibration.rung_factor),
         unit,
     )
 }
 
-/// The rung after one too heavy at `weight` (fewer than `TOO_HEAVY_REPS`
-/// reps): a fifth lighter (`CALIBRATION_STEP_DOWN`), snapped down to what
-/// the exercise can load, and at least one step under the rung. Never
-/// under the lightest load (the empty bar, or one step), and never back
-/// at or under `above`, the heaviest rung this ramp already did in full —
-/// that weight is known; the next to try is at least a step over it. None
-/// when nothing loadable is left between: there is nothing lighter to try.
+/// The rung after one too heavy at `weight` (fewer than
+/// `calibration.too_heavy_reps` reps): `calibration.step_down` of it,
+/// snapped down to what the exercise can load, and at least one step under
+/// the rung. Never under the lightest load (the empty bar, or one step),
+/// and never back at or under `above`, the heaviest rung this ramp already
+/// did in full — that weight is known; the next to try is at least a step
+/// over it. None when nothing loadable is left between: there is nothing
+/// lighter to try.
 pub fn stepped_down_calibration_weight(
-    exercise: i32,
+    program: &Program,
+    exercise: &str,
     weight: f32,
     above: Option<f32>,
     unit: AppWeightUnit,
 ) -> Option<f32> {
-    let ex = Exercise::try_from(exercise).ok()?;
-    let step = progression_increment_lb(ex, unit);
-    let lighter = snap_down_weight_lb(ex, weight * CALIBRATION_STEP_DOWN, unit);
+    let step = program.step_lb(exercise, unit);
+    let lighter = program.snap_down_lb(exercise, weight * program.calibration.step_down, unit);
     let mut down = if lighter < weight - 1e-3 {
         lighter
     } else {
-        snap_down_weight_lb(ex, weight - step, unit)
+        program.snap_down_lb(exercise, weight - step, unit)
     };
     if let Some(full) = above {
-        down = down.max(snap_weight_lb(ex, full + step, unit));
+        down = down.max(program.snap_lb(exercise, full + step, unit));
     }
     (down < weight - 1e-3).then_some(down)
 }
 
 /// The rung after one done in full at `weight` whose answer counted
-/// `reserve` reps left: the max that shows (`plan::shown_max`), and from
-/// it the heaviest loadable weight leaving about one rep in reserve on a
-/// 5-rep rung, `w × (1 + (5 + 1) / 30) ≤ max` — never lighter than the
-/// usual rung (`next_calibration_weight`).
+/// `reserve` reps left: the max that shows (`Estimate::shown_max`), and
+/// from it the heaviest loadable weight leaving the usual reserve on a
+/// rung — never lighter than the usual rung (`next_calibration_weight`).
 pub fn answered_calibration_weight(
-    exercise: i32,
+    program: &Program,
+    exercise: &str,
     weight: f32,
     reserve: f32,
     unit: AppWeightUnit,
 ) -> f32 {
-    let usual = next_calibration_weight(exercise, weight, unit);
-    let Ok(ex) = Exercise::try_from(exercise) else {
-        return usual;
-    };
-    let max = crate::plan::shown_max(weight, CALIBRATION_REPS, reserve, 1, false);
-    let one_left = crate::plan::weight_for(max, CALIBRATION_REPS, 1);
-    snap_down_weight_lb(ex, one_left, unit).max(usual)
+    let usual = next_calibration_weight(program, exercise, weight, unit);
+    let reps = program.calibration.reps;
+    let max = program.estimate.shown_max(weight, reps, reserve, 1, false);
+    let one_left = program.estimate.weight_for(max, reps, 1);
+    program.snap_down_lb(exercise, one_left, unit).max(usual)
 }
 
 /// The rung after one done in full at `weight` answered with a specific
@@ -197,41 +188,30 @@ pub fn answered_calibration_weight(
 /// load, and at least one step over the rung, so a jump too small to load
 /// still climbs.
 pub fn jumped_calibration_weight(
-    exercise: i32,
+    program: &Program,
+    exercise: &str,
     weight: f32,
     jump_lb: f32,
     unit: AppWeightUnit,
 ) -> f32 {
-    let Ok(ex) = Exercise::try_from(exercise) else {
-        return weight + jump_lb;
-    };
-    let snapped = snap_weight_lb(ex, weight + jump_lb, unit);
+    let snapped = program.snap_lb(exercise, weight + jump_lb, unit);
     if snapped > weight + 1e-3 {
         return snapped;
     }
-    snap_weight_lb(ex, weight + progression_increment_lb(ex, unit), unit)
+    program.snap_lb(exercise, weight + program.step_lb(exercise, unit), unit)
 }
 
 /// The working sets a ramp settles on: the decision's sets, the weight and
-/// reps the found `max` gives (`plan::choose`, no last weight), its rest.
+/// reps the found `max` gives in its rep range (`Program::choose`, no last
+/// weight), its rest.
 pub fn working_sets_after_calibration(
+    program: &Program,
     workout_id: &str,
     decision: &ExerciseDecision,
     max: f32,
     unit: AppWeightUnit,
 ) -> Vec<ProposedSet> {
-    let Ok(ex) = Exercise::try_from(decision.exercise) else {
-        return Vec::new();
-    };
-    let (weight, reps) = crate::plan::choose(
-        ex,
-        max,
-        None,
-        decision.sets,
-        decision.rep_low,
-        decision.rep_high,
-        unit,
-    );
+    let (weight, reps) = program.choose(&decision.exercise, max, None, Shape::of(decision), unit);
     working_sets(workout_id, decision, weight, reps)
 }
 
@@ -252,7 +232,7 @@ fn working_sets(
         .map(|_| {
             make_set(
                 workout_id,
-                decision.exercise,
+                &decision.exercise,
                 reps,
                 weight,
                 false,
@@ -280,6 +260,7 @@ pub fn insert_sets_after(workout_ref: &mut WorkoutRecord, after_id: &str, sets: 
 /// it has one) then the working sets — or, on a calibration session, the
 /// single opening rung. Orders are assigned by the caller's renumbering.
 fn block_sets(
+    program: &Program,
     workout_id: &str,
     decision: &ExerciseDecision,
     unit: AppWeightUnit,
@@ -287,15 +268,17 @@ fn block_sets(
 ) -> Vec<ProposedSet> {
     let mut sets = if decision.calibration {
         vec![calibration_set(
+            program,
             workout_id,
-            decision.exercise,
+            &decision.exercise,
             decision.weight,
         )]
     } else {
         let mut sets = if decision.warmups {
             warmup_sets(
+                program,
                 workout_id,
-                decision.exercise,
+                &decision.exercise,
                 decision.weight,
                 decision.rest_seconds,
                 unit,
@@ -335,11 +318,12 @@ pub fn apply_add_exercises(
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref)?;
     let workout_id = workout_ref.workout.id.clone();
+    let program = workout_ref.program.clone();
     for decision in decisions {
-        if !Exercise::try_from(decision.exercise).is_ok_and(|ex| ex != Exercise::Unspecified) {
+        if decision.exercise.is_empty() {
             continue;
         }
-        let generated = block_sets(&workout_id, decision, unit, ids);
+        let generated = block_sets(&program, &workout_id, decision, unit, ids);
         workout_ref.proposed_sets.extend(generated);
         workout_ref.exercise_logs.push(ExerciseLog {
             decision: Some(decision.clone()),
@@ -375,7 +359,8 @@ pub fn apply_adjust_exercise_weight(
     // On a lift still ramping this moves the pending rung: the ramp goes
     // on from the weight given, and the reps decide where it stops.
     apply_target_reps(workout_ref, req);
-    let exercise = req.exercise;
+    let exercise = req.exercise.as_str();
+    let program = workout_ref.program.clone();
     let done = done_set_ids(&workout_ref.completed_sets);
     let before = workout_ref.planned_weight(exercise);
 
@@ -434,7 +419,14 @@ pub fn apply_adjust_exercise_weight(
         .fold(f32::MIN, f32::max);
     let has_done_warmup = max_done_weight > f32::MIN;
 
-    let ladder = warmup_sets(&req.workout_id, exercise, req.working_weight, rest, unit);
+    let ladder = warmup_sets(
+        &program,
+        &req.workout_id,
+        exercise,
+        req.working_weight,
+        rest,
+        unit,
+    );
     let skip = ladder.len().saturating_sub(pending_warmups);
     let mut fresh_rungs: Vec<ProposedSet> = ladder
         .into_iter()
@@ -555,15 +547,15 @@ pub fn apply_reorder_exercises(
     req: &ExercisesReordered,
 ) -> Result<(), WorkoutError> {
     require_open_workout(workout_ref)?;
-    let rank: std::collections::HashMap<i32, usize> = req
+    let rank: std::collections::HashMap<&str, usize> = req
         .exercises
         .iter()
         .enumerate()
-        .map(|(idx, exercise)| (*exercise, idx))
+        .map(|(idx, exercise)| (exercise.as_str(), idx))
         .collect();
     workout_ref.proposed_sets.sort_by_key(|s| {
         (
-            rank.get(&s.exercise).copied().unwrap_or(usize::MAX),
+            rank.get(s.exercise.as_str()).copied().unwrap_or(usize::MAX),
             s.workout_order,
         )
     });
@@ -574,6 +566,10 @@ pub fn apply_reorder_exercises(
 #[cfg(test)]
 mod warmup_tests {
     use super::*;
+
+    fn generate_warmup_defs(working_weight_lb: f32, unit: AppWeightUnit) -> Vec<(f32, i32)> {
+        super::generate_warmup_defs(&Program::builtin(), working_weight_lb, unit)
+    }
 
     /// Every 2.5 lb from 5 to 600, plus values off that grid: sub-bar loads,
     /// the 45 lb bar boundary, exact 25/45-plate combinations (45, 95, 135,
@@ -635,9 +631,13 @@ mod warmup_tests {
     /// caller's unit (no junk decimals after the kg conversion).
     #[test]
     fn warmups_are_exactly_loadable_in_their_unit() {
-        use crate::weight_units::{bar_weight, plate_count_per_side, plates};
+        use crate::weight_units::plate_count_per_side;
+        let program = Program::builtin();
         for unit in [AppWeightUnit::Lb, AppWeightUnit::Kg] {
-            let (bar, pl) = (bar_weight(unit), plates(unit));
+            let (bar, pl) = (
+                program.equipment.plates.bar(unit),
+                program.equipment.plates.plates(unit),
+            );
             for w in working_weights_sweep() {
                 for (weight_lb, _) in generate_warmup_defs(w, unit) {
                     let display = unit.from_lb(weight_lb);
@@ -661,12 +661,34 @@ mod plan_op_tests {
     use super::*;
     use crate::pb::Workout;
 
-    const SQUAT: i32 = 1;
-    const BENCH: i32 = 2;
+    const SQUAT: &str = "squat";
+    const BENCH: &str = "bench_press";
+    const DEADLIFT: &str = "deadlift";
 
-    fn plan(exercise: i32, weight: f32, warmup: bool) -> ExerciseDecision {
+    fn builtin() -> crate::program::ProgramRef {
+        Program::builtin()
+    }
+
+    fn calibration_set(workout_id: &str, exercise: &str, weight: f32) -> ProposedSet {
+        super::calibration_set(&builtin(), workout_id, exercise, weight)
+    }
+
+    fn next_calibration_weight(exercise: &str, weight: f32, unit: AppWeightUnit) -> f32 {
+        super::next_calibration_weight(&builtin(), exercise, weight, unit)
+    }
+
+    fn working_sets_after_calibration(
+        workout_id: &str,
+        decision: &ExerciseDecision,
+        max: f32,
+        unit: AppWeightUnit,
+    ) -> Vec<ProposedSet> {
+        super::working_sets_after_calibration(&builtin(), workout_id, decision, max, unit)
+    }
+
+    fn plan(exercise: &str, weight: f32, warmup: bool) -> ExerciseDecision {
         ExerciseDecision {
-            exercise,
+            exercise: exercise.to_string(),
             weight,
             sets: 3,
             reps: 6,
@@ -722,7 +744,7 @@ mod plan_op_tests {
             .collect()
     }
 
-    fn working(active: &WorkoutRecord, exercise: i32) -> Vec<&ProposedSet> {
+    fn working<'a>(active: &'a WorkoutRecord, exercise: &str) -> Vec<&'a ProposedSet> {
         active
             .proposed_sets
             .iter()
@@ -735,7 +757,7 @@ mod plan_op_tests {
             active,
             &ExerciseAdjusted {
                 workout_id: "w1".to_string(),
-                exercise: SQUAT,
+                exercise: SQUAT.to_string(),
                 working_weight: 200.0,
                 target_reps: reps,
                 sets,
@@ -759,7 +781,10 @@ mod plan_op_tests {
         let ids: std::collections::HashSet<&str> = sets.iter().map(|s| s.id.as_str()).collect();
         assert_eq!(ids.len(), 5, "each new set has its own id");
         // Still one block: the squats come before the bench.
-        let order: Vec<i32> = visible(&active).iter().map(|s| s.exercise).collect();
+        let order: Vec<&str> = visible(&active)
+            .iter()
+            .map(|s| s.exercise.as_str())
+            .collect();
         assert_eq!(
             order,
             [SQUAT, SQUAT, SQUAT, SQUAT, SQUAT, BENCH, BENCH, BENCH]
@@ -805,7 +830,7 @@ mod plan_op_tests {
         assert_eq!(working(&active, SQUAT).len(), 3);
     }
 
-    fn pending_warmup_weights(active: &WorkoutRecord, exercise: i32) -> Vec<f32> {
+    fn pending_warmup_weights(active: &WorkoutRecord, exercise: &str) -> Vec<f32> {
         let done = done_set_ids(&active.completed_sets);
         active
             .proposed_sets
@@ -815,12 +840,12 @@ mod plan_op_tests {
             .collect()
     }
 
-    fn adjust(active: &mut WorkoutRecord, exercise: i32, weight: f32) {
+    fn adjust(active: &mut WorkoutRecord, exercise: &str, weight: f32) {
         apply_adjust_exercise_weight(
             active,
             &ExerciseAdjusted {
                 workout_id: "w1".to_string(),
-                exercise,
+                exercise: exercise.to_string(),
                 working_weight: weight,
                 target_reps: 0,
                 sets: 0,
@@ -854,7 +879,7 @@ mod plan_op_tests {
             &mut active,
             &ExerciseAdjusted {
                 workout_id: "w1".to_string(),
-                exercise: SQUAT,
+                exercise: SQUAT.to_string(),
                 working_weight: 210.0,
                 target_reps: 4,
                 sets: 0,
@@ -903,7 +928,7 @@ mod plan_op_tests {
         // The last warmup rolls into the working set: working rest.
         let last_warmup = sets.iter().rfind(|s| s.warmup).unwrap();
         assert_eq!(last_warmup.rest_seconds, 180);
-        assert_eq!(sets[0].rest_seconds, WARMUP_REST_SECONDS);
+        assert_eq!(sets[0].rest_seconds, builtin().warmups.rest_seconds);
         // Orders are sequential.
         assert!(sets
             .iter()
@@ -929,9 +954,9 @@ mod plan_op_tests {
         let rung = squat[0];
         assert!(rung.calibration);
         assert!(!rung.warmup);
-        assert_eq!(rung.target_reps, CALIBRATION_REPS);
+        assert_eq!(rung.target_reps, builtin().calibration.reps);
         assert_eq!(rung.target_weight, 110.0);
-        assert_eq!(rung.rest_seconds, CALIBRATION_REST_SECONDS);
+        assert_eq!(rung.rest_seconds, builtin().calibration.rest_seconds);
         assert_eq!(
             active.proposed_sets.len(),
             4,
@@ -948,7 +973,7 @@ mod plan_op_tests {
             "a bar step"
         );
         assert_eq!(next_calibration_weight(SQUAT, 200.0, unit), 220.0, "10%");
-        let raise = Exercise::LateralRaise as i32;
+        let raise = "lateral_raise";
         assert_eq!(
             next_calibration_weight(raise, 20.0, unit),
             25.0,
@@ -959,7 +984,7 @@ mod plan_op_tests {
     #[test]
     fn working_sets_after_calibration_follow_the_decision_and_the_max() {
         let decision = plan(SQUAT, 45.0, true);
-        let max = crate::plan::max_needed(95.0, 5, 3, false);
+        let max = builtin().estimate.max_needed(95.0, 5, 3, false);
         let sets = working_sets_after_calibration("w1", &decision, max, AppWeightUnit::Lb);
         assert_eq!(sets.len(), 3, "the decision's sets");
         for set in &sets {
@@ -1026,7 +1051,11 @@ mod plan_op_tests {
             &mut test_ids(),
         )
         .unwrap();
-        let exercises: Vec<i32> = active.proposed_sets.iter().map(|s| s.exercise).collect();
+        let exercises: Vec<&str> = active
+            .proposed_sets
+            .iter()
+            .map(|s| s.exercise.as_str())
+            .collect();
         assert_eq!(exercises, vec![SQUAT, SQUAT, SQUAT, BENCH, BENCH, BENCH]);
     }
 
@@ -1045,7 +1074,7 @@ mod plan_op_tests {
             &mut active,
             &ExerciseAdjusted {
                 workout_id: "w1".to_string(),
-                exercise: SQUAT,
+                exercise: SQUAT.to_string(),
                 working_weight: 100.0,
                 target_reps: 0,
                 sets: 0,
@@ -1059,7 +1088,7 @@ mod plan_op_tests {
             &mut active,
             &ExerciseRemoved {
                 workout_id: "w1".to_string(),
-                exercise: SQUAT,
+                exercise: SQUAT.to_string(),
             },
         )
         .is_err());
@@ -1067,7 +1096,7 @@ mod plan_op_tests {
             &mut active,
             &ExercisesReordered {
                 workout_id: "w1".to_string(),
-                exercises: vec![SQUAT],
+                exercises: vec![SQUAT.to_string()],
             },
         )
         .is_err());
@@ -1181,7 +1210,7 @@ mod plan_op_tests {
             &mut active,
             &ExerciseRemoved {
                 workout_id: "w1".to_string(),
-                exercise: SQUAT,
+                exercise: SQUAT.to_string(),
             },
         )
         .unwrap();
@@ -1277,7 +1306,7 @@ mod plan_op_tests {
             &mut active,
             &ExerciseRemoved {
                 workout_id: "w1".to_string(),
-                exercise: SQUAT,
+                exercise: SQUAT.to_string(),
             },
         )
         .unwrap();
@@ -1314,11 +1343,15 @@ mod plan_op_tests {
             &mut active,
             &ExercisesReordered {
                 workout_id: "w1".to_string(),
-                exercises: vec![BENCH, SQUAT],
+                exercises: vec![BENCH.to_string(), SQUAT.to_string()],
             },
         )
         .unwrap();
-        let exercises: Vec<i32> = active.proposed_sets.iter().map(|s| s.exercise).collect();
+        let exercises: Vec<&str> = active
+            .proposed_sets
+            .iter()
+            .map(|s| s.exercise.as_str())
+            .collect();
         assert_eq!(exercises, vec![BENCH, BENCH, BENCH, SQUAT, SQUAT, SQUAT]);
         assert!(active
             .proposed_sets
@@ -1332,20 +1365,24 @@ mod plan_op_tests {
         let mut active = workout_with(&[
             plan(SQUAT, 200.0, false),
             plan(BENCH, 135.0, false),
-            plan(3, 100.0, false),
+            plan(DEADLIFT, 100.0, false),
         ]);
         apply_reorder_exercises(
             &mut active,
             &ExercisesReordered {
                 workout_id: "w1".to_string(),
-                exercises: vec![3],
+                exercises: vec![DEADLIFT.to_string()],
             },
         )
         .unwrap();
-        let exercises: Vec<i32> = active.proposed_sets.iter().map(|s| s.exercise).collect();
+        let exercises: Vec<&str> = active
+            .proposed_sets
+            .iter()
+            .map(|s| s.exercise.as_str())
+            .collect();
         assert_eq!(
             exercises,
-            vec![3, 3, 3, SQUAT, SQUAT, SQUAT, BENCH, BENCH, BENCH]
+            vec![DEADLIFT, DEADLIFT, DEADLIFT, SQUAT, SQUAT, SQUAT, BENCH, BENCH, BENCH]
         );
     }
 }

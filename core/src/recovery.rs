@@ -1,37 +1,20 @@
 //! Per-muscle recovery from workout history: "are my legs ready?"
 //!
-//! One fixed recovery window per muscle, over the same 10-muscle taxonomy
-//! everything else uses. For each muscle the most recent workout that
+//! One recovery window per muscle, the program's (`recovery.hours`), over
+//! the same 10-muscle taxonomy everything else uses. For each muscle the most recent workout that
 //! trained it sets `last_trained_at`, from when that workout started (so
 //! a long session does not push its first lift's recovery back);
 //! recovered at `last + window`.
 
-use crate::exercise_catalog::{muscles, ALL_MUSCLES};
 use crate::history::WorkoutRecord;
-use crate::pb::{Exercise, MuscleGroup};
+use crate::program::{Muscle, Program};
 use crate::progress::is_done;
 
 const HOUR: i64 = 3600;
 
-/// Hours a muscle needs before training it hard again. Big muscles take
-/// about two days; small ones bounce back faster. Deliberately friendly
-/// to frequent training — a submaximal session is not a max single.
-pub fn recovery_hours(muscle: MuscleGroup) -> i64 {
-    match muscle {
-        MuscleGroup::Chest
-        | MuscleGroup::Back
-        | MuscleGroup::Quads
-        | MuscleGroup::Hamstrings
-        | MuscleGroup::Glutes => 48,
-        MuscleGroup::Shoulders | MuscleGroup::Biceps | MuscleGroup::Triceps => 36,
-        MuscleGroup::Calves | MuscleGroup::Core => 24,
-        MuscleGroup::Unspecified => 48,
-    }
-}
-
 #[derive(Clone, Copy, Debug)]
 pub struct MuscleRecovery {
-    pub muscle: MuscleGroup,
+    pub muscle: Muscle,
     /// Start time of the most recent workout that trained it (0 = never).
     pub last_trained_at: i64,
     /// `last_trained_at + window` (0 = never trained).
@@ -53,25 +36,24 @@ impl MuscleRecovery {
 }
 
 /// Exercises the user actually completed a working set for in a workout.
-fn trained_exercises(record: &WorkoutRecord) -> Vec<Exercise> {
-    let mut out = Vec::new();
+fn trained_exercises(record: &WorkoutRecord) -> Vec<&str> {
+    let mut out: Vec<&str> = Vec::new();
     for proposed in &record.proposed_sets {
         if proposed.warmup {
             continue;
         }
-        if is_done(&proposed.id, &record.completed_sets) {
-            let ex = Exercise::try_from(proposed.exercise).unwrap_or(Exercise::Unspecified);
-            if !out.contains(&ex) {
-                out.push(ex);
-            }
+        if is_done(&proposed.id, &record.completed_sets)
+            && !out.contains(&proposed.exercise.as_str())
+        {
+            out.push(&proposed.exercise);
         }
     }
     out
 }
 
-/// Recovery for all 10 muscles, from history.
-pub fn per_muscle_recovery(history: &[WorkoutRecord]) -> Vec<MuscleRecovery> {
-    let mut latest: std::collections::HashMap<MuscleGroup, i64> = std::collections::HashMap::new();
+/// Recovery for all 10 muscles, from history, by the program's windows.
+pub fn per_muscle_recovery(program: &Program, history: &[WorkoutRecord]) -> Vec<MuscleRecovery> {
+    let mut latest: std::collections::HashMap<Muscle, i64> = std::collections::HashMap::new();
 
     for record in history {
         let t = record.workout.start_time;
@@ -79,7 +61,7 @@ pub fn per_muscle_recovery(history: &[WorkoutRecord]) -> Vec<MuscleRecovery> {
             continue;
         }
         for ex in trained_exercises(record) {
-            for &muscle in muscles(ex) {
+            for &muscle in program.muscles(ex) {
                 let entry = latest.entry(muscle).or_insert(0);
                 if t > *entry {
                     *entry = t;
@@ -88,7 +70,7 @@ pub fn per_muscle_recovery(history: &[WorkoutRecord]) -> Vec<MuscleRecovery> {
         }
     }
 
-    ALL_MUSCLES
+    Muscle::ALL
         .iter()
         .map(|&muscle| {
             let last = latest.get(&muscle).copied().unwrap_or(0);
@@ -102,7 +84,7 @@ pub fn per_muscle_recovery(history: &[WorkoutRecord]) -> Vec<MuscleRecovery> {
             MuscleRecovery {
                 muscle,
                 last_trained_at: last,
-                recovered_at: last.saturating_add(recovery_hours(muscle) * HOUR),
+                recovered_at: last.saturating_add(program.recovery_hours(muscle) * HOUR),
             }
         })
         .collect()

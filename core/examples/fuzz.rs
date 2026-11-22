@@ -29,14 +29,21 @@ use schlift_core::pb::{
     workout_mutation::Mutation, AddExercisesRequest, AdjustExerciseWeightRequest,
     AnswerRungRequest, AppendWorkoutMutationsRequest, ApplyLibraryPlanRequest,
     CompleteOnboardingRequest, CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest,
-    EditCompletedSetRequest, EndWorkoutRequest, Exercise, ExerciseDecision, ExercisePlan,
-    GetHomeRequest, GetWorkoutRequest, GetWorkoutResponse, PlanReasonKind, RemoveExerciseRequest,
+    EditCompletedSetRequest, EndWorkoutRequest, ExerciseDecision, ExercisePlan, GetHomeRequest,
+    GetWorkoutRequest, GetWorkoutResponse, PlanReasonKind, RemoveExerciseRequest,
     ReorderExercisesRequest, RepsLeft, SetOverrideRequest, SetWorkoutSessionRequest,
     SkipWarmupsRequest, StartSetRequest, StartWorkoutRequest, WeightUnit, WorkoutMutation,
     WorkoutState,
 };
 use schlift_core::plan::Planner;
-use schlift_core::workout::TOO_HEAVY_REPS;
+
+/// A rung done with fewer reps was too heavy (the built-in program's
+/// `calibration.too_heavy_reps`).
+fn too_heavy_reps() -> i32 {
+    schlift_core::program::Program::builtin()
+        .calibration
+        .too_heavy_reps
+}
 
 #[derive(Parser, Debug)]
 #[command(about = "Randomised API sequence fuzzer with invariant checks")]
@@ -50,6 +57,10 @@ struct Args {
     /// Seed for reproducibility — a failure prints the seed to replay it.
     #[arg(long, default_value_t = 0xC0FFEE)]
     seed: u64,
+    /// Write each user's event log here as JSON (`<seed>-<user>.json`), so
+    /// two builds can be checked to plan the same seed identically.
+    #[arg(long)]
+    dump_dir: Option<std::path::PathBuf>,
 }
 
 /// A violated invariant, with enough context to reproduce it.
@@ -125,7 +136,12 @@ impl Drop for Recording<'_> {
 
 /// One simulated user: a series of workouts, with invariants checked after every
 /// mutation. Returns the violations it found and how many mutations it made.
-fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usize, usize) {
+fn run_user(
+    seed: u64,
+    user_idx: usize,
+    sessions: usize,
+    dump_dir: Option<&std::path::Path>,
+) -> (Vec<Violation>, usize, usize) {
     // Decorrelate each user's stream so they do not all make the same choices.
     let mut rng = StdRng::seed_from_u64(seed ^ ((user_idx as u64 + 1) << 32));
     let mut violations: Vec<Violation> = Vec::new();
@@ -252,19 +268,19 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
             (request, preview)
         } else {
             // Sometimes with a lift twice: it is planned once.
-            let exercises: Vec<Exercise> = (0..rng.gen_range(1..5))
+            let exercises: Vec<String> = (0..rng.gen_range(1..5))
                 .map(|_| random_exercise(&mut rng))
                 .collect();
-            let mut once: Vec<Exercise> = Vec::new();
+            let mut once: Vec<String> = Vec::new();
             for ex in &exercises {
                 if !once.contains(ex) {
-                    once.push(*ex);
+                    once.push(ex.clone());
                 }
             }
             let preview = Planner::new(&sim.account, at_time).workout(&once, &[], budget);
             let request = StartWorkoutRequest {
                 name: format!("Fuzz {session_idx}"),
-                exercises: exercises.iter().map(|e| *e as i32).collect(),
+                exercises,
                 started_at: at_time,
                 budget_minutes: budget,
                 ..Default::default()
@@ -402,7 +418,7 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                     );
                     // A rung too heavy (under three reps) steps the ramp
                     // down, or settles it: never a heavier rung.
-                    if first_time && reps < TOO_HEAVY_REPS {
+                    if first_time && reps < too_heavy_reps() {
                         if let Ok(after) = sim.view(now).get_workout(GetWorkoutRequest {
                             workout_id: workout_id.clone(),
                         }) {
@@ -490,7 +506,7 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                 // Skip all of an exercise's warmups: they're marked, never
                 // removed.
                 let warm: Vec<_> = pending.iter().filter(|p| p.warmup).collect();
-                let exercise = warm[rng.gen_range(0..warm.len())].exercise;
+                let exercise = warm[rng.gen_range(0..warm.len())].exercise.clone();
                 step_name = format!("skip_warmups({exercise})");
                 let _ = sim
                     .call(now)
@@ -537,7 +553,7 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                     now,
                     Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
                         workout_id: workout_id.clone(),
-                        exercise: s.exercise,
+                        exercise: s.exercise.clone(),
                         working_weight: weight,
                         target_reps: 0,
                         ..Default::default()
@@ -546,14 +562,13 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
             } else if action < 70 {
                 // Add or remove an exercise mid-workout.
                 if rng.gen_bool(0.5) || state.proposed_sets.is_empty() {
-                    let exercise = random_exercise(&mut rng) as i32;
+                    let exercise = random_exercise(&mut rng);
                     step_name = format!("add_exercises({exercise})");
                     sim.mutate(
                         now,
                         Mutation::AddExercises(AddExercisesRequest {
                             workout_id: workout_id.clone(),
-                            exercises: vec![exercise],
-                            ..Default::default()
+                            exercises: vec![exercise.clone()],
                         }),
                     );
                 } else {
@@ -563,16 +578,16 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                         now,
                         Mutation::RemoveExercise(RemoveExerciseRequest {
                             workout_id: workout_id.clone(),
-                            exercise: s.exercise,
+                            exercise: s.exercise.clone(),
                         }),
                     );
                 }
             } else if action < 76 && !state.proposed_sets.is_empty() {
                 // Reorder the exercise blocks.
-                let mut exercises: Vec<i32> = Vec::new();
+                let mut exercises: Vec<String> = Vec::new();
                 for s in &state.proposed_sets {
                     if !exercises.contains(&s.exercise) {
-                        exercises.push(s.exercise);
+                        exercises.push(s.exercise.clone());
                     }
                 }
                 for i in (1..exercises.len()).rev() {
@@ -593,12 +608,12 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                 let sets = rng.gen_bool(0.5).then(|| rng.gen_range(1..7));
                 step_name = format!("set_override({})", s.exercise);
                 expect = Some(Expectation::Override {
-                    exercise: s.exercise,
+                    exercise: s.exercise.clone(),
                     reps,
                     sets,
                 });
                 let _ = sim.call(now).set_override(SetOverrideRequest {
-                    exercise: s.exercise,
+                    exercise: s.exercise.clone(),
                     weight: (rng.gen_range(9..60) * 5) as f32,
                     reps,
                     sets,
@@ -651,9 +666,9 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
                 check_invariants(&after, &username, &step_name, &mut violations);
                 if let Some(expectation) = expect {
                     let plan = match &expectation {
-                        Expectation::Override { exercise, .. } => Exercise::try_from(*exercise)
-                            .ok()
-                            .map(|ex| sim.view(now).exercise_plan(ex, 0)),
+                        Expectation::Override { exercise, .. } => {
+                            Some(sim.view(now).exercise_plan(exercise, 0))
+                        }
                         _ => None,
                     };
                     check_expectation(
@@ -721,6 +736,11 @@ fn run_user(seed: u64, user_idx: usize, sessions: usize) -> (Vec<Violation>, usi
             detail: format!("{} events", sim.log.len()),
         });
     }
+    if let Some(dir) = dump_dir {
+        let path = dir.join(format!("{seed}-{user_idx}.json"));
+        let json = serde_json::to_string_pretty(&sim.log).expect("events serialise");
+        std::fs::write(&path, json).expect("dump written");
+    }
 
     (violations, steps, too_heavy)
 }
@@ -747,7 +767,7 @@ fn check_too_heavy(
     else {
         return;
     };
-    if !rung.calibration || done.actual_reps >= TOO_HEAVY_REPS {
+    if !rung.calibration || done.actual_reps >= too_heavy_reps() {
         return;
     }
     *count += 1;
@@ -826,7 +846,7 @@ fn mutation(mutation: Mutation) -> WorkoutMutation {
 enum Expectation {
     /// An override: the lift's next plan is it.
     Override {
-        exercise: i32,
+        exercise: String,
         reps: i32,
         sets: Option<i32>,
     },
@@ -1092,13 +1112,13 @@ fn check_invariants(state: &GetWorkoutResponse, user: &str, step: &str, out: &mu
     }
 
     // The calibration ramp is capped at six rungs per exercise.
-    let mut rungs: HashMap<i32, usize> = HashMap::new();
+    let mut rungs: HashMap<String, usize> = HashMap::new();
     for s in state
         .proposed_sets
         .iter()
         .filter(|s| s.calibration && !s.cancelled)
     {
-        *rungs.entry(s.exercise).or_default() += 1;
+        *rungs.entry(s.exercise.clone()).or_default() += 1;
     }
     for (exercise, count) in rungs.iter().filter(|(_, n)| **n > 6) {
         push(
@@ -1124,18 +1144,18 @@ fn check_invariants(state: &GetWorkoutResponse, user: &str, step: &str, out: &mu
     }
 }
 
-fn random_exercise(rng: &mut StdRng) -> Exercise {
-    const LIFTS: [Exercise; 8] = [
-        Exercise::Squat,
-        Exercise::BenchPress,
-        Exercise::Deadlift,
-        Exercise::OverheadPress,
-        Exercise::BarbellRow,
-        Exercise::LateralRaise,
-        Exercise::CableCrunch,
-        Exercise::PullUp,
+fn random_exercise(rng: &mut StdRng) -> String {
+    const LIFTS: [&str; 8] = [
+        "squat",
+        "bench_press",
+        "deadlift",
+        "overhead_press",
+        "barbell_row",
+        "lateral_raise",
+        "cable_crunch",
+        "pull_up",
     ];
-    LIFTS[rng.gen_range(0..LIFTS.len())]
+    LIFTS[rng.gen_range(0..LIFTS.len())].to_string()
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -1145,7 +1165,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut steps = 0usize;
     let mut too_heavy = 0usize;
     for user_idx in 0..args.users {
-        let (v, s, h) = run_user(args.seed, user_idx, args.sessions);
+        let (v, s, h) = run_user(args.seed, user_idx, args.sessions, args.dump_dir.as_deref());
         violations.extend(v);
         steps += s;
         too_heavy += h;

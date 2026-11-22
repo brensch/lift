@@ -12,7 +12,7 @@ mod reducer;
 
 pub use planning::{
     apply_add_exercises, apply_adjust_exercise_weight, apply_remove_exercise,
-    apply_reorder_exercises, MAX_CALIBRATION_RUNGS, TOO_HEAVY_REPS,
+    apply_reorder_exercises,
 };
 pub use reducer::{
     apply_answer_rung_to_active, apply_complete_set_to_active,
@@ -25,7 +25,3 @@ pub use reducer::{
 pub enum WorkoutError {
     FailedPrecondition(&'static str),
 }
-
-/// Rest after an exercise's final set — no point in a full working rest when
-/// the next thing is a different exercise.
-pub const END_OF_EXERCISE_REST_SECONDS: i64 = 60;

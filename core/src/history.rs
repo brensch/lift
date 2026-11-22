@@ -7,6 +7,7 @@ use crate::pb::{
     CompletedSet, ExerciseDecision, ExerciseLog, ProposedSet, WeightChange, WeightChangeCause,
     Workout, WorkoutHeartRatePoint,
 };
+use crate::program::ProgramRef;
 use crate::weight_units::AppWeightUnit;
 
 /// A workout's full state: the row, its ordered flat set list (there is no
@@ -24,6 +25,9 @@ pub struct WorkoutRecord {
     /// in: the workout's own, so it folds the same with or without the rest
     /// of the account.
     pub unit: AppWeightUnit,
+    /// The program it was planned under: its warmups, ramp and loading lay
+    /// its sets out, whatever program is set after it.
+    pub program: ProgramRef,
 }
 
 impl WorkoutRecord {
@@ -50,6 +54,7 @@ impl WorkoutRecord {
             heart_rate: Vec::new(),
             exercise_logs: self.exercise_logs.clone(),
             unit: self.unit,
+            program: self.program.clone(),
         }
     }
 
@@ -62,7 +67,7 @@ impl WorkoutRecord {
     }
 
     /// The decision a lift was last given in this workout.
-    pub fn decision(&self, exercise: i32) -> Option<&ExerciseDecision> {
+    pub fn decision(&self, exercise: &str) -> Option<&ExerciseDecision> {
         self.exercise_logs
             .iter()
             .rev()
@@ -72,7 +77,7 @@ impl WorkoutRecord {
 
     /// The working weight a lift is at now: its last change (a correction
     /// fixes a done set, not the plan) or, before any, its decision's.
-    pub fn planned_weight(&self, exercise: i32) -> f32 {
+    pub fn planned_weight(&self, exercise: &str) -> f32 {
         let Some(log) = self.log(exercise) else {
             return 0.0;
         };
@@ -85,7 +90,7 @@ impl WorkoutRecord {
             .unwrap_or(0.0)
     }
 
-    fn log(&self, exercise: i32) -> Option<&ExerciseLog> {
+    fn log(&self, exercise: &str) -> Option<&ExerciseLog> {
         self.exercise_logs.iter().rev().find(|log| {
             log.decision
                 .as_ref()
@@ -95,7 +100,7 @@ impl WorkoutRecord {
 
     /// Record a change to a lift's weight on its log. A change that leaves
     /// the weight where it was is not one.
-    pub fn log_change(&mut self, exercise: i32, change: WeightChange) {
+    pub fn log_change(&mut self, exercise: &str, change: WeightChange) {
         if (change.after - change.before).abs() < 1e-3 {
             return;
         }

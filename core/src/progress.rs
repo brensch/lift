@@ -1,9 +1,9 @@
-use crate::exercise_catalog::{load_style, LoadStyle};
 use crate::history::WorkoutRecord;
 use crate::pb::{
-    CompletedSet, Exercise, ExerciseProgress, ExerciseProgressPoint, ExerciseSummary, ProposedSet,
-    Workout, WorkoutSummary,
+    CompletedSet, ExerciseProgress, ExerciseProgressPoint, ExerciseSummary, ProposedSet, Workout,
+    WorkoutSummary,
 };
+use crate::program::Program;
 use std::collections::{BTreeMap, HashMap};
 
 /// Roll a finished (or in-progress) workout up into the render-ready summary the
@@ -28,7 +28,7 @@ pub fn compute_workout_summary(
     let mut yapping_seconds: i64 = 0;
     let mut lifting_seconds: i64 = 0;
     let mut total_volume: f32 = 0.0;
-    let mut ex_index: HashMap<i32, usize> = HashMap::new();
+    let mut ex_index: HashMap<String, usize> = HashMap::new();
     let mut exercises: Vec<ExerciseSummary> = Vec::new();
 
     for i in 0..ordered.len() {
@@ -84,13 +84,15 @@ pub fn compute_workout_summary(
         if set_volume.is_finite() {
             total_volume += set_volume;
         }
-        let idx = *ex_index.entry(proposed.exercise).or_insert_with(|| {
-            exercises.push(ExerciseSummary {
-                exercise: proposed.exercise,
-                ..Default::default()
+        let idx = *ex_index
+            .entry(proposed.exercise.clone())
+            .or_insert_with(|| {
+                exercises.push(ExerciseSummary {
+                    exercise: proposed.exercise.clone(),
+                    ..Default::default()
+                });
+                exercises.len() - 1
             });
-            exercises.len() - 1
-        });
         let e = &mut exercises[idx];
         e.total_sets += 1;
         e.total_reps += c.actual_reps;
@@ -129,7 +131,10 @@ pub fn compute_workout_summary(
 /// most-improved first (by top-weight gain). One point per workout the exercise
 /// appears in. A bodyweight lift is marked so by its load style, not by the
 /// weight lifted: its estimated maxes are rep maxes even with added weight.
-pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExerciseProgress> {
+pub fn compute_exercise_progress(
+    workouts: &[&WorkoutRecord],
+    program: &Program,
+) -> Vec<ExerciseProgress> {
     struct Acc {
         top_weight: f32,
         top_reps: i32,
@@ -137,7 +142,7 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
         sets: i32,
     }
 
-    let mut index: HashMap<i32, usize> = HashMap::new();
+    let mut index: HashMap<String, usize> = HashMap::new();
     let mut series: Vec<ExerciseProgress> = Vec::new();
 
     let mut ordered: Vec<&WorkoutRecord> = workouts.to_vec();
@@ -152,7 +157,7 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
         let proposed_by_id: HashMap<&str, &ProposedSet> =
             proposed.iter().map(|p| (p.id.as_str(), p)).collect();
 
-        let mut per_ex: BTreeMap<i32, Acc> = BTreeMap::new();
+        let mut per_ex: BTreeMap<&str, Acc> = BTreeMap::new();
         for c in completed {
             if c.ended_at == 0 {
                 continue;
@@ -164,7 +169,7 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
             if !p.is_working() {
                 continue;
             }
-            let a = per_ex.entry(p.exercise).or_insert(Acc {
+            let a = per_ex.entry(p.exercise.as_str()).or_insert(Acc {
                 top_weight: 0.0,
                 top_reps: 0,
                 volume: 0.0,
@@ -179,12 +184,11 @@ pub fn compute_exercise_progress(workouts: &[&WorkoutRecord]) -> Vec<ExercisePro
         }
 
         for (ex, a) in per_ex {
-            let idx = *index.entry(ex).or_insert_with(|| {
+            let idx = *index.entry(ex.to_string()).or_insert_with(|| {
                 series.push(ExerciseProgress {
-                    exercise: ex,
+                    exercise: ex.to_string(),
                     points: Vec::new(),
-                    bodyweight: Exercise::try_from(ex)
-                        .is_ok_and(|e| load_style(e) == LoadStyle::Bodyweight),
+                    bodyweight: program.is_bodyweight(ex),
                 });
                 series.len() - 1
             });
@@ -268,10 +272,10 @@ pub fn compute_next_up_set(
 mod summary_tests {
     use super::*;
 
-    fn proposed(id: &str, ex: i32, warmup: bool) -> ProposedSet {
+    fn proposed(id: &str, ex: &str, warmup: bool) -> ProposedSet {
         ProposedSet {
             id: id.to_string(),
-            exercise: ex,
+            exercise: ex.to_string(),
             warmup,
             ..Default::default()
         }
@@ -296,9 +300,9 @@ mod summary_tests {
             ..Default::default()
         };
         let proposed_sets = vec![
-            proposed("w", 1, true),  // warmup: 45x5
-            proposed("a", 1, false), // work: 100x5
-            proposed("b", 1, false), // work: 100x5
+            proposed("w", "squat", true),  // warmup: 45x5
+            proposed("a", "squat", false), // work: 100x5
+            proposed("b", "squat", false), // work: 100x5
         ];
         // warmup done at 1030 (rest to 1060); work done at 1090 (rest to 1150,
         // but the next set is done at 1130 so the rest is cut short); work done
@@ -337,7 +341,7 @@ mod summary_tests {
             end_time: 1300,
             ..Default::default()
         };
-        let proposed_sets = vec![proposed("a", 1, false), proposed("b", 1, false)];
+        let proposed_sets = vec![proposed("a", "squat", false), proposed("b", "squat", false)];
         let completed_sets = vec![
             CompletedSet {
                 started_at: 1000,
@@ -366,7 +370,7 @@ mod summary_tests {
             end_time: 1200,
             ..Default::default()
         };
-        let proposed_sets = vec![proposed("a", 1, false), proposed("b", 1, false)];
+        let proposed_sets = vec![proposed("a", "squat", false), proposed("b", "squat", false)];
         let completed_sets = vec![
             completed("a", 5, 100.0, 1030, 1060),
             completed("b", 5, 100.0, 1500, 1560),
@@ -393,7 +397,7 @@ mod summary_tests {
             end_time: 1200,
             ..Default::default()
         };
-        let proposed_sets = vec![proposed("a", 1, false)];
+        let proposed_sets = vec![proposed("a", "squat", false)];
         let completed_sets = vec![completed("a", 5, 100.0, 1180, 1300)];
         let s = compute_workout_summary(&workout, &proposed_sets, &completed_sets);
         assert_eq!(s.resting_seconds, 20);
@@ -413,7 +417,7 @@ mod summary_tests {
         )
     }
 
-    fn set(id: &str, ex: i32, reps: i32, weight: f32) -> (ProposedSet, CompletedSet) {
+    fn set(id: &str, ex: &str, reps: i32, weight: f32) -> (ProposedSet, CompletedSet) {
         (proposed(id, ex, false), completed(id, reps, weight, 1, 0))
     }
 
@@ -423,7 +427,7 @@ mod summary_tests {
     /// heavier than the working sets is not.
     #[test]
     fn progress_is_oldest_first_and_most_improved_first() {
-        let (squat, bench) = (1, 2);
+        let (squat, bench) = ("squat", "bench_press");
         let mut rung = set("rung", squat, 1, 300.0);
         rung.0.calibration = true;
         let mut warmup = set("warm", squat, 1, 250.0);
@@ -445,9 +449,12 @@ mod summary_tests {
             1_000,
             &[set("s0", squat, 5, 150.0), set("b0", bench, 5, 100.0)],
         );
-        let series = compute_exercise_progress(&[&newer, &older]);
+        let series = compute_exercise_progress(&[&newer, &older], &Program::builtin());
         assert_eq!(
-            series.iter().map(|s| s.exercise).collect::<Vec<_>>(),
+            series
+                .iter()
+                .map(|s| s.exercise.as_str())
+                .collect::<Vec<_>>(),
             [squat, bench],
             "squat gained 50, bench 5"
         );

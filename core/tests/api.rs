@@ -18,13 +18,11 @@ fn mutation(m: Mutation) -> WorkoutMutation {
 const NOW: i64 = 1_800_000_000;
 const DAY: i64 = 24 * 3600;
 
-/// The phone, minus storage: an account, a clock, the event log and the
-/// template library the server last sent.
+/// The phone, minus storage: an account, a clock and the event log.
 struct App {
     account: Account,
     now: i64,
     log: Vec<Event>,
-    library: Vec<LibraryTemplate>,
 }
 
 impl App {
@@ -33,18 +31,17 @@ impl App {
             account: Account::default(),
             now: NOW,
             log: Vec::new(),
-            library: schlift_core::template_library::library().to_vec(),
         }
     }
 
     fn view(&self) -> View<'_> {
-        View::new(&self.account, self.now).with_library(&self.library)
+        View::new(&self.account, self.now)
     }
 
     fn call(&mut self) -> Recording<'_> {
         let id = Uuid::new_v4().to_string();
         Recording {
-            call: Call::new(&mut self.account, self.now, id).with_library(&self.library),
+            call: Call::new(&mut self.account, self.now, id),
             log: &mut self.log,
         }
     }
@@ -112,7 +109,7 @@ fn home(app: &mut App) -> GetHomeResponse {
 }
 
 /// The lift's plan on its own at the app's now.
-fn plan(app: &App, exercise: Exercise) -> ExerciseDecision {
+fn plan(app: &App, exercise: &str) -> ExerciseDecision {
     app.view()
         .exercise_plan(exercise, 0)
         .decision
@@ -128,14 +125,7 @@ fn kinds(d: &ExerciseDecision) -> Vec<PlanReasonKind> {
 
 /// A finished session of one lift brought in by import: one working set per
 /// entry of `reps`, each at `weight` against `target`, ending at `end`.
-fn import_session(
-    app: &mut App,
-    exercise: Exercise,
-    weight: f32,
-    target: i32,
-    reps: &[i32],
-    end: i64,
-) {
+fn import_session(app: &mut App, exercise: &str, weight: f32, target: i32, reps: &[i32], end: i64) {
     let id = Uuid::new_v4().to_string();
     let mut workout = ImportedWorkout {
         workout: Some(Workout {
@@ -153,7 +143,7 @@ fn import_session(
             id: set_id.clone(),
             workout_id: id.clone(),
             workout_order: n as i32,
-            exercise: exercise as i32,
+            exercise: exercise.to_string(),
             target_reps: target,
             target_weight: weight,
             rest_seconds: 120,
@@ -177,18 +167,18 @@ fn import_session(
         .unwrap();
 }
 
-fn start(app: &mut App, exercises: &[Exercise]) -> StartWorkoutResponse {
+fn start(app: &mut App, exercises: &[&str]) -> StartWorkoutResponse {
     app.call()
         .start_workout(StartWorkoutRequest {
-            exercises: exercises.iter().map(|e| *e as i32).collect(),
+            exercises: exercises.iter().map(|e| e.to_string()).collect(),
             ..Default::default()
         })
         .unwrap()
 }
 
-fn working(sets: &[ProposedSet], exercise: Exercise) -> Vec<ProposedSet> {
+fn working(sets: &[ProposedSet], exercise: &str) -> Vec<ProposedSet> {
     sets.iter()
-        .filter(|s| s.exercise == exercise as i32 && !s.warmup && !s.calibration && !s.cancelled)
+        .filter(|s| s.exercise == exercise && !s.warmup && !s.calibration && !s.cancelled)
         .cloned()
         .collect()
 }
@@ -229,16 +219,16 @@ fn finish(
     ts
 }
 
-fn decision(started: &StartWorkoutResponse, exercise: Exercise) -> ExerciseDecision {
+fn decision(started: &StartWorkoutResponse, exercise: &str) -> ExerciseDecision {
     started
         .exercise_logs
         .iter()
         .filter_map(|l| l.decision.clone())
-        .find(|d| d.exercise == exercise as i32)
+        .find(|d| d.exercise == exercise)
         .expect("the lift was planned")
 }
 
-const STRONGLIFTS_A: [Exercise; 3] = [Exercise::Squat, Exercise::BarbellRow, Exercise::BenchPress];
+const STRONGLIFTS_A: [&str; 3] = ["squat", "barbell_row", "bench_press"];
 
 mod home_and_onboarding {
     use super::*;
@@ -258,10 +248,10 @@ mod home_and_onboarding {
         assert_eq!(response.budget_minutes, 60);
         assert_eq!(
             response.plans.len(),
-            schlift_core::exercise_catalog::all_exercises().len()
+            schlift_core::program::Program::builtin().exercises.len()
         );
 
-        let squat = plan(&app, Exercise::Squat);
+        let squat = plan(&app, "squat");
         assert!(squat.calibration, "never done: a ramp");
         assert_eq!(squat.weight, 45.0, "from the empty bar");
         assert_eq!((squat.rep_low, squat.rep_high), (5, 8));
@@ -274,7 +264,7 @@ mod home_and_onboarding {
         let raise = response
             .plans
             .iter()
-            .find(|p| p.decision.as_ref().unwrap().exercise == Exercise::LateralRaise as i32)
+            .find(|p| p.decision.as_ref().unwrap().exercise == "lateral_raise")
             .unwrap();
         assert_eq!(raise.decision.as_ref().unwrap().weight, 20.0);
         assert_eq!(
@@ -301,7 +291,7 @@ mod home_and_onboarding {
         let ids: Vec<&str> = home
             .templates
             .iter()
-            .map(|t| t.library_id.as_str())
+            .map(|t| t.origin_library_id.as_str())
             .collect();
         assert_eq!(ids, vec!["stronglifts_a", "butt_stuff"]);
         assert_eq!(home.templates[0].name, "StrongLifts A");
@@ -333,10 +323,13 @@ mod home_and_onboarding {
 
         let home = onboard(&mut app, WeightUnit::Lb);
         let before = home.templates.len();
-        assert!(home.templates.iter().all(|t| !t.library_id.is_empty()));
+        assert!(home
+            .templates
+            .iter()
+            .all(|t| !t.origin_library_id.is_empty()));
 
         // Adding one new and one already present adds exactly one.
-        let already = home.templates[0].library_id.clone();
+        let already = home.templates[0].origin_library_id.clone();
         app.call()
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["butt_stuff".into(), already.clone()],
@@ -346,33 +339,29 @@ mod home_and_onboarding {
         let home = app.view().home(0);
         assert_eq!(home.templates.len(), before + 1);
         let added = home.templates.last().unwrap();
-        assert_eq!(added.library_id, "butt_stuff");
+        assert_eq!(added.origin_library_id, "butt_stuff");
         assert_eq!(added.name, "Butt Stuff");
 
-        assert!(added.coupled, "a library workout follows the library");
-
-        // Saved unchanged it still follows; renamed it becomes the user's
-        // own, made from the entry, and the entry is not added again
-        // beside it.
+        // A copy is the user's own: saved unchanged it records nothing;
+        // renamed it keeps where it came from, and the entry is not added
+        // again beside it.
+        let events = app.log.len();
         app.call()
             .save_template(SaveTemplateRequest {
                 template: Some(added.clone()),
-                ..Default::default()
             })
             .unwrap();
-        assert!(app.account.template(&added.id).unwrap().coupled);
+        assert_eq!(app.log.len(), events, "nothing changed");
         let mut mine = added.clone();
         mine.name = "Cake Day".into();
         app.call()
             .save_template(SaveTemplateRequest {
                 template: Some(mine),
-                ..Default::default()
             })
             .unwrap();
         let home = self::home(&mut app);
         let renamed = home.templates.iter().find(|t| t.id == added.id).unwrap();
         assert_eq!(renamed.name, "Cake Day");
-        assert!(!renamed.coupled && renamed.library_id.is_empty());
         assert_eq!(renamed.origin_library_id, "butt_stuff");
         let events = app.log.len();
         app.call()
@@ -414,15 +403,15 @@ mod home_and_onboarding {
         assert!(recorded
             .starting_weights
             .iter()
-            .any(|w| w.exercise == Exercise::Squat as i32 && w.weight_lb == 180.0));
+            .any(|w| w.exercise == "squat" && w.weight_lb == 180.0));
 
-        let squat = plan(&app, Exercise::Squat);
+        let squat = plan(&app, "squat");
         assert_eq!(squat.weight, 110.0, "60% of 180, loadable");
         assert_eq!(squat.reasons[0].before, 180.0);
 
         let again = onboard(&mut app, WeightUnit::Lb);
         assert_eq!(again.templates.len(), 2);
-        assert_eq!(plan(&app, Exercise::Squat).weight, 110.0);
+        assert_eq!(plan(&app, "squat").weight, 110.0);
     }
 
     /// A kilogram user's weights land on the kilogram grid.
@@ -436,7 +425,7 @@ mod home_and_onboarding {
                 ..Default::default()
             })
             .unwrap();
-        let kg = schlift_core::weight_units::pounds_to_kg(plan(&app, Exercise::Squat).weight);
+        let kg = schlift_core::weight_units::pounds_to_kg(plan(&app, "squat").weight);
         let on_grid = ((kg - 20.0) / 2.5 - ((kg - 20.0) / 2.5).round()).abs() < 0.01;
         assert!(on_grid, "the ramp opens at a loadable kg value: {kg} kg");
     }
@@ -445,10 +434,10 @@ mod home_and_onboarding {
 mod templates {
     use super::*;
 
-    pub(super) fn template(name: &str, exercises: &[Exercise]) -> WorkoutTemplate {
+    pub(super) fn template(name: &str, exercises: &[&str]) -> WorkoutTemplate {
         WorkoutTemplate {
             name: name.to_string(),
-            exercises: exercises.iter().map(|e| *e as i32).collect(),
+            exercises: exercises.iter().map(|e| e.to_string()).collect(),
             ..Default::default()
         }
     }
@@ -460,11 +449,7 @@ mod templates {
         let saved = app
             .call()
             .save_template(SaveTemplateRequest {
-                template: Some(template(
-                    "Arms",
-                    &[Exercise::BarbellCurl, Exercise::SkullCrusher],
-                )),
-                ..Default::default()
+                template: Some(template("Arms", &["barbell_curl", "skull_crusher"])),
             })
             .unwrap()
             .template
@@ -473,12 +458,11 @@ mod templates {
 
         // Edit keeps the id and order.
         let mut edited = saved.clone();
-        edited.exercises.push(Exercise::HammerCurl as i32);
+        edited.exercises.push("hammer_curl".to_string());
         let edited = app
             .call()
             .save_template(SaveTemplateRequest {
                 template: Some(edited),
-                ..Default::default()
             })
             .unwrap()
             .template
@@ -489,8 +473,7 @@ mod templates {
         let second = app
             .call()
             .save_template(SaveTemplateRequest {
-                template: Some(template("Legs", &[Exercise::Squat])),
-                ..Default::default()
+                template: Some(template("Legs", &["squat"])),
             })
             .unwrap()
             .template
@@ -526,19 +509,18 @@ mod templates {
         let legs = app
             .call()
             .save_template(SaveTemplateRequest {
-                template: Some(template("Legs", &[Exercise::Squat, Exercise::CalfRaise])),
-                ..Default::default()
+                template: Some(template("Legs", &["squat", "calf_raise"])),
             })
             .unwrap()
             .template
             .unwrap();
-        let end = |app: &mut App, template_id: &str, done: &[Exercise]| {
+        let end = |app: &mut App, template_id: &str, done: &[&str]| {
             let started = app
                 .call()
                 .start_workout(StartWorkoutRequest {
                     template_id: template_id.to_string(),
                     exercises: if template_id.is_empty() {
-                        vec![Exercise::Squat as i32]
+                        vec!["squat".to_string()]
                     } else {
                         vec![]
                     },
@@ -550,7 +532,7 @@ mod templates {
                 let set = started
                     .proposed_sets
                     .iter()
-                    .find(|s| s.exercise == *exercise as i32 && !s.warmup)
+                    .find(|s| s.exercise == *exercise && !s.warmup)
                     .unwrap()
                     .clone();
                 app.call()
@@ -574,18 +556,18 @@ mod templates {
                 .template_offer
         };
 
-        let offer = end(&mut app, &legs.id, &[Exercise::Squat]).expect("an offer");
+        let offer = end(&mut app, &legs.id, &["squat"]).expect("an offer");
         assert_eq!(offer.template_id, legs.id);
         assert_eq!(offer.template_name, "Legs");
-        assert_eq!(offer.exercises, vec![Exercise::Squat as i32]);
+        assert_eq!(offer.exercises, vec!["squat".to_string()]);
 
-        let both = [Exercise::CalfRaise, Exercise::Squat];
+        let both = ["calf_raise", "squat"];
         assert_eq!(end(&mut app, &legs.id, &both), None);
         assert_eq!(end(&mut app, &legs.id, &[]), None);
 
-        let offer = end(&mut app, "", &[Exercise::Squat]).expect("an offer");
+        let offer = end(&mut app, "", &["squat"]).expect("an offer");
         assert_eq!(offer.template_id, "");
-        assert_eq!(offer.exercises, vec![Exercise::Squat as i32]);
+        assert_eq!(offer.exercises, vec!["squat".to_string()]);
     }
 
     #[test]
@@ -595,7 +577,6 @@ mod templates {
             .call()
             .save_template(SaveTemplateRequest {
                 template: Some(template("Empty", &[])),
-                ..Default::default()
             })
             .unwrap_err();
         assert!(matches!(err, CoreError::InvalidArgument(_)), "{err:?}");
@@ -611,13 +592,15 @@ mod the_walk {
     fn a_hit_climbs_a_rep_then_steps_up() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        import_session(&mut app, Exercise::Squat, 200.0, 6, &[6, 6, 6], NOW - DAY);
+        import_session(&mut app, "squat", 200.0, 6, &[6, 6, 6], NOW - DAY);
 
-        let squat = plan(&app, Exercise::Squat);
+        let squat = plan(&app, "squat");
         assert_eq!(squat.weight, 200.0, "the last weight");
         assert_eq!(
             squat.reps,
-            schlift_core::plan::reps_covered(squat.max, 200.0, squat.sets, false),
+            schlift_core::program::Program::builtin()
+                .estimate
+                .reps_covered(squat.max, 200.0, squat.sets, false),
             "as many reps as the max covers over the planned sets"
         );
         assert_eq!(kinds(&squat)[1], PlanReasonKind::MaxUp);
@@ -633,17 +616,17 @@ mod the_walk {
 
         let mut reps = Vec::new();
         for n in 0..3 {
-            let started = start(&mut app, &[Exercise::Squat]);
-            let d = decision(&started, Exercise::Squat);
+            let started = start(&mut app, &["squat"]);
+            let d = decision(&started, "squat");
             assert_eq!(
-                working(&started.proposed_sets, Exercise::Squat).len(),
+                working(&started.proposed_sets, "squat").len(),
                 d.sets as usize
             );
             reps.push((d.weight, d.reps));
             app.now += 3600;
             let from = app.now - 1800;
             let ended = finish(&mut app, &started, |s| s.target_reps, from);
-            assert!(plan(&app, Exercise::Squat).max > d.max, "session {n}");
+            assert!(plan(&app, "squat").max > d.max, "session {n}");
             app.now = ended + 2 * DAY;
         }
         assert!(
@@ -658,17 +641,10 @@ mod the_walk {
     fn a_miss_resets_the_max() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        import_session(
-            &mut app,
-            Exercise::Squat,
-            200.0,
-            6,
-            &[6, 6, 6],
-            NOW - 3 * DAY,
-        );
-        let before = plan(&app, Exercise::Squat).max;
-        import_session(&mut app, Exercise::Squat, 200.0, 7, &[7, 5, 4], NOW - DAY);
-        let after = plan(&app, Exercise::Squat);
+        import_session(&mut app, "squat", 200.0, 6, &[6, 6, 6], NOW - 3 * DAY);
+        let before = plan(&app, "squat").max;
+        import_session(&mut app, "squat", 200.0, 7, &[7, 5, 4], NOW - DAY);
+        let after = plan(&app, "squat");
         assert_eq!(kinds(&after)[1], PlanReasonKind::MaxFromMiss);
         assert!(after.max < before);
         assert!(after.reps < 7 || after.weight < 200.0);
@@ -682,9 +658,9 @@ mod the_walk {
         onboard(&mut app, WeightUnit::Kg);
         let step = |exercise| app.view().exercise_plan(exercise, 0).step;
         let kg = |lb: f32| (schlift_core::weight_units::pounds_to_kg(lb) * 100.0).round() / 100.0;
-        assert_eq!(kg(step(Exercise::Squat)), 2.5);
-        assert_eq!(kg(step(Exercise::DumbbellRow)), 2.0);
-        assert_eq!(step(Exercise::PullUp), 0.0);
+        assert_eq!(kg(step("squat")), 2.5);
+        assert_eq!(kg(step("dumbbell_row")), 2.0);
+        assert_eq!(step("pull_up"), 0.0);
     }
 
     /// A finished workout's summary carries each lift's estimated max
@@ -693,8 +669,8 @@ mod the_walk {
     fn the_summary_carries_the_max_after_the_session() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        import_session(&mut app, Exercise::Squat, 200.0, 6, &[6, 6, 6], NOW - DAY);
-        let started = start(&mut app, &[Exercise::Squat]);
+        import_session(&mut app, "squat", 200.0, 6, &[6, 6, 6], NOW - DAY);
+        let started = start(&mut app, &["squat"]);
         finish(&mut app, &started, |s| s.target_reps, NOW + 60);
         let point = app.view().get_exercise_progress().exercises[0]
             .points
@@ -719,8 +695,8 @@ mod the_walk {
     fn end_workout_is_idempotent() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        import_session(&mut app, Exercise::Squat, 200.0, 6, &[6, 6, 6], NOW - DAY);
-        let started = start(&mut app, &[Exercise::Squat]);
+        import_session(&mut app, "squat", 200.0, 6, &[6, 6, 6], NOW - DAY);
+        let started = start(&mut app, &["squat"]);
         let ended = finish(&mut app, &started, |s| s.target_reps, NOW + 60);
         let once = home(&mut app).plans;
         app.call()
@@ -747,18 +723,11 @@ mod the_walk {
     fn an_override_is_a_new_start() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        import_session(
-            &mut app,
-            Exercise::Squat,
-            300.0,
-            6,
-            &[6, 6, 6],
-            NOW - 5 * DAY,
-        );
+        import_session(&mut app, "squat", 300.0, 6, &[6, 6, 6], NOW - 5 * DAY);
         let shown = app
             .call()
             .set_override(SetOverrideRequest {
-                exercise: Exercise::Squat as i32,
+                exercise: "squat".to_string(),
                 weight: 225.0,
                 reps: 5,
                 sets: Some(4),
@@ -773,8 +742,8 @@ mod the_walk {
         assert_eq!(d.reasons[0].at, NOW);
 
         app.now += 60;
-        let started = start(&mut app, &[Exercise::Squat, Exercise::BenchPress]);
-        let squat = working(&started.proposed_sets, Exercise::Squat);
+        let started = start(&mut app, &["squat", "bench_press"]);
+        let squat = working(&started.proposed_sets, "squat");
         assert_eq!(squat.len(), 4, "the override's sets");
         assert!(squat
             .iter()
@@ -782,10 +751,10 @@ mod the_walk {
         assert!(started
             .proposed_sets
             .iter()
-            .any(|s| s.exercise == Exercise::Squat as i32 && s.warmup));
+            .any(|s| s.exercise == "squat" && s.warmup));
         let ended = finish(&mut app, &started, |s| s.target_reps, NOW + 600);
         app.now = ended + DAY;
-        let next = plan(&app, Exercise::Squat);
+        let next = plan(&app, "squat");
         assert_eq!((next.weight, next.reps), (225.0, 6), "a rep up from it");
         assert_eq!(kinds(&next)[0], PlanReasonKind::RepsUp);
         assert_eq!(next.reasons[0].cause, PlanChangeCause::Hit as i32);
@@ -794,7 +763,7 @@ mod the_walk {
         // Reps of 0 removes it.
         app.call()
             .set_override(SetOverrideRequest {
-                exercise: Exercise::Squat as i32,
+                exercise: "squat".to_string(),
                 ..Default::default()
             })
             .unwrap();
@@ -806,15 +775,8 @@ mod the_walk {
     fn time_away_cuts_the_max() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        import_session(
-            &mut app,
-            Exercise::Squat,
-            200.0,
-            6,
-            &[6, 6, 6],
-            NOW - 45 * DAY,
-        );
-        let d = plan(&app, Exercise::Squat);
+        import_session(&mut app, "squat", 200.0, 6, &[6, 6, 6], NOW - 45 * DAY);
+        let d = plan(&app, "squat");
         assert_eq!(
             kinds(&d),
             vec![
@@ -835,25 +797,18 @@ mod the_walk {
     fn progress_shows_the_estimated_max() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        import_session(
-            &mut app,
-            Exercise::Squat,
-            200.0,
-            6,
-            &[6, 6, 6],
-            NOW - 3 * DAY,
-        );
-        import_session(&mut app, Exercise::Squat, 200.0, 7, &[7, 7, 7], NOW - DAY);
+        import_session(&mut app, "squat", 200.0, 6, &[6, 6, 6], NOW - 3 * DAY);
+        import_session(&mut app, "squat", 200.0, 7, &[7, 7, 7], NOW - DAY);
         let progress = app.view().get_exercise_progress();
         let squat = progress
             .exercises
             .iter()
-            .find(|e| e.exercise == Exercise::Squat as i32)
+            .find(|e| e.exercise == "squat")
             .unwrap();
         let maxes: Vec<f32> = squat.points.iter().map(|p| p.estimated_max).collect();
         assert_eq!(maxes.len(), 2);
         assert!(maxes[0] > 200.0 && maxes[1] > maxes[0], "{maxes:?}");
-        assert_eq!(maxes[1], plan(&app, Exercise::Squat).max);
+        assert_eq!(maxes[1], plan(&app, "squat").max);
     }
 
     /// A bodyweight lift is marked by its load style, so a pull-up with
@@ -862,19 +817,19 @@ mod the_walk {
     fn progress_marks_bodyweight_lifts_by_load_style() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        import_session(&mut app, Exercise::PullUp, 25.0, 8, &[8, 8, 8], NOW - DAY);
-        import_session(&mut app, Exercise::Squat, 200.0, 5, &[5, 5, 5], NOW - DAY);
+        import_session(&mut app, "pull_up", 25.0, 8, &[8, 8, 8], NOW - DAY);
+        import_session(&mut app, "squat", 200.0, 5, &[5, 5, 5], NOW - DAY);
         let progress = app.view().get_exercise_progress();
-        let marked = |ex: Exercise| {
+        let marked = |ex: &str| {
             progress
                 .exercises
                 .iter()
-                .find(|e| e.exercise == ex as i32)
+                .find(|e| e.exercise == ex)
                 .unwrap()
                 .bodyweight
         };
-        assert!(marked(Exercise::PullUp), "added weight is still bodyweight");
-        assert!(!marked(Exercise::Squat));
+        assert!(marked("pull_up"), "added weight is still bodyweight");
+        assert!(!marked("squat"));
     }
 
     /// The suggestion turns from the template just trained to the other in
@@ -940,26 +895,12 @@ mod budget {
     fn home_preview_equals_a_start() {
         let mut app = App::new();
         let onboarded = onboard(&mut app, WeightUnit::Lb);
-        import_session(
-            &mut app,
-            Exercise::Squat,
-            200.0,
-            6,
-            &[6, 6, 6],
-            NOW - 2 * DAY,
-        );
-        import_session(
-            &mut app,
-            Exercise::BenchPress,
-            135.0,
-            8,
-            &[8, 7, 6],
-            NOW - DAY,
-        );
+        import_session(&mut app, "squat", 200.0, 6, &[6, 6, 6], NOW - 2 * DAY);
+        import_session(&mut app, "bench_press", 135.0, 8, &[8, 7, 6], NOW - DAY);
         let template = onboarded
             .templates
             .iter()
-            .find(|t| t.library_id == "stronglifts_a")
+            .find(|t| t.origin_library_id == "stronglifts_a")
             .unwrap()
             .clone();
         for budget in [0, 25, 45, 90] {
@@ -1023,11 +964,7 @@ mod budget {
     fn the_budget_sets_the_sets() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let lifts = [
-            Exercise::LateralRaise,
-            Exercise::BarbellCurl,
-            Exercise::TricepPushdown,
-        ];
+        let lifts = ["lateral_raise", "barbell_curl", "tricep_pushdown"];
         for lift in lifts {
             import_session(&mut app, lift, 30.0, 10, &[10, 10, 10], NOW - 3 * DAY);
         }
@@ -1040,14 +977,14 @@ mod budget {
                 .plans
                 .into_iter()
                 .filter_map(|p| p.decision)
-                .filter(|d| lifts.iter().any(|l| *l as i32 == d.exercise))
+                .filter(|d| lifts.iter().any(|l| *l == d.exercise))
                 .collect::<Vec<_>>()
         };
         assert!(preview(&app, 60).iter().all(|d| d.sets == 5), "alone");
         let started = app
             .call()
             .start_workout(StartWorkoutRequest {
-                exercises: lifts.iter().map(|l| *l as i32).collect(),
+                exercises: lifts.iter().map(|l| l.to_string()).collect(),
                 budget_minutes: 25,
                 ..Default::default()
             })
@@ -1076,7 +1013,7 @@ mod budget {
         let tight = app
             .call()
             .start_workout(StartWorkoutRequest {
-                exercises: lifts.iter().map(|l| *l as i32).collect(),
+                exercises: lifts.iter().map(|l| l.to_string()).collect(),
                 budget_minutes: 5,
                 ..Default::default()
             })
@@ -1097,13 +1034,13 @@ mod budget {
     fn the_longest_a_workout_gets() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let lifts = [Exercise::Squat, Exercise::BenchPress, Exercise::BarbellRow];
+        let lifts = ["squat", "bench_press", "barbell_row"];
         for lift in lifts {
             import_session(&mut app, lift, 100.0, 5, &[5, 5, 5], NOW - 3 * DAY);
         }
         app.call()
             .set_override(SetOverrideRequest {
-                exercise: Exercise::BenchPress as i32,
+                exercise: "bench_press".to_string(),
                 weight: 100.0,
                 reps: 5,
                 sets: Some(2),
@@ -1112,7 +1049,7 @@ mod budget {
         let plan = |budget: i32| {
             app.view()
                 .get_template_plan(GetTemplatePlanRequest {
-                    exercises: lifts.iter().map(|l| *l as i32).collect(),
+                    exercises: lifts.iter().map(|l| l.to_string()).collect(),
                     budget_minutes: budget,
                 })
                 .unwrap()
@@ -1141,29 +1078,21 @@ mod budget {
     fn an_added_lift_fits_around_the_planned_ones() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        import_session(
-            &mut app,
-            Exercise::BarbellCurl,
-            50.0,
-            10,
-            &[10, 10],
-            NOW - 3 * DAY,
-        );
+        import_session(&mut app, "barbell_curl", 50.0, 10, &[10, 10], NOW - 3 * DAY);
         let started = app
             .call()
             .start_workout(StartWorkoutRequest {
-                exercises: vec![Exercise::LateralRaise as i32],
+                exercises: vec!["lateral_raise".to_string()],
                 budget_minutes: 15,
                 ..Default::default()
             })
             .unwrap();
-        let before = decision(&started, Exercise::LateralRaise);
+        let before = decision(&started, "lateral_raise");
         app.call()
             .append_workout_mutations(AppendWorkoutMutationsRequest {
                 mutations: vec![mutation(Mutation::AddExercises(AddExercisesRequest {
                     workout_id: started.id.clone(),
-                    exercises: vec![Exercise::BarbellCurl as i32],
-                    ..Default::default()
+                    exercises: vec!["barbell_curl".to_string()],
                 }))],
             })
             .unwrap();
@@ -1181,7 +1110,7 @@ mod budget {
         assert_eq!(decisions[0], before, "the planned lift keeps its decision");
         assert_eq!(decisions[1].budget_minutes, 15);
         assert_eq!(
-            working(&state.proposed_sets, Exercise::BarbellCurl).len(),
+            working(&state.proposed_sets, "barbell_curl").len(),
             decisions[1].sets as usize
         );
         assert_eq!(decisions[1].sets, 2, "15 minutes are spent already");
@@ -1199,7 +1128,7 @@ mod recorded {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
         let recorded = ExerciseDecision {
-            exercise: Exercise::Squat as i32,
+            exercise: "squat".to_string(),
             sets: 2,
             reps: 7,
             weight: 123.0,
@@ -1211,14 +1140,14 @@ mod recorded {
             budget_minutes: 30,
             ..Default::default()
         };
-        assert_ne!(plan(&app, Exercise::Squat), recorded);
+        assert_ne!(plan(&app, "squat"), recorded);
         let event = Event {
             seq: 0,
             id: Uuid::new_v4().to_string(),
             at: NOW,
             fact: Fact::WorkoutStarted(WorkoutStarted {
                 started_at: NOW,
-                exercises: vec![Exercise::Squat as i32],
+                exercises: vec!["squat".to_string()],
                 decisions: vec![recorded.clone()],
                 ..Default::default()
             }),
@@ -1255,7 +1184,7 @@ mod recorded {
         };
         let start = event(Fact::WorkoutStarted(WorkoutStarted {
             started_at: NOW,
-            exercises: vec![Exercise::Squat as i32],
+            exercises: vec!["squat".to_string()],
             ..Default::default()
         }));
         assert!(matches!(
@@ -1266,27 +1195,23 @@ mod recorded {
         let started = app
             .call()
             .start_workout(StartWorkoutRequest {
-                exercises: vec![Exercise::Squat as i32],
+                exercises: vec!["squat".to_string()],
                 ..Default::default()
             })
             .unwrap();
-        let add = |exercises: Vec<Exercise>| {
+        let add = |exercises: Vec<&str>| {
             event(Fact::ExercisesAdded(ExercisesAdded {
                 workout_id: started.id.clone(),
-                exercises: exercises.into_iter().map(|e| e as i32).collect(),
+                exercises: exercises.into_iter().map(|e| e.to_string()).collect(),
                 ..Default::default()
             }))
         };
         assert!(matches!(
-            app.account.clone().apply(&add(vec![Exercise::BenchPress])),
+            app.account.clone().apply(&add(vec!["bench_press"])),
             Err(CoreError::InvalidArgument(_))
         ));
         // A lift already in the workout keeps its decision: nothing to add.
-        assert!(app
-            .account
-            .clone()
-            .apply(&add(vec![Exercise::Squat]))
-            .is_ok());
+        assert!(app.account.clone().apply(&add(vec!["squat"])).is_ok());
     }
 }
 
@@ -1299,12 +1224,12 @@ mod weight_log {
     fn previewing_an_adjust_changes_nothing() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::Squat]);
+        let started = start(&mut app, &["squat"]);
         let before = app.view().workout_response(&started.id).unwrap();
         let events = app.log.len();
         let request = AdjustExerciseWeightRequest {
             workout_id: started.id.clone(),
-            exercise: Exercise::Squat as i32,
+            exercise: "squat".to_string(),
             working_weight: 200.0,
             ..Default::default()
         };
@@ -1363,7 +1288,7 @@ mod weight_log {
         for (reps_left, jump_lb) in answers {
             let mut app = App::new();
             onboard(&mut app, WeightUnit::Lb);
-            let started = start(&mut app, &[Exercise::Squat]);
+            let started = start(&mut app, &["squat"]);
             let rung1 = started.proposed_sets[0].clone();
             let state = apply(&mut app, complete(&rung1, 5, NOW + 100));
             if reps_left != RepsLeft::Unspecified || jump_lb > 0.0 {
@@ -1411,9 +1336,7 @@ mod weight_log {
                     .proposed_sets
                     .iter()
                     .find(|s| {
-                        s.exercise == Exercise::Squat as i32
-                            && !s.warmup
-                            && !done_ids.contains(&s.id.as_str())
+                        s.exercise == "squat" && !s.warmup && !done_ids.contains(&s.id.as_str())
                     })
                     .unwrap()
                     .target_weight;
@@ -1440,7 +1363,7 @@ mod weight_log {
     fn every_change_is_logged_with_its_cause() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::Squat]);
+        let started = start(&mut app, &["squat"]);
         let rung1 = started.proposed_sets[0].clone();
         assert!(rung1.calibration);
         let state = apply(&mut app, complete(&rung1, 5, NOW + 100));
@@ -1454,13 +1377,13 @@ mod weight_log {
                 WeightChangeCause::CalibrationSettled
             ]
         );
-        let first = working(&state.proposed_sets, Exercise::Squat)[0].clone();
+        let first = working(&state.proposed_sets, "squat")[0].clone();
         apply(&mut app, complete(&first, first.target_reps, NOW + 500));
         let state = apply(
             &mut app,
             Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
                 workout_id: started.id.clone(),
-                exercise: Exercise::Squat as i32,
+                exercise: "squat".to_string(),
                 working_weight: 40.0,
                 target_reps: 0,
                 ..Default::default()
@@ -1502,24 +1425,23 @@ mod weight_log {
     fn a_lift_added_through_the_batch_is_planned() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::Squat]);
+        let started = start(&mut app, &["squat"]);
         let workout_id = started.workout.unwrap().id;
         let state = apply(
             &mut app,
             Mutation::AddExercises(AddExercisesRequest {
                 workout_id,
-                exercises: vec![Exercise::BarbellCurl as i32],
-                ..Default::default()
+                exercises: vec!["barbell_curl".to_string()],
             }),
         );
         assert!(state
             .proposed_sets
             .iter()
-            .any(|s| s.exercise == Exercise::BarbellCurl as i32));
+            .any(|s| s.exercise == "barbell_curl"));
         assert!(state
             .exercise_logs
             .iter()
-            .any(|l| l.decision.as_ref().unwrap().exercise == Exercise::BarbellCurl as i32));
+            .any(|l| l.decision.as_ref().unwrap().exercise == "barbell_curl"));
     }
 }
 
@@ -1532,14 +1454,14 @@ mod calibration {
     fn a_weight_given_up_front_starts_the_ramp_there() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::Squat]);
+        let started = start(&mut app, &["squat"]);
         let state = app
             .call()
             .append_workout_mutations(AppendWorkoutMutationsRequest {
                 mutations: vec![mutation(Mutation::AdjustExerciseWeight(
                     AdjustExerciseWeightRequest {
                         workout_id: started.id.clone(),
-                        exercise: Exercise::Squat as i32,
+                        exercise: "squat".to_string(),
                         working_weight: 135.0,
                         ..Default::default()
                     },
@@ -1551,7 +1473,7 @@ mod calibration {
         let squat: Vec<&ProposedSet> = state
             .proposed_sets
             .iter()
-            .filter(|s| s.exercise == Exercise::Squat as i32 && !s.cancelled)
+            .filter(|s| s.exercise == "squat" && !s.cancelled)
             .collect();
         assert_eq!(squat.len(), 1, "still the one rung");
         assert!(squat[0].calibration, "still ramping");
@@ -1564,7 +1486,7 @@ mod calibration {
     fn a_ramp_asks_for_a_weight_until_it_is_started() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::Squat, Exercise::PullUp]);
+        let started = start(&mut app, &["squat", "pull_up"]);
         let rung1 = started.proposed_sets[0].clone();
         let batch = |app: &mut App, m: Mutation| {
             app.call()
@@ -1608,8 +1530,8 @@ mod calibration {
     fn bodyweight_never_calibrates() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::PullUp]);
-        let d = decision(&started, Exercise::PullUp);
+        let started = start(&mut app, &["pull_up"]);
+        let d = decision(&started, "pull_up");
         assert_eq!(started.proposed_sets.len(), d.sets as usize);
         assert!(started.proposed_sets.iter().all(|s| !s.calibration));
         assert_eq!(d.reps, 5, "the bottom of the range");
@@ -1622,7 +1544,7 @@ mod calibration {
     fn the_ramp_finds_a_max_and_the_next_plan_follows() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::Squat, Exercise::Crunch]);
+        let started = start(&mut app, &["squat", "crunch"]);
         let rung1 = started.proposed_sets[0].clone();
         assert_eq!(rung1.target_weight, 45.0, "no starting weight: the bar");
         let complete = |set: &ProposedSet, at: i64, reps: i32| {
@@ -1646,7 +1568,7 @@ mod calibration {
         let rung2 = state.proposed_sets[1].clone();
         assert!(rung2.calibration);
         assert_eq!(rung2.target_weight, 50.0);
-        assert_eq!(state.proposed_sets[2].exercise, Exercise::Crunch as i32);
+        assert_eq!(state.proposed_sets[2].exercise, "crunch".to_string());
 
         let state = app
             .call()
@@ -1656,11 +1578,8 @@ mod calibration {
             .unwrap()
             .workout_state
             .unwrap();
-        let squat = working(&state.proposed_sets, Exercise::Squat);
-        assert_eq!(
-            squat.len(),
-            decision(&started, Exercise::Squat).sets as usize
-        );
+        let squat = working(&state.proposed_sets, "squat");
+        assert_eq!(squat.len(), decision(&started, "squat").sets as usize);
         let mut done: Vec<WorkoutMutation> = squat
             .iter()
             .enumerate()
@@ -1675,14 +1594,14 @@ mod calibration {
             .unwrap();
 
         app.now = NOW + DAY;
-        let next = plan(&app, Exercise::Squat);
+        let next = plan(&app, "squat");
         assert!(!next.calibration, "found: no more ramps");
         assert!(kinds(&next).contains(&PlanReasonKind::MaxUp));
         assert!(
             next.max > 50.0 * (1.0 + 3.0 / 30.0),
             "above what the rung showed"
         );
-        let shown = app.view().exercise_plan(Exercise::Squat, 0);
+        let shown = app.view().exercise_plan("squat", 0);
         assert_eq!(shown.last_performed_at, NOW + 2_500);
     }
 
@@ -1695,7 +1614,7 @@ mod calibration {
     fn an_answer_settles_the_ramp_and_the_walk_reads_it() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::Squat]);
+        let started = start(&mut app, &["squat"]);
         let rung1 = started.proposed_sets[0].clone();
         let batch = |app: &mut App, m: Mutation| {
             app.call()
@@ -1752,14 +1671,11 @@ mod calibration {
         let state = batch(&mut app, done(&rung2, 5));
         assert_eq!(state.rung_question_set_id, rung2.id);
         let state = batch(&mut app, answer(&rung2, RepsLeft::ZeroToOne));
-        let squat = working(&state.proposed_sets, Exercise::Squat);
-        assert_eq!(
-            squat.len(),
-            decision(&started, Exercise::Squat).sets as usize
-        );
+        let squat = working(&state.proposed_sets, "squat");
+        assert_eq!(squat.len(), decision(&started, "squat").sets as usize);
         let stale = batch(&mut app, answer(&rung2, RepsLeft::FivePlus));
         assert_eq!(
-            working(&stale.proposed_sets, Exercise::Squat),
+            working(&stale.proposed_sets, "squat"),
             squat,
             "answered: ignored"
         );
@@ -1775,7 +1691,7 @@ mod calibration {
         // found, rung 2 with half a rep in reserve.
         let ramp_max = rung2.target_weight * (1.0 + 5.5 / 30.0);
         app.now = NOW + DAY;
-        let next = plan(&app, Exercise::Squat);
+        let next = plan(&app, "squat");
         assert!(!next.calibration);
         assert!(
             (next.max - ramp_max).abs() < 1e-3,
@@ -1793,7 +1709,7 @@ mod calibration {
     fn an_overshot_ramp_steps_down_and_the_walk_ignores_the_heavy_rung() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::Squat]);
+        let started = start(&mut app, &["squat"]);
         let batch = |app: &mut App, m: Mutation| {
             app.call()
                 .append_workout_mutations(AppendWorkoutMutationsRequest {
@@ -1816,7 +1732,7 @@ mod calibration {
             &mut app,
             Mutation::AdjustExerciseWeight(AdjustExerciseWeightRequest {
                 workout_id: started.id.clone(),
-                exercise: Exercise::Squat as i32,
+                exercise: "squat".to_string(),
                 working_weight: 200.0,
                 ..Default::default()
             }),
@@ -1829,11 +1745,8 @@ mod calibration {
         assert!(rung2.calibration, "the ramp goes on");
         assert_eq!(rung2.target_weight, 160.0, "a fifth lighter");
         let state = batch(&mut app, done(&rung2, 3));
-        let squat = working(&state.proposed_sets, Exercise::Squat);
-        assert_eq!(
-            squat.len(),
-            decision(&started, Exercise::Squat).sets as usize
-        );
+        let squat = working(&state.proposed_sets, "squat");
+        assert_eq!(squat.len(), decision(&started, "squat").sets as usize);
         let changes: Vec<(i32, f32, f32)> = state
             .exercise_logs
             .iter()
@@ -1855,7 +1768,7 @@ mod calibration {
         );
         let ramp_max = 160.0 * (1.0 + 3.0 / 30.0);
         app.now = NOW + DAY;
-        let next = plan(&app, Exercise::Squat);
+        let next = plan(&app, "squat");
         assert!(!next.calibration);
         assert!(
             (next.max - ramp_max).abs() < 1e-3,
@@ -1872,7 +1785,7 @@ mod calibration {
     fn a_jump_climbs_the_ramp_and_the_walk_reads_it() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::Squat]);
+        let started = start(&mut app, &["squat"]);
         let rung1 = started.proposed_sets[0].clone();
         let batch = |app: &mut App, m: Mutation| {
             app.call()
@@ -1925,7 +1838,7 @@ mod calibration {
         // Ended after the jumped rung: its max, one rep in reserve.
         let ramp_max = rung1.target_weight * (1.0 + 6.0 / 30.0);
         app.now = NOW + DAY;
-        let next = plan(&app, Exercise::Squat);
+        let next = plan(&app, "squat");
         assert!(
             (next.max - ramp_max).abs() < 1e-3,
             "{} vs {ramp_max}",
@@ -1944,15 +1857,15 @@ mod batches {
         onboard(&mut app, WeightUnit::Lb);
         import_session(
             &mut app,
-            Exercise::LateralRaise,
+            "lateral_raise",
             20.0,
             10,
             &[10, 10, 10],
             NOW - DAY,
         );
-        let before = plan(&app, Exercise::LateralRaise);
-        let started = start(&mut app, &[Exercise::LateralRaise]);
-        let first = working(&started.proposed_sets, Exercise::LateralRaise)[0].clone();
+        let before = plan(&app, "lateral_raise");
+        let started = start(&mut app, &["lateral_raise"]);
+        let first = working(&started.proposed_sets, "lateral_raise")[0].clone();
         app.call()
             .append_workout_mutations(AppendWorkoutMutationsRequest {
                 mutations: vec![
@@ -1965,7 +1878,7 @@ mod batches {
                     })),
                     mutation(Mutation::RemoveExercise(RemoveExerciseRequest {
                         workout_id: started.id.clone(),
-                        exercise: Exercise::LateralRaise as i32,
+                        exercise: "lateral_raise".to_string(),
                     })),
                 ],
             })
@@ -1978,7 +1891,7 @@ mod batches {
                 }))],
             })
             .unwrap();
-        let after = plan(&app, Exercise::LateralRaise);
+        let after = plan(&app, "lateral_raise");
         assert_eq!(kinds(&after)[1], PlanReasonKind::Held);
         assert_eq!(after.reasons[0].cause, PlanChangeCause::StoppedEarly as i32);
         assert_eq!(after.max, before.max);
@@ -1991,7 +1904,7 @@ mod batches {
     fn a_poison_mutation_is_skipped_and_the_rest_of_the_batch_applies() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::LateralRaise]);
+        let started = start(&mut app, &["lateral_raise"]);
         let first_set = started.proposed_sets[0].id.clone();
 
         let response = app
@@ -2002,7 +1915,7 @@ mod batches {
                     mutation(Mutation::AdjustExerciseWeight(
                         AdjustExerciseWeightRequest {
                             workout_id: started.id.clone(),
-                            exercise: Exercise::LateralRaise as i32,
+                            exercise: "lateral_raise".to_string(),
                             working_weight: -50.0,
                             target_reps: 0,
                             ..Default::default()
@@ -2047,7 +1960,7 @@ mod lifting {
             .start_workout(StartWorkoutRequest {
                 name: "Lift".to_string(),
                 started_at: 1_000,
-                exercises: vec![Exercise::Squat as i32],
+                exercises: vec!["squat".to_string()],
                 ..Default::default()
             })
             .unwrap();
@@ -2116,7 +2029,7 @@ mod lifting {
     #[test]
     fn heart_rate_stays_through_set_changes() {
         let mut app = App::new();
-        let started = start(&mut app, &[Exercise::Squat]);
+        let started = start(&mut app, &["squat"]);
         let start_ms = started.workout.as_ref().unwrap().start_time * 1000;
         let samples: Vec<WorkoutHeartRatePoint> = (0..3)
             .map(|i| WorkoutHeartRatePoint {
@@ -2167,7 +2080,11 @@ mod the_log {
             .unwrap_err();
         assert!(matches!(err, CoreError::InvalidArgument(_)));
         assert_eq!(app.account, before, "not even the valid half");
-        assert_eq!(app.log.len(), 1, "only the onboarding");
+        assert_eq!(
+            app.log.len(),
+            2,
+            "only the onboarding: its choices and its workouts"
+        );
     }
 
     /// The app's way in: method name and proto bytes, both ways.
@@ -2175,7 +2092,7 @@ mod the_log {
     fn calls_by_name_with_proto_bytes() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let template_id = app.account.templates[0].id.clone();
+        let template_id = app.account.program.workouts[0].id.clone();
         let mut call = app.call();
         let bytes = schlift_core::api::call(
             &mut call,
@@ -2218,7 +2135,7 @@ mod the_log {
         let started = app
             .call()
             .start_workout(StartWorkoutRequest {
-                exercises: vec![Exercise::PullUp as i32],
+                exercises: vec!["pull_up".to_string()],
                 ..Default::default()
             })
             .unwrap();
@@ -2274,148 +2191,10 @@ mod starting_weights {
                     app.account.starting_weights.get(&w.exercise),
                     Some(&w.weight_lb),
                     "{:?} at {step}",
-                    w.exercise()
+                    w.exercise
                 );
             }
         }
-    }
-}
-
-mod library_coupling {
-    use super::*;
-
-    fn stronglifts_a(app: &mut App) -> WorkoutTemplate {
-        onboard(app, WeightUnit::Lb)
-            .templates
-            .into_iter()
-            .find(|t| t.library_id == "stronglifts_a")
-            .unwrap()
-    }
-
-    /// The server changes a default: the next home shows it, a start runs
-    /// it, and the start's event carries it — so the log replays the same
-    /// without the library (App's Drop checks that).
-    #[test]
-    fn a_library_change_reaches_coupled_templates() {
-        let mut app = App::new();
-        let template = stronglifts_a(&mut app);
-        assert!(template.coupled);
-
-        let entry = app
-            .library
-            .iter_mut()
-            .find(|e| e.id == "stronglifts_a")
-            .unwrap();
-        entry.name = "StrongLifts A+".into();
-        entry.exercises = vec![Exercise::Squat as i32, Exercise::Deadlift as i32];
-
-        let shown = home(&mut app)
-            .templates
-            .into_iter()
-            .find(|t| t.id == template.id)
-            .unwrap();
-        assert_eq!(shown.name, "StrongLifts A+");
-        assert_eq!(shown.exercises.len(), 2);
-
-        let started = app
-            .call()
-            .start_workout(StartWorkoutRequest {
-                template_id: template.id.clone(),
-                ..Default::default()
-            })
-            .unwrap();
-        let exercises: std::collections::BTreeSet<i32> =
-            started.proposed_sets.iter().map(|s| s.exercise).collect();
-        assert_eq!(
-            exercises,
-            [Exercise::Squat as i32, Exercise::Deadlift as i32].into()
-        );
-        let workout = started.workout.unwrap();
-        assert_eq!(workout.template_id, template.id, "recorded against it");
-        assert_eq!(
-            workout.name, "StrongLifts A+",
-            "under the library's name of now"
-        );
-    }
-
-    /// Clone in the app opens the editor and records nothing until Save:
-    /// the save, unchanged, with `unlink`, makes it the user's own in place:
-    /// same id (its history stays with it), the library's exercises of the
-    /// moment, and library changes no longer reach it.
-    #[test]
-    fn an_unchanged_save_with_unlink_makes_it_their_own() {
-        let mut app = App::new();
-        let template = stronglifts_a(&mut app);
-        let cloned = app
-            .call()
-            .save_template(SaveTemplateRequest {
-                template: Some(template.clone()),
-                unlink: true,
-            })
-            .unwrap()
-            .template
-            .unwrap();
-        assert_eq!(cloned.id, template.id);
-        assert!(!cloned.coupled && cloned.library_id.is_empty());
-        assert_eq!(cloned.exercises, template.exercises);
-
-        app.library
-            .iter_mut()
-            .find(|e| e.id == "stronglifts_a")
-            .unwrap()
-            .exercises = vec![Exercise::Deadlift as i32];
-        let shown = home(&mut app)
-            .templates
-            .into_iter()
-            .find(|t| t.id == template.id)
-            .unwrap();
-        assert_eq!(shown.exercises, template.exercises, "its own now");
-    }
-
-    /// The library moved on; the user edits the template back to the copy
-    /// stored when they added it. That is a change to what they saw, so it
-    /// becomes theirs rather than following the library again.
-    #[test]
-    fn an_edit_back_to_the_stored_copy_is_kept() {
-        let mut app = App::new();
-        let template = stronglifts_a(&mut app);
-        app.library
-            .iter_mut()
-            .find(|e| e.id == "stronglifts_a")
-            .unwrap()
-            .exercises = vec![Exercise::Deadlift as i32];
-
-        let saved = app
-            .call()
-            .save_template(SaveTemplateRequest {
-                template: Some(template.clone()),
-                ..Default::default()
-            })
-            .unwrap()
-            .template
-            .unwrap();
-        assert!(!saved.coupled, "the user's own now");
-        let shown = home(&mut app)
-            .templates
-            .into_iter()
-            .find(|t| t.id == template.id)
-            .unwrap();
-        assert_eq!(shown.exercises, template.exercises, "the edit stands");
-    }
-
-    /// A default the server drops keeps working from what was stored.
-    #[test]
-    fn a_dropped_entry_falls_back_to_the_stored_copy() {
-        let mut app = App::new();
-        let template = stronglifts_a(&mut app);
-        app.library.retain(|e| e.id != "stronglifts_a");
-        let shown = home(&mut app)
-            .templates
-            .into_iter()
-            .find(|t| t.id == template.id)
-            .unwrap();
-        assert_eq!(shown.name, template.name);
-        assert_eq!(shown.exercises, template.exercises);
     }
 }
 
@@ -2425,7 +2204,7 @@ mod rotation {
     fn by_library(home: &GetHomeResponse, id: &str) -> WorkoutTemplate {
         home.templates
             .iter()
-            .find(|t| t.library_id == id)
+            .find(|t| t.origin_library_id == id)
             .cloned()
             .unwrap()
     }
@@ -2449,10 +2228,9 @@ mod rotation {
             .save_template(SaveTemplateRequest {
                 template: Some(WorkoutTemplate {
                     name: "Mine".into(),
-                    exercises: vec![Exercise::BarbellCurl as i32],
+                    exercises: vec!["barbell_curl".to_string()],
                     ..Default::default()
                 }),
-                ..Default::default()
             })
             .unwrap()
             .template
@@ -2520,7 +2298,6 @@ mod rotation {
         app.call()
             .save_template(SaveTemplateRequest {
                 template: Some(pull.clone()),
-                ..Default::default()
             })
             .unwrap();
         let before = home(&mut app).templates.len();
@@ -2547,14 +2324,7 @@ mod rotation {
         }
         assert!(!home.addable_library_ids.is_empty());
         let mine = home.templates.iter().find(|t| t.id == pull.id).unwrap();
-        assert!(mine.in_rotation && !mine.coupled, "the user's own is used");
-        assert!(
-            home.templates
-                .iter()
-                .filter(|t| t.name == "Push" || t.name == "Legs")
-                .all(|t| t.coupled),
-            "added ones follow the library"
-        );
+        assert!(mine.in_rotation, "the user's own copy is used");
 
         // Back to StrongLifts: nothing added, the user's A and B go first
         // and PPL moves to the reserves ahead of Arms.
@@ -2562,7 +2332,7 @@ mod rotation {
         let events = app.log.len();
         let home = apply_plan(&mut app, "stronglifts");
         assert_eq!(home.templates.len(), count);
-        assert_eq!(app.log.len(), events + 1, "only the reorder");
+        assert_eq!(app.log.len(), events + 1, "one program edit");
         assert_eq!(home.current_plan_id, "stronglifts");
         assert_eq!(
             sections(&home),
@@ -2594,10 +2364,10 @@ mod rotation {
         assert_eq!(app.log.len(), events);
     }
 
-    /// Putting a library template in rotation (or out) keeps it following
-    /// the library, even after the library has changed it.
+    /// Putting a copy in rotation (or out) is one program edit; saving it
+    /// unchanged again records nothing.
     #[test]
-    fn rotation_is_saved_without_unlinking() {
+    fn rotation_is_saved_on_the_copy() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
         app.call()
@@ -2606,34 +2376,28 @@ mod rotation {
                 ..Default::default()
             })
             .unwrap();
-        app.library
-            .iter_mut()
-            .find(|e| e.id == "full_body")
-            .unwrap()
-            .name = "Full Body+".into();
         let mut shown = by_library(&home(&mut app), "full_body");
-        assert_eq!(shown.name, "Full Body+");
+        assert!(!shown.in_rotation);
         shown.in_rotation = true;
+        let events = app.log.len();
         let saved = app
             .call()
             .save_template(SaveTemplateRequest {
                 template: Some(shown.clone()),
-                ..Default::default()
             })
             .unwrap()
             .template
             .unwrap();
-        assert!(saved.coupled && saved.in_rotation, "{saved:?}");
+        assert!(saved.in_rotation, "{saved:?}");
+        assert_eq!(saved.origin_library_id, "full_body");
+        assert_eq!(app.log.len(), events + 1);
         let after = by_library(&home(&mut app), "full_body");
-        assert_eq!(after.name, "Full Body+", "still follows the library");
         assert!(after.in_rotation);
 
-        // Saving it unchanged again records nothing.
         let events = app.log.len();
         app.call()
             .save_template(SaveTemplateRequest {
                 template: Some(after),
-                ..Default::default()
             })
             .unwrap();
         assert_eq!(app.log.len(), events);
@@ -2649,7 +2413,6 @@ mod rotation {
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["full_body".into()],
                 in_rotation: true,
-                ..Default::default()
             })
             .unwrap();
         app.call()
@@ -2660,44 +2423,32 @@ mod rotation {
             .unwrap();
         let after = home(&mut app);
         let full_body = by_library(&after, "full_body");
-        assert!(full_body.in_rotation && full_body.coupled);
+        assert!(full_body.in_rotation);
         assert!(!by_library(&after, "arms").in_rotation);
     }
 
-    /// A template cloned from the library keeps where it came from, and
-    /// the entry is never added again beside it, into the rotation or not.
+    /// A copy keeps where it came from when edited, and the entry is
+    /// never added again beside it, into the rotation or not.
     #[test]
-    fn a_personalised_copy_is_not_offered_again() {
+    fn an_edited_copy_is_not_offered_again() {
         let mut app = App::new();
         let onboarded = onboard(&mut app, WeightUnit::Lb);
-        let b = by_library(&onboarded, "stronglifts_b");
-        let cloned = app
+        let mut edited = by_library(&onboarded, "stronglifts_b");
+        edited.name = "Legs, mine".into();
+        let saved = app
             .call()
             .save_template(SaveTemplateRequest {
-                template: Some(b.clone()),
-                unlink: true,
+                template: Some(edited),
             })
             .unwrap()
             .template
             .unwrap();
-        assert!(!cloned.coupled && cloned.library_id.is_empty());
-        assert_eq!(cloned.origin_library_id, "stronglifts_b");
-        // Edited after, it is still the one made from the entry.
-        let mut edited = cloned.clone();
-        edited.name = "Legs, mine".into();
-        app.call()
-            .save_template(SaveTemplateRequest {
-                template: Some(edited),
-                ..Default::default()
-            })
-            .unwrap();
-        assert!(app.account.has_library_entry("stronglifts_b"));
+        assert_eq!(saved.origin_library_id, "stronglifts_b");
         let events = app.log.len();
         app.call()
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["stronglifts_b".into()],
                 in_rotation: true,
-                ..Default::default()
             })
             .unwrap();
         let after = app.view().home(0);
@@ -2734,7 +2485,6 @@ mod rotation {
             .add_library_templates(AddLibraryTemplatesRequest {
                 library_ids: vec!["core".into()],
                 in_rotation: true,
-                ..Default::default()
             })
             .unwrap();
         app.call()
@@ -2794,7 +2544,6 @@ mod rotation {
                 (b.as_str(), false)
             ]
         );
-        assert!(after.templates.iter().all(|t| t.coupled));
 
         // Order alone leaves the split as it is.
         app.call()
@@ -2851,7 +2600,7 @@ mod rotation {
 #[test]
 fn a_discarded_workout_is_gone() {
     let mut app = App::new();
-    let kept = start(&mut app, &[Exercise::Squat]);
+    let kept = start(&mut app, &["squat"]);
     let end = finish(&mut app, &kept, |s| s.target_reps, NOW);
     app.call()
         .end_workout(EndWorkoutRequest {
@@ -2859,7 +2608,7 @@ fn a_discarded_workout_is_gone() {
             ended_at: end,
         })
         .unwrap();
-    let tested = start(&mut app, &[Exercise::BenchPress]);
+    let tested = start(&mut app, &["bench_press"]);
     app.call()
         .discard_workout(DiscardWorkoutRequest {
             workout_id: tested.id.clone(),
@@ -2926,7 +2675,7 @@ fn end(app: &mut App, id: &str, at: i64) -> i64 {
 #[test]
 fn a_workout_left_running_ends_after_its_last_set() {
     let mut app = App::new();
-    let started = start(&mut app, &[Exercise::Squat]);
+    let started = start(&mut app, &["squat"]);
     let done = one_set(&mut app, &started, NOW + 120);
     let rest = (done.rest_until - done.ended_at).min(300);
     assert!(rest > 0);
@@ -2942,7 +2691,7 @@ fn a_workout_left_running_ends_after_its_last_set() {
     assert_eq!(workout.start_time, started.workout.unwrap().start_time);
 
     let mut app = App::new();
-    let started = start(&mut app, &[Exercise::Squat]);
+    let started = start(&mut app, &["squat"]);
     let done = one_set(&mut app, &started, NOW + 120);
     assert_eq!(
         end(&mut app, &started.id, done.ended_at + 30),
@@ -2950,7 +2699,7 @@ fn a_workout_left_running_ends_after_its_last_set() {
     );
 
     let mut app = App::new();
-    let started = start(&mut app, &[Exercise::Squat]);
+    let started = start(&mut app, &["squat"]);
     assert_eq!(end(&mut app, &started.id, NOW + 3 * 3600), NOW + 3 * 3600);
 }
 
@@ -2959,7 +2708,7 @@ fn a_workout_left_running_ends_after_its_last_set() {
 #[test]
 fn heart_rate_stays_within_the_workout() {
     let mut app = App::new();
-    let started = start(&mut app, &[Exercise::Squat]);
+    let started = start(&mut app, &["squat"]);
     let start_ms = started.workout.as_ref().unwrap().start_time * 1000;
     assert!(app.call().move_workout_end(&started.id, NOW).is_err());
     let done = one_set(&mut app, &started, NOW + 120);
@@ -3023,7 +2772,7 @@ mod refused_writes {
     fn an_empty_mutation_is_skipped() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::LateralRaise]);
+        let started = start(&mut app, &["lateral_raise"]);
         let set = started.proposed_sets[0].clone();
         let state = batch(
             &mut app,
@@ -3035,7 +2784,7 @@ mod refused_writes {
         .workout_state
         .unwrap();
         assert_eq!(state.completed_sets.len(), 1);
-        assert_eq!(app.log.len(), 3, "onboarding, the start and the set");
+        assert_eq!(app.log.len(), 4, "onboarding (two), the start and the set");
     }
 
     /// A done set with negative reps or a negative or non-finite weight
@@ -3045,16 +2794,9 @@ mod refused_writes {
     fn a_done_set_out_of_range_is_refused() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        import_session(
-            &mut app,
-            Exercise::LateralRaise,
-            20.0,
-            10,
-            &[10, 10],
-            NOW - DAY,
-        );
-        let started = start(&mut app, &[Exercise::LateralRaise]);
-        let set = working(&started.proposed_sets, Exercise::LateralRaise)[0].clone();
+        import_session(&mut app, "lateral_raise", 20.0, 10, &[10, 10], NOW - DAY);
+        let started = start(&mut app, &["lateral_raise"]);
+        let set = working(&started.proposed_sets, "lateral_raise")[0].clone();
         let logged = app.log.len();
         for (reps, weight) in [(10, f32::NAN), (10, f32::INFINITY), (10, -1.0), (-1, 20.0)] {
             let refused = app
@@ -3067,7 +2809,7 @@ mod refused_writes {
         assert_eq!(app.log.len(), logged, "nothing recorded");
         // The bounds themselves are fine, and so is a weight past 2000.
         for (n, weight) in [0.0, 3000.0].into_iter().enumerate() {
-            let set = working(&started.proposed_sets, Exercise::LateralRaise)[n].clone();
+            let set = working(&started.proposed_sets, "lateral_raise")[n].clone();
             batch(&mut app, vec![complete_set(&set, 0, weight, NOW + 200)]);
         }
         assert_eq!(app.log.len(), logged + 2);
@@ -3079,7 +2821,7 @@ mod refused_writes {
     fn a_rung_whose_append_was_lifted_is_not_undone() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::Squat]);
+        let started = start(&mut app, &["squat"]);
         let rung1 = started.proposed_sets[0].clone();
         let state = batch(
             &mut app,
@@ -3117,7 +2859,7 @@ mod refused_writes {
         let undone = batch(&mut app, vec![undo(&rung2_done)])
             .workout_state
             .unwrap();
-        assert!(working(&undone.proposed_sets, Exercise::Squat).is_empty());
+        assert!(working(&undone.proposed_sets, "squat").is_empty());
         let state = batch(
             &mut app,
             vec![complete_set(&rung2, 3, rung2.target_weight, NOW + 400)],
@@ -3125,7 +2867,7 @@ mod refused_writes {
         .workout_state
         .unwrap();
         let rung2_done = done_id(&state, &rung2);
-        let sets = working(&state.proposed_sets, Exercise::Squat);
+        let sets = working(&state.proposed_sets, "squat");
         assert!(!sets.is_empty());
 
         let lifted = batch(
@@ -3161,22 +2903,21 @@ mod refused_writes {
     fn a_lift_added_back_counts_once_in_the_budget() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        for exercise in [Exercise::Squat, Exercise::BarbellRow, Exercise::BenchPress] {
+        for exercise in ["squat", "barbell_row", "bench_press"] {
             import_session(&mut app, exercise, 95.0, 5, &[5, 5, 5], NOW - DAY);
         }
         let started = app
             .call()
             .start_workout(StartWorkoutRequest {
-                exercises: vec![Exercise::Squat as i32, Exercise::BarbellRow as i32],
+                exercises: vec!["squat".to_string(), "barbell_row".to_string()],
                 budget_minutes: 75,
                 ..Default::default()
             })
             .unwrap();
-        let add = |exercise: Exercise| {
+        let add = |exercise: &str| {
             mutation(Mutation::AddExercises(AddExercisesRequest {
                 workout_id: started.id.clone(),
-                exercises: vec![exercise as i32],
-                ..Default::default()
+                exercises: vec![exercise.to_string()],
             }))
         };
         batch(
@@ -3184,27 +2925,27 @@ mod refused_writes {
             vec![
                 mutation(Mutation::RemoveExercise(RemoveExerciseRequest {
                     workout_id: started.id.clone(),
-                    exercise: Exercise::Squat as i32,
+                    exercise: "squat".to_string(),
                 })),
-                add(Exercise::Squat),
+                add("squat"),
             ],
         );
         let record = app.account.workout(&started.id).unwrap();
         assert_eq!(record.exercise_logs.len(), 3, "squat has two logs");
-        let planned: Vec<ExerciseDecision> = [Exercise::BarbellRow, Exercise::Squat]
+        let planned: Vec<ExerciseDecision> = ["barbell_row", "squat"]
             .iter()
-            .map(|ex| record.decision(*ex as i32).cloned().unwrap())
+            .map(|ex| record.decision(ex).cloned().unwrap())
             .collect();
         let expected = schlift_core::plan::Planner::new(&app.account, app.now)
-            .workout(&[Exercise::BenchPress], &planned, 75)
+            .workout(&["bench_press".to_string()], &planned, 75)
             .pop()
             .unwrap();
-        batch(&mut app, vec![add(Exercise::BenchPress)]);
+        batch(&mut app, vec![add("bench_press")]);
         let bench = app
             .account
             .workout(&started.id)
             .unwrap()
-            .decision(Exercise::BenchPress as i32)
+            .decision("bench_press")
             .cloned()
             .unwrap();
         assert_eq!(bench, expected);
@@ -3222,7 +2963,7 @@ mod refused_writes {
         let before = app.account.clone();
         let import = |weight_lb| ImportHistory {
             starting_weights: vec![ExerciseWeight {
-                exercise: Exercise::Squat as i32,
+                exercise: "squat".to_string(),
                 weight_lb,
             }],
             ..Default::default()
@@ -3257,7 +2998,11 @@ mod refused_writes {
 
 mod settings {
     use super::*;
-    use schlift_core::weight_units::{snap_loadable_lb, AppWeightUnit};
+    use schlift_core::weight_units::AppWeightUnit;
+
+    fn snap_loadable_lb(weight_lb: f32, unit: AppWeightUnit) -> f32 {
+        schlift_core::program::Program::builtin().snap_on_bar_lb(weight_lb, unit)
+    }
 
     fn set(app: &mut App, setting: user_setting::Setting) {
         app.call()
@@ -3321,8 +3066,8 @@ mod settings {
         let moved = |started_in: WeightUnit, change: Option<WeightUnit>| {
             let mut app = App::new();
             onboard(&mut app, started_in);
-            import_session(&mut app, Exercise::Squat, 135.0, 5, &[5, 5, 5], NOW - DAY);
-            let started = start(&mut app, &[Exercise::Squat]);
+            import_session(&mut app, "squat", 135.0, 5, &[5, 5, 5], NOW - DAY);
+            let started = start(&mut app, &["squat"]);
             if let Some(change) = change {
                 set(&mut app, unit(change));
             }
@@ -3331,7 +3076,7 @@ mod settings {
                 vec![mutation(Mutation::AdjustExerciseWeight(
                     AdjustExerciseWeightRequest {
                         workout_id: started.id.clone(),
-                        exercise: Exercise::Squat as i32,
+                        exercise: "squat".to_string(),
                         working_weight: 137.0,
                         target_reps: 0,
                         ..Default::default()
@@ -3360,7 +3105,7 @@ mod settings {
             .unwrap();
 
         app.now = NOW + DAY;
-        let next = start(&mut app, &[Exercise::Squat]);
+        let next = start(&mut app, &["squat"]);
         assert_eq!(
             app.account.workout(&next.id).unwrap().unit,
             AppWeightUnit::Kg
@@ -3369,7 +3114,7 @@ mod settings {
             let kg = snap_loadable_lb(s.target_weight, AppWeightUnit::Kg);
             assert!((kg - s.target_weight).abs() < 1e-3, "{s:?}");
         }
-        import_session(&mut app, Exercise::BenchPress, 95.0, 5, &[5], NOW - 2 * DAY);
+        import_session(&mut app, "bench_press", 95.0, 5, &[5], NOW - 2 * DAY);
         let imported = app
             .account
             .workouts
@@ -3392,7 +3137,7 @@ mod settings {
         let asked = |now_in: WeightUnit| {
             let mut app = App::new();
             onboard(&mut app, WeightUnit::Lb);
-            let started = start(&mut app, &[Exercise::Squat]);
+            let started = start(&mut app, &["squat"]);
             let rung = started.proposed_sets[0].clone();
             batch(
                 &mut app,
@@ -3429,7 +3174,7 @@ mod settings {
                 .proposed_sets
                 .iter()
                 .find(|s| {
-                    s.exercise == Exercise::Squat as i32
+                    s.exercise == "squat"
                         && !s.warmup
                         && !s.cancelled
                         && state
@@ -3455,7 +3200,7 @@ mod settings {
 mod imports {
     use super::*;
 
-    fn imported(id: &str, end: i64, exercise: Exercise, weight: f32) -> ImportedWorkout {
+    fn imported(id: &str, end: i64, exercise: &str, weight: f32) -> ImportedWorkout {
         let set_id = format!("{id}:0");
         ImportedWorkout {
             workout: Some(Workout {
@@ -3468,7 +3213,7 @@ mod imports {
             proposed_sets: vec![ProposedSet {
                 id: set_id.clone(),
                 workout_id: id.to_string(),
-                exercise: exercise as i32,
+                exercise: exercise.to_string(),
                 target_reps: 5,
                 target_weight: weight,
                 ..Default::default()
@@ -3502,21 +3247,21 @@ mod imports {
     fn an_import_is_folded_once_and_in_time_order() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let first = start(&mut app, &[Exercise::LateralRaise]);
+        let first = start(&mut app, &["lateral_raise"]);
         finish(&mut app, &first, |s| s.target_reps, NOW + 60);
-        let running = start(&mut app, &[Exercise::LateralRaise]);
+        let running = start(&mut app, &["lateral_raise"]);
 
-        let mut w1 = imported("W1", NOW - 10 * DAY, Exercise::Squat, 135.0);
+        let mut w1 = imported("W1", NOW - 10 * DAY, "squat", 135.0);
         w1.heart_rate = vec![WorkoutHeartRatePoint {
             sampled_at: (NOW - 10 * DAY - 1800) * 1000,
             bpm: 120.0,
         }];
-        let w0 = imported("W0", NOW - 20 * DAY, Exercise::Squat, 125.0);
+        let w0 = imported("W0", NOW - 20 * DAY, "squat", 125.0);
         import(
             &mut app,
             vec![w1, w0, ImportedWorkout::default()],
             vec![ExerciseWeight {
-                exercise: Exercise::Squat as i32,
+                exercise: "squat".to_string(),
                 weight_lb: 155.0,
             }],
         );
@@ -3533,10 +3278,7 @@ mod imports {
             "an entry with no workout adds nothing"
         );
         assert_eq!(app.view().list_workout_summaries().workouts.len(), 3);
-        assert_eq!(
-            app.account.starting_weights[&(Exercise::Squat as i32)],
-            155.0
-        );
+        assert_eq!(app.account.starting_weights[&("squat".to_string())], 155.0);
         assert_eq!(app.account.active_workout_id, running.id);
         let samples = app
             .view()
@@ -3551,7 +3293,7 @@ mod imports {
         let before = app.account.workout("W1").unwrap().clone();
         import(
             &mut app,
-            vec![imported("W1", NOW - 5 * DAY, Exercise::BenchPress, 95.0)],
+            vec![imported("W1", NOW - 5 * DAY, "bench_press", 95.0)],
             vec![],
         );
         assert_eq!(app.account.workout("W1").unwrap(), &before);
@@ -3566,10 +3308,10 @@ mod imports {
 mod overrides {
     use super::*;
 
-    fn set(app: &mut App, exercise: i32, weight: f32, reps: i32, sets: Option<i32>) -> bool {
+    fn set(app: &mut App, exercise: &str, weight: f32, reps: i32, sets: Option<i32>) -> bool {
         app.call()
             .set_override(SetOverrideRequest {
-                exercise,
+                exercise: exercise.to_string(),
                 weight,
                 reps,
                 sets,
@@ -3582,7 +3324,7 @@ mod overrides {
     /// overrides fold.
     #[test]
     fn override_limits() {
-        let squat = Exercise::Squat as i32;
+        let squat = "squat";
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
         for (weight, reps, sets) in [
@@ -3605,8 +3347,8 @@ mod overrides {
             (squat, 100.0, 101, None),
             (squat, 100.0, 5, Some(0)),
             (squat, 100.0, 5, Some(21)),
-            (0, 100.0, 5, None),
-            (9999, 100.0, 5, None),
+            ("", 100.0, 5, None),
+            ("not_a_lift", 100.0, 5, None),
         ] {
             assert!(
                 !set(&mut app, exercise, weight, reps, sets),
@@ -3617,7 +3359,7 @@ mod overrides {
         }
         // Reps of 0 or less remove it, whatever the weight.
         assert!(set(&mut app, squat, 99999.0, -1, None));
-        assert!(!app.account.overrides.contains_key(&squat));
+        assert!(!app.account.overrides.contains_key(squat));
     }
 }
 
@@ -3641,7 +3383,7 @@ mod heart_rate_fold {
     fn heart_rate_events_fold_as_recorded() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::LateralRaise]);
+        let started = start(&mut app, &["lateral_raise"]);
         let start_ms = app.account.workout(&started.id).unwrap().workout.start_time * 1000;
         let at = |ms: i64, bpm: f32| WorkoutHeartRatePoint {
             sampled_at: start_ms + ms,
@@ -3701,10 +3443,9 @@ mod merges {
             .save_template(SaveTemplateRequest {
                 template: Some(WorkoutTemplate {
                     name: name.into(),
-                    exercises: vec![Exercise::BarbellCurl as i32],
+                    exercises: vec!["barbell_curl".to_string()],
                     ..Default::default()
                 }),
-                unlink: false,
             })
             .unwrap()
             .template
@@ -3712,9 +3453,9 @@ mod merges {
     }
 
     /// One device deletes a template while another, offline, edits it. A
-    /// save placed after the delete brings the template back, created anew
-    /// at the save; a delete placed after the save removes it. Pinned as it
-    /// is: a change to it is a change to every stored account.
+    /// save placed after the delete brings the template back, at the end;
+    /// a delete placed after the save removes it. Pinned as it is: a change
+    /// to it is a change to every stored account.
     #[test]
     fn a_save_after_a_delete_keeps_the_template() {
         let mut app = App::new();
@@ -3732,7 +3473,6 @@ mod merges {
             edited.name = "Big arms".into();
             call.save_template(SaveTemplateRequest {
                 template: Some(edited),
-                unlink: false,
             })
             .map(|_| ())
         });
@@ -3744,9 +3484,9 @@ mod merges {
             .cloned()
             .collect();
         let account = Account::fold(&delete_then_save);
-        let back = account.template(&arms.id).expect("brought back");
+        let back = account.program.workout(&arms.id).expect("brought back");
         assert_eq!(back.name, "Big arms");
-        assert_eq!(back.created_at, NOW + 20);
+        assert_eq!(account.program.workouts.last(), Some(back));
 
         let save_then_delete: Vec<Event> = synced
             .iter()
@@ -3755,7 +3495,8 @@ mod merges {
             .cloned()
             .collect();
         assert!(Account::fold(&save_then_delete)
-            .template(&arms.id)
+            .program
+            .workout(&arms.id)
             .is_none());
     }
 
@@ -3767,7 +3508,13 @@ mod merges {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
         let gone = own_template(&mut app, "Gone");
-        let ids: Vec<String> = app.account.templates.iter().map(|t| t.id.clone()).collect();
+        let ids: Vec<String> = app
+            .account
+            .program
+            .workouts
+            .iter()
+            .map(|t| t.id.clone())
+            .collect();
         let synced = app.log.clone();
         let deleted = on_device(&synced, NOW + 10, |call| {
             call.delete_template(DeleteTemplateRequest {
@@ -3791,19 +3538,20 @@ mod merges {
             .cloned()
             .collect();
         let account = Account::fold(&log);
-        assert!(account.template(&gone.id).is_none());
+        assert!(account.program.workout(&gone.id).is_none());
         assert_eq!(
             account
-                .templates
+                .program
+                .workouts
                 .iter()
                 .map(|t| t.id.clone())
                 .collect::<Vec<_>>(),
             order[1..]
         );
-        for (position, id) in order.iter().enumerate().skip(1) {
-            let t = account.template(id).unwrap();
-            assert_eq!(t.order, position as i32);
-            assert_eq!(t.in_rotation, position < 2, "{id}");
+        // The rotation counts the missing one: the first in it is the one
+        // named second.
+        for (position, w) in account.program.workouts.iter().enumerate() {
+            assert_eq!(w.rotation, position < 1, "{}", w.id);
         }
     }
 }
@@ -3823,7 +3571,7 @@ mod sessions {
     fn a_session_is_set_on_the_workout() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
-        let started = start(&mut app, &[Exercise::LateralRaise]);
+        let started = start(&mut app, &["lateral_raise"]);
         batch(&mut app, vec![set_session(&started.id, "s1")]);
         let read = app
             .view()
