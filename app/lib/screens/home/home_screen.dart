@@ -791,31 +791,16 @@ class _VolumeRow extends StatelessWidget {
         const SizedBox(width: 8),
         SizedBox(
           width: 44,
-          child: Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: sets % 1 == 0
-                      ? sets.toStringAsFixed(0)
-                      : sets.toStringAsFixed(1),
-                  // In the target range the number goes green.
-                  style: TextStyle(
-                    color: inBand
-                        ? context.tokens.ready
-                        : over
-                        ? cs.onSurface
-                        : cs.onSurface.withValues(alpha: 0.55),
-                  ),
-                ),
-                if (over)
-                  TextSpan(
-                    text: '▲',
-                    style: TextStyle(color: context.tokens.overdue),
-                  ),
-              ],
-            ),
+          child: Text(
+            sets % 1 == 0 ? sets.toStringAsFixed(0) : sets.toStringAsFixed(1),
             textAlign: TextAlign.right,
             style: TextStyle(
+              // In the target range the number goes green.
+              color: inBand
+                  ? context.tokens.ready
+                  : over
+                  ? cs.onSurface
+                  : cs.onSurface.withValues(alpha: 0.55),
               fontSize: context.tokens.size.bodyLg,
               fontWeight: context.tokens.weight.heavy,
               fontFeatures: [FontFeature.tabularFigures()],
