@@ -29,7 +29,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../services/wearable_bridge_service.dart';
 import '../../theme/theme_spec.dart';
-import '../../widgets/suggestion_sheet.dart';
+import '../../widgets/suggestion_screen.dart';
 import '../../widgets/menu_button.dart';
 import '../../widgets/multiplayer_button.dart';
 import '../../widgets/wordmark.dart';
@@ -208,7 +208,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       in context.watch<WorkoutProvider>().pendingSuggestions)
                     _ChipShell(
                       selected: false,
-                      onTap: () => showSuggestionSheet(context, suggestion),
+                      onTap: () => openSuggestion(context, suggestion),
                       children: [
                         Icon(
                           AppIcons.multiplayer,

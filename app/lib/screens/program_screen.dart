@@ -15,7 +15,7 @@ import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
-import '../widgets/suggestion_sheet.dart';
+import '../widgets/suggestion_screen.dart';
 import '../widgets/common/flat.dart';
 import '../widgets/dialogs/confirm_dialog.dart';
 import 'program_document_screen.dart';
@@ -227,7 +227,7 @@ class _ProgramScreenState extends State<ProgramScreen> {
                         ),
                         if (suggestion.note.isNotEmpty) suggestion.note,
                       ].join('\n'),
-                      onTap: () => showSuggestionSheet(context, suggestion),
+                      onTap: () => openSuggestion(context, suggestion),
                     ),
                 ],
                 FlatHeading(t.historyHeading),

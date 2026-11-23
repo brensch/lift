@@ -1,7 +1,8 @@
-/// A suggestion laid out to decide on, as one change to the program: who
-/// and why, the week before and after, how each lift's progression moves,
-/// those lifts' next sessions with it, and the other numbers it changes;
-/// then use it or not. Home's pending row and the Program screen open it.
+/// A suggestion laid out to decide on, as one change to the program, on a
+/// page of its own: who and why, the week before and after, how each lift's
+/// progression moves, those lifts' next sessions with it, and the other
+/// numbers it changes; then use it or not, pinned at the bottom. Home's
+/// pending row and the Program screen open it.
 library;
 
 import 'package:flutter/material.dart';
@@ -15,23 +16,19 @@ import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../services/toast.dart';
-import '../theme/app_theme.dart';
 import '../theme/theme_spec.dart';
 import 'common/flat.dart';
 
-Future<void> showSuggestionSheet(BuildContext context, Suggestion suggestion) {
-  return showModalBottomSheet<void>(
-    context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: AppTheme.sheetColor(context),
-    builder: (_) => DraggableScrollableSheet(
-      initialChildSize: 0.85,
-      minChildSize: 0.4,
-      maxChildSize: 0.95,
-      expand: false,
-      builder: (_, controller) =>
-          SuggestionSheet(suggestion: suggestion, controller: controller),
+/// Opens [suggestion] as a page of its own over the current one.
+Future<void> openSuggestion(BuildContext context, Suggestion suggestion) {
+  final provider = context.read<WorkoutProvider>();
+  return Navigator.of(context).push<void>(
+    MaterialPageRoute(
+      settings: const RouteSettings(name: '/suggestion'),
+      builder: (_) => ChangeNotifierProvider.value(
+        value: provider,
+        child: SuggestionScreen(suggestion: suggestion),
+      ),
     ),
   );
 }
@@ -89,19 +86,16 @@ String _words(String key) {
 String _number(double v) =>
     v == v.roundToDouble() ? '${v.round()}' : v.toStringAsFixed(2);
 
-class SuggestionSheet extends StatefulWidget {
+class SuggestionScreen extends StatefulWidget {
   final Suggestion suggestion;
 
-  /// The sheet's: at the top, a drag down moves the sheet, not the list.
-  final ScrollController? controller;
-
-  const SuggestionSheet({super.key, required this.suggestion, this.controller});
+  const SuggestionScreen({super.key, required this.suggestion});
 
   @override
-  State<SuggestionSheet> createState() => _SuggestionSheetState();
+  State<SuggestionScreen> createState() => _SuggestionScreenState();
 }
 
-class _SuggestionSheetState extends State<SuggestionSheet> {
+class _SuggestionScreenState extends State<SuggestionScreen> {
   ExplainSuggestionResponse? _shown;
   bool _busy = false;
 
@@ -170,102 +164,111 @@ class _SuggestionSheetState extends State<SuggestionSheet> {
       }
     }
 
-    return SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        controller: widget.controller,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(child: AppTheme.sheetHandle(context)),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
-              child: Text(
-                s.title,
-                style: TextStyle(
-                  fontSize: t.size.titleLg,
-                  fontWeight: t.weight.heavy,
-                ),
+    return Scaffold(
+      appBar: AppBar(title: PageTitle(c.heading)),
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 16),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 4),
+            child: Text(
+              s.title,
+              style: TextStyle(
+                fontSize: t.size.titleLg,
+                fontWeight: t.weight.heavy,
               ),
             ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(c.from.replaceAll('{name}', s.fromName), style: muted),
+          ),
+          if (s.note.isNotEmpty)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: Text(s.note, style: TextStyle(fontSize: t.size.body)),
+            ),
+          const SizedBox(height: 8),
+          if (shown == null && fits)
+            const Padding(
+              padding: EdgeInsets.all(24),
+              child: Center(child: CircularProgressIndicator()),
+            ),
+          if (week.isNotEmpty) ...[FlatHeading(c.weekHeading), ...week],
+          if (shown != null && shown.lifts.isNotEmpty) ...[
+            FlatHeading(c.liftsHeading),
+            for (final l in shown.lifts)
+              FlatRow(
+                label: l.name,
+                subtitle: [
+                  ruleText(l.after, unit),
+                  if (l.hasBefore())
+                    c.ruleWas.replaceAll('{rule}', ruleText(l.before, unit))
+                  else
+                    c.ruleNewLift,
+                ].join('\n'),
+              ),
+          ],
+          if (shown != null && shown.forecasts.isNotEmpty) ...[
+            FlatHeading(c.nextHeading),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+              child: Text(c.nextNote, style: muted),
+            ),
+            for (final f in shown.forecasts)
+              FlatRow(
+                label: f.name,
+                subtitle: f.hasNow()
+                    ? c.nextNow.replaceAll('{plan}', planLine(f.now, unit))
+                    : null,
+                trailing: Text(
+                  f.next.map((d) => planLine(d, unit)).join('\n'),
+                  textAlign: TextAlign.end,
+                  style: mono,
+                ),
+              ),
+          ],
+          if (shown != null && shown.numbers.isNotEmpty) ...[
+            FlatHeading(c.alsoHeading),
+            for (final n in shown.numbers)
+              FlatRow(
+                label: _words(n.path),
+                trailing: Text(
+                  c.numberLine
+                      .replaceAll('{before}', _number(n.before))
+                      .replaceAll('{after}', _number(n.after)),
+                  style: mono,
+                ),
+              ),
+          ],
+          if (waiting && !fits)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
               child: Text(
-                c.from.replaceAll('{name}', s.fromName),
+                c.noLongerFits.replaceAll('{problem}', s.problem),
                 style: muted,
               ),
             ),
-            if (s.note.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-                child: Text(s.note, style: TextStyle(fontSize: t.size.body)),
+          if (!waiting)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(
+                s.status == SuggestionStatus.SUGGESTION_STATUS_ACCEPTED
+                    ? c.accepted
+                    : c.declined,
+                style: muted,
               ),
-            const SizedBox(height: 8),
-            if (shown == null && fits)
-              const Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(child: CircularProgressIndicator()),
-              ),
-            if (week.isNotEmpty) ...[FlatHeading(c.weekHeading), ...week],
-            if (shown != null && shown.lifts.isNotEmpty) ...[
-              FlatHeading(c.liftsHeading),
-              for (final l in shown.lifts)
-                FlatRow(
-                  label: l.name,
-                  subtitle: [
-                    ruleText(l.after, unit),
-                    if (l.hasBefore())
-                      c.ruleWas.replaceAll('{rule}', ruleText(l.before, unit))
-                    else
-                      c.ruleNewLift,
-                  ].join('\n'),
-                ),
-            ],
-            if (shown != null && shown.forecasts.isNotEmpty) ...[
-              FlatHeading(c.nextHeading),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-                child: Text(c.nextNote, style: muted),
-              ),
-              for (final f in shown.forecasts)
-                FlatRow(
-                  label: f.name,
-                  subtitle: f.hasNow()
-                      ? c.nextNow.replaceAll('{plan}', planLine(f.now, unit))
-                      : null,
-                  trailing: Text(
-                    f.next.map((d) => planLine(d, unit)).join('\n'),
-                    textAlign: TextAlign.end,
-                    style: mono,
-                  ),
-                ),
-            ],
-            if (shown != null && shown.numbers.isNotEmpty) ...[
-              FlatHeading(c.alsoHeading),
-              for (final n in shown.numbers)
-                FlatRow(
-                  label: _words(n.path),
-                  trailing: Text(
-                    c.numberLine
-                        .replaceAll('{before}', _number(n.before))
-                        .replaceAll('{after}', _number(n.after)),
-                    style: mono,
-                  ),
-                ),
-            ],
-            if (waiting && !fits)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                child: Text(
-                  c.noLongerFits.replaceAll('{problem}', s.problem),
-                  style: muted,
-                ),
-              ),
-            if (waiting)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            ),
+        ],
+      ),
+      // The answer stays in reach however long the change is.
+      bottomNavigationBar: !waiting
+          ? null
+          : SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (fits)
@@ -282,20 +285,8 @@ class _SuggestionSheetState extends State<SuggestionSheet> {
                     ),
                   ],
                 ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  s.status == SuggestionStatus.SUGGESTION_STATUS_ACCEPTED
-                      ? c.accepted
-                      : c.declined,
-                  style: muted,
-                ),
               ),
-          ],
-        ),
-      ),
+            ),
     );
   }
 }
