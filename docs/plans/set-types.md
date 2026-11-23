@@ -275,7 +275,7 @@ rest is the strings.
 
 No inbox; the existing places:
 
-- **Home:** a **Pending suggestion** row after Reserves, one chip per
+- **Home:** a **Pending suggestion** row above the Rotation, one chip per
   suggestion ("Push power · Sam"). Every suggestion is one whole change to
   the program, whether it adds a workout or rewrites the progressions, so
   it is decided whole.

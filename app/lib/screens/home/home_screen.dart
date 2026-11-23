@@ -341,8 +341,8 @@ class _TemplateChips extends StatelessWidget {
   final List<Widget> reserves;
   final List<Widget> actions;
 
-  /// What others suggested, waiting: a section of its own after the
-  /// reserves, only while there's any.
+  /// What others suggested, waiting: a section of its own above the
+  /// rotation, only while there's any.
   final List<Widget> suggested;
 
   const _TemplateChips({
@@ -361,6 +361,8 @@ class _TemplateChips extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (suggested.isNotEmpty)
+          FlatSection(label: copy.suggestions.heading, child: wrap(suggested)),
         FlatSection(
           label: l.rotationHeading,
           child: rotation.isEmpty
@@ -383,8 +385,6 @@ class _TemplateChips extends StatelessWidget {
             ],
           ),
         ),
-        if (suggested.isNotEmpty)
-          FlatSection(label: copy.suggestions.heading, child: wrap(suggested)),
       ],
     );
   }
