@@ -2,6 +2,10 @@
 /// to (weight × reps) with a pencil for the weight sheet and a grip to drag
 /// it to a new place in the order, then its sets as circles in two rows —
 /// the warmups, then the working sets — each labelled down its left edge.
+/// A superset or circuit is one section: its lifts' names stacked, each
+/// with its own weight and pencil, then one row of their sets in the order
+/// they're done (a round, a gap, the next round), each circle with its
+/// lift's short code under it. It drags as one.
 /// A finished exercise folds to its header alone (its name, a tick after
 /// it, what it was done at), so the ones still to do have the screen; a tap
 /// on it unfolds the circles again. Folding and unfolding slide: the
@@ -29,7 +33,8 @@ const double _circleGap = 8;
 const double _glow = 6;
 
 class ExerciseSection extends StatefulWidget {
-  final ExerciseBlock block;
+  /// Its lift, or a group's lifts in order.
+  final List<ExerciseBlock> blocks;
 
   /// The workout it belongs to: yours (tappable) or a partner's.
   final SectionWorkout workout;
@@ -43,8 +48,8 @@ class ExerciseSection extends StatefulWidget {
   /// Set for a section that can be dragged to a new place in the order.
   final int? dragIndex;
 
-  /// Opens the weight sheet (change the weight, or remove the exercise).
-  final VoidCallback? onEdit;
+  /// Opens a lift's weight sheet (change the weight, or remove it).
+  final void Function(ExerciseBlock block)? onEdit;
 
   /// A line about the set in hand, under the name: on the exercise in focus.
   final Widget? note;
@@ -53,13 +58,9 @@ class ExerciseSection extends StatefulWidget {
   /// finishing an exercise is seen to put it away rather than swap it.
   final bool justFinished;
 
-  /// Over the first lift of a group: "Superset", "Circuit". Every lift of a
-  /// group wears the group's rule down its left edge.
-  final String? groupHeading;
-
   const ExerciseSection({
     super.key,
-    required this.block,
+    required this.blocks,
     required this.workout,
     required this.focused,
     required this.finished,
@@ -67,7 +68,6 @@ class ExerciseSection extends StatefulWidget {
     this.onEdit,
     this.note,
     this.justFinished = false,
-    this.groupHeading,
   });
 
   @override
@@ -89,12 +89,14 @@ class _ExerciseSectionState extends State<ExerciseSection> {
     }
   }
 
-  ExerciseBlock get block => widget.block;
+  ExerciseBlock get block => widget.blocks.first;
+  bool get grouped => widget.blocks.length > 1;
   SectionWorkout get workout => widget.workout;
   bool get focused => widget.focused;
   bool get finished => widget.finished;
   int? get dragIndex => widget.dragIndex;
-  VoidCallback? get onEdit => widget.onEdit;
+  VoidCallback? editOf(ExerciseBlock b) =>
+      widget.onEdit == null ? null : () => widget.onEdit!(b);
 
   @override
   Widget build(BuildContext context) {
@@ -102,17 +104,30 @@ class _ExerciseSectionState extends State<ExerciseSection> {
     final w = workout;
     final wp = w.actions;
     final live = wp != null;
-    final sets = block.sets.where((s) => !s.cancelled).toList();
+    final sets = [
+      for (final b in widget.blocks) ...b.sets.where((s) => !s.cancelled),
+    ]..sort((a, b) => a.workoutOrder.compareTo(b.workoutOrder));
     final warmups = sets.where((s) => s.warmup).toList();
     // The main sets (plain, top, back-off, ramp) make the Working row and
-    // what the header says; drops and minis get rows of their own.
-    final working = sets.where((s) => !s.warmup && !isPartial(s)).toList();
-    final drops = sets
-        .where((s) => !s.warmup && s.role == SetRole.SET_ROLE_DROP)
+    // what the header says; drops and minis get rows of their own. A
+    // group's are one row, in the order they're done.
+    final working = sets
+        .where((s) => !s.warmup && (grouped || !isPartial(s)))
         .toList();
-    final minis = sets
-        .where((s) => !s.warmup && s.role == SetRole.SET_ROLE_MINI)
-        .toList();
+    final drops = grouped
+        ? const <ProposedSet>[]
+        : sets
+              .where((s) => !s.warmup && s.role == SetRole.SET_ROLE_DROP)
+              .toList();
+    final minis = grouped
+        ? const <ProposedSet>[]
+        : sets
+              .where((s) => !s.warmup && s.role == SetRole.SET_ROLE_MINI)
+              .toList();
+    final codes = liftCodes([
+      for (final b in widget.blocks) exerciseName(b.exercise),
+    ]);
+    String codeOf(ProposedSet set) => codes[exerciseName(set.exercise)] ?? '';
     // The warmup "Skip" skips: the next one still to do.
     final openWarmup = warmups
         .where((s) => !w.isDone(s.id) && !w.isPassedWarmup(s))
@@ -136,15 +151,34 @@ class _ExerciseSectionState extends State<ExerciseSection> {
       return null;
     }
 
-    // What it's set to now: the next working set still to do (or the last,
-    // once all are done); mid-ramp, the rung.
+    // What a lift is set to now: its next working set still to do (or the
+    // last, once all are done); mid-ramp, the rung.
     final unit = context.watch<SettingsProvider>().weightUnit;
-    final targetSet =
-        working.where((s) => !w.isDone(s.id)).firstOrNull ?? working.lastOrNull;
+    List<ProposedSet> mainOf(ExerciseBlock b) => sets
+        .where((s) => s.exercise == b.exercise && !s.warmup && !isPartial(s))
+        .toList();
+    ProposedSet? targetOf(ExerciseBlock b) {
+      final main = mainOf(b);
+      return main.where((s) => !w.isDone(s.id)).firstOrNull ?? main.lastOrNull;
+    }
 
-    // Under a circle, small: its weight where it isn't the header's (a
-    // back-off, a drop, a pyramid step) and its effort target ("@2").
-    String? caption(ProposedSet set) => circleCaption(set, targetSet, unit);
+    final targets = {for (final b in widget.blocks) b.exercise: targetOf(b)};
+
+    // Under a circle, small: in a group its lift's code; then its weight
+    // where it isn't the header's (a back-off, a drop, a pyramid step) and
+    // its effort target ("@2").
+    String? caption(ProposedSet set) {
+      final under = circleCaption(set, targets[set.exercise], unit);
+      final parts = [if (grouped) codeOf(set), ?under];
+      return parts.isEmpty ? null : parts.join(' ');
+    }
+
+    // A group's rounds: a little more room before each new one.
+    bool newRound(List<ProposedSet> row, int i) =>
+        grouped &&
+        i > 0 &&
+        row[i].exercise == block.exercise &&
+        row[i - 1].exercise != block.exercise;
 
     // A row's circles, captioned when any of them needs one, so a row's
     // circles stay level.
@@ -155,8 +189,9 @@ class _ExerciseSectionState extends State<ExerciseSection> {
       }
       return [
         for (var i = 0; i < row.length; i++)
-          SizedBox(
-            width: SetCircle.diameter,
+          Container(
+            width: SetCircle.diameter + (newRound(row, i) ? _circleGap : 0),
+            alignment: Alignment.centerRight,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -189,109 +224,115 @@ class _ExerciseSectionState extends State<ExerciseSection> {
     // The header, the same folded or open: the name (a finished one with a
     // tick after it), the pencil for the weight sheet, what it's set to.
     // Tapping the name edits a live exercise and folds a finished one.
-    final header = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: _padding),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 28),
-        child: Row(
-          children: [
-            // The name takes the room it needs before the target does.
-            Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: finished ? toggle : onEdit,
-                child: Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        exerciseName(block.exercise),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: t.size.subtitle,
-                          fontWeight: t.weight.bold,
-                          color: finished ? t.muted : t.text,
+    // A group has one per lift; the first has the fold and the grip.
+    Widget headerFor(ExerciseBlock m, {required bool first}) {
+      final onEdit = editOf(m);
+      final targetSet = targets[m.exercise];
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: _padding),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 28),
+          child: Row(
+            children: [
+              // The name takes the room it needs before the target does.
+              Expanded(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: finished ? toggle : onEdit,
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          exerciseName(m.exercise),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: t.size.subtitle,
+                            fontWeight: t.weight.bold,
+                            color: finished ? t.muted : t.text,
+                          ),
                         ),
                       ),
-                    ),
-                    if (finished) ...[
-                      const SizedBox(width: 8),
-                      Icon(
-                        AppIcons.check,
-                        size: t.size.subtitle,
-                        color: t.muted,
-                      ),
+                      if (finished) ...[
+                        const SizedBox(width: 8),
+                        Icon(
+                          AppIcons.check,
+                          size: t.size.subtitle,
+                          color: t.muted,
+                        ),
+                      ],
                     ],
-                  ],
-                ),
-              ),
-            ),
-            // The pencil, then the target flush with the right margin.
-            if (live && onEdit != null && !folded)
-              IconButton(
-                tooltip: copy.workoutPage.weightAndReps,
-                onPressed: onEdit,
-                padding: EdgeInsets.zero,
-                constraints: tight,
-                // No 48px tap box around it: that is what made the row tall.
-                style: IconButton.styleFrom(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: Icon(AppIcons.edit, size: t.size.title, color: t.muted),
-              ),
-            if (targetSet != null)
-              Text(
-                finished
-                    ? '${working.length} × ${setTextFor(targetSet, unit)}'
-                    : setTextFor(targetSet, unit),
-                style: t.mono(
-                  TextStyle(
-                    fontSize: t.size.body,
-                    fontWeight: t.weight.bold,
-                    color: finished ? t.muted : t.text,
                   ),
                 ),
               ),
-            // Finished: fold it away, or bring its circles back.
-            if (finished)
-              IconButton(
-                onPressed: toggle,
-                padding: EdgeInsets.zero,
-                constraints: tight,
-                // No 48px tap box around it: that is what made the row tall.
-                style: IconButton.styleFrom(
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              // The pencil, then the target flush with the right margin.
+              if (live && onEdit != null && !folded)
+                IconButton(
+                  tooltip: copy.workoutPage.weightAndReps,
+                  onPressed: onEdit,
+                  padding: EdgeInsets.zero,
+                  constraints: tight,
+                  // No 48px tap box around it: that is what made the row tall.
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: Icon(AppIcons.edit, size: t.size.title, color: t.muted),
                 ),
-                icon: Icon(
-                  folded ? AppIcons.expandDown : AppIcons.expandUp,
-                  size: t.size.title,
-                  color: t.muted,
+              if (targetSet != null)
+                Text(
+                  finished
+                      ? '${mainOf(m).length} × ${setTextFor(targetSet, unit)}'
+                      : setTextFor(targetSet, unit),
+                  style: t.mono(
+                    TextStyle(
+                      fontSize: t.size.body,
+                      fontWeight: t.weight.bold,
+                      color: finished ? t.muted : t.text,
+                    ),
+                  ),
                 ),
-              ),
-            // The grip: drags the exercise straight away.
-            if (dragIndex != null)
-              ReorderableDragStartListener(
-                index: dragIndex!,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: Icon(
-                    AppIcons.drag,
+              // Finished: fold it away, or bring its circles back.
+              if (finished && first)
+                IconButton(
+                  onPressed: toggle,
+                  padding: EdgeInsets.zero,
+                  constraints: tight,
+                  // No 48px tap box around it: that is what made the row tall.
+                  style: IconButton.styleFrom(
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  icon: Icon(
+                    folded ? AppIcons.expandDown : AppIcons.expandUp,
                     size: t.size.title,
                     color: t.muted,
                   ),
                 ),
-              ),
-          ],
+              // The grip: drags the exercise straight away.
+              if (dragIndex != null && first)
+                ReorderableDragStartListener(
+                  index: dragIndex!,
+                  child: Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child: Icon(
+                      AppIcons.drag,
+                      size: t.size.title,
+                      color: t.muted,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    }
 
     final content = Padding(
       padding: const EdgeInsets.fromLTRB(0, 2, 0, 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          header,
+          for (final (i, m) in widget.blocks.indexed)
+            headerFor(m, first: i == 0),
           if (widget.note != null) widget.note!,
           // The circles. A finished exercise's step back so the one in hand
           // stands out, and fold away: they draw up under the header as it
@@ -326,7 +367,11 @@ class _ExerciseSectionState extends State<ExerciseSection> {
                       children: [for (final s in warmups) circle(s)],
                     ),
                   _CircleRow(
-                    label: copy.workout.workingLabel,
+                    label: grouped
+                        ? (widget.blocks.length > 2
+                              ? copy.workout.circuitLabel
+                              : copy.workout.supersetLabel)
+                        : copy.workout.workingLabel,
                     follow: followIn(working),
                     ids: [for (final s in working) s.id],
                     children: captioned(working),
@@ -353,29 +398,9 @@ class _ExerciseSectionState extends State<ExerciseSection> {
       ),
     );
 
-    // A group's lifts: one rule down their left edge, its name over the
-    // first. Nothing else changes about a lift in a group.
-    final grouped = block.sets.any((s) => s.group.isNotEmpty);
     return ColoredBox(
       color: focused ? t.panel : Colors.transparent,
-      child: !grouped
-          ? content
-          : DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border(left: BorderSide(color: t.primary, width: 3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (widget.groupHeading case final heading?)
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(_padding, 6, 0, 0),
-                      child: Text(heading, style: t.label()),
-                    ),
-                  content,
-                ],
-              ),
-            ),
+      child: content,
     );
   }
 }

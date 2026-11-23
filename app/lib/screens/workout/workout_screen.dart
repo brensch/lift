@@ -107,31 +107,26 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       }
       _focusedId = focusedId;
     }
-    // Completed blocks stay pinned (green) at the top of the list; only the
-    // unfinished ones below them can be dragged/reordered.
-    final completedBlocks = blocks
-        .where((block) => _isBlockCompleted(block, wp))
+    // The list's sections: a lone lift, or a superset's lifts as one.
+    // Completed ones stay pinned at the top of the list; only the
+    // unfinished ones below them can be dragged/reordered, a group whole.
+    final sections = sectionsOf(blocks);
+    bool sectionDone(List<ExerciseBlock> s) =>
+        s.every((b) => _isBlockCompleted(b, wp));
+    String idOf(List<ExerciseBlock> s) => s.first.stableId;
+    bool isFocused(List<ExerciseBlock> s) =>
+        focusedId != null && s.any((b) => b.stableId == focusedId);
+    final completedSections = sections
+        .where(sectionDone)
         .toList(growable: false);
-    final unfinishedBlocks = blocks
-        .where((block) => !_isBlockCompleted(block, wp))
+    final unfinishedSections = sections
+        .where((s) => !sectionDone(s))
         .toList(growable: false);
     final justFinished = {
-      for (final block in completedBlocks)
-        if (_unfinishedIds.contains(block.stableId)) block.stableId,
+      for (final s in completedSections)
+        if (_unfinishedIds.contains(idOf(s))) idOf(s),
     };
-    _unfinishedIds = {for (final block in unfinishedBlocks) block.stableId};
-    // A group's name over its first lift in each list: "Superset" for two,
-    // "Circuit" for more.
-    String? groupOf(ExerciseBlock b) =>
-        b.sets.map((s) => s.group).where((g) => g.isNotEmpty).firstOrNull;
-    String? headingFor(List<ExerciseBlock> list, int i) {
-      final group = groupOf(list[i]);
-      if (group == null || (i > 0 && groupOf(list[i - 1]) == group)) {
-        return null;
-      }
-      final size = blocks.where((b) => groupOf(b) == group).length;
-      return size > 2 ? copy.workout.circuitLabel : copy.workout.supersetLabel;
-    }
+    _unfinishedIds = {for (final s in unfinishedSections) idOf(s)};
 
     // Overall progress for the first row's hairline: every set still in the
     // plan (warmups and calibration rungs included, cancelled ones not), so
@@ -196,18 +191,17 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 ),
               // Done exercises stay pinned at the top; the rest drag
               // into any order by their grip.
-              for (final (i, block) in completedBlocks.indexed) ...[
+              for (final section in completedSections) ...[
                 ExerciseSection(
-                  key: ValueKey('section-${block.stableId}'),
-                  block: block,
-                  groupHeading: headingFor(completedBlocks, i),
+                  key: ValueKey('section-${idOf(section)}'),
+                  blocks: section,
                   workout: sectionWorkout,
                   focused: false,
                   finished: true,
-                  justFinished: justFinished.contains(block.stableId),
+                  justFinished: justFinished.contains(idOf(section)),
                   onEdit: isEnded
                       ? null
-                      : () => editExercise(context, wp, block),
+                      : (block) => editExercise(context, wp, block),
                 ),
                 divider,
               ],
@@ -215,17 +209,19 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 buildDefaultDragHandles: false,
-                itemCount: unfinishedBlocks.length,
+                itemCount: unfinishedSections.length,
                 // onReorderItem hands back a newIndex already adjusted
                 // for the removed item, so no manual `newIndex -= 1`.
                 onReorderItem: (oldIndex, newIndex) {
-                  if (isEnded || unfinishedBlocks.length < 2) return;
+                  if (isEnded || unfinishedSections.length < 2) return;
                   HapticFeedback.mediumImpact();
-                  final items = List<ExerciseBlock>.from(unfinishedBlocks);
+                  final items = List<List<ExerciseBlock>>.from(
+                    unfinishedSections,
+                  );
                   items.insert(newIndex, items.removeAt(oldIndex));
                   wp.reorderExercises([
-                    ...completedBlocks.map((b) => b.exercise),
-                    ...items.map((b) => b.exercise),
+                    for (final s in [...completedSections, ...items])
+                      for (final b in s) b.exercise,
                   ]);
                 },
                 proxyDecorator: (child, index, animation) => AnimatedBuilder(
@@ -242,29 +238,25 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                   child: child,
                 ),
                 itemBuilder: (context, idx) {
-                  final block = unfinishedBlocks[idx];
+                  final section = unfinishedSections[idx];
+                  final focused = isFocused(section);
                   return Column(
-                    key: ValueKey('reorder-${block.stableId}'),
+                    key: ValueKey('reorder-${idOf(section)}'),
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       ExerciseSection(
-                        key: focusedBlock?.stableId == block.stableId
-                            ? _focusKey
-                            : null,
-                        block: block,
-                        groupHeading: headingFor(unfinishedBlocks, idx),
+                        key: focused ? _focusKey : null,
+                        blocks: section,
                         workout: sectionWorkout,
-                        focused: focusedBlock?.stableId == block.stableId,
+                        focused: focused,
                         finished: false,
-                        note: focusedBlock?.stableId == block.stableId
-                            ? const WorkoutNote()
-                            : null,
-                        dragIndex: isEnded || unfinishedBlocks.length < 2
+                        note: focused ? const WorkoutNote() : null,
+                        dragIndex: isEnded || unfinishedSections.length < 2
                             ? null
                             : idx,
                         onEdit: isEnded
                             ? null
-                            : () => editExercise(context, wp, block),
+                            : (block) => editExercise(context, wp, block),
                       ),
                       divider,
                     ],

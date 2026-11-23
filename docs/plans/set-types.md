@@ -179,9 +179,12 @@ rows of circles labelled down the left edge.
   back-off, a drop, a pyramid step) shows its weight small underneath. A
   set with an effort target shows a small `@2` beside it.
 - **Under the name**, grey, only when set: `each side`, `tempo 3-1-1`.
-- **Groups:** grouped cards sit together with a thin accent rule down their
-  left edge and one grey heading, *Superset* (two lifts) or *Circuit*
-  (more). The circle in hand moves between them.
+- **Groups:** a superset or circuit is one section, dragged as one: its
+  lifts' names stacked, each with its own weight × reps and pencil, then
+  one row of circles in the order they're done (A1 B1, a gap, A2 B2), the
+  row labelled *Superset* (two lifts) or *Circuit* (more) and each circle
+  with its lift's short code under it ("LR", "Pl"). The circle in hand
+  moves along the row.
 - **The banner** (`StatusBox`) keeps one primary number:
   - the position line names the role: "Top set", "Back-off 2 of 3",
     "Drop 1 of 2", "Mini 3 of 4", "2 of 5 · each side";
