@@ -438,10 +438,11 @@ A scheme is a list of `steps`, each some sets of one role, in order:
 - `amrap` (optional): as many as you can. R is the minimum; the set is hit
   at R or more, and what was done feeds the rule (`last.amrap_reps`, and
   the estimated max).
-- `rir` (optional): an effort target, 0 to 5 reps left in the tank. After
-  the set the app asks "how many more could you have done?" with three
-  answers (0–1, 2–4, 5+), which tighten the estimated max and give
-  `last.rir`. Beginners judge this poorly, so ask for it where it matters.
+- `rir` (optional): an effort target, 0 to 5 reps left in the tank, shown
+  with each of its sets. After the lift's last set with a target the app
+  asks once, "how many more could you have done?", with three answers
+  (0–1, 2–4, 5+), which tighten the estimated max and give `last.rir`.
+  Beginners judge this poorly, so ask for it where it matters.
 - `rest_seconds` (optional): after each of its sets; for a `mini`, the
   short pause before each one. Without it, the class's rest. A set before
   a drop rests none, and a lift's last drop or mini rests the class's rest.

@@ -4277,8 +4277,8 @@ mod set_types {
         assert_eq!(record.completed_sets[0].rest_until, NOW + 60);
     }
 
-    /// A set with an effort target asks after it; the answer is kept; doing
-    /// the next set closes the question; a set without one never asks.
+    /// A lift with effort targets asks once, after its last set with one;
+    /// the answer is kept; a set without one never asks.
     #[test]
     fn an_effort_target_asks_once() {
         let mut app = trained(&[("squat", 200.0)]);
@@ -4301,16 +4301,31 @@ mod set_types {
             .as_ref()
             .map(|w| w.effort_question_set_id.clone());
         assert_eq!(open.as_deref(), Some(""), "the top set has no target");
+        // Back-offs before the last don't ask.
+        let mut t = NOW + 200;
+        for set in &sets[1..sets.len() - 1] {
+            let response = batch(&mut app, vec![complete_set(set, 8, set.target_weight, t)]);
+            assert_eq!(
+                response
+                    .workout_state
+                    .as_ref()
+                    .map(|w| w.effort_question_set_id.as_str()),
+                Some(""),
+                "only the lift's last set with a target asks"
+            );
+            t += 200;
+        }
+        let last = sets.last().unwrap().clone();
         let response = batch(
             &mut app,
-            vec![complete_set(&sets[1], 8, sets[1].target_weight, NOW + 200)],
+            vec![complete_set(&last, 8, last.target_weight, t)],
         );
         assert_eq!(
             response
                 .workout_state
                 .as_ref()
                 .map(|w| w.effort_question_set_id.clone()),
-            Some(sets[1].id.clone())
+            Some(last.id.clone())
         );
         let answer = |id: &str| {
             mutation(Mutation::AnswerEffort(AnswerEffortRequest {
@@ -4325,7 +4340,7 @@ mod set_types {
             record.completed_sets.iter().all(|c| c.reps_left == 0),
             "not its question"
         );
-        let response = batch(&mut app, vec![answer(&sets[1].id)]);
+        let response = batch(&mut app, vec![answer(&last.id)]);
         assert_eq!(
             response
                 .workout_state
@@ -4337,7 +4352,7 @@ mod set_types {
         let kept = record
             .completed_sets
             .iter()
-            .find(|c| c.proposed_set_id == sets[1].id)
+            .find(|c| c.proposed_set_id == last.id)
             .unwrap();
         assert_eq!(kept.reps_left, RepsLeft::TwoToFour as i32);
     }
