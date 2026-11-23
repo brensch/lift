@@ -59,8 +59,9 @@ bool restEndedJustNow(WorkoutStateSnapshot snapshot, int nowUnix) =>
 
 /// A workout's stage as every status line says it (your bar, a partner's
 /// bar, the watch): its state on this clock ([stateAt]), the label, and the
-/// clock. Lifting counts up from Start, resting down to the rest end,
-/// yapping up from it; ready and all done have no clock.
+/// clock. Lifting counts up from Start (a timed set counts down from its
+/// seconds instead), resting down to the rest end, yapping up from it;
+/// ready and all done have no clock.
 ({WorkoutState state, String label, String? timer}) stageOf(
   WorkoutStateSnapshot? snapshot,
   int nowUnix,
@@ -72,7 +73,8 @@ bool restEndedJustNow(WorkoutStateSnapshot snapshot, int nowUnix) =>
       state: state,
       label: copy.workout.lifting,
       timer: formatRestClock(
-        max(0, nowUnix - snapshot!.liftingStartedAt.toInt()),
+        timedSetLeft(snapshot!, nowUnix) ??
+            max(0, nowUnix - snapshot.liftingStartedAt.toInt()),
       ),
     ),
     WorkoutState.WORKOUT_STATE_RESTING => (
@@ -96,6 +98,18 @@ bool restEndedJustNow(WorkoutStateSnapshot snapshot, int nowUnix) =>
       timer: null,
     ),
   };
+}
+
+/// A timed set being lifted: the seconds it has left (at least 0). Null
+/// for any other set.
+int? timedSetLeft(WorkoutStateSnapshot snapshot, int nowUnix) {
+  if (!snapshot.hasDisplaySet()) return null;
+  final set = snapshot.displaySet;
+  if (set.measure != Measure.MEASURE_SECONDS || set.targetReps <= 0) {
+    return null;
+  }
+  final elapsed = nowUnix - snapshot.liftingStartedAt.toInt();
+  return max(0, set.targetReps - elapsed);
 }
 
 /// The set a workout shows: the snapshot's, else the next one up.

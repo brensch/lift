@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
+import '../../logic/set_labels.dart';
 import '../../logic/weight_units.dart';
 import '../../providers/settings_provider.dart';
 import '../../logic/exercises.dart';
@@ -53,11 +54,20 @@ class LiveSetCircle extends StatelessWidget {
     return SetCircle(
       number: reps,
       state: state,
-      // Nothing known yet about a first-ever exercise.
-      text: done == null && w.isFirstTime(set) ? '?' : null,
+      // Nothing known yet about a first-ever exercise; otherwise its number
+      // as it counts ("8+", "30s").
+      text: done == null && w.isFirstTime(set)
+          ? '?'
+          : needsLabel(set)
+          ? repsLabel(set, reps, done: done != null)
+          : null,
       nextColor: nextColor,
       small: set.warmup,
       onTap: onTap,
+      // As many as you can taps up; a long press takes one back off.
+      onLongPress: wp != null && done != null && set.amrap
+          ? () => wp.tapDoneSet(done.id)
+          : null,
     );
   }
 
@@ -79,16 +89,19 @@ class LiveSetCircle extends StatelessWidget {
   }
 
   /// A tap on a set's circle: a done set loses a rep (and after zero is
-  /// undone), the set being lifted is done with every rep, anything else
-  /// starts. The watch's taps run this too; a first-ever exercise waits on
-  /// the phone, which asks for the weight first.
+  /// undone), or, as many as you can, gains one; the set being lifted is
+  /// done with every rep; anything else starts. The watch's taps run this
+  /// too; a first-ever exercise waits on the phone, which asks for the
+  /// weight first.
   static Future<void> tapSet(
     WorkoutProvider wp,
     SectionWorkout w,
     ProposedSet set,
   ) {
     final done = w.doneFor(set.id);
-    if (done != null) return wp.tapDoneSet(done.id);
+    if (done != null) {
+      return set.amrap ? wp.addRepToDoneSet(done.id) : wp.tapDoneSet(done.id);
+    }
     if (w.liftingSetId == set.id) {
       return wp.completeSet(set.id, set.targetReps, set.targetWeight);
     }

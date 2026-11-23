@@ -228,10 +228,7 @@ class StatusBox extends StatelessWidget {
       // The plates to load, the weight, then × the reps: in the circle
       // (yours), or said after the weight (a partner's).
       final exercise = exerciseName(set.exercise);
-      final position = setLineFor(set, plan);
-      // "Warmup 2 of 3" without its kind: "2 of 3".
-      final cut = position.indexOf(' ');
-      final count = cut < 0 ? position : position.substring(cut + 1);
+      final position = setLineFor(set, plan, short: true);
       final small = TextStyle(
         fontSize: t.size.body,
         fontWeight: t.weight.medium,
@@ -260,12 +257,7 @@ class StatusBox extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (final text in [
-                      exercise,
-                      set.warmup
-                          ? copy.workout.warmShort.replaceAll('{count}', count)
-                          : count,
-                    ])
+                    for (final text in [exercise, position])
                       if (text.isNotEmpty)
                         Text(
                           text,
@@ -357,9 +349,7 @@ class StatusBox extends StatelessWidget {
               child: Text(
                 [
                   exercise,
-                  set.warmup
-                      ? copy.workout.warmShort.replaceAll('{count}', count)
-                      : count,
+                  position,
                 ].where((text) => text.isNotEmpty).join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,

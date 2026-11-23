@@ -114,7 +114,10 @@ pub fn workout_state_snapshot(
     if let Some(last) = last_done_set(completed_sets) {
         let rest_end = last.rest_until.max(last.ended_at);
         return WorkoutStateSnapshot {
-            state: if rest_end > now {
+            // No rest at all (straight into a drop): ready, not yapping.
+            state: if last.rest_until <= last.ended_at {
+                STATE_READY
+            } else if rest_end > now {
                 STATE_RESTING
             } else {
                 STATE_YAPPING

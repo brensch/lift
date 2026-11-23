@@ -18,6 +18,7 @@ import '../../logic/exercises.dart';
 import '../../theme/app_icons.dart';
 import '../../providers/settings_provider.dart';
 import '../../logic/set_labels.dart';
+import '../../logic/weight_units.dart';
 import '../../theme/theme_spec.dart';
 import 'section_workout.dart';
 import 'live_set_circle.dart';
@@ -53,6 +54,10 @@ class ExerciseSection extends StatefulWidget {
   /// finishing an exercise is seen to put it away rather than swap it.
   final bool justFinished;
 
+  /// Over the first lift of a group: "Superset", "Circuit". Every lift of a
+  /// group wears the group's rule down its left edge.
+  final String? groupHeading;
+
   const ExerciseSection({
     super.key,
     required this.block,
@@ -63,6 +68,7 @@ class ExerciseSection extends StatefulWidget {
     this.onEdit,
     this.note,
     this.justFinished = false,
+    this.groupHeading,
   });
 
   @override
@@ -99,7 +105,15 @@ class _ExerciseSectionState extends State<ExerciseSection> {
     final live = wp != null;
     final sets = block.sets.where((s) => !s.cancelled).toList();
     final warmups = sets.where((s) => s.warmup).toList();
-    final working = sets.where((s) => !s.warmup).toList();
+    // The main sets (plain, top, back-off, ramp) make the Working row and
+    // what the header says; drops and minis get rows of their own.
+    final working = sets.where((s) => !s.warmup && !isPartial(s)).toList();
+    final drops = sets
+        .where((s) => !s.warmup && s.role == SetRole.SET_ROLE_DROP)
+        .toList();
+    final minis = sets
+        .where((s) => !s.warmup && s.role == SetRole.SET_ROLE_MINI)
+        .toList();
     // The warmup "Skip" skips: the next one still to do.
     final openWarmup = warmups
         .where((s) => !w.isDone(s.id) && !w.isPassedWarmup(s))
@@ -128,6 +142,53 @@ class _ExerciseSectionState extends State<ExerciseSection> {
     final unit = context.watch<SettingsProvider>().weightUnit;
     final targetSet =
         working.where((s) => !w.isDone(s.id)).firstOrNull ?? working.lastOrNull;
+
+    // Under a circle, small: its weight where it isn't the header's (a
+    // back-off, a drop, a pyramid step) and its effort target ("@2").
+    String? caption(ProposedSet set) {
+      final parts = [
+        if (targetSet != null &&
+            (set.targetWeight - targetSet.targetWeight).abs() > 0.01)
+          formatWeight(set.targetWeight.toDouble(), unit),
+        if (set.hasTargetRir()) '@${set.targetRir}',
+      ];
+      return parts.isEmpty ? null : parts.join(' ');
+    }
+
+    // A row's circles, captioned when any of them needs one, so a row's
+    // circles stay level.
+    List<Widget> captioned(List<ProposedSet> row) {
+      final captions = [for (final s in row) caption(s)];
+      if (captions.every((c) => c == null)) {
+        return [for (final s in row) circle(s)];
+      }
+      return [
+        for (var i = 0; i < row.length; i++)
+          SizedBox(
+            width: SetCircle.diameter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                circle(row[i]),
+                const SizedBox(height: 2),
+                SizedBox(
+                  height: t.size.caption * 1.3,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      captions[i] ?? '',
+                      maxLines: 1,
+                      style: t.mono(
+                        TextStyle(fontSize: t.size.caption, color: t.muted),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ];
+    }
 
     final folded = finished && !_unfolded;
     void toggle() => setState(() => _unfolded = !_unfolded);
@@ -277,8 +338,22 @@ class _ExerciseSectionState extends State<ExerciseSection> {
                     label: copy.workout.workingLabel,
                     follow: followIn(working),
                     ids: [for (final s in working) s.id],
-                    children: [for (final s in working) circle(s)],
+                    children: captioned(working),
                   ),
+                  if (drops.isNotEmpty)
+                    _CircleRow(
+                      label: copy.workout.dropLabel,
+                      follow: followIn(drops),
+                      ids: [for (final s in drops) s.id],
+                      children: captioned(drops),
+                    ),
+                  if (minis.isNotEmpty)
+                    _CircleRow(
+                      label: copy.workout.miniLabel,
+                      follow: followIn(minis),
+                      ids: [for (final s in minis) s.id],
+                      children: captioned(minis),
+                    ),
                 ],
               ),
             ),
@@ -287,9 +362,29 @@ class _ExerciseSectionState extends State<ExerciseSection> {
       ),
     );
 
+    // A group's lifts: one rule down their left edge, its name over the
+    // first. Nothing else changes about a lift in a group.
+    final grouped = block.sets.any((s) => s.group.isNotEmpty);
     return ColoredBox(
       color: focused ? t.panel : Colors.transparent,
-      child: content,
+      child: !grouped
+          ? content
+          : DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(left: BorderSide(color: t.primary, width: 3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.groupHeading case final heading?)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(_padding, 6, 0, 0),
+                      child: Text(heading, style: t.label()),
+                    ),
+                  content,
+                ],
+              ),
+            ),
     );
   }
 }

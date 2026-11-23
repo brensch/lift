@@ -44,6 +44,9 @@ class SetCircle extends StatefulWidget {
 
   final VoidCallback? onTap;
 
+  /// A long press (an as-many-as-you-can set's way back down).
+  final VoidCallback? onLongPress;
+
   /// The up-next ring's colour: the workout's current state (blue resting,
   /// pink yapping, orange otherwise).
   final Color? nextColor;
@@ -55,6 +58,7 @@ class SetCircle extends StatefulWidget {
     this.text,
     this.small = false,
     this.onTap,
+    this.onLongPress,
     this.nextColor,
   });
 
@@ -126,6 +130,7 @@ class _SetCircleState extends State<SetCircle>
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
         child: AnimatedBuilder(
           animation: _pulse,
           builder: (context, child) => DecoratedBox(
@@ -156,17 +161,25 @@ class _SetCircleState extends State<SetCircle>
                 ),
               ),
             ),
-            child: Text(
-              widget.text ??
-                  (widget.state == SetCircleState.skipped
-                      ? '–'
-                      : '${widget.number}'),
-              style: t.mono(
-                TextStyle(
-                  fontSize: t.size.titleLg,
-                  fontWeight: t.weight.bold,
-                  color: ink,
-                  height: 1,
+            // "120s" in a circle sized for "12": the longer ones shrink.
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 7),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  widget.text ??
+                      (widget.state == SetCircleState.skipped
+                          ? '–'
+                          : '${widget.number}'),
+                  maxLines: 1,
+                  style: t.mono(
+                    TextStyle(
+                      fontSize: t.size.titleLg,
+                      fontWeight: t.weight.bold,
+                      color: ink,
+                      height: 1,
+                    ),
+                  ),
                 ),
               ),
             ),

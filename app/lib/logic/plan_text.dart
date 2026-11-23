@@ -14,7 +14,10 @@ import 'weight_units.dart';
 /// Whole minutes, rounded up: a plan never claims less than it takes.
 int planMinutes(int seconds) => (seconds + 59) ~/ 60;
 
-/// "3×8 @ 185 lb", "3×12" (bodyweight), "Ramp from 95 lb" (never done).
+/// "3×8 @ 185 lb", "3×12" (bodyweight), "3×30s" (timed), "Ramp from 95
+/// lb" (never done). A lift laid out by a scheme reads by its runs:
+/// "1×5 @ 200 lb, 2×8 @ 85%, +2 drops" — a share as a percentage, since the
+/// core snaps it to what loads when the sets are laid out.
 String planLine(ExerciseDecision d, WeightUnit unit) {
   if (d.calibration) {
     return copy.plan.ramp.replaceAll(
@@ -22,9 +25,49 @@ String planLine(ExerciseDecision d, WeightUnit unit) {
       formatWeight(d.weight, unit, includeUnit: true),
     );
   }
-  final setsReps = '${d.sets}×${d.reps}';
-  if (d.weight <= 0) return setsReps;
-  return '$setsReps @ ${formatWeight(d.weight, unit, includeUnit: true)}';
+  final suffix = switch (d.measure) {
+    Measure.MEASURE_SECONDS => 's',
+    Measure.MEASURE_METRES => 'm',
+    _ => '',
+  };
+  final weight = formatWeight(d.weight, unit, includeUnit: true);
+  if (d.schemeSets.isEmpty) {
+    final setsReps = '${d.sets}×${d.reps}$suffix';
+    if (d.weight <= 0) return setsReps;
+    return '$setsReps @ $weight';
+  }
+  // Runs of alike sets, in order.
+  final runs = <(PlannedSet, int)>[];
+  for (final p in d.schemeSets) {
+    final last = runs.lastOrNull;
+    if (last != null &&
+        last.$1.role == p.role &&
+        last.$1.reps == p.reps &&
+        last.$1.fraction == p.fraction &&
+        last.$1.amrap == p.amrap) {
+      runs[runs.length - 1] = (last.$1, last.$2 + 1);
+    } else {
+      runs.add((p, 1));
+    }
+  }
+  final parts = <String>[];
+  var drops = 0;
+  for (final (p, n) in runs) {
+    if (p.role == SetRole.SET_ROLE_DROP) {
+      drops += n;
+      continue;
+    }
+    final reps = '${p.reps > 0 ? p.reps : d.reps}$suffix${p.amrap ? '+' : ''}';
+    final share = p.fraction <= 0 ? 1.0 : p.fraction;
+    final load = d.weight <= 0
+        ? ''
+        : share == 1.0
+        ? ' @ $weight'
+        : ' @ ${(share * 100).round()}%';
+    parts.add('$n×$reps$load');
+  }
+  if (drops > 0) parts.add(copy.plan.drops.replaceAll('{n}', '$drops'));
+  return parts.join(', ');
 }
 
 /// An estimated max as people read it: whole numbers, in the user's unit,
