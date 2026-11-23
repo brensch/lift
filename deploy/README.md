@@ -1,6 +1,6 @@
 # Bare-Metal Backend Deploy
 
-This deploy flow builds the backend on a GitHub-hosted x86_64 runner and uploads the `schlift` binary as an artifact. The server pulls it: a small agent on the box ([`puller/`](puller/)) checks for a new GitHub Deployment every 20 seconds, downloads the build with a read-only token, deploys it, and reports the result back to the deployment. There is no runner on the server, so nothing on GitHub can run a command there.
+This deploy flow builds the backend on a GitHub-hosted arm64 runner and uploads the `schlift` binary as an artifact. The server pulls it: a small agent on the box ([`puller/`](puller/)) checks for a new GitHub Deployment every 20 seconds, downloads the build with a read-only token, deploys it, and reports the result back to the deployment. There is no runner on the server, so nothing on GitHub can run a command there.
 
 The dev instance (`dev.schlift.com`) on the same box is described in [`docs/dev-channel.md`](../docs/dev-channel.md).
 
@@ -68,11 +68,15 @@ Set `APPLE_TEAM_ID` for the default `TEAMID.com.brensch.schlift` app identifier,
 
 The production setup script installs Caddy and the checked-in `Caddyfile`. The build artifact carries the `Caddyfile` too: when it differs from `/etc/caddy/Caddyfile`, the agent validates it and reloads Caddy gracefully (open connections are not dropped); when it is unchanged, Caddy is not touched.
 
-The server is the Google Cloud e2-micro `bsscrape` (project `snake2-338906`, us-central1-a,
-static IP `136.80.171.189`, Debian 13, x86_64), shared with the Battlesnake scraper. SSH is
-through IAP only (`gcloud compute ssh bsscrape --tunnel-through-iap`, or a `ProxyCommand`
-host alias); the firewall rule `allow-web` opens tcp/80, tcp/443 and udp/443 (snekgame's
-WebTransport) to the `web` tag.
+The server is the Oracle Cloud VM `instance-20261115-2204` (us-sanjose-1, shape
+VM.Standard.A1.Flex: 4 Ampere cores, 24 GB; public IP `170.9.26.227`, Ubuntu 26.04, aarch64),
+so CI builds on `ubuntu-24.04-arm`. SSH is `ssh ubuntu@170.9.26.227`; the service user is
+`opc`. Two firewalls must both pass tcp/80 and tcp/443: the VCN's Default Security List
+(already open) and the VM's own iptables (`/etc/iptables/rules.v4`, which Oracle's Ubuntu
+image closes to everything but 22).
+
+It ran on the Google e2-micro `bsscrape` (1 GB RAM) until November 2026; that box keeps
+brensch.com, snek, ppp and the Battlesnake scraper.
 
 Do not expose `50051` publicly. Let Caddy proxy `schlift.com` to `127.0.0.1:50051`.
 

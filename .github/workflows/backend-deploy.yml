@@ -12,8 +12,8 @@ concurrency:
 
 jobs:
   build-backend:
-    # The server is the Google box (x86_64, Debian 13: glibc and OpenSSL 3 newer than 24.04's).
-    runs-on: ubuntu-24.04
+    # The server is the Oracle box (aarch64, Ubuntu 26.04: glibc and OpenSSL 3 newer than 24.04's).
+    runs-on: ubuntu-24.04-arm
     permissions:
       contents: read
 
@@ -62,7 +62,7 @@ jobs:
       - name: Upload backend artifact
         uses: actions/upload-artifact@v4
         with:
-          name: backend-linux-amd64
+          name: backend-linux-arm64
           path: dist/
           if-no-files-found: error
 
@@ -90,4 +90,4 @@ jobs:
       - name: Deploy (the box pulls it)
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/request_deploy.sh production "${GITHUB_SHA}" backend-linux-amd64 web-dist
+        run: scripts/request_deploy.sh production "${GITHUB_SHA}" backend-linux-arm64 web-dist

@@ -30,10 +30,21 @@ EOF
 fi
 
 if ! command -v caddy >/dev/null 2>&1; then
-	dnf install -y 'dnf-command(copr)'
-	dnf copr enable @caddy/caddy -y
-	dnf install -y caddy
+	if command -v apt-get >/dev/null 2>&1; then
+		# Debian/Ubuntu (the Oracle box): Caddy's own apt repository.
+		apt-get install -y debian-keyring debian-archive-keyring apt-transport-https curl gpg
+		curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/gpg.key |
+			gpg --dearmor --yes -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+		curl -1sLf https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt >/etc/apt/sources.list.d/caddy-stable.list
+		apt-get update
+		apt-get install -y caddy
+	else
+		dnf install -y 'dnf-command(copr)'
+		dnf copr enable @caddy/caddy -y
+		dnf install -y caddy
+	fi
 fi
+mkdir -p /etc/caddy/Caddyfile.d
 
 install -m 0644 "${CADDYFILE_SRC}" /etc/caddy/Caddyfile
 systemctl enable caddy
