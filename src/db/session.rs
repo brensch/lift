@@ -384,6 +384,59 @@ impl ServerDb {
     }
 
     /// Whether two users have ever shared a session (used to gate partner re-pair).
+    /// Let `editor` suggest changes to `owner`'s program, or stop them.
+    pub async fn set_can_suggest(&self, owner: &str, editor: &str, allowed: bool) -> DbResult<()> {
+        if allowed {
+            sqlx::query(
+                "INSERT INTO program_editors (user_id, editor_id, created_at) VALUES (?, ?, ?)
+                 ON CONFLICT (user_id, editor_id) DO NOTHING",
+            )
+            .bind(owner)
+            .bind(editor)
+            .bind(crate::time::now_unix())
+            .execute(&self.write_pool)
+            .await?;
+        } else {
+            sqlx::query("DELETE FROM program_editors WHERE user_id = ? AND editor_id = ?")
+                .bind(owner)
+                .bind(editor)
+                .execute(&self.write_pool)
+                .await?;
+        }
+        Ok(())
+    }
+
+    /// Whether `editor` may suggest changes to `owner`'s program.
+    pub async fn can_suggest(&self, owner: &str, editor: &str) -> DbResult<bool> {
+        let allowed: bool = sqlx::query_scalar(
+            "SELECT COUNT(*) > 0 FROM program_editors WHERE user_id = ? AND editor_id = ?",
+        )
+        .bind(owner)
+        .bind(editor)
+        .fetch_one(&self.read_pool)
+        .await?;
+        Ok(allowed)
+    }
+
+    /// Who `owner` lets suggest, and whose programs `editor` may suggest to.
+    pub async fn editors_of(&self, owner: &str) -> DbResult<Vec<String>> {
+        Ok(
+            sqlx::query_scalar("SELECT editor_id FROM program_editors WHERE user_id = ?")
+                .bind(owner)
+                .fetch_all(&self.read_pool)
+                .await?,
+        )
+    }
+
+    pub async fn owners_for(&self, editor: &str) -> DbResult<Vec<String>> {
+        Ok(
+            sqlx::query_scalar("SELECT user_id FROM program_editors WHERE editor_id = ?")
+                .bind(editor)
+                .fetch_all(&self.read_pool)
+                .await?,
+        )
+    }
+
     pub async fn have_trained_together(&self, a: &str, b: &str) -> DbResult<bool> {
         let together: bool = sqlx::query_scalar(
             "SELECT COUNT(*) > 0 FROM session_members m1

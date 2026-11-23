@@ -67,8 +67,35 @@ fn edits_property() -> Value {
     })
 }
 
+/// The tools that read or try a program and may be for someone who lets
+/// the assistant's person suggest to them (`person`).
+const FOR_A_PERSON: &[&str] = &[
+    "get_program",
+    "get_earlier_program",
+    "get_profile",
+    "get_history",
+    "get_progress",
+    "validate_program",
+    "simulate_program",
+    "list_exercises",
+    "get_program_part",
+];
+
 /// Every tool, as `tools/list` gives them.
 pub fn list() -> Vec<Value> {
+    let mut tools = tools();
+    for tool in &mut tools {
+        if FOR_A_PERSON.contains(&tool["name"].as_str().unwrap_or_default()) {
+            tool["inputSchema"]["properties"]["person"] = json!({
+                "type": "string",
+                "description": "Someone else's, who lets your person suggest changes to their workouts (list_people): their name or id. Without it, your person's own"
+            });
+        }
+    }
+    tools
+}
+
+fn tools() -> Vec<Value> {
     vec![
         json!({
             "name": "read_guide",
@@ -188,6 +215,25 @@ pub fn list() -> Vec<Value> {
                 "path": { "type": "string", "description": "As in edits: classes.heavy, workouts[a].exercises" }
             }), &["path"]),
             "annotations": { "readOnlyHint": true },
+        }),
+        json!({
+            "name": "list_people",
+            "title": "People you can suggest to",
+            "description": "The friends who let your person suggest changes to their workouts: name and id. Pass one as `person` to read their training and try a change, then suggest_change.",
+            "inputSchema": schema(json!({}), &[]),
+            "annotations": { "readOnlyHint": true },
+        }),
+        json!({
+            "name": "suggest_change",
+            "title": "Suggest a change to someone's program",
+            "description": "Send edits (as set_program takes them) to someone who lets your person suggest: they see it as a suggestion from your person, with your note, and accept or decline it. Nothing changes for them until they accept. Try it first with simulate_program and the same `person`.",
+            "inputSchema": schema(json!({
+                "person": { "type": "string", "description": "Their name or id (list_people)" },
+                "edits": edits_property(),
+                "note": { "type": "string", "maxLength": 300, "description": "One line, to them, on why" },
+                "title": { "type": "string", "maxLength": 60, "description": "What to call it in their list: the workout's name, or the change's" }
+            }), &["person", "edits", "note"]),
+            "annotations": { "readOnlyHint": false, "destructiveHint": false, "idempotentHint": false },
         }),
         json!({
             "name": "send_feedback",
@@ -358,12 +404,29 @@ pub async fn call(
     arguments: &Value,
 ) -> Result<Value, Failure> {
     let now = crate::time::now_unix();
+    // Whose account a reading tool reads: the person's own, or someone who
+    // lets them suggest, checked on every call.
+    let person = arguments
+        .get("person")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|p| !p.is_empty());
+    let whose =
+        match person {
+            Some(p) if FOR_A_PERSON.contains(&name) => resolve_person(mcp, user_id, p).await?.0,
+            Some(_) if name == "set_program" => return Err(Failure::Tool(
+                "set_program changes your person's own program; for someone else's, suggest_change"
+                    .into(),
+            )),
+            _ => user_id.to_string(),
+        };
+    let whose = whose.as_str();
     match name {
         "read_guide" => Ok(json!({ "content": [{ "type": "text", "text": GUIDE }] })),
         "get_program" => {
             let (got, (program, note)) = mcp
                 .db
-                .read_account(user_id, move |a| {
+                .read_account(whose, move |a| {
                     (View::new(a, now).get_program(), shown(&a.program))
                 })
                 .await?;
@@ -383,7 +446,7 @@ pub async fn call(
                 .to_string();
             let got = mcp
                 .db
-                .read_account(user_id, move |a| {
+                .read_account(whose, move |a| {
                     View::new(a, now).get_program_version(GetProgramVersionRequest { id })
                 })
                 .await?
@@ -407,10 +470,7 @@ pub async fn call(
             })))
         }
         "get_profile" => {
-            let profile = mcp
-                .db
-                .read_account(user_id, move |a| profile(a, now))
-                .await?;
+            let profile = mcp.db.read_account(whose, move |a| profile(a, now)).await?;
             Ok(text(&profile))
         }
         "get_history" => {
@@ -425,7 +485,7 @@ pub async fn call(
             let limit = int(arguments, "limit", 20, 1, 200) as usize;
             let history = mcp
                 .db
-                .read_account(user_id, move |a| {
+                .read_account(whose, move |a| {
                     history(a, exercise.as_deref(), since, limit)
                 })
                 .await?;
@@ -435,7 +495,7 @@ pub async fn call(
             let args = arguments.clone();
             let (checked, applied) = mcp
                 .db
-                .read_account(user_id, move |a| -> Result<_, Failure> {
+                .read_account(whose, move |a| -> Result<_, Failure> {
                     let (program_json, applied) = draft(a, &args)?;
                     if program_json.is_empty() {
                         return Err(Failure::Tool("send edits or a program to check".into()));
@@ -477,7 +537,7 @@ pub async fn call(
             let args = arguments.clone();
             let (run, applied) = mcp
                 .db
-                .read_account(user_id, move |a| -> Result<_, Failure> {
+                .read_account(whose, move |a| -> Result<_, Failure> {
                     let (program_json, applied) = draft(a, &args)?;
                     request.program_json = program_json;
                     Ok((View::new(a, now).simulate_program(request)?, applied))
@@ -578,9 +638,7 @@ pub async fn call(
                 .unwrap_or(0);
             let progress = mcp
                 .db
-                .read_account(user_id, move |a| {
-                    progress(a, now, exercise.as_deref(), since)
-                })
+                .read_account(whose, move |a| progress(a, now, exercise.as_deref(), since))
                 .await?;
             Ok(text(&progress))
         }
@@ -588,7 +646,7 @@ pub async fn call(
             let args = arguments.clone();
             let found = mcp
                 .db
-                .read_account(user_id, move |a| exercises(&a.program, &args))
+                .read_account(whose, move |a| exercises(&a.program, &args))
                 .await?;
             Ok(text(&found))
         }
@@ -601,7 +659,7 @@ pub async fn call(
                 .to_string();
             let part = mcp
                 .db
-                .read_account(user_id, move |a| edit::part(&a.program, &path))
+                .read_account(whose, move |a| edit::part(&a.program, &path))
                 .await?
                 .map_err(Failure::Tool)?;
             Ok(text(&json!({ "value": part })))
@@ -633,8 +691,90 @@ pub async fn call(
                 &json!({ "thanks": "Noted. It goes to the people who make these tools." }),
             ))
         }
+        "list_people" => {
+            let mut people = Vec::new();
+            for id in mcp.db.owners_for(user_id).await? {
+                if let Some(user) = mcp.db.get_user(&id).await? {
+                    people.push(json!({ "name": user.name, "id": user.id }));
+                }
+            }
+            Ok(text(&json!({ "people": people })))
+        }
+        "suggest_change" => {
+            let person = person.ok_or_else(|| Failure::Tool("person is required".into()))?;
+            let (owner, owner_name) = resolve_person(mcp, user_id, person).await?;
+            let edits = match arguments.get("edits") {
+                Some(Value::Array(edits)) if !edits.is_empty() => edits.clone(),
+                _ => return Err(Failure::Tool("edits is a list of edits".into())),
+            };
+            let note = arguments
+                .get("note")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            let me = mcp
+                .db
+                .get_user(user_id)
+                .await?
+                .map(|u| u.name)
+                .unwrap_or_default();
+            let mut account = mcp.db.read_account(&owner, Clone::clone).await?;
+            // One workout set: a workout suggestion, named for it.
+            let workouts: Vec<&str> = edits
+                .iter()
+                .filter_map(|e| e.get("set").and_then(Value::as_str))
+                .filter(|p| p.starts_with("workouts["))
+                .collect();
+            let kind = if workouts.len() == edits.len() && !workouts.is_empty() {
+                "workout"
+            } else {
+                "program"
+            };
+            let title = arguments
+                .get("title")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+                .unwrap_or_else(|| account.program.name.clone());
+            let mut call = Call::new(&mut account, now, uuid::Uuid::new_v4().to_string());
+            call.suggest_program(schlift_core::events::ProgramSuggested {
+                edits,
+                note,
+                kind: kind.into(),
+                title,
+                from: format!("person:{user_id}"),
+                from_name: format!("{me} (via {client_name})"),
+            })
+            .map_err(|e| Failure::Tool(format!("not suggested: {e}")))?;
+            let events = std::mem::take(&mut call.events);
+            mcp.db.push_events(&owner, events).await?;
+            tracing::info!(%user_id, %owner, client = client_name, "an assistant suggested a change");
+            Ok(text(&json!({
+                "suggested": true,
+                "to": owner_name,
+                "next": "They see it as a suggestion and accept or decline it; nothing changes for them until they do."
+            })))
+        }
         _ => Err(Failure::Unknown),
     }
+}
+
+/// Someone who lets `user_id` suggest to them, by name (any case) or id:
+/// their id and name. Anyone else is refused.
+async fn resolve_person(
+    mcp: &Mcp,
+    user_id: &str,
+    person: &str,
+) -> Result<(String, String), Failure> {
+    for id in mcp.db.owners_for(user_id).await? {
+        if let Some(user) = mcp.db.get_user(&id).await? {
+            if user.id == person || user.name.eq_ignore_ascii_case(person) {
+                return Ok((user.id, user.name));
+            }
+        }
+    }
+    Err(Failure::Tool(format!(
+        "{person:?} hasn't let your person suggest changes to their workouts; list_people shows who has"
+    )))
 }
 
 /// The exercises `list_exercises` finds, filtered as `arguments` say.

@@ -466,3 +466,55 @@ pub fn part(program: &Program, path: &str) -> Result<Value, String> {
     let segs = parse_path(path)?;
     walk(&mut doc, &segs).map(|v| v.clone())
 }
+
+/// The edits that suggest `from`'s workout `workout_id` to someone whose
+/// program is `to`: the workout as `new_id` (in the rotation, its groups
+/// with it), and whatever of `from`'s it needs that `to` lacks: each of its
+/// exercises `to` doesn't know, and their own progression and scheme. What
+/// `to` already has is never touched. None when `from` has no such workout.
+pub fn workout_suggestion(
+    from: &Program,
+    to: &Program,
+    workout_id: &str,
+    new_id: &str,
+) -> Option<Vec<Value>> {
+    let workout = from.workout(workout_id)?;
+    let mut edits = Vec::new();
+    for key in &workout.exercises {
+        if to.knows(key) {
+            continue;
+        }
+        let Some(def) = from.exercise(key) else {
+            continue;
+        };
+        if let Some(name) = &def.progression {
+            if let (false, Some(rule)) = (
+                to.progressions.contains_key(name),
+                from.progressions.get(name),
+            ) {
+                edits.push(
+                    serde_json::json!({ "set": format!("progressions.{name}"), "value": rule }),
+                );
+            }
+        }
+        if let Some(name) = &def.scheme {
+            if let (false, Some(scheme)) = (to.schemes.contains_key(name), from.schemes.get(name)) {
+                edits
+                    .push(serde_json::json!({ "set": format!("schemes.{name}"), "value": scheme }));
+            }
+        }
+        edits.push(serde_json::json!({ "set": format!("exercises[{key}]"), "value": def }));
+    }
+    edits.push(serde_json::json!({
+        "set": format!("workouts[{new_id}]"),
+        "value": {
+            "name": workout.name,
+            "exercises": workout.exercises,
+            "rotation": true,
+            "notes": workout.notes,
+            "from_library": workout.from_library,
+            "groups": workout.groups,
+        }
+    }));
+    Some(edits)
+}

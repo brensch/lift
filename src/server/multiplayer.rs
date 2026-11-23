@@ -189,6 +189,20 @@ impl MultiplayerService for ServerMultiplayerService {
             .list_training_partners(&caller_id)
             .await
             .map_err(internal_error)?;
+        let mine: std::collections::HashSet<String> = self
+            .db
+            .editors_of(&caller_id)
+            .await
+            .map_err(internal_error)?
+            .into_iter()
+            .collect();
+        let theirs: std::collections::HashSet<String> = self
+            .db
+            .owners_for(&caller_id)
+            .await
+            .map_err(internal_error)?
+            .into_iter()
+            .collect();
         let mut partners = Vec::with_capacity(rows.len());
         for (partner_id, sessions_together, last_trained_at) in rows {
             if let Some(user) = self
@@ -201,10 +215,105 @@ impl MultiplayerService for ServerMultiplayerService {
                     user: Some(as_seen_by_others(user)),
                     sessions_together: sessions_together as i32,
                     last_trained_at,
+                    can_suggest_to_me: mine.contains(&partner_id),
+                    lets_me_suggest: theirs.contains(&partner_id),
                 });
             }
         }
         Ok(Response::new(GetTrainingPartnersResponse { partners }))
+    }
+
+    async fn set_can_suggest(
+        &self,
+        request: Request<SetCanSuggestRequest>,
+    ) -> Result<Response<SetCanSuggestResponse>, Status> {
+        let caller_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        info!(rpc = "SetCanSuggest", %caller_id, editor = %req.user_id, allowed = req.allowed, "request");
+        // Only someone the caller has trained with may be let in; anyone may
+        // be let out.
+        if req.allowed
+            && !self
+                .db
+                .have_trained_together(&caller_id, &req.user_id)
+                .await
+                .map_err(internal_error)?
+        {
+            return Err(Status::failed_precondition(
+                "only someone you've trained with",
+            ));
+        }
+        self.db
+            .set_can_suggest(&caller_id, &req.user_id, req.allowed)
+            .await
+            .map_err(internal_error)?;
+        Ok(Response::new(SetCanSuggestResponse {}))
+    }
+
+    async fn suggest_workout(
+        &self,
+        request: Request<SuggestWorkoutRequest>,
+    ) -> Result<Response<SuggestWorkoutResponse>, Status> {
+        let caller_id = authed_user_id(&request, &self.db).await?;
+        let req = request.into_inner();
+        info!(rpc = "SuggestWorkout", %caller_id, owner = %req.user_id, "request");
+        if !self
+            .db
+            .can_suggest(&req.user_id, &caller_id)
+            .await
+            .map_err(internal_error)?
+        {
+            return Err(Status::permission_denied(
+                "they haven't let you suggest workouts",
+            ));
+        }
+        let from = self
+            .db
+            .read_account(&caller_id, |a| a.program.clone())
+            .await
+            .map_err(internal_error)?;
+        let name = self
+            .db
+            .get_user(&caller_id)
+            .await
+            .map_err(internal_error)?
+            .map(|u| u.name)
+            .unwrap_or_default();
+        let now = crate::time::now_unix();
+        let event_id = uuid::Uuid::new_v4().to_string();
+        let mut account = self
+            .db
+            .read_account(&req.user_id, Clone::clone)
+            .await
+            .map_err(internal_error)?;
+        let new_id = format!("from_{}", &event_id[..8]);
+        let edits = schlift_core::program::edit::workout_suggestion(
+            &from,
+            &account.program,
+            &req.template_id,
+            &new_id,
+        )
+        .ok_or_else(|| Status::not_found("No such workout of yours"))?;
+        let title = from
+            .workout(&req.template_id)
+            .map(|w| w.name.clone())
+            .unwrap_or_default();
+        let mut call = schlift_core::api::Call::new(&mut account, now, event_id);
+        call.suggest_program(schlift_core::events::ProgramSuggested {
+            edits,
+            note: req.note,
+            kind: "workout".into(),
+            title,
+            from: format!("person:{caller_id}"),
+            from_name: name,
+        })
+        .map_err(|e| Status::invalid_argument(e.to_string()))?;
+        let events = std::mem::take(&mut call.events);
+        self.db
+            .push_events(&req.user_id, events)
+            .await
+            .map_err(internal_error)?;
+        Ok(Response::new(SuggestWorkoutResponse {}))
     }
 
     async fn request_join_partner(

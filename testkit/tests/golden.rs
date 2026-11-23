@@ -143,6 +143,28 @@ fn record_every_fact() -> Vec<Event> {
     let mut call = Call::new(&mut account, ended + 3_600, "golden-end-moved");
     call.move_workout_end(&last.id, last.end_time - 60).unwrap();
     events.append(&mut call.events);
+    // A friend's suggested workout (placed by the server, so made here as
+    // the core makes it), then accepted.
+    let mut call = Call::new(&mut account, ended + 7_200, "golden-suggested");
+    let suggestion = call
+        .suggest_program(schlift_core::events::ProgramSuggested {
+            edits: vec![serde_json::json!({ "set": "workouts[sam_arms]", "value": {
+                "name": "Sam's arms", "exercises": ["barbell_curl", "skull_crusher"] } })],
+            note: "Try this".into(),
+            kind: "workout".into(),
+            title: "Sam's arms".into(),
+            from: "person:golden-friend".into(),
+            from_name: "Sam".into(),
+        })
+        .unwrap();
+    events.append(&mut call.events);
+    let mut call = Call::new(&mut account, ended + 7_300, "golden-answered");
+    call.answer_suggestion(schlift_core::pb::AnswerSuggestionRequest {
+        suggestion_id: suggestion,
+        accept: true,
+    })
+    .unwrap();
+    events.append(&mut call.events);
     for (n, event) in events.iter_mut().enumerate() {
         event.seq = n as i64 + 1;
     }

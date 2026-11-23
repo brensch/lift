@@ -1152,6 +1152,78 @@ message GetProgramResponse {
 }
 
 // One earlier program's document (from GetProgramResponse.history).
+// ── Suggestions: changes others suggest (docs/plans/set-types.md) ──
+
+enum SuggestionStatus {
+  // Waiting for the person.
+  SUGGESTION_STATUS_UNSPECIFIED = 0;
+  SUGGESTION_STATUS_ACCEPTED = 1;
+  SUGGESTION_STATUS_DECLINED = 2;
+}
+
+// What one change of a suggestion does, for the app to say in its words.
+enum ChangeVerb {
+  // Sets a number or a field.
+  CHANGE_VERB_UNSPECIFIED = 0;
+  CHANGE_VERB_ADD = 1;
+  CHANGE_VERB_CHANGE = 2;
+  CHANGE_VERB_REMOVE = 3;
+}
+
+enum ChangeSubject {
+  // One of the program's numbers.
+  CHANGE_SUBJECT_UNSPECIFIED = 0;
+  CHANGE_SUBJECT_WORKOUT = 1;
+  CHANGE_SUBJECT_EXERCISE = 2;
+  CHANGE_SUBJECT_SCHEME = 3;
+  CHANGE_SUBJECT_PROGRESSION = 4;
+  CHANGE_SUBJECT_CLASS = 5;
+}
+
+message SuggestedChange {
+  ChangeVerb verb = 1;
+  ChangeSubject subject = 2;
+  // The workout's or exercise's name, or the path for a number.
+  string name = 3;
+}
+
+message Suggestion {
+  string id = 1;
+  // `person:<user id>` or `mcp:<client>`, and what to call them.
+  string from = 2;
+  string from_name = 3;
+  // `workout` or `program`.
+  string kind = 4;
+  string title = 5;
+  string note = 6;
+  int64 suggested_at = 7; // unix seconds
+  SuggestionStatus status = 8;
+  int64 answered_at = 9;
+  repeated SuggestedChange changes = 10;
+  // Waiting, but it no longer applies to the program as it is now: why.
+  // Only declining is offered then.
+  string problem = 11;
+  // A workout suggestion: its lifts, for the plan preview.
+  repeated string exercises = 12;
+}
+
+message GetSuggestionsRequest {}
+message GetSuggestionsResponse {
+  // Waiting first (newest first), then the answered, newest first.
+  repeated Suggestion suggestions = 1;
+  int32 pending = 2;
+}
+
+// Accept (it becomes the program, set by the suggester) or decline.
+message AnswerSuggestionRequest {
+  string suggestion_id = 1;
+  bool accept = 2;
+}
+message AnswerSuggestionResponse {
+  // Accepting it didn't apply: why, and nothing was recorded.
+  string problem = 1;
+}
+
 message GetProgramVersionRequest {
   string id = 1;
 }

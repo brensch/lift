@@ -4472,3 +4472,133 @@ mod rep_step {
         assert_eq!(plan(&app, "plank").reps, 35);
     }
 }
+
+/// Changes others suggest (docs/plans/set-types.md part 2): kept until the
+/// person answers, applied to the program as it is then, and in the history
+/// with who suggested them.
+mod suggestions {
+    use super::*;
+    use schlift_core::events::ProgramSuggested;
+    use serde_json::json;
+
+    fn suggest(app: &mut App, edits: serde_json::Value, title: &str) -> Result<String, CoreError> {
+        app.call().suggest_program(ProgramSuggested {
+            edits: edits.as_array().unwrap().clone(),
+            note: "Try this".into(),
+            kind: "workout".into(),
+            title: title.into(),
+            from: "person:u2".into(),
+            from_name: "Sam".into(),
+        })
+    }
+
+    fn arms() -> serde_json::Value {
+        json!([{ "set": "workouts[sam_arms]", "value": {
+            "name": "Sam's arms", "exercises": ["barbell_curl", "skull_crusher"] } }])
+    }
+
+    #[test]
+    fn a_suggestion_waits_then_is_accepted_by_the_suggester() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let id = suggest(&mut app, arms(), "Sam's arms").unwrap();
+        assert!(
+            app.account.program.workout("sam_arms").is_none(),
+            "nothing changes yet"
+        );
+        let listed = app.view().get_suggestions();
+        assert_eq!(listed.pending, 1);
+        let s = &listed.suggestions[0];
+        assert_eq!(
+            (s.id.as_str(), s.from_name.as_str(), s.problem.as_str()),
+            (id.as_str(), "Sam", "")
+        );
+        assert_eq!(s.exercises, ["barbell_curl", "skull_crusher"]);
+        assert_eq!(
+            s.changes,
+            [SuggestedChange {
+                verb: ChangeVerb::Add as i32,
+                subject: ChangeSubject::Workout as i32,
+                name: "Sam's arms".into(),
+            }]
+        );
+
+        let answer = app
+            .call()
+            .answer_suggestion(AnswerSuggestionRequest {
+                suggestion_id: id.clone(),
+                accept: true,
+            })
+            .unwrap();
+        assert_eq!(answer.problem, "");
+        assert!(app.account.program.workout("sam_arms").is_some());
+        let set = app.account.programs.last().unwrap();
+        assert_eq!(
+            (set.author.as_str(), set.note.as_str()),
+            ("person:Sam", "Try this")
+        );
+        let listed = app.view().get_suggestions();
+        assert_eq!(listed.pending, 0);
+        assert_eq!(
+            listed.suggestions[0].status,
+            SuggestionStatus::Accepted as i32
+        );
+        assert!(
+            app.call()
+                .answer_suggestion(AnswerSuggestionRequest {
+                    suggestion_id: id,
+                    accept: false
+                })
+                .is_err(),
+            "answered once"
+        );
+    }
+
+    #[test]
+    fn a_declined_suggestion_changes_nothing() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let before = app.account.programs.len();
+        let id = suggest(&mut app, arms(), "Sam's arms").unwrap();
+        app.call()
+            .answer_suggestion(AnswerSuggestionRequest {
+                suggestion_id: id,
+                accept: false,
+            })
+            .unwrap();
+        assert_eq!(app.account.programs.len(), before);
+        assert_eq!(
+            app.view().get_suggestions().suggestions[0].status,
+            SuggestionStatus::Declined as i32
+        );
+    }
+
+    /// Nobody is asked about a change that can't be made; one that stopped
+    /// applying since says why, and accepting it records nothing.
+    #[test]
+    fn a_suggestion_must_apply_and_says_when_it_no_longer_does() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let bad = json!([{ "set": "workouts[x].exercises", "value": ["squat"] }]);
+        assert!(suggest(&mut app, bad, "x").is_err());
+
+        let first = app.account.program.workouts[0].id.clone();
+        let change = json!([{ "set": format!("workouts[{first}].rotation"), "value": false }]);
+        let id = suggest(&mut app, change, "rest day").unwrap();
+        app.call()
+            .delete_template(DeleteTemplateRequest { template_id: first })
+            .unwrap();
+        let listed = app.view().get_suggestions();
+        assert!(!listed.suggestions[0].problem.is_empty());
+        let logged = app.log.len();
+        let answer = app
+            .call()
+            .answer_suggestion(AnswerSuggestionRequest {
+                suggestion_id: id,
+                accept: true,
+            })
+            .unwrap();
+        assert!(!answer.problem.is_empty());
+        assert_eq!(app.log.len(), logged, "nothing recorded");
+    }
+}

@@ -95,6 +95,14 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 9 {
+        let mut tx = pool.begin().await?;
+        v9(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 9")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     Ok(())
 }
 
@@ -541,6 +549,24 @@ async fn v8(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
     Ok(())
 }
 
+/// Who may suggest changes to whose program (docs/plans/set-types.md):
+/// server-owned grants, made to someone the owner has trained with. Either
+/// account going takes the grant with it.
+async fn v9(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS program_editors (
+             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             editor_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             created_at INTEGER NOT NULL,
+             PRIMARY KEY (user_id, editor_id)
+         );
+         CREATE INDEX IF NOT EXISTS program_editors_editor ON program_editors(editor_id);",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::db::ServerDb;
@@ -595,7 +621,7 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-        assert_eq!(version, 8);
+        assert_eq!(version, 9);
         drop(db);
         // Opening again runs nothing.
         ServerDb::new_in_dir(&dir).await.unwrap();

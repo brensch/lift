@@ -47,6 +47,22 @@ class MultiplayerServiceWrapper {
     return response.partners;
   }
 
+  /// Let a partner suggest workouts to you, or stop them.
+  Future<void> setCanSuggest(String userId, bool allowed) async {
+    await _client.multiplayerService.setCanSuggest(
+      SetCanSuggestRequest(userId: userId, allowed: allowed),
+      options: _defaultCallOptions,
+    );
+  }
+
+  /// Suggest one of your workouts to a partner who lets you.
+  Future<void> suggestWorkout(String userId, String templateId) async {
+    await _client.multiplayerService.suggestWorkout(
+      SuggestWorkoutRequest(userId: userId, templateId: templateId),
+      options: _defaultCallOptions,
+    );
+  }
+
   /// Ask a known partner to train together (creates a request they must approve).
   Future<String> requestJoinPartner(String partnerUserId) async {
     final response = await _client.multiplayerService.requestJoinPartner(

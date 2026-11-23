@@ -109,6 +109,24 @@ class MultiplayerServiceClient extends $grpc.Client {
     return $createUnaryCall(_$respondJoinRequest, request, options: options);
   }
 
+  /// Let a training partner suggest changes to the caller's workouts, or
+  /// stop them. Only someone the caller has trained with.
+  $grpc.ResponseFuture<$0.SetCanSuggestResponse> setCanSuggest(
+    $0.SetCanSuggestRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$setCanSuggest, request, options: options);
+  }
+
+  /// Suggest one of the caller's workouts to a partner who lets them: it
+  /// arrives in the partner's account as a suggestion they accept or decline.
+  $grpc.ResponseFuture<$0.SuggestWorkoutResponse> suggestWorkout(
+    $0.SuggestWorkoutRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$suggestWorkout, request, options: options);
+  }
+
   // method descriptors
 
   static final _$joinViaInvite =
@@ -151,6 +169,16 @@ class MultiplayerServiceClient extends $grpc.Client {
       '/workout.v1.MultiplayerService/RespondJoinRequest',
       ($0.RespondJoinRequestRequest value) => value.writeToBuffer(),
       $0.RespondJoinRequestResponse.fromBuffer);
+  static final _$setCanSuggest =
+      $grpc.ClientMethod<$0.SetCanSuggestRequest, $0.SetCanSuggestResponse>(
+          '/workout.v1.MultiplayerService/SetCanSuggest',
+          ($0.SetCanSuggestRequest value) => value.writeToBuffer(),
+          $0.SetCanSuggestResponse.fromBuffer);
+  static final _$suggestWorkout =
+      $grpc.ClientMethod<$0.SuggestWorkoutRequest, $0.SuggestWorkoutResponse>(
+          '/workout.v1.MultiplayerService/SuggestWorkout',
+          ($0.SuggestWorkoutRequest value) => value.writeToBuffer(),
+          $0.SuggestWorkoutResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.MultiplayerService')
@@ -230,6 +258,24 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.RespondJoinRequestRequest.fromBuffer(value),
         ($0.RespondJoinRequestResponse value) => value.writeToBuffer()));
+    $addMethod(
+        $grpc.ServiceMethod<$0.SetCanSuggestRequest, $0.SetCanSuggestResponse>(
+            'SetCanSuggest',
+            setCanSuggest_Pre,
+            false,
+            false,
+            ($core.List<$core.int> value) =>
+                $0.SetCanSuggestRequest.fromBuffer(value),
+            ($0.SetCanSuggestResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.SuggestWorkoutRequest,
+            $0.SuggestWorkoutResponse>(
+        'SuggestWorkout',
+        suggestWorkout_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.SuggestWorkoutRequest.fromBuffer(value),
+        ($0.SuggestWorkoutResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.JoinViaInviteResponse> joinViaInvite_Pre(
@@ -303,4 +349,22 @@ abstract class MultiplayerServiceBase extends $grpc.Service {
 
   $async.Future<$0.RespondJoinRequestResponse> respondJoinRequest(
       $grpc.ServiceCall call, $0.RespondJoinRequestRequest request);
+
+  $async.Future<$0.SetCanSuggestResponse> setCanSuggest_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SetCanSuggestRequest> $request) async {
+    return setCanSuggest($call, await $request);
+  }
+
+  $async.Future<$0.SetCanSuggestResponse> setCanSuggest(
+      $grpc.ServiceCall call, $0.SetCanSuggestRequest request);
+
+  $async.Future<$0.SuggestWorkoutResponse> suggestWorkout_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.SuggestWorkoutRequest> $request) async {
+    return suggestWorkout($call, await $request);
+  }
+
+  $async.Future<$0.SuggestWorkoutResponse> suggestWorkout(
+      $grpc.ServiceCall call, $0.SuggestWorkoutRequest request);
 }

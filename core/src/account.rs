@@ -5,8 +5,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashSet};
 
 use crate::events::{
-    Event, Fact, HistoryImported, OverrideSet, ProgramEdited, ProgramSet, WorkoutStarted,
-    WorkoutsEdit,
+    Event, Fact, HistoryImported, OverrideSet, ProgramEdited, ProgramSet, ProgramSuggested,
+    WorkoutStarted, WorkoutsEdit,
 };
 use crate::history::WorkoutRecord;
 use crate::ids::Ids;
@@ -46,6 +46,17 @@ fn invalid(message: impl Into<String>) -> CoreError {
     CoreError::InvalidArgument(message.into())
 }
 
+/// A suggested change to the program, waiting or answered.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Suggestion {
+    /// The `ProgramSuggested` event's id.
+    pub id: String,
+    pub at: i64,
+    pub suggested: ProgramSuggested,
+    /// Accepted or not, and when; None while it waits.
+    pub answer: Option<(bool, i64)>,
+}
+
 /// One program the account has had: who set it, when and why.
 #[derive(Clone, Debug, PartialEq)]
 pub struct ProgramVersion {
@@ -73,6 +84,8 @@ pub struct Account {
     pub overrides: BTreeMap<String, Override>,
     /// In the order they were started.
     pub workouts: Vec<WorkoutRecord>,
+    /// Changes others suggested, oldest first, answered or not.
+    pub suggestions: Vec<Suggestion>,
     /// The workout under way, or empty.
     pub active_workout_id: String,
     /// Sign-up is done.
@@ -129,6 +142,30 @@ impl Account {
             }
             Fact::ProgramSet(set) => self.set_program(set, &event.id, at),
             Fact::ProgramEdited(edited) => self.edit_program(edited)?,
+            Fact::ProgramSuggested(suggested) => {
+                if suggested.edits.is_empty()
+                    || suggested.edits.len() > crate::program::edit::MAX_EDITS
+                {
+                    return Err(invalid("a suggestion is 1 to 200 edits"));
+                }
+                self.suggestions.push(Suggestion {
+                    id: event.id.clone(),
+                    at,
+                    suggested: suggested.clone(),
+                    answer: None,
+                });
+            }
+            Fact::SuggestionAnswered(answered) => {
+                let suggestion = self
+                    .suggestions
+                    .iter_mut()
+                    .find(|s| s.id == answered.suggestion_id)
+                    .ok_or_else(|| CoreError::NotFound("No such suggestion".into()))?;
+                if suggestion.answer.is_some() {
+                    return Err(invalid("that suggestion is already answered"));
+                }
+                suggestion.answer = Some((answered.accepted, at));
+            }
             Fact::OverrideSet(set) => self.set_override(set, at)?,
             Fact::Onboarded(onboarded) => {
                 if onboarded.unit != crate::pb::WeightUnit::Unspecified as i32 {

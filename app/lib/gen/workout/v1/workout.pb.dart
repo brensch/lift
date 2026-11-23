@@ -8120,7 +8120,493 @@ class GetProgramResponse extends $pb.GeneratedMessage {
   void clearGuide() => $_clearField(4);
 }
 
-/// One earlier program's document (from GetProgramResponse.history).
+class SuggestedChange extends $pb.GeneratedMessage {
+  factory SuggestedChange({
+    ChangeVerb? verb,
+    ChangeSubject? subject,
+    $core.String? name,
+  }) {
+    final result = create();
+    if (verb != null) result.verb = verb;
+    if (subject != null) result.subject = subject;
+    if (name != null) result.name = name;
+    return result;
+  }
+
+  SuggestedChange._();
+
+  factory SuggestedChange.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SuggestedChange.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SuggestedChange',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<ChangeVerb>(1, _omitFieldNames ? '' : 'verb',
+        enumValues: ChangeVerb.values)
+    ..aE<ChangeSubject>(2, _omitFieldNames ? '' : 'subject',
+        enumValues: ChangeSubject.values)
+    ..aOS(3, _omitFieldNames ? '' : 'name')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SuggestedChange clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SuggestedChange copyWith(void Function(SuggestedChange) updates) =>
+      super.copyWith((message) => updates(message as SuggestedChange))
+          as SuggestedChange;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SuggestedChange create() => SuggestedChange._();
+  @$core.override
+  SuggestedChange createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SuggestedChange getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SuggestedChange>(create);
+  static SuggestedChange? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  ChangeVerb get verb => $_getN(0);
+  @$pb.TagNumber(1)
+  set verb(ChangeVerb value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasVerb() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearVerb() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  ChangeSubject get subject => $_getN(1);
+  @$pb.TagNumber(2)
+  set subject(ChangeSubject value) => $_setField(2, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSubject() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSubject() => $_clearField(2);
+
+  /// The workout's or exercise's name, or the path for a number.
+  @$pb.TagNumber(3)
+  $core.String get name => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set name($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearName() => $_clearField(3);
+}
+
+class Suggestion extends $pb.GeneratedMessage {
+  factory Suggestion({
+    $core.String? id,
+    $core.String? from,
+    $core.String? fromName,
+    $core.String? kind,
+    $core.String? title,
+    $core.String? note,
+    $fixnum.Int64? suggestedAt,
+    SuggestionStatus? status,
+    $fixnum.Int64? answeredAt,
+    $core.Iterable<SuggestedChange>? changes,
+    $core.String? problem,
+    $core.Iterable<$core.String>? exercises,
+  }) {
+    final result = create();
+    if (id != null) result.id = id;
+    if (from != null) result.from = from;
+    if (fromName != null) result.fromName = fromName;
+    if (kind != null) result.kind = kind;
+    if (title != null) result.title = title;
+    if (note != null) result.note = note;
+    if (suggestedAt != null) result.suggestedAt = suggestedAt;
+    if (status != null) result.status = status;
+    if (answeredAt != null) result.answeredAt = answeredAt;
+    if (changes != null) result.changes.addAll(changes);
+    if (problem != null) result.problem = problem;
+    if (exercises != null) result.exercises.addAll(exercises);
+    return result;
+  }
+
+  Suggestion._();
+
+  factory Suggestion.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory Suggestion.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'Suggestion',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'id')
+    ..aOS(2, _omitFieldNames ? '' : 'from')
+    ..aOS(3, _omitFieldNames ? '' : 'fromName')
+    ..aOS(4, _omitFieldNames ? '' : 'kind')
+    ..aOS(5, _omitFieldNames ? '' : 'title')
+    ..aOS(6, _omitFieldNames ? '' : 'note')
+    ..aInt64(7, _omitFieldNames ? '' : 'suggestedAt')
+    ..aE<SuggestionStatus>(8, _omitFieldNames ? '' : 'status',
+        enumValues: SuggestionStatus.values)
+    ..aInt64(9, _omitFieldNames ? '' : 'answeredAt')
+    ..pPM<SuggestedChange>(10, _omitFieldNames ? '' : 'changes',
+        subBuilder: SuggestedChange.create)
+    ..aOS(11, _omitFieldNames ? '' : 'problem')
+    ..pPS(12, _omitFieldNames ? '' : 'exercises')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Suggestion clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  Suggestion copyWith(void Function(Suggestion) updates) =>
+      super.copyWith((message) => updates(message as Suggestion)) as Suggestion;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static Suggestion create() => Suggestion._();
+  @$core.override
+  Suggestion createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static Suggestion getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<Suggestion>(create);
+  static Suggestion? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get id => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set id($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearId() => $_clearField(1);
+
+  /// `person:<user id>` or `mcp:<client>`, and what to call them.
+  @$pb.TagNumber(2)
+  $core.String get from => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set from($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFrom() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFrom() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get fromName => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set fromName($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasFromName() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFromName() => $_clearField(3);
+
+  /// `workout` or `program`.
+  @$pb.TagNumber(4)
+  $core.String get kind => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set kind($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasKind() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearKind() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get title => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set title($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasTitle() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearTitle() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get note => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set note($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasNote() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearNote() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $fixnum.Int64 get suggestedAt => $_getI64(6);
+  @$pb.TagNumber(7)
+  set suggestedAt($fixnum.Int64 value) => $_setInt64(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasSuggestedAt() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearSuggestedAt() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  SuggestionStatus get status => $_getN(7);
+  @$pb.TagNumber(8)
+  set status(SuggestionStatus value) => $_setField(8, value);
+  @$pb.TagNumber(8)
+  $core.bool hasStatus() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearStatus() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $fixnum.Int64 get answeredAt => $_getI64(8);
+  @$pb.TagNumber(9)
+  set answeredAt($fixnum.Int64 value) => $_setInt64(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasAnsweredAt() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearAnsweredAt() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $pb.PbList<SuggestedChange> get changes => $_getList(9);
+
+  /// Waiting, but it no longer applies to the program as it is now: why.
+  /// Only declining is offered then.
+  @$pb.TagNumber(11)
+  $core.String get problem => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set problem($core.String value) => $_setString(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasProblem() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearProblem() => $_clearField(11);
+
+  /// A workout suggestion: its lifts, for the plan preview.
+  @$pb.TagNumber(12)
+  $pb.PbList<$core.String> get exercises => $_getList(11);
+}
+
+class GetSuggestionsRequest extends $pb.GeneratedMessage {
+  factory GetSuggestionsRequest() => create();
+
+  GetSuggestionsRequest._();
+
+  factory GetSuggestionsRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetSuggestionsRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetSuggestionsRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetSuggestionsRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetSuggestionsRequest copyWith(
+          void Function(GetSuggestionsRequest) updates) =>
+      super.copyWith((message) => updates(message as GetSuggestionsRequest))
+          as GetSuggestionsRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSuggestionsRequest create() => GetSuggestionsRequest._();
+  @$core.override
+  GetSuggestionsRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetSuggestionsRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetSuggestionsRequest>(create);
+  static GetSuggestionsRequest? _defaultInstance;
+}
+
+class GetSuggestionsResponse extends $pb.GeneratedMessage {
+  factory GetSuggestionsResponse({
+    $core.Iterable<Suggestion>? suggestions,
+    $core.int? pending,
+  }) {
+    final result = create();
+    if (suggestions != null) result.suggestions.addAll(suggestions);
+    if (pending != null) result.pending = pending;
+    return result;
+  }
+
+  GetSuggestionsResponse._();
+
+  factory GetSuggestionsResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GetSuggestionsResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GetSuggestionsResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<Suggestion>(1, _omitFieldNames ? '' : 'suggestions',
+        subBuilder: Suggestion.create)
+    ..aI(2, _omitFieldNames ? '' : 'pending')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetSuggestionsResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GetSuggestionsResponse copyWith(
+          void Function(GetSuggestionsResponse) updates) =>
+      super.copyWith((message) => updates(message as GetSuggestionsResponse))
+          as GetSuggestionsResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GetSuggestionsResponse create() => GetSuggestionsResponse._();
+  @$core.override
+  GetSuggestionsResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GetSuggestionsResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GetSuggestionsResponse>(create);
+  static GetSuggestionsResponse? _defaultInstance;
+
+  /// Waiting first (newest first), then the answered, newest first.
+  @$pb.TagNumber(1)
+  $pb.PbList<Suggestion> get suggestions => $_getList(0);
+
+  @$pb.TagNumber(2)
+  $core.int get pending => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set pending($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasPending() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearPending() => $_clearField(2);
+}
+
+/// Accept (it becomes the program, set by the suggester) or decline.
+class AnswerSuggestionRequest extends $pb.GeneratedMessage {
+  factory AnswerSuggestionRequest({
+    $core.String? suggestionId,
+    $core.bool? accept,
+  }) {
+    final result = create();
+    if (suggestionId != null) result.suggestionId = suggestionId;
+    if (accept != null) result.accept = accept;
+    return result;
+  }
+
+  AnswerSuggestionRequest._();
+
+  factory AnswerSuggestionRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AnswerSuggestionRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AnswerSuggestionRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'suggestionId')
+    ..aOB(2, _omitFieldNames ? '' : 'accept')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnswerSuggestionRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnswerSuggestionRequest copyWith(
+          void Function(AnswerSuggestionRequest) updates) =>
+      super.copyWith((message) => updates(message as AnswerSuggestionRequest))
+          as AnswerSuggestionRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AnswerSuggestionRequest create() => AnswerSuggestionRequest._();
+  @$core.override
+  AnswerSuggestionRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AnswerSuggestionRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AnswerSuggestionRequest>(create);
+  static AnswerSuggestionRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get suggestionId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set suggestionId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSuggestionId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSuggestionId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get accept => $_getBF(1);
+  @$pb.TagNumber(2)
+  set accept($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasAccept() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAccept() => $_clearField(2);
+}
+
+class AnswerSuggestionResponse extends $pb.GeneratedMessage {
+  factory AnswerSuggestionResponse({
+    $core.String? problem,
+  }) {
+    final result = create();
+    if (problem != null) result.problem = problem;
+    return result;
+  }
+
+  AnswerSuggestionResponse._();
+
+  factory AnswerSuggestionResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AnswerSuggestionResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AnswerSuggestionResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'problem')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnswerSuggestionResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnswerSuggestionResponse copyWith(
+          void Function(AnswerSuggestionResponse) updates) =>
+      super.copyWith((message) => updates(message as AnswerSuggestionResponse))
+          as AnswerSuggestionResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AnswerSuggestionResponse create() => AnswerSuggestionResponse._();
+  @$core.override
+  AnswerSuggestionResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AnswerSuggestionResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AnswerSuggestionResponse>(create);
+  static AnswerSuggestionResponse? _defaultInstance;
+
+  /// Accepting it didn't apply: why, and nothing was recorded.
+  @$pb.TagNumber(1)
+  $core.String get problem => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set problem($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasProblem() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearProblem() => $_clearField(1);
+}
+
 class GetProgramVersionRequest extends $pb.GeneratedMessage {
   factory GetProgramVersionRequest({
     $core.String? id,

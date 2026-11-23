@@ -8,3 +8,4 @@
 - An assistant changes your program with small edits instead of rewriting it, so it's much faster, and it can look up exercises and ready-made workouts.
 - An assistant can give a lift its own numbers inside a shared progression (say, bigger jumps for legs), and can see how each lift has progressed over time.
 - Programs can now prescribe top sets and back-offs, pyramids, AMRAP sets, drop sets, myo-reps, clusters, EMOM, effort targets, timed and distance lifts, per-side work and tempo, and workouts can pair lifts into supersets and circuits.
+- Friends you've trained with can be allowed to suggest workouts. Their suggestions show up on Home and in Settings → Program with who sent them, and nothing changes until you add one.
