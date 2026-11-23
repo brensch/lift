@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import '../services/toast.dart';
+import '../providers/workout_provider.dart';
 import '../gen/copy.dart';
 import '../gen/workout/v1/group.pb.dart';
 import '../gen/workout/v1/workout.pb.dart' show User;
@@ -208,6 +210,7 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
               for (final p in partners)
                 ListTile(
                   dense: true,
+                  onTap: () => _friendOptions(p),
                   leading: _Avatar(user: p.user),
                   title: Text(
                     p.user.name,
@@ -253,6 +256,82 @@ class _MultiplayerModalState extends State<MultiplayerModal> {
             ],
           ),
       ],
+    );
+  }
+
+  /// A friend's options: whether they may suggest workouts to you, and,
+  /// when they let you, one of yours to suggest to them.
+  Future<void> _friendOptions(TrainingPartner partner) {
+    return showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.sheetColor(context),
+      builder: (sheet) {
+        final t = sheet.tokens;
+        final c = copy.suggestions;
+        final mp = sheet.watch<MultiplayerProvider>();
+        final p =
+            mp.trainingPartners
+                .where((x) => x.user.id == partner.user.id)
+                .firstOrNull ??
+            partner;
+        final mine = sheet.watch<WorkoutProvider>().home?.templates ?? const [];
+        return SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Center(child: AppTheme.sheetHandle(sheet)),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+                  child: Text(
+                    p.user.name,
+                    style: TextStyle(
+                      fontSize: t.size.titleLg,
+                      fontWeight: t.weight.heavy,
+                    ),
+                  ),
+                ),
+                SwitchListTile(
+                  title: Text(c.canSuggest),
+                  subtitle: Text(
+                    c.canSuggestBody,
+                    style: TextStyle(fontSize: t.size.small, color: t.muted),
+                  ),
+                  value: p.canSuggestToMe,
+                  onChanged: (allowed) => mp.setCanSuggest(p.user.id, allowed),
+                ),
+                if (p.letsMeSuggest && mine.isNotEmpty) ...[
+                  FlatHeading(c.suggestWorkout),
+                  for (final template in mine)
+                    FlatRow(
+                      label: template.name,
+                      onTap: () async {
+                        final cs = Theme.of(sheet).colorScheme;
+                        final error = await mp.suggestWorkout(
+                          p.user.id,
+                          template.id,
+                        );
+                        showToast(
+                          msg:
+                              error ?? c.sent.replaceAll('{name}', p.user.name),
+                          backgroundColor: cs.inverseSurface,
+                          textColor: cs.onInverseSurface,
+                        );
+                        if (error == null && sheet.mounted) {
+                          Navigator.of(sheet).pop();
+                        }
+                      },
+                    ),
+                ],
+                const SizedBox(height: 8),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

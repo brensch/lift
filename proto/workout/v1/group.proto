@@ -41,7 +41,30 @@ service MultiplayerService {
   // Approve or decline an incoming join request. On approve, the responder joins the
   // requester's current session, or a fresh one if the requester has none.
   rpc RespondJoinRequest(RespondJoinRequestRequest) returns (RespondJoinRequestResponse);
+
+  // Let a training partner suggest changes to the caller's workouts, or
+  // stop them. Only someone the caller has trained with.
+  rpc SetCanSuggest(SetCanSuggestRequest) returns (SetCanSuggestResponse);
+
+  // Suggest one of the caller's workouts to a partner who lets them: it
+  // arrives in the partner's account as a suggestion they accept or decline.
+  rpc SuggestWorkout(SuggestWorkoutRequest) returns (SuggestWorkoutResponse);
 }
+
+message SetCanSuggestRequest {
+  string user_id = 1;
+  bool allowed = 2;
+}
+message SetCanSuggestResponse {}
+
+message SuggestWorkoutRequest {
+  string user_id = 1;
+  // One of the caller's own workouts.
+  string template_id = 2;
+  // One line to them on why.
+  string note = 3;
+}
+message SuggestWorkoutResponse {}
 
 message JoinViaInviteRequest {
   string invite_token = 1; // Opaque token from the target user's QR code
@@ -138,6 +161,10 @@ message TrainingPartner {
   User user = 1;
   int32 sessions_together = 2; // how many distinct sessions they shared
   int64 last_trained_at = 3; // unix seconds of the most recent shared session
+  // The caller lets them suggest changes to the caller's workouts.
+  bool can_suggest_to_me = 4;
+  // They let the caller suggest changes to theirs.
+  bool lets_me_suggest = 5;
 }
 
 message GetTrainingPartnersRequest {}

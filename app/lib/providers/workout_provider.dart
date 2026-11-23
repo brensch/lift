@@ -459,7 +459,38 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   ValueListenable<bool?> get onboarded => _onboarded;
   final ValueNotifier<bool?> _onboarded = ValueNotifier(null);
 
+  /// Changes others suggested: waiting first, then the answered.
+  List<Suggestion> _suggestions = const [];
+  List<Suggestion> get suggestions => _suggestions;
+  List<Suggestion> get pendingSuggestions => [
+    for (final s in _suggestions)
+      if (s.status == SuggestionStatus.SUGGESTION_STATUS_UNSPECIFIED) s,
+  ];
+
+  Future<void> refreshSuggestions() async {
+    try {
+      _suggestions = (await _service.getSuggestions()).suggestions;
+      notifyListeners();
+    } catch (e) {
+      AppLogger.instance.warn('Workout', 'getSuggestions failed', {
+        'error': e.toString(),
+      });
+    }
+  }
+
+  /// Accept or decline a suggestion; an accept that no longer fits says
+  /// why (null when it was answered).
+  Future<String?> answerSuggestion(String id, bool accept) async {
+    final response = await _service.answerSuggestion(id, accept);
+    if (response.problem.isNotEmpty) return response.problem;
+    _setHome(await _service.getHome(budgetMinutes: _budgetMinutes));
+    notifyListeners();
+    return null;
+  }
+
   void _setHome(GetHomeResponse? home) {
+    // Suggestions arrive with everything else: look again when Home does.
+    if (!_sandbox) unawaited(refreshSuggestions());
     _home = home;
     _onboarded.value = home?.onboarded;
   }

@@ -209,6 +209,58 @@ final $typed_data.Uint8List rotationWarningKindDescriptor = $convert.base64Decod
     'X0tJTkRfT1ZFUkxBUBACIgQIAxADIgQIBBAEKh5ST1RBVElPTl9XQVJOSU5HX0tJTkRfTE9QU0'
     'lERUQqHVJPVEFUSU9OX1dBUk5JTkdfS0lORF9UT09fRkVX');
 
+@$core.Deprecated('Use suggestionStatusDescriptor instead')
+const SuggestionStatus$json = {
+  '1': 'SuggestionStatus',
+  '2': [
+    {'1': 'SUGGESTION_STATUS_UNSPECIFIED', '2': 0},
+    {'1': 'SUGGESTION_STATUS_ACCEPTED', '2': 1},
+    {'1': 'SUGGESTION_STATUS_DECLINED', '2': 2},
+  ],
+};
+
+/// Descriptor for `SuggestionStatus`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List suggestionStatusDescriptor = $convert.base64Decode(
+    'ChBTdWdnZXN0aW9uU3RhdHVzEiEKHVNVR0dFU1RJT05fU1RBVFVTX1VOU1BFQ0lGSUVEEAASHg'
+    'oaU1VHR0VTVElPTl9TVEFUVVNfQUNDRVBURUQQARIeChpTVUdHRVNUSU9OX1NUQVRVU19ERUNM'
+    'SU5FRBAC');
+
+@$core.Deprecated('Use changeVerbDescriptor instead')
+const ChangeVerb$json = {
+  '1': 'ChangeVerb',
+  '2': [
+    {'1': 'CHANGE_VERB_UNSPECIFIED', '2': 0},
+    {'1': 'CHANGE_VERB_ADD', '2': 1},
+    {'1': 'CHANGE_VERB_CHANGE', '2': 2},
+    {'1': 'CHANGE_VERB_REMOVE', '2': 3},
+  ],
+};
+
+/// Descriptor for `ChangeVerb`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List changeVerbDescriptor = $convert.base64Decode(
+    'CgpDaGFuZ2VWZXJiEhsKF0NIQU5HRV9WRVJCX1VOU1BFQ0lGSUVEEAASEwoPQ0hBTkdFX1ZFUk'
+    'JfQUREEAESFgoSQ0hBTkdFX1ZFUkJfQ0hBTkdFEAISFgoSQ0hBTkdFX1ZFUkJfUkVNT1ZFEAM=');
+
+@$core.Deprecated('Use changeSubjectDescriptor instead')
+const ChangeSubject$json = {
+  '1': 'ChangeSubject',
+  '2': [
+    {'1': 'CHANGE_SUBJECT_UNSPECIFIED', '2': 0},
+    {'1': 'CHANGE_SUBJECT_WORKOUT', '2': 1},
+    {'1': 'CHANGE_SUBJECT_EXERCISE', '2': 2},
+    {'1': 'CHANGE_SUBJECT_SCHEME', '2': 3},
+    {'1': 'CHANGE_SUBJECT_PROGRESSION', '2': 4},
+    {'1': 'CHANGE_SUBJECT_CLASS', '2': 5},
+  ],
+};
+
+/// Descriptor for `ChangeSubject`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List changeSubjectDescriptor = $convert.base64Decode(
+    'Cg1DaGFuZ2VTdWJqZWN0Eh4KGkNIQU5HRV9TVUJKRUNUX1VOU1BFQ0lGSUVEEAASGgoWQ0hBTk'
+    'dFX1NVQkpFQ1RfV09SS09VVBABEhsKF0NIQU5HRV9TVUJKRUNUX0VYRVJDSVNFEAISGQoVQ0hB'
+    'TkdFX1NVQkpFQ1RfU0NIRU1FEAMSHgoaQ0hBTkdFX1NVQkpFQ1RfUFJPR1JFU1NJT04QBBIYCh'
+    'RDSEFOR0VfU1VCSkVDVF9DTEFTUxAF');
+
 @$core.Deprecated('Use simulatedEffortDescriptor instead')
 const SimulatedEffort$json = {
   '1': 'SimulatedEffort',
@@ -2833,6 +2885,137 @@ final $typed_data.Uint8List getProgramResponseDescriptor = $convert.base64Decode
     'JhbVN1bW1hcnlSB3N1bW1hcnkSIQoMcHJvZ3JhbV9qc29uGAIgASgJUgtwcm9ncmFtSnNvbhI0'
     'CgdoaXN0b3J5GAMgAygLMhoud29ya291dC52MS5Qcm9ncmFtU3VtbWFyeVIHaGlzdG9yeRIUCg'
     'VndWlkZRgEIAEoCVIFZ3VpZGU=');
+
+@$core.Deprecated('Use suggestedChangeDescriptor instead')
+const SuggestedChange$json = {
+  '1': 'SuggestedChange',
+  '2': [
+    {
+      '1': 'verb',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.ChangeVerb',
+      '10': 'verb'
+    },
+    {
+      '1': 'subject',
+      '3': 2,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.ChangeSubject',
+      '10': 'subject'
+    },
+    {'1': 'name', '3': 3, '4': 1, '5': 9, '10': 'name'},
+  ],
+};
+
+/// Descriptor for `SuggestedChange`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List suggestedChangeDescriptor = $convert.base64Decode(
+    'Cg9TdWdnZXN0ZWRDaGFuZ2USKgoEdmVyYhgBIAEoDjIWLndvcmtvdXQudjEuQ2hhbmdlVmVyYl'
+    'IEdmVyYhIzCgdzdWJqZWN0GAIgASgOMhkud29ya291dC52MS5DaGFuZ2VTdWJqZWN0UgdzdWJq'
+    'ZWN0EhIKBG5hbWUYAyABKAlSBG5hbWU=');
+
+@$core.Deprecated('Use suggestionDescriptor instead')
+const Suggestion$json = {
+  '1': 'Suggestion',
+  '2': [
+    {'1': 'id', '3': 1, '4': 1, '5': 9, '10': 'id'},
+    {'1': 'from', '3': 2, '4': 1, '5': 9, '10': 'from'},
+    {'1': 'from_name', '3': 3, '4': 1, '5': 9, '10': 'fromName'},
+    {'1': 'kind', '3': 4, '4': 1, '5': 9, '10': 'kind'},
+    {'1': 'title', '3': 5, '4': 1, '5': 9, '10': 'title'},
+    {'1': 'note', '3': 6, '4': 1, '5': 9, '10': 'note'},
+    {'1': 'suggested_at', '3': 7, '4': 1, '5': 3, '10': 'suggestedAt'},
+    {
+      '1': 'status',
+      '3': 8,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.SuggestionStatus',
+      '10': 'status'
+    },
+    {'1': 'answered_at', '3': 9, '4': 1, '5': 3, '10': 'answeredAt'},
+    {
+      '1': 'changes',
+      '3': 10,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.SuggestedChange',
+      '10': 'changes'
+    },
+    {'1': 'problem', '3': 11, '4': 1, '5': 9, '10': 'problem'},
+    {'1': 'exercises', '3': 12, '4': 3, '5': 9, '10': 'exercises'},
+  ],
+};
+
+/// Descriptor for `Suggestion`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List suggestionDescriptor = $convert.base64Decode(
+    'CgpTdWdnZXN0aW9uEg4KAmlkGAEgASgJUgJpZBISCgRmcm9tGAIgASgJUgRmcm9tEhsKCWZyb2'
+    '1fbmFtZRgDIAEoCVIIZnJvbU5hbWUSEgoEa2luZBgEIAEoCVIEa2luZBIUCgV0aXRsZRgFIAEo'
+    'CVIFdGl0bGUSEgoEbm90ZRgGIAEoCVIEbm90ZRIhCgxzdWdnZXN0ZWRfYXQYByABKANSC3N1Z2'
+    'dlc3RlZEF0EjQKBnN0YXR1cxgIIAEoDjIcLndvcmtvdXQudjEuU3VnZ2VzdGlvblN0YXR1c1IG'
+    'c3RhdHVzEh8KC2Fuc3dlcmVkX2F0GAkgASgDUgphbnN3ZXJlZEF0EjUKB2NoYW5nZXMYCiADKA'
+    'syGy53b3Jrb3V0LnYxLlN1Z2dlc3RlZENoYW5nZVIHY2hhbmdlcxIYCgdwcm9ibGVtGAsgASgJ'
+    'Ugdwcm9ibGVtEhwKCWV4ZXJjaXNlcxgMIAMoCVIJZXhlcmNpc2Vz');
+
+@$core.Deprecated('Use getSuggestionsRequestDescriptor instead')
+const GetSuggestionsRequest$json = {
+  '1': 'GetSuggestionsRequest',
+};
+
+/// Descriptor for `GetSuggestionsRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSuggestionsRequestDescriptor =
+    $convert.base64Decode('ChVHZXRTdWdnZXN0aW9uc1JlcXVlc3Q=');
+
+@$core.Deprecated('Use getSuggestionsResponseDescriptor instead')
+const GetSuggestionsResponse$json = {
+  '1': 'GetSuggestionsResponse',
+  '2': [
+    {
+      '1': 'suggestions',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.Suggestion',
+      '10': 'suggestions'
+    },
+    {'1': 'pending', '3': 2, '4': 1, '5': 5, '10': 'pending'},
+  ],
+};
+
+/// Descriptor for `GetSuggestionsResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List getSuggestionsResponseDescriptor = $convert.base64Decode(
+    'ChZHZXRTdWdnZXN0aW9uc1Jlc3BvbnNlEjgKC3N1Z2dlc3Rpb25zGAEgAygLMhYud29ya291dC'
+    '52MS5TdWdnZXN0aW9uUgtzdWdnZXN0aW9ucxIYCgdwZW5kaW5nGAIgASgFUgdwZW5kaW5n');
+
+@$core.Deprecated('Use answerSuggestionRequestDescriptor instead')
+const AnswerSuggestionRequest$json = {
+  '1': 'AnswerSuggestionRequest',
+  '2': [
+    {'1': 'suggestion_id', '3': 1, '4': 1, '5': 9, '10': 'suggestionId'},
+    {'1': 'accept', '3': 2, '4': 1, '5': 8, '10': 'accept'},
+  ],
+};
+
+/// Descriptor for `AnswerSuggestionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List answerSuggestionRequestDescriptor =
+    $convert.base64Decode(
+        'ChdBbnN3ZXJTdWdnZXN0aW9uUmVxdWVzdBIjCg1zdWdnZXN0aW9uX2lkGAEgASgJUgxzdWdnZX'
+        'N0aW9uSWQSFgoGYWNjZXB0GAIgASgIUgZhY2NlcHQ=');
+
+@$core.Deprecated('Use answerSuggestionResponseDescriptor instead')
+const AnswerSuggestionResponse$json = {
+  '1': 'AnswerSuggestionResponse',
+  '2': [
+    {'1': 'problem', '3': 1, '4': 1, '5': 9, '10': 'problem'},
+  ],
+};
+
+/// Descriptor for `AnswerSuggestionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List answerSuggestionResponseDescriptor =
+    $convert.base64Decode(
+        'ChhBbnN3ZXJTdWdnZXN0aW9uUmVzcG9uc2USGAoHcHJvYmxlbRgBIAEoCVIHcHJvYmxlbQ==');
 
 @$core.Deprecated('Use getProgramVersionRequestDescriptor instead')
 const GetProgramVersionRequest$json = {

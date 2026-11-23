@@ -224,6 +224,8 @@ async fn an_assistant_connects_and_sets_a_program() {
             "list_exercises",
             "list_library",
             "get_program_part",
+            "list_people",
+            "suggest_change",
             "send_feedback"
         ]
     );
@@ -578,4 +580,57 @@ async fn progress_is_per_lift() {
         (progress["workouts"].clone(), progress["lifts"].clone()),
         (json!(0), json!([]))
     );
+}
+
+/// A friend who lets "u1" suggest: Claude for u1 reads their program by
+/// name and suggests a change, which waits in their account; someone who
+/// hasn't is refused, for reads and suggestions alike.
+#[tokio::test]
+async fn an_assistant_suggests_to_a_friend_who_allows_it() {
+    let mcp = mcp().await;
+    mcp.db.create_user_with_id("u2", "Sam").await.unwrap();
+    assert!(tool(&mcp, "get_program", json!({ "person": "Sam" }))
+        .await
+        .unwrap_err()
+        .contains("hasn't let"));
+    mcp.db.set_can_suggest("u2", "u1", true).await.unwrap();
+    let people = tool(&mcp, "list_people", json!({})).await.unwrap();
+    assert_eq!(people["people"][0]["name"], "Sam");
+    let theirs = tool(&mcp, "get_program", json!({ "person": "sam" }))
+        .await
+        .unwrap();
+    assert!(theirs["program"].is_object());
+    let edits = json!([{ "set": "workouts[for_sam]", "value": { "name": "For Sam", "exercises": ["squat", "bench_press"] } }]);
+    let run = tool(
+        &mcp,
+        "simulate_program",
+        json!({ "person": "Sam", "edits": edits, "sessions": 1, "template_id": "for_sam" }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(run["applied"], 1, "{run}");
+    let sent = tool(
+        &mcp,
+        "suggest_change",
+        json!({ "person": "Sam", "edits": edits, "note": "Two big lifts" }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(sent["suggested"], true);
+    let sam = mcp.db.read_account("u2", Clone::clone).await.unwrap();
+    assert_eq!(sam.suggestions.len(), 1);
+    let s = &sam.suggestions[0].suggested;
+    assert_eq!(
+        (s.kind.as_str(), s.from.as_str(), s.from_name.as_str()),
+        ("workout", "person:u1", "Lyss (via Claude)")
+    );
+    assert!(sam.program.workout("for_sam").is_none(), "Sam decides");
+    assert!(tool(
+        &mcp,
+        "set_program",
+        json!({ "person": "Sam", "edits": edits, "note": "x" })
+    )
+    .await
+    .unwrap_err()
+    .contains("suggest_change"));
 }

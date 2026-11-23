@@ -357,6 +357,78 @@ impl<'a> Call<'a> {
         Ok(())
     }
 
+    /// A change someone else suggests, recorded for the person to answer.
+    /// Refused, with its problems, when the edits don't apply to the
+    /// program as it is or make one with an error: nobody is asked about a
+    /// change that can't be made. Returns the suggestion's id.
+    pub fn suggest_program(&mut self, suggested: ProgramSuggested) -> Result<String, CoreError> {
+        let problems = suggestion_problems(self.account, &suggested.edits);
+        if let Some(problem) = problems {
+            return Err(CoreError::InvalidArgument(problem));
+        }
+        let ProgramSuggested {
+            note,
+            title,
+            from_name,
+            ..
+        } = &suggested;
+        let suggested = ProgramSuggested {
+            note: note.chars().take(MAX_NOTE_CHARS).collect(),
+            title: title.chars().take(60).collect(),
+            from_name: from_name.chars().take(60).collect(),
+            ..suggested.clone()
+        };
+        self.record(Fact::ProgramSuggested(suggested))
+    }
+
+    /// Accept a suggestion (its edits applied to today's program, set by
+    /// the suggester with their note) or decline it. An accept that no
+    /// longer applies records nothing and says why.
+    pub fn answer_suggestion(
+        &mut self,
+        req: AnswerSuggestionRequest,
+    ) -> Result<AnswerSuggestionResponse, CoreError> {
+        let suggestion = self
+            .account
+            .suggestions
+            .iter()
+            .find(|s| s.id == req.suggestion_id && s.answer.is_none())
+            .cloned()
+            .ok_or_else(|| CoreError::NotFound("No waiting suggestion with that id".into()))?;
+        if req.accept {
+            let doc = program::edit::apply(&self.account.program, &suggestion.suggested.edits)
+                .map_err(|e| CoreError::InvalidArgument(format!("{}: {}", e.path, e.message)));
+            let program = match doc.map(|d| program::validate(&d.to_string())) {
+                Ok((Some(program), problems)) if !problems.iter().any(|p| p.error) => program,
+                Ok((_, problems)) => {
+                    return Ok(AnswerSuggestionResponse {
+                        problem: first_error(&problems),
+                    })
+                }
+                Err(e) => {
+                    return Ok(AnswerSuggestionResponse {
+                        problem: e.to_string(),
+                    })
+                }
+            };
+            let problems = self.record_program(
+                program,
+                &author_of(&suggestion.suggested),
+                &suggestion.suggested.note,
+            )?;
+            if problems.iter().any(|p| p.error) {
+                return Ok(AnswerSuggestionResponse {
+                    problem: first_error(&problems),
+                });
+            }
+        }
+        self.record(Fact::SuggestionAnswered(SuggestionAnswered {
+            suggestion_id: suggestion.id,
+            accepted: req.accept,
+        }))?;
+        Ok(AnswerSuggestionResponse::default())
+    }
+
     pub fn set_program(&mut self, req: SetProgramRequest) -> Result<SetProgramResponse, CoreError> {
         let (program, mut problems) = program::validate(&req.program_json);
         let author = if req.author.is_empty() {
@@ -1255,6 +1327,48 @@ impl<'a> View<'a> {
     }
 
     /// The program's exercises as every screen shows them, and the plates.
+    /// Every suggestion: waiting first, newest first, then the answered.
+    pub fn get_suggestions(&self) -> GetSuggestionsResponse {
+        let mut waiting = Vec::new();
+        let mut answered = Vec::new();
+        for s in self.account.suggestions.iter().rev() {
+            let (status, answered_at) = match s.answer {
+                None => (SuggestionStatus::Unspecified, 0),
+                Some((true, at)) => (SuggestionStatus::Accepted, at),
+                Some((false, at)) => (SuggestionStatus::Declined, at),
+            };
+            let suggestion = Suggestion {
+                id: s.id.clone(),
+                from: s.suggested.from.clone(),
+                from_name: s.suggested.from_name.clone(),
+                kind: s.suggested.kind.clone(),
+                title: s.suggested.title.clone(),
+                note: s.suggested.note.clone(),
+                suggested_at: s.at,
+                status: status as i32,
+                answered_at,
+                changes: describe_changes(&self.account.program, &s.suggested.edits),
+                problem: if s.answer.is_none() {
+                    suggestion_problems(self.account, &s.suggested.edits).unwrap_or_default()
+                } else {
+                    String::new()
+                },
+                exercises: suggested_workout(&s.suggested.edits),
+            };
+            if s.answer.is_none() {
+                waiting.push(suggestion);
+            } else {
+                answered.push(suggestion);
+            }
+        }
+        let pending = waiting.len() as i32;
+        waiting.extend(answered);
+        GetSuggestionsResponse {
+            suggestions: waiting,
+            pending,
+        }
+    }
+
     pub fn list_exercises(&self) -> ListExercisesResponse {
         let program = self.program();
         let plates = &program.equipment.plates;
@@ -1462,6 +1576,7 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "ImportHistory" => import_history,
             "SetProgram" => set_program,
             "ResetProgram" => reset_program,
+            "AnswerSuggestion" => answer_suggestion,
         }
         reads {
             "GetWorkout" => get_workout,
@@ -1482,6 +1597,150 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "GetSettings" => get_settings,
             "GetProgram" => get_program,
             "ListExercises" => list_exercises,
+            "GetSuggestions" => get_suggestions,
         }
     })
+}
+
+/// Why `edits` can't be made to the account's program as it is now (they
+/// don't apply, or the program they'd make has an error), or None.
+fn suggestion_problems(account: &Account, edits: &[serde_json::Value]) -> Option<String> {
+    let doc = match program::edit::apply(&account.program, edits) {
+        Ok(doc) => doc,
+        Err(e) => return Some(format!("{}: {}", e.path, e.message)),
+    };
+    let (program, mut problems) = program::validate(&doc.to_string());
+    if let Some(program) = &program {
+        problems.extend(program::validate_for_account(
+            program,
+            &account.exercises_used(),
+        ));
+    }
+    problems
+        .iter()
+        .any(|p| p.error)
+        .then(|| first_error(&problems))
+}
+
+fn first_error(problems: &[Problem]) -> String {
+    problems
+        .iter()
+        .find(|p| p.error)
+        .map(|p| format!("{}: {}", p.path, p.message))
+        .unwrap_or_default()
+}
+
+/// Who a program from a suggestion is by, as the history says it: a
+/// person by name, an assistant as `mcp:<client>`.
+fn author_of(s: &ProgramSuggested) -> String {
+    if s.from.starts_with("person:") {
+        format!("person:{}", s.from_name)
+    } else {
+        s.from.clone()
+    }
+}
+
+/// What each edit does, for the app to say: adds or changes a workout (by
+/// name), an exercise, a scheme, a progression or a class; anything else
+/// sets one of the program's numbers (by path).
+fn describe_changes(program: &Program, edits: &[serde_json::Value]) -> Vec<SuggestedChange> {
+    let mut out: Vec<SuggestedChange> = Vec::new();
+    for edit in edits {
+        let (verb, path) = match (edit.get("set"), edit.get("remove"), edit.get("move")) {
+            (Some(p), _, _) => ("set", p.as_str().unwrap_or_default()),
+            (_, Some(p), _) => ("remove", p.as_str().unwrap_or_default()),
+            (_, _, Some(p)) => ("move", p.as_str().unwrap_or_default()),
+            _ => continue,
+        };
+        let named = |list: &str| -> Option<String> {
+            let rest = path.strip_prefix(list)?.strip_prefix('[')?;
+            let (name, tail) = rest.split_once(']')?;
+            tail.is_empty().then(|| name.to_string())
+        };
+        let entry = |map: &str| -> Option<String> {
+            let rest = path.strip_prefix(map)?.strip_prefix('.')?;
+            (!rest.contains('.') && !rest.contains('[')).then(|| rest.to_string())
+        };
+        let value_name = edit
+            .get("value")
+            .and_then(|v| v.get("name"))
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string);
+        let (subject, name, exists) = if let Some(id) = named("workouts") {
+            let existing = program.workout(&id).map(|w| w.name.clone());
+            (
+                ChangeSubject::Workout,
+                value_name.or(existing.clone()).unwrap_or(id),
+                existing.is_some(),
+            )
+        } else if let Some(key) = named("exercises") {
+            let existing = program.exercise(&key).map(|e| e.name.clone());
+            (
+                ChangeSubject::Exercise,
+                value_name.or(existing.clone()).unwrap_or(key),
+                existing.is_some(),
+            )
+        } else if let Some(name) = entry("schemes") {
+            let exists = program.schemes.contains_key(&name);
+            (ChangeSubject::Scheme, name, exists)
+        } else if let Some(name) = entry("progressions") {
+            let exists = program.progressions.contains_key(&name);
+            (ChangeSubject::Progression, name, exists)
+        } else if let Some(name) = entry("classes") {
+            let exists = program.classes.contains_key(&name);
+            (ChangeSubject::Class, name, exists)
+        } else {
+            // A field inside something: say what it's in, once.
+            let head = path.split(['.', '[']).next().unwrap_or_default();
+            let inner = |list: &str, subject: ChangeSubject| {
+                let rest = path.strip_prefix(list)?.strip_prefix('[')?;
+                let (key, _) = rest.split_once(']')?;
+                Some((subject, key.to_string()))
+            };
+            let (subject, key) = inner("workouts", ChangeSubject::Workout)
+                .map(|(s, id)| (s, program.workout(&id).map_or(id, |w| w.name.clone())))
+                .or_else(|| {
+                    inner("exercises", ChangeSubject::Exercise)
+                        .map(|(s, k)| (s, program.exercise(&k).map_or(k, |e| e.name.clone())))
+                })
+                .unwrap_or((ChangeSubject::Unspecified, head.to_string()));
+            (subject, key, true)
+        };
+        let verb = match verb {
+            "remove" if path.contains('.') && subject == ChangeSubject::Unspecified => {
+                ChangeVerb::Unspecified
+            }
+            "remove" => ChangeVerb::Remove,
+            _ if !exists => ChangeVerb::Add,
+            _ if subject == ChangeSubject::Unspecified => ChangeVerb::Unspecified,
+            _ => ChangeVerb::Change,
+        };
+        let change = SuggestedChange {
+            verb: verb as i32,
+            subject: subject as i32,
+            name,
+        };
+        if !out.contains(&change) {
+            out.push(change);
+        }
+    }
+    out
+}
+
+/// A workout suggestion's lifts: the exercises of the workout it sets.
+fn suggested_workout(edits: &[serde_json::Value]) -> Vec<String> {
+    edits
+        .iter()
+        .filter(|e| {
+            e.get("set")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|p| p.starts_with("workouts[") && p.ends_with(']'))
+        })
+        .find_map(|e| e.get("value")?.get("exercises")?.as_array().cloned())
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
 }

@@ -29,6 +29,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../services/wearable_bridge_service.dart';
 import '../../theme/theme_spec.dart';
+import '../../widgets/suggestion_sheet.dart';
 import '../../widgets/menu_button.dart';
 import '../../widgets/multiplayer_button.dart';
 import '../../widgets/wordmark.dart';
@@ -202,6 +203,29 @@ class _HomeScreenState extends State<HomeScreen> {
             TutorialTarget(
               id: 'home_templates',
               child: _TemplateChips(
+                suggested: [
+                  for (final suggestion
+                      in context.watch<WorkoutProvider>().pendingSuggestions)
+                    _ChipShell(
+                      selected: false,
+                      onTap: () => showSuggestionSheet(context, suggestion),
+                      children: [
+                        Icon(
+                          AppIcons.multiplayer,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          suggestion.title,
+                          style: TextStyle(
+                            fontSize: context.tokens.size.body,
+                            fontWeight: context.tokens.weight.heavy,
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
                 rotation: [
                   for (final template in templates)
                     if (template.inRotation) chip(template),
@@ -311,10 +335,15 @@ class _TemplateChips extends StatelessWidget {
   final List<Widget> reserves;
   final List<Widget> actions;
 
+  /// What others suggested, waiting: a section of its own after the
+  /// reserves, only while there's any.
+  final List<Widget> suggested;
+
   const _TemplateChips({
     required this.rotation,
     required this.reserves,
     required this.actions,
+    this.suggested = const [],
   });
 
   @override
@@ -348,6 +377,8 @@ class _TemplateChips extends StatelessWidget {
             ],
           ),
         ),
+        if (suggested.isNotEmpty)
+          FlatSection(label: copy.suggestions.heading, child: wrap(suggested)),
       ],
     );
   }

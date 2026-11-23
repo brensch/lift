@@ -1167,3 +1167,34 @@ app_icon:
   # already the phone's icon. Placeholders.
   use: Use this icon
   in_use: This is your icon
+
+# Changes others suggest (docs/plans/set-types.md). Placeholders: the owner
+# writes these.
+suggestions:
+  # Home's row, after Reserves, and the Program screen's section.
+  heading: Suggested
+  program_heading: Suggested changes
+  from: "From {name}"
+  accept_workout: Add it
+  accept_program: Use it
+  decline: No thanks
+  changes_heading: What it changes
+  # "{verb} {subject} {name}": "Adds the workout Push", "Sets volume".
+  verb_add: Adds
+  verb_change: Changes
+  verb_remove: Removes
+  verb_set: Sets
+  subject_workout: the workout
+  subject_exercise: the exercise
+  subject_scheme: the scheme
+  subject_progression: the progression
+  subject_class: the class
+  no_longer_fits: "This doesn't fit your program any more: {problem}"
+  accepted: Added
+  declined: Declined
+  # Multiplayer → a friend.
+  can_suggest: Can suggest workouts
+  can_suggest_body: They see your training and can send you workouts or changes. Nothing changes until you say yes.
+  suggest_workout: Suggest a workout
+  suggest_pick: Which of yours?
+  sent: "Sent to {name}"

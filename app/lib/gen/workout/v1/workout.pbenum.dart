@@ -402,6 +402,89 @@ class RotationWarningKind extends $pb.ProtobufEnum {
   const RotationWarningKind._(super.value, super.name);
 }
 
+class SuggestionStatus extends $pb.ProtobufEnum {
+  /// Waiting for the person.
+  static const SuggestionStatus SUGGESTION_STATUS_UNSPECIFIED =
+      SuggestionStatus._(
+          0, _omitEnumNames ? '' : 'SUGGESTION_STATUS_UNSPECIFIED');
+  static const SuggestionStatus SUGGESTION_STATUS_ACCEPTED =
+      SuggestionStatus._(1, _omitEnumNames ? '' : 'SUGGESTION_STATUS_ACCEPTED');
+  static const SuggestionStatus SUGGESTION_STATUS_DECLINED =
+      SuggestionStatus._(2, _omitEnumNames ? '' : 'SUGGESTION_STATUS_DECLINED');
+
+  static const $core.List<SuggestionStatus> values = <SuggestionStatus>[
+    SUGGESTION_STATUS_UNSPECIFIED,
+    SUGGESTION_STATUS_ACCEPTED,
+    SUGGESTION_STATUS_DECLINED,
+  ];
+
+  static final $core.List<SuggestionStatus?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static SuggestionStatus? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const SuggestionStatus._(super.value, super.name);
+}
+
+/// What one change of a suggestion does, for the app to say in its words.
+class ChangeVerb extends $pb.ProtobufEnum {
+  /// Sets a number or a field.
+  static const ChangeVerb CHANGE_VERB_UNSPECIFIED =
+      ChangeVerb._(0, _omitEnumNames ? '' : 'CHANGE_VERB_UNSPECIFIED');
+  static const ChangeVerb CHANGE_VERB_ADD =
+      ChangeVerb._(1, _omitEnumNames ? '' : 'CHANGE_VERB_ADD');
+  static const ChangeVerb CHANGE_VERB_CHANGE =
+      ChangeVerb._(2, _omitEnumNames ? '' : 'CHANGE_VERB_CHANGE');
+  static const ChangeVerb CHANGE_VERB_REMOVE =
+      ChangeVerb._(3, _omitEnumNames ? '' : 'CHANGE_VERB_REMOVE');
+
+  static const $core.List<ChangeVerb> values = <ChangeVerb>[
+    CHANGE_VERB_UNSPECIFIED,
+    CHANGE_VERB_ADD,
+    CHANGE_VERB_CHANGE,
+    CHANGE_VERB_REMOVE,
+  ];
+
+  static final $core.List<ChangeVerb?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static ChangeVerb? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ChangeVerb._(super.value, super.name);
+}
+
+class ChangeSubject extends $pb.ProtobufEnum {
+  /// One of the program's numbers.
+  static const ChangeSubject CHANGE_SUBJECT_UNSPECIFIED =
+      ChangeSubject._(0, _omitEnumNames ? '' : 'CHANGE_SUBJECT_UNSPECIFIED');
+  static const ChangeSubject CHANGE_SUBJECT_WORKOUT =
+      ChangeSubject._(1, _omitEnumNames ? '' : 'CHANGE_SUBJECT_WORKOUT');
+  static const ChangeSubject CHANGE_SUBJECT_EXERCISE =
+      ChangeSubject._(2, _omitEnumNames ? '' : 'CHANGE_SUBJECT_EXERCISE');
+  static const ChangeSubject CHANGE_SUBJECT_SCHEME =
+      ChangeSubject._(3, _omitEnumNames ? '' : 'CHANGE_SUBJECT_SCHEME');
+  static const ChangeSubject CHANGE_SUBJECT_PROGRESSION =
+      ChangeSubject._(4, _omitEnumNames ? '' : 'CHANGE_SUBJECT_PROGRESSION');
+  static const ChangeSubject CHANGE_SUBJECT_CLASS =
+      ChangeSubject._(5, _omitEnumNames ? '' : 'CHANGE_SUBJECT_CLASS');
+
+  static const $core.List<ChangeSubject> values = <ChangeSubject>[
+    CHANGE_SUBJECT_UNSPECIFIED,
+    CHANGE_SUBJECT_WORKOUT,
+    CHANGE_SUBJECT_EXERCISE,
+    CHANGE_SUBJECT_SCHEME,
+    CHANGE_SUBJECT_PROGRESSION,
+    CHANGE_SUBJECT_CLASS,
+  ];
+
+  static final $core.List<ChangeSubject?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
+  static ChangeSubject? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const ChangeSubject._(super.value, super.name);
+}
+
 /// How the simulated sessions go.
 class SimulatedEffort extends $pb.ProtobufEnum {
   static const SimulatedEffort SIMULATED_EFFORT_UNSPECIFIED = SimulatedEffort._(
