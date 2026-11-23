@@ -4158,6 +4158,26 @@ mod set_types {
         assert_ne!(state.completed_sets[0].rest_until, at + 240);
     }
 
+    /// A miss rest under the set's usual one never shortens it.
+    #[test]
+    fn a_miss_rest_never_shortens_the_usual_rest() {
+        let mut app = on_miss(serde_json::json!({ "rest_seconds": 30 }));
+        let started = start(&mut app, &["squat"]);
+        let sets = working(&started.proposed_sets, "squat");
+        let at = NOW + 60;
+        let state = batch(
+            &mut app,
+            vec![complete_set(&sets[0], 3, sets[0].target_weight, at)],
+        )
+        .workout_state
+        .unwrap();
+        assert_eq!(
+            state.completed_sets[0].rest_until,
+            at + sets[0].rest_seconds as i64,
+            "the usual rest, not 30 s"
+        );
+    }
+
     /// Stop drops the lift's sets still to do; the miss undone brings them
     /// back.
     #[test]

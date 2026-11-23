@@ -451,7 +451,8 @@ A scheme is a list of `steps`, each some sets of one role, in order:
   this one started (10 to 600).
 - `on_miss` (optional): what missing one of its sets (logged short of its
   reps) changes for the rest of the lift that workout. Any of:
-  - `rest_seconds`: the rest after the missed set instead (0 to 1800);
+  - `rest_seconds`: the rest after the missed set (0 to 1800); never
+    less than its usual rest, so give more than the class's or the step's;
   - `fraction`: the lift's sets still to do at this share of their weight
     (under 1), snapped to what loads;
   - `stop`: true drops the lift's sets still to do (not with `fraction`).
