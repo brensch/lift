@@ -4,3 +4,4 @@
 - Programs can add their own exercises, and progress lifts on fixed, linear, double, cycle or custom-formula rules as well as Schlift's own.
 - Library workouts are now your own copies when you add them, so you can edit them freely.
 - An assistant can try a program on any lifts you name, even before you've saved a workout.
+- The developer sign-in turns down the same usernames that making an account does.
