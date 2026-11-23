@@ -216,13 +216,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: Theme.of(context).colorScheme.primary,
                         ),
                         const SizedBox(width: 4),
-                        Text(
-                          copy.suggestions.chip
-                              .replaceAll('{title}', suggestion.title)
-                              .replaceAll('{name}', suggestion.fromName),
-                          style: TextStyle(
-                            fontSize: context.tokens.size.body,
-                            fontWeight: context.tokens.weight.heavy,
+                        Flexible(
+                          child: Text(
+                            copy.suggestions.chip
+                                .replaceAll('{title}', suggestion.title)
+                                .replaceAll('{name}', suggestion.fromName),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: context.tokens.size.body,
+                              fontWeight: context.tokens.weight.heavy,
+                            ),
                           ),
                         ),
                       ],

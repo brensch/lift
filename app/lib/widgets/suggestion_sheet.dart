@@ -23,6 +23,7 @@ Future<void> showSuggestionSheet(BuildContext context, Suggestion suggestion) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
+    useSafeArea: true,
     backgroundColor: AppTheme.sheetColor(context),
     builder: (_) => SuggestionSheet(suggestion: suggestion),
   );
