@@ -475,7 +475,9 @@ class _Rows extends StatelessWidget {
           for (final c in children)
             DecoratedBox(
               decoration: BoxDecoration(border: Border(bottom: line)),
-              child: c,
+              // Its own surface: a tappable row's ink shows over the
+              // sheet's colour rather than under it.
+              child: Material(type: MaterialType.transparency, child: c),
             ),
         ],
       ),
