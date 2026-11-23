@@ -47,15 +47,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// over it, for an end on the phone or the watch alike.
   void Function(String workoutId)? onWorkoutEnded;
 
-  /// Called once for each ramp set whose "how many more could you have
-  /// done?" opens: done with every rep, on the phone or the watch. The app
-  /// shell shows the question; dismissed, it stays unanswered.
-  void Function(String proposedSetId)? onRungQuestion;
-
-  /// Called once for each set with an effort target whose "how many more
-  /// could you have done?" opens. Dismissed, it stays unanswered.
-  void Function(String proposedSetId)? onEffortQuestion;
-
   void setBodyWeightKg(double kg) => _bodyWeightKg = kg;
 
   String? _lastLoadError;
@@ -69,13 +60,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ExerciseLog> _logs = [];
   WorkoutSummary? _summary;
   String _rungQuestion = '';
-  List<RungOutcome> _rungOutcomes = const [];
-  final Set<String> _askedRungs = {};
   String _effortQuestion = '';
 
   /// The timed set whose end has been cued, so it rings once.
   String? _timedSetCued;
-  final Set<String> _askedEfforts = {};
   ProposedSet? _nextUp;
   WorkoutStateSnapshot? _snapshot;
   GetHomeResponse? _home;
@@ -185,7 +173,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _summary = response.hasSummary() ? response.summary : null;
     _rungQuestion = response.rungQuestionSetId;
     _effortQuestion = response.effortQuestionSetId;
-    _rungOutcomes = List.of(response.rungOutcomes);
     _nextUp = response.hasNextUpSet() ? response.nextUpSet : null;
     _applyStateSnapshot(
       response.hasStateSnapshot() ? response.stateSnapshot : null,
@@ -292,15 +279,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _applyWorkoutResponse(response.workoutState);
       }
       notifyListeners();
-      // A change just opened a ramp set's question: ask it, once.
-      final asking = _rungQuestion;
-      if (asking.isNotEmpty && _askedRungs.add(asking)) {
-        onRungQuestion?.call(asking);
-      }
-      final effort = _effortQuestion;
-      if (effort.isNotEmpty && _askedEfforts.add(effort)) {
-        onEffortQuestion?.call(effort);
-      }
     } catch (e) {
       _handleError(e);
     }
@@ -561,14 +539,10 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   String get rungQuestionSetId => _rungQuestion;
   String get effortQuestionSetId => _effortQuestion;
 
-  /// What each range answer to the open question leads to (the core
-  /// answers a copy): the next ramp set's weight, or the working sets'.
-  RungOutcome? rungOutcome(RepsLeft repsLeft) {
-    for (final o in _rungOutcomes) {
-      if (o.repsLeft == repsLeft) return o;
-    }
-    return null;
-  }
+  /// The set just done that asks how it went (a ramp set, or a lift's last
+  /// set with an effort target), or empty: the banner and the watch ask it.
+  String get questionSetId =>
+      _rungQuestion.isNotEmpty ? _rungQuestion : _effortQuestion;
 
   ExerciseLog? logFor(String exercise) {
     for (final log in _logs) {
@@ -682,9 +656,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       final active = await _service.getActiveWorkout();
       if (active != null) {
         _applyWorkoutResponse(await _service.getWorkout(active.id));
-        // A question open before this load was asked then.
-        if (_rungQuestion.isNotEmpty) _askedRungs.add(_rungQuestion);
-        if (_effortQuestion.isNotEmpty) _askedEfforts.add(_effortQuestion);
+
         _mergeHeartRate(await _service.getWorkoutHeartRate(active.id));
         _startTimer();
       } else {
@@ -711,10 +683,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _logs = [];
     _summary = null;
     _rungQuestion = '';
-    _rungOutcomes = const [];
-    _askedRungs.clear();
     _effortQuestion = '';
-    _askedEfforts.clear();
     _nextUp = null;
     _blocksCache.clear();
     _applyStateSnapshot(null);
@@ -929,45 +898,45 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     );
   }
 
-  /// Answer a set's effort question: reps left in the tank. The core
-  /// ignores an answer to a question no longer open.
-  Future<void> answerEffort(String proposedSetId, RepsLeft repsLeft) async {
-    if (_workout == null) return;
+  /// The answer to the question the banner and the watch ask after a set:
+  /// Easy (plenty left: a ramp jumps further), Hard (nearly all out: a ramp
+  /// is done) or Fail (the reps weren't all there: the set is recorded one
+  /// short, a miss, and the core goes on from that). Anything but the open
+  /// question is ignored.
+  Future<void> answerQuick(String setId, QuickAnswer answer) async {
+    if (_workout == null || setId.isEmpty || setId != questionSetId) return;
+    if (answer == QuickAnswer.QUICK_ANSWER_FAIL) {
+      final set = proposedSetById(setId);
+      CompletedSet? done;
+      for (final c in _completed) {
+        if (c.proposedSetId == setId) done = c;
+      }
+      if (set == null || done == null) return;
+      await _mutate(
+        WorkoutMutation()
+          ..editCompletedSet = (EditCompletedSetRequest()
+            ..workoutId = _workoutId
+            ..completedSetId = done.id
+            ..actualReps = (set.targetReps - 1).clamp(0, done.actualReps)
+            ..actualWeight = done.actualWeight),
+      );
+      return;
+    }
+    final repsLeft = answer == QuickAnswer.QUICK_ANSWER_EASY
+        ? RepsLeft.REPS_LEFT_FIVE_PLUS
+        : RepsLeft.REPS_LEFT_ZERO_TO_ONE;
     await _mutate(
-      WorkoutMutation()
-        ..answerEffort = (AnswerEffortRequest()
-          ..workoutId = _workoutId
-          ..proposedSetId = proposedSetId
-          ..repsLeft = repsLeft),
-    );
-  }
-
-  /// Answer a ramp set's "how many more could you have done?": 0–1 ends
-  /// the ramp there, more climbs the next rung for it. The core ignores an
-  /// answer to a question no longer open.
-  Future<void> answerRung(String proposedSetId, RepsLeft repsLeft) async {
-    if (_workout == null) return;
-    await _mutate(
-      WorkoutMutation()
-        ..answerRung = (AnswerRungRequest()
-          ..workoutId = _workoutId
-          ..proposedSetId = proposedSetId
-          ..repsLeft = repsLeft),
-    );
-  }
-
-  /// Answer a ramp set's question with a specific jump instead: the next
-  /// ramp set is that set's weight plus [jumpLb] (pounds), snapped to what
-  /// loads, and the ramp goes on. The core ignores a jump out of range or
-  /// to a question no longer open.
-  Future<void> answerRungJump(String proposedSetId, double jumpLb) async {
-    if (_workout == null) return;
-    await _mutate(
-      WorkoutMutation()
-        ..answerRung = (AnswerRungRequest()
-          ..workoutId = _workoutId
-          ..proposedSetId = proposedSetId
-          ..jumpLb = jumpLb),
+      setId == _rungQuestion
+          ? (WorkoutMutation()
+              ..answerRung = (AnswerRungRequest()
+                ..workoutId = _workoutId
+                ..proposedSetId = setId
+                ..repsLeft = repsLeft))
+          : (WorkoutMutation()
+              ..answerEffort = (AnswerEffortRequest()
+                ..workoutId = _workoutId
+                ..proposedSetId = setId
+                ..repsLeft = repsLeft)),
     );
   }
 

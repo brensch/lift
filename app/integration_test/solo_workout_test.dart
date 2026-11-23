@@ -78,24 +78,17 @@ void main() {
         reason: 'a full rung climbs',
       );
       expect(
-        s.rungDialogShowing && s.isVisible(copy.workout.rungQuestion),
+        s.questionShowing && s.isVisible(copy.workout.quickQuestion),
         isTrue,
-        reason: 'a full rung asks how many more',
+        reason: 'a full rung asks how it went, in the banner',
       );
-      await s.shot('Rung logged in full — how many more?');
-      await s.tap(s.rungDialogCircle);
+      await s.shot('Rung logged in full — how was that?');
+      // A rep off its circle is a miss: the question closes, the ramp
+      // settles.
+      await s.tap(s.circleFor(first.id));
       await s.settle(seconds: 1);
-      final settledLine = copy.workout.rungMissedSettled
-          .split('{weight}')
-          .first
-          .replaceAll('{n}', '1');
-      expect(
-        find.textContaining(settledLine),
-        findsOneWidget,
-        reason: 'the dialog says the missed rep settled the ramp',
-      );
+      expect(s.questionShowing, isFalse, reason: 'a miss asks nothing');
       await s.shot('A rep off the rung — the ramp settles');
-      await s.tapText(copy.workout.rungOk);
       expect(
         s.workout.proposedSets.where(
           (p) => p.exercise == first.exercise && !p.calibration && !p.warmup,

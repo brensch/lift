@@ -5,8 +5,8 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:schlift/gen/workout/v1/wearable.pb.dart' show QuickAnswer;
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
-import 'package:schlift/providers/workout_provider.dart';
 
 import '../support/provider_harness.dart';
 
@@ -212,70 +212,62 @@ void main() {
     expect(h.provider.home, isNotNull, reason: 'home has something to show');
   });
 
-  test('a ramp set done in full asks once; the answer is sent', () async {
-    // Never done: a ramp. Squat and the raise have history, so no ramp.
-    const deadlift = 'deadlift';
-    final asked = <String>[];
-    h.provider.onRungQuestion = asked.add;
-    await h.start([raise, deadlift]);
-    final p = h.provider;
+  test(
+    'a ramp set done in full asks how it went; the answer is sent',
+    () async {
+      // Never done: a ramp. Squat and the raise have history, so no ramp.
+      const deadlift = 'deadlift';
+      await h.start([raise, deadlift]);
+      final p = h.provider;
 
-    // A working set never asks.
-    final working = h.working(raise).first;
-    await p.completeSet(working.id, 10, 20);
-    expect(asked, isEmpty);
-    expect(p.rungQuestionSetId, isEmpty);
+      // A working set never asks.
+      final working = h.working(raise).first;
+      await p.completeSet(working.id, 10, 20);
+      expect(p.questionSetId, isEmpty);
 
-    // A ramp set short of its reps is a miss: no question.
-    ProposedSet rung() =>
-        p.proposedSets.firstWhere((s) => s.calibration && !p.isSetDone(s.id));
-    final first = rung();
-    await p.completeSet(first.id, first.targetReps, first.targetWeight);
-    expect(asked, [first.id], reason: 'every rep: asked');
-    expect(p.rungQuestionSetId, first.id);
+      ProposedSet rung() =>
+          p.proposedSets.firstWhere((s) => s.calibration && !p.isSetDone(s.id));
+      final first = rung();
+      await p.completeSet(first.id, first.targetReps, first.targetWeight);
+      expect(p.questionSetId, first.id, reason: 'every rep: asked');
 
-    // A change that leaves it open does not ask again.
-    await p.skipWarmups(deadlift);
-    expect(asked, [first.id]);
+      // A change that leaves it open leaves it open.
+      await p.skipWarmups(deadlift);
+      expect(p.questionSetId, first.id);
 
-    // 0–1: the ramp ends there and the question is gone.
-    await p.answerRung(first.id, RepsLeft.REPS_LEFT_ZERO_TO_ONE);
-    expect(p.rungQuestionSetId, isEmpty);
-    expect(
-      p.completedSets.firstWhere((c) => c.proposedSetId == first.id).repsLeft,
-      RepsLeft.REPS_LEFT_ZERO_TO_ONE,
-    );
-    expect(
-      p.proposedSets.where((s) => s.exercise == deadlift && s.calibration),
-      hasLength(1),
-      reason: 'no rung after it',
-    );
-    expect(h.working(deadlift), isNotEmpty, reason: 'the working sets');
-  });
+      // Hard: the ramp ends there and the question is gone.
+      await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_HARD);
+      expect(p.questionSetId, isEmpty);
+      expect(
+        p.completedSets.firstWhere((c) => c.proposedSetId == first.id).repsLeft,
+        RepsLeft.REPS_LEFT_ZERO_TO_ONE,
+      );
+      expect(
+        p.proposedSets.where((s) => s.exercise == deadlift && s.calibration),
+        hasLength(1),
+        reason: 'no rung after it',
+      );
+      expect(h.working(deadlift), isNotEmpty, reason: 'the working sets');
+    },
+  );
 
-  test('a question open before a reload is not asked again', () async {
-    const deadlift = 'deadlift';
-    await h.start([deadlift]);
-    final first = h.provider.doneTargetSet!;
-    expect(first.calibration, isTrue);
-    await h.provider.completeSet(
-      first.id,
-      first.targetReps,
-      first.targetWeight,
-    );
-    expect(h.provider.rungQuestionSetId, first.id);
-
-    // The app restarts with the question still open.
-    final again = WorkoutProvider(h.service, h.settings, sandbox: true);
-    addTearDown(again.dispose);
-    final asked = <String>[];
-    again.onRungQuestion = asked.add;
-    await again.loadActiveWorkout('test');
-    expect(again.rungQuestionSetId, first.id);
-    // A change that leaves it open: still not asked.
-    await again.skipWarmups(deadlift);
-    expect(asked, isEmpty);
-  });
+  test(
+    'fail records the set a rep short: a miss, and nothing to ask',
+    () async {
+      await h.start(['deadlift']);
+      final p = h.provider;
+      final first = p.doneTargetSet!;
+      await p.completeSet(first.id, first.targetReps, first.targetWeight);
+      await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_FAIL);
+      expect(
+        p.completedSets
+            .firstWhere((c) => c.proposedSetId == first.id)
+            .actualReps,
+        first.targetReps - 1,
+      );
+      expect(p.questionSetId, isEmpty);
+    },
+  );
 
   test('a session is recorded once while the first is in flight', () async {
     await h.start([raise]);
@@ -291,8 +283,6 @@ void main() {
   });
 
   test('a missed ramp set never asks', () async {
-    final asked = <String>[];
-    h.provider.onRungQuestion = asked.add;
     await h.start(['deadlift']);
     final first = h.provider.doneTargetSet!;
     expect(first.calibration, isTrue);
@@ -301,7 +291,6 @@ void main() {
       first.targetReps - 1,
       first.targetWeight,
     );
-    expect(asked, isEmpty);
-    expect(h.provider.rungQuestionSetId, isEmpty);
+    expect(h.provider.questionSetId, isEmpty);
   });
 }

@@ -458,10 +458,6 @@ message GetWorkoutResponse {
   // lift, the rung it appended still to lift and nothing being lifted.
   // Empty when none. An AnswerRungRequest applies only to this set.
   string rung_question_set_id = 12;
-  // What each range answer to that question leads to, worked out by
-  // answering a copy: 0–1 settles the ramp (weight = the working sets'),
-  // 2–4 and 5+ the next ramp set's weight. Empty when no question is open.
-  repeated RungOutcome rung_outcomes = 13;
   // Undone warmups that are behind you (skipped, or a working set of their
   // exercise is done): shown out of the way, nothing waits on them.
   repeated string passed_warmup_ids = 10;
@@ -479,8 +475,10 @@ message GetWorkoutResponse {
   // AnswerEffortRequest applies only to this set. Dismissing it leaves the
   // set unanswered.
   string effort_question_set_id = 16;
-  reserved 6, 8;
-  reserved "plan_change_stats", "user_messages";
+  // 13 was rung_outcomes: what each answer led to, for the dialog the
+  // banner's question replaced.
+  reserved 6, 8, 13;
+  reserved "plan_change_stats", "user_messages", "rung_outcomes";
 }
 
 // A set is pending, done or cancelled. The workout's state is derived from
@@ -610,14 +608,6 @@ message SkipWarmupsRequest {
   string proposed_set_id = 3;
   // Exercises were enum numbers before they were keys.
   reserved 2;
-}
-
-// What one answer to a rung's question leads to (GetWorkoutResponse.rung_outcomes).
-message RungOutcome {
-  RepsLeft reps_left = 1;
-  float weight = 2; // lb
-  // The ramp ends: the weight is the working sets', not a next ramp set's.
-  bool settles = 3;
 }
 
 // The answer to "how many more could you have done?" on a calibration rung

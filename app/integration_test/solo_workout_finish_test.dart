@@ -23,15 +23,11 @@ void main() {
       await s.completeOnboarding();
 
       // Home → live workout; a tap starts the first set (a calibration
-      // rung), a tap logs it in full, and its question is answered 0–1:
-      // the ramp ends and the working sets follow.
+      // rung), a tap logs it in full, and the banner's question is answered
+      // Hard: the ramp ends and the working sets follow.
       await s.startWorkoutFromHome();
       await s.liftSet();
-      expect(
-        s.rungDialogShowing,
-        isFalse,
-        reason: 'the rung question is answered',
-      );
+      expect(s.questionShowing, isFalse, reason: 'the question is answered');
       await s.settle(seconds: 2);
       await s.shot('One set logged, mid-workout');
 

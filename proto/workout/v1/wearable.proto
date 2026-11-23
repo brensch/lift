@@ -126,10 +126,11 @@ message WearWorkoutSnapshot {
   string up_next_emoji = 22;
   // The words the dimmed (always-on) face prints around its minute count.
   WearAmbientCopy ambient_copy = 21;
-  // A set with an effort target, just done: "how many more could you have
-  // done?" and its answers, in the phone's words. The watch shows them as
-  // buttons and answers with AnswerEffortIntent. Unset when none is open.
-  WearEffortQuestion effort_question = 23;
+  // A set just done that asks how it went (a ramp set, or the last with
+  // an effort target): the three answers in the phone's words. The watch
+  // shows them as buttons and answers with AnswerQuestionIntent. Unset when
+  // nothing is asked.
+  WearQuestion question = 23;
   // Lifting a timed set: its seconds. The watch counts down from
   // lifting_started_at + this instead of up. 0 for any other set.
   int32 lifting_target_seconds = 24;
@@ -137,16 +138,28 @@ message WearWorkoutSnapshot {
   reserved "group_card", "effort_prompt", "next_up_emoji";
 }
 
-message WearEffortQuestion {
+message WearQuestion {
   string set_id = 1;
-  string question = 2;
-  repeated WearEffortAnswer answers = 3;
-  string skip_label = 4; // leaves it unanswered
+  string title = 2; // "How was that?"
+  repeated WearAnswer answers = 3;
+  // Back to the face without answering (the phone just moves on).
+  string skip_label = 4;
 }
 
-message WearEffortAnswer {
-  RepsLeft reps_left = 1;
-  string label = 2; // "2–4"
+message WearAnswer {
+  QuickAnswer answer = 1;
+  string label = 2; // "Easy"
+}
+
+// How a set went, in three words: what the banner and the watch ask.
+enum QuickAnswer {
+  QUICK_ANSWER_UNSPECIFIED = 0;
+  // Plenty left: a ramp jumps further; an effort target had room.
+  QUICK_ANSWER_EASY = 1;
+  // Nearly all out: a ramp is done; an effort target was about right.
+  QUICK_ANSWER_HARD = 2;
+  // Couldn't finish the reps: recorded as a miss.
+  QUICK_ANSWER_FAIL = 3;
 }
 
 message WearCompletionSummary {
@@ -185,11 +198,11 @@ message EndWorkoutIntent {
   string workout_id = 1;
 }
 
-// An answer to the effort question on the watch.
-message AnswerEffortIntent {
+// An answer to the question on the watch.
+message AnswerQuestionIntent {
   string workout_id = 1;
   string set_id = 2;
-  RepsLeft reps_left = 3;
+  QuickAnswer answer = 3;
 }
 
 message WearIntent {
@@ -200,7 +213,7 @@ message WearIntent {
     EndWorkoutIntent end_workout = 13;
     StartSetIntent start_set = 17;
     TapSetIntent tap_set = 19;
-    AnswerEffortIntent answer_effort = 20;
+    AnswerQuestionIntent answer_question = 20;
   }
   reserved 2, 10, 12, 14, 15, 16, 18;
   reserved "sent_at", "fewer_reps", "skip_rest", "rate_exercise", "skip_warmup", "edit_completed_set";

@@ -169,7 +169,6 @@ pub fn get_workout_response_from_active(active: &WorkoutRecord, now: i64) -> Get
     GetWorkoutResponse {
         rung_question_set_id: rung_question(active).unwrap_or_default(),
         effort_question_set_id: effort_question(active).unwrap_or_default(),
-        rung_outcomes: Vec::new(),
         passed_warmup_ids,
         first_time_set_ids,
         workout: Some(active.workout.clone()),
@@ -547,7 +546,9 @@ pub fn effort_question(workout_ref: &WorkoutRecord) -> Option<String> {
             && s.target_rir.is_some()
             && s.workout_order > set.workout_order
     });
+    // A miss already says how it went: only a set done in full asks.
     (set.target_rir.is_some()
+        && last.actual_reps >= set.target_reps
         && !later_target
         && !set.calibration
         && !set.warmup

@@ -11,6 +11,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import 'quick_question.dart';
+
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/group.pb.dart';
 import '../../logic/session_state.dart';
@@ -364,6 +366,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         firstTime:
                             you.proposedSet != null &&
                             wp.firstTimeSetIds.contains(you.proposedSet!.id),
+                        question: wp.questionSetId.isEmpty || ended
+                            ? null
+                            : QuickQuestion(setId: wp.questionSetId),
                       ),
                     ),
                     if (allDone && wp.workout?.endTime == Int64.ZERO) ...[

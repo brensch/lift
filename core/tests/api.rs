@@ -1644,26 +1644,15 @@ mod calibration {
         };
         let state = batch(&mut app, done(&rung1, 5));
         assert_eq!(state.rung_question_set_id, rung1.id);
-        // What each answer leads to, offered with the question: 0–1 the
-        // working sets, the others a next rung; 5+ is kept to the pound.
-        let outcome = |reps_left: RepsLeft| {
-            state
-                .rung_outcomes
-                .iter()
-                .find(|o| o.reps_left == reps_left as i32)
-                .cloned()
-                .unwrap()
-        };
-        assert_eq!(state.rung_outcomes.len(), 3);
-        assert!(outcome(RepsLeft::ZeroToOne).settles);
-        assert!(!outcome(RepsLeft::TwoToFour).settles);
-        let promised = outcome(RepsLeft::FivePlus);
-        assert!(!promised.settles);
+        // Easy (5+): the next rung is re-planned, never under the usual
+        // one, keeping its id.
         let rung2 = state.proposed_sets[1].clone();
         let state = batch(&mut app, answer(&rung1, RepsLeft::FivePlus));
-        assert!(state.rung_outcomes.is_empty(), "the question is closed");
-        assert_eq!(state.proposed_sets[1].target_weight, promised.weight);
-        assert!(state.rung_question_set_id.is_empty());
+        assert!(state.proposed_sets[1].target_weight >= rung2.target_weight);
+        assert!(
+            state.rung_question_set_id.is_empty(),
+            "the question is closed"
+        );
         assert_eq!(
             state.proposed_sets[1].id, rung2.id,
             "the next rung keeps its id"
@@ -3124,13 +3113,13 @@ mod settings {
         );
     }
 
-    /// The rung question's buttons show what each answer gives in the
-    /// workout's unit too, not the one the settings changed to since.
+    /// Each answer to the rung question lands in the workout's unit, not
+    /// the one the settings changed to since.
     #[test]
-    fn a_unit_change_mid_ramp_keeps_what_each_answer_shows() {
+    fn a_unit_change_mid_ramp_keeps_each_answer_in_the_workouts_unit() {
         // A fresh squat ramp started in lb, its first rung done, the unit
-        // then set to `now_in`: what each answer is shown to lead to.
-        let asked = |now_in: WeightUnit| {
+        // then set to `now_in`, then answered: the next squat set's weight.
+        let next_after = |now_in: WeightUnit, reps_left: RepsLeft| {
             let mut app = App::new();
             onboard(&mut app, WeightUnit::Lb);
             let started = start(&mut app, &["squat"]);
@@ -3140,46 +3129,38 @@ mod settings {
                 vec![complete_set(&rung, 5, rung.target_weight, NOW + 60)],
             );
             set(&mut app, unit(now_in));
-            let outcomes = app
-                .view()
-                .get_workout(GetWorkoutRequest {
-                    workout_id: started.id.clone(),
-                })
-                .unwrap()
-                .rung_outcomes;
-            assert_eq!(outcomes.len(), 3);
-            (app, started, rung, outcomes)
-        };
-        let (_, _, _, in_lb) = asked(WeightUnit::Lb);
-        let (_, _, _, changed) = asked(WeightUnit::Kg);
-        assert_eq!(changed, in_lb, "still snapped in lb");
-        for shown in &changed {
-            let (mut app, started, rung, _) = asked(WeightUnit::Kg);
             let state = batch(
                 &mut app,
                 vec![mutation(Mutation::AnswerRung(AnswerRungRequest {
                     workout_id: started.id.clone(),
                     proposed_set_id: rung.id.clone(),
-                    reps_left: shown.reps_left,
+                    reps_left: reps_left as i32,
                     jump_lb: 0.0,
                 }))],
             )
             .workout_state
             .unwrap();
-            let next = state
+            state
                 .proposed_sets
                 .iter()
                 .find(|s| {
                     s.exercise == "squat"
                         && !s.warmup
                         && !s.cancelled
-                        && state
+                        && !state
                             .completed_sets
                             .iter()
-                            .all(|c| c.proposed_set_id != s.id)
+                            .any(|c| c.proposed_set_id == s.id)
                 })
-                .unwrap();
-            assert_eq!(next.target_weight, shown.weight, "{shown:?}");
+                .map(|s| s.target_weight)
+                .unwrap()
+        };
+        for reps_left in [RepsLeft::ZeroToOne, RepsLeft::FivePlus] {
+            assert_eq!(
+                next_after(WeightUnit::Kg, reps_left),
+                next_after(WeightUnit::Lb, reps_left),
+                "{reps_left:?}: still snapped in lb"
+            );
         }
     }
 
