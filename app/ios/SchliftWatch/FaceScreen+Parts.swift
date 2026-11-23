@@ -141,3 +141,44 @@ func watchHalfBar(plates: [Workout_V1_WearPlate], height: CGFloat, lead: CGFloat
         Rectangle().fill(WatchPalette.muted).frame(width: height * 0.14, height: steel)
     }
 }
+
+/// The effort question after a set with an effort target: the phone's words, its three
+/// answers as buttons, and a quiet "not sure" that puts it away.
+struct EffortScreen: View {
+    let question: Workout_V1_WearEffortQuestion
+    let onAnswer: (Workout_V1_RepsLeft) -> Void
+    let onSkip: () -> Void
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 6) {
+                Text(question.question)
+                    .font(textFontName(size: 15, weight: .bold))
+                    .foregroundColor(WatchPalette.text)
+                    .multilineTextAlignment(.center)
+                    .watchAutoShrink(lines: 2)
+                ForEach(question.answers, id: \.label) { answer in
+                    Button {
+                        onAnswer(answer.repsLeft)
+                    } label: {
+                        Text(answer.label)
+                            .font(monoFontName(size: 17))
+                            .foregroundColor(WatchPalette.onDark)
+                            .frame(maxWidth: .infinity, minHeight: 36)
+                            .background(WatchPalette.ready)
+                            .clipShape(RoundedRectangle(cornerRadius: 6))
+                    }
+                    .buttonStyle(.plain)
+                }
+                Button(action: onSkip, label: {
+                    Text(question.skipLabel)
+                        .font(textFontName(size: 13))
+                        .foregroundColor(WatchPalette.muted)
+                })
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 10)
+        }
+        .background(WatchPalette.ground.ignoresSafeArea())
+    }
+}

@@ -9,6 +9,7 @@ library;
 
 import 'package:fixnum/fixnum.dart';
 
+import '../widgets/dialogs/rung_question_dialog.dart';
 import '../gen/copy.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
@@ -100,7 +101,7 @@ class WearableSnapshotBuilder {
         yappingLabel: copy.workout.yapping,
         weightText: firstTime ? '' : formatWeight(weight, unit),
         unitText: weightUnitSuffix(unit),
-        repsText: firstTime ? '' : '${set.targetReps}',
+        repsText: firstTime ? '' : repsLabel(set, set.targetReps),
         firstTime: firstTime,
         // In place of weight × reps: the answer is on the phone.
         firstTimeText: firstTime ? copy.workout.watchFirstTimeStatus : '',
@@ -177,6 +178,27 @@ class WearableSnapshotBuilder {
     if (target != null) {
       snapshot.circles.addAll(_circles(workoutProvider, w, target));
     }
+    // A timed set being lifted counts down on the watch as on the phone.
+    if (lifting &&
+        stateSnapshot != null &&
+        stateSnapshot.hasDisplaySet() &&
+        stateSnapshot.displaySet.measure == Measure.MEASURE_SECONDS) {
+      snapshot.liftingTargetSeconds = stateSnapshot.displaySet.targetReps;
+    }
+    // A set with an effort target just done: the phone's question and its
+    // answers, as buttons on the watch.
+    final effort = workoutProvider.effortQuestionSetId;
+    if (effort.isNotEmpty && !isEnded) {
+      snapshot.effortQuestion = WearEffortQuestion(
+        setId: effort,
+        question: copy.workout.effortQuestion,
+        answers: [
+          for (final (repsLeft, label) in RungQuestionDialog.answers)
+            WearEffortAnswer(repsLeft: repsLeft, label: label),
+        ],
+        skipLabel: copy.workout.effortSkip,
+      );
+    }
     if (completedSets.isNotEmpty && !isEnded) {
       snapshot.lastSetEndedAt = completedSets
           .map((c) => c.endedAt)
@@ -239,12 +261,12 @@ class WearableSnapshotBuilder {
 
   static String _circleText(SectionWorkout w, ProposedSet set) {
     final done = w.doneFor(set.id);
-    if (done != null) return '${done.actualReps}';
+    if (done != null) return repsLabel(set, done.actualReps, done: true);
     if (LiveSetCircle.setCircleState(w, set) == SetCircleState.skipped) {
       return '–';
     }
     if (w.isFirstTime(set)) return '?';
-    return '${set.targetReps}';
+    return repsLabel(set, set.targetReps);
   }
 
   static WearCircleState _wearState(SetCircleState state) => switch (state) {

@@ -61,7 +61,10 @@ void main() {
       line('b1'),
       '${w.backoffLine.replaceAll('{n}', '1').replaceAll('{m}', '2')} · ${w.eachSide}',
     );
-    expect(line('d1'), w.dropLine.replaceAll('{n}', '1').replaceAll('{m}', '1'));
+    expect(
+      line('d1'),
+      w.dropLine.replaceAll('{n}', '1').replaceAll('{m}', '1'),
+    );
     expect(
       line('m1'),
       '${w.miniLine.replaceAll('{n}', '1').replaceAll('{m}', '1')} · '
@@ -80,7 +83,10 @@ void main() {
   test('a set with no weight says only its number', () {
     expect(setTextFor(set('a', 0), lb), '100 lb × 5');
     expect(
-      setTextFor(set('a', 0, weight: 0, reps: 30, measure: Measure.MEASURE_SECONDS), lb),
+      setTextFor(
+        set('a', 0, weight: 0, reps: 30, measure: Measure.MEASURE_SECONDS),
+        lb,
+      ),
       '30s',
     );
   });
