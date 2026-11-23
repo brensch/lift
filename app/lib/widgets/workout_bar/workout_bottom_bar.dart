@@ -193,6 +193,10 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         }
 
         final iAmNext = nextToLift != null && nextToLift == auth.userId;
+        final justDoneId = ended ? '' : wp.askingSetId;
+        final justDone = justDoneId.isEmpty || justDoneId == wp.questionSetId
+            ? null
+            : wp.proposedSetById(justDoneId);
         final allDone = you.proposedSet == null;
 
         return GestureDetector(
@@ -352,9 +356,13 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         upNext: iAmNext,
                         timerText: you.timerText,
                         restLeft: you.restLeft,
-                        set: you.proposedSet,
+                        // A set just done stays a moment, its circle there
+                        // to tap reps off before the next set comes up.
+                        set: justDone ?? you.proposedSet,
                         plan: wp.proposedSets,
-                        circle: you.proposedSet == null
+                        circle: justDone != null
+                            ? JustDoneCircle(setId: justDone.id)
+                            : you.proposedSet == null
                             ? null
                             : LiveSetCircle(
                                 workout: SectionWorkout.mine(wp),
@@ -366,9 +374,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         firstTime:
                             you.proposedSet != null &&
                             wp.firstTimeSetIds.contains(you.proposedSet!.id),
-                        question: wp.askingSetId.isEmpty || ended
+                        question: wp.questionSetId.isEmpty || ended
                             ? null
-                            : QuickQuestion(setId: wp.askingSetId),
+                            : QuickQuestion(setId: wp.questionSetId),
                       ),
                     ),
                     if (allDone && wp.workout?.endTime == Int64.ZERO) ...[

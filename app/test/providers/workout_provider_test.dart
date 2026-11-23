@@ -284,6 +284,21 @@ void main() {
     expect(p.askingSetId, isEmpty, reason: 'the next set started');
   });
 
+  test('any set done stays in the banner a moment, its reps to tap down; '
+      'starting the next set moves on', () async {
+    await h.start([raise]);
+    final p = h.provider;
+    final working = h.working(raise).first;
+    await p.completeSet(working.id, 10, 20);
+    expect(p.questionSetId, isEmpty, reason: 'nothing to ask');
+    expect(p.askingSetId, working.id);
+    expect(p.askingUntil, isNotNull);
+    await p.answerQuick(working.id, QuickAnswer.QUICK_ANSWER_ONE_LESS);
+    expect(p.askingReps, 9);
+    await p.startSet(p.doneTargetSet!.id);
+    expect(p.askingSetId, isEmpty);
+  });
+
   test('easy or hard puts the question away', () async {
     await h.start(['deadlift']);
     final p = h.provider;

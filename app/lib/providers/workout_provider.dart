@@ -61,14 +61,14 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   WorkoutSummary? _summary;
   String _rungQuestion = '';
   String _effortQuestion = '';
-  // The set last tapped down from the banner's question: its circle stays
-  // there until [_askedUntil] (each tap moves it on), though the miss closes
-  // the question itself; then the banner goes on to the next set.
+  // The set just done: the banner keeps its circle until [_askedUntil], so
+  // a tap there takes a rep off it instead of starting the next set; each
+  // tap moves the time on. Then the banner goes on to the next set.
   String _asked = '';
   DateTime? _askedUntil;
   Timer? _askedTimer;
 
-  /// How long the banner's circle waits after a rep off for another.
+  /// How long the banner keeps a set just done, from the last tap on it.
   static const oneLessWindow = Duration(seconds: 5);
 
   /// The timed set whose end has been cued, so it rings once.
@@ -565,9 +565,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   String get questionSetId =>
       _rungQuestion.isNotEmpty ? _rungQuestion : _effortQuestion;
 
-  /// The set the banner asks about: the open question's, or the one tapped
-  /// down from it (a miss closes the question) until [askingUntil], unless
-  /// a set is started first.
+  /// The set the banner shows done: the open question's, or the set just
+  /// done until [askingUntil] (its reps tapped down there, a miss closing
+  /// any question), unless a set is started first.
   String get askingSetId {
     final open = questionSetId;
     if (open.isNotEmpty) return open;
@@ -581,6 +581,16 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// When the banner's circle stops waiting for another tap; null while
   /// none is counting down.
   DateTime? get askingUntil => askingSetId == _asked ? _askedUntil : null;
+
+  void _keepInBanner(String setId) {
+    _asked = setId;
+    _askedUntil = DateTime.now().add(oneLessWindow);
+    _askedTimer?.cancel();
+    _askedTimer = Timer(oneLessWindow, () {
+      _endAsking();
+      notifyListeners();
+    });
+  }
 
   void _endAsking() {
     _askedTimer?.cancel();
@@ -908,6 +918,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ..actualWeight = actualWeight
           ..completedAt = Int64(completedAt ?? 0)),
     );
+    _keepInBanner(proposedSetId);
+    notifyListeners();
   }
 
   Future<void> deleteCompletedSet(String completedSetId) async {
@@ -967,17 +979,18 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       for (final c in _completed) {
         if (c.proposedSetId == setId && c.endedAt != Int64.ZERO) done = c;
       }
-      if (done == null || done.actualReps <= 0) return;
-      // The window opens before the edit lands, so the circle never drops
-      // out between the miss closing the question and the window.
-      _asked = setId;
-      _askedUntil = DateTime.now().add(oneLessWindow);
-      _askedTimer?.cancel();
-      _askedTimer = Timer(oneLessWindow, () {
-        _endAsking();
-        notifyListeners();
-      });
-      await tapDoneSet(done.id);
+      final set = proposedSetById(setId);
+      if (done == null || set == null) return;
+      // As many as you can counts up; anything else down, to zero. The
+      // time moves on before the edit lands, so the circle never drops out
+      // between the miss closing a question and the edit.
+      if (set.amrap) {
+        _keepInBanner(setId);
+        await addRepToDoneSet(done.id);
+      } else if (done.actualReps > 0) {
+        _keepInBanner(setId);
+        await tapDoneSet(done.id);
+      }
       return;
     }
     if (setId != questionSetId) return;

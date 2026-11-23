@@ -184,25 +184,16 @@ class WearableSnapshotBuilder {
       snapshot.liftingTargetSeconds = stateSnapshot.displaySet.targetReps;
     }
     // A set just done that asks how it went: the banner's answers, and its
-    // reps to tap down (alone once one is off).
-    final asking = workoutProvider.askingSetId;
+    // reps to tap down.
+    final asking = workoutProvider.questionSetId;
     if (asking.isNotEmpty && !isEnded) {
       final q = copy.workout;
-      final open = workoutProvider.questionSetId == asking;
       snapshot.question = WearQuestion(
         setId: asking,
         title: q.quickQuestion,
         answers: [
-          if (open) ...[
-            WearAnswer(
-              answer: QuickAnswer.QUICK_ANSWER_EASY,
-              label: q.quickEasy,
-            ),
-            WearAnswer(
-              answer: QuickAnswer.QUICK_ANSWER_HARD,
-              label: q.quickHard,
-            ),
-          ],
+          WearAnswer(answer: QuickAnswer.QUICK_ANSWER_EASY, label: q.quickEasy),
+          WearAnswer(answer: QuickAnswer.QUICK_ANSWER_HARD, label: q.quickHard),
           WearAnswer(
             answer: QuickAnswer.QUICK_ANSWER_ONE_LESS,
             label: '${workoutProvider.askingReps}',
