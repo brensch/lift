@@ -30,7 +30,10 @@ log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
 	echo "run as root" >&2
 	exit 1
 }
-mkdir -p "${STATE}"
+# work/ holds downloads and preflight copies. It must exist before the first
+# `mktemp -d` below: without it every run died there, before the deployment was
+# marked done, and the box retried the same deployment every 20 s for ever.
+mkdir -p "${STATE}" "${HERE}/work"
 exec 9>"${STATE}/lock"
 flock -n 9 || exit 0 # a deploy is already running
 
@@ -151,7 +154,7 @@ deploy_one() { # deploy_one ENV DEPLOYMENT_JSON WORKDIR
 	fetch_artifacts "${run}" "${work}" "${artifacts[@]}"
 	case "${env}" in
 	production)
-		local a="${work}/backend-linux-amd64"
+		local a="${work}/backend-linux-arm64"
 		[[ -f "${a}/schlift.sha256" ]] && (cd "${a}" && sha256sum -c --quiet schlift.sha256)
 		chmod 755 "${a}/schlift"
 		preflight "${a}/schlift" /opt/schlift 50061
@@ -160,7 +163,7 @@ deploy_one() { # deploy_one ENV DEPLOYMENT_JSON WORKDIR
 			"${HERE}/scripts/deploy_schlift_release.sh"
 		;;
 	dev)
-		local a="${work}/dev-backend-linux-amd64"
+		local a="${work}/dev-backend-linux-arm64"
 		[[ -f "${a}/schlift.sha256" ]] && (cd "${a}" && sha256sum -c --quiet schlift.sha256)
 		chmod 755 "${a}/schlift"
 		preflight "${a}/schlift" /opt/schlift-dev 50062
