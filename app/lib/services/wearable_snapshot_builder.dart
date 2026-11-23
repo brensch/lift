@@ -9,7 +9,6 @@ library;
 
 import 'package:fixnum/fixnum.dart';
 
-import '../widgets/dialogs/rung_question_dialog.dart';
 import '../gen/copy.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../gen/workout/v1/wearable.pb.dart';
@@ -81,8 +80,7 @@ class WearableSnapshotBuilder {
       // Until it is started: the phone asks for the weight, or tests you.
       // Or a ramp set just done in full: the phone asks how many more you
       // could have done (only ever open with nothing being lifted).
-      final firstTime =
-          w.isFirstTime(set) || workoutProvider.rungQuestionSetId.isNotEmpty;
+      final firstTime = w.isFirstTime(set);
       final barbell =
           workoutProvider.equipmentOf(set.exercise) ==
           EquipmentKind.EQUIPMENT_KIND_BARBELL;
@@ -185,18 +183,19 @@ class WearableSnapshotBuilder {
         stateSnapshot.displaySet.measure == Measure.MEASURE_SECONDS) {
       snapshot.liftingTargetSeconds = stateSnapshot.displaySet.targetReps;
     }
-    // A set with an effort target just done: the phone's question and its
-    // answers, as buttons on the watch.
-    final effort = workoutProvider.effortQuestionSetId;
-    if (effort.isNotEmpty && !isEnded) {
-      snapshot.effortQuestion = WearEffortQuestion(
-        setId: effort,
-        question: copy.workout.effortQuestion,
+    // A set just done that asks how it went: the banner's three answers.
+    final asking = workoutProvider.questionSetId;
+    if (asking.isNotEmpty && !isEnded) {
+      final q = copy.workout;
+      snapshot.question = WearQuestion(
+        setId: asking,
+        title: q.quickQuestion,
         answers: [
-          for (final (repsLeft, label) in RungQuestionDialog.answers)
-            WearEffortAnswer(repsLeft: repsLeft, label: label),
+          WearAnswer(answer: QuickAnswer.QUICK_ANSWER_EASY, label: q.quickEasy),
+          WearAnswer(answer: QuickAnswer.QUICK_ANSWER_HARD, label: q.quickHard),
+          WearAnswer(answer: QuickAnswer.QUICK_ANSWER_FAIL, label: q.quickFail),
         ],
-        skipLabel: copy.workout.effortSkip,
+        skipLabel: q.quickSkip,
       );
     }
     if (completedSets.isNotEmpty && !isEnded) {

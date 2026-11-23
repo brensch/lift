@@ -142,24 +142,24 @@ func watchHalfBar(plates: [Workout_V1_WearPlate], height: CGFloat, lead: CGFloat
     }
 }
 
-/// The effort question after a set with an effort target: the phone's words, its three
-/// answers as buttons, and a quiet "not sure" that puts it away.
-struct EffortScreen: View {
-    let question: Workout_V1_WearEffortQuestion
-    let onAnswer: (Workout_V1_RepsLeft) -> Void
+/// The banner's question after a set that asks how it went: the phone's words, easy /
+/// hard / fail as buttons, and a quiet skip that puts it away.
+struct QuestionScreen: View {
+    let question: Workout_V1_WearQuestion
+    let onAnswer: (Workout_V1_QuickAnswer) -> Void
     let onSkip: () -> Void
 
     var body: some View {
         ScrollView {
             VStack(spacing: 6) {
-                Text(question.question)
+                Text(question.title)
                     .font(textFontName(size: 15, weight: .bold))
                     .foregroundColor(WatchPalette.text)
                     .multilineTextAlignment(.center)
                     .watchAutoShrink(lines: 2)
                 ForEach(question.answers, id: \.label) { answer in
                     Button {
-                        onAnswer(answer.repsLeft)
+                        onAnswer(answer.answer)
                     } label: {
                         Text(answer.label)
                             .font(monoFontName(size: 17))

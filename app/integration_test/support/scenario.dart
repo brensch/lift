@@ -20,11 +20,11 @@ import 'package:schlift/gen/copy.dart';
 import 'package:schlift/main.dart';
 import 'package:schlift/providers/sound_provider.dart';
 import 'package:schlift/providers/workout_provider.dart';
-import 'package:schlift/screens/workout/set_circle.dart';
 import 'package:schlift/services/account_sync.dart';
 import 'package:schlift/services/notification_service.dart';
 import 'package:schlift/theme/app_icons.dart';
-import 'package:schlift/widgets/dialogs/rung_question_dialog.dart';
+import 'package:schlift/gen/workout/v1/wearable.pb.dart' show QuickAnswer;
+import 'package:schlift/widgets/workout_bar/quick_question.dart';
 
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'api.dart';
@@ -649,40 +649,35 @@ class Scenario {
   static String get testMe =>
       copy.workout.firstTimeTest.split('{weight}').first;
 
-  /// The "how many more could you have done?" dialog a full calibration
-  /// rung opens.
-  bool get rungDialogShowing =>
-      find.byType(RungQuestionDialog).evaluate().isNotEmpty;
+  /// The banner's question after a set that asks how it went (a full
+  /// calibration rung): Easy, Hard or Fail in place of weight × reps.
+  bool get questionShowing => find.byType(QuickQuestion).evaluate().isNotEmpty;
 
-  /// The rung's own circle in that dialog: a tap takes a rep off.
-  Finder get rungDialogCircle => find.descendant(
-    of: find.byType(RungQuestionDialog),
-    matching: find.byType(SetCircle),
-  );
-
-  /// Wait for the rung question on [setId] when the core has opened one.
-  Future<bool> _waitForRungDialog(String setId, {int seconds = 6}) async {
+  /// Wait for the question on [setId] when the core has opened one.
+  Future<bool> _waitForQuestion(String setId, {int seconds = 6}) async {
     for (var i = 0; i < seconds * 2; i++) {
-      if (rungDialogShowing) return true;
-      if (workout.rungQuestionSetId != setId) return false;
+      if (questionShowing) return true;
+      if (workout.questionSetId != setId) return false;
       await tester.pump(const Duration(milliseconds: 500));
     }
-    return rungDialogShowing;
+    return questionShowing;
   }
 
-  /// The answer to the rung question, by its button's label.
-  static String rungAnswerLabel(RepsLeft answer) =>
-      RungQuestionDialog.answers.firstWhere((a) => a.$1 == answer).$2;
+  /// The answer's button label.
+  static String answerLabel(QuickAnswer answer) => switch (answer) {
+    QuickAnswer.QUICK_ANSWER_EASY => copy.workout.quickEasy,
+    QuickAnswer.QUICK_ANSWER_FAIL => copy.workout.quickFail,
+    _ => copy.workout.quickHard,
+  };
 
   /// Lift the next set on its circle: tap to start it, tap again when it is
   /// done, then once more per [missed] rep. A calibration rung done in full
-  /// asks how many more could have been done, over the list: its dialog
-  /// holds the rung's circle, so missed reps are tapped there and then
-  /// acknowledged (OK); a rung with every rep is answered [rungAnswer]
-  /// (0–1 by default: the ramp ends and the working sets follow).
+  /// asks how it went in the banner; with every rep it is answered
+  /// [rungAnswer] (Hard by default: the ramp ends and the working sets
+  /// follow); a missed rep is tapped off its circle, which closes it.
   Future<void> liftSet({
     int missed = 0,
-    RepsLeft rungAnswer = RepsLeft.REPS_LEFT_ZERO_TO_ONE,
+    QuickAnswer rungAnswer = QuickAnswer.QUICK_ANSWER_HARD,
     Future<void> Function()? whileLifting,
   }) async {
     for (var i = 0; i < 16 && !setOffered; i++) {
@@ -702,20 +697,14 @@ class Scenario {
     );
     if (whileLifting != null) await whileLifting();
     await tap(circleFor(set.id));
-    if (!set.calibration || !await _waitForRungDialog(set.id)) {
-      for (var i = 0; i < missed; i++) {
-        await tap(circleFor(set.id));
-      }
-      return;
-    }
-    if (missed == 0) {
-      await tap(find.text(rungAnswerLabel(rungAnswer)));
+    final asked = set.calibration && await _waitForQuestion(set.id);
+    if (asked && missed == 0) {
+      await tap(find.text(answerLabel(rungAnswer)));
       return;
     }
     for (var i = 0; i < missed; i++) {
-      await tap(rungDialogCircle);
+      await tap(circleFor(set.id));
     }
-    await tap(find.text(copy.workout.rungOk));
   }
 
   /// End the live workout through the confirm dialog and wait for the

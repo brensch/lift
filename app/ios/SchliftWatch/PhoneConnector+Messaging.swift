@@ -44,17 +44,17 @@ extension PhoneConnector {
         sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)
     }
 
-    /// An answer to the effort question: reps left in the tank. Gated like the other taps.
-    func sendEffort(setID: String, repsLeft: Workout_V1_RepsLeft) {
+    /// An answer to the banner's question: easy, hard or fail. Gated like the other taps.
+    func sendAnswer(setID: String, answer: Workout_V1_QuickAnswer) {
         guard !isActionPending else { return }
         guard let workoutId = snapshot?.workoutID, !workoutId.isEmpty else { return }
-        var answer = Workout_V1_AnswerEffortIntent()
-        answer.workoutID = workoutId
-        answer.setID = setID
-        answer.repsLeft = repsLeft
+        var reply = Workout_V1_AnswerQuestionIntent()
+        reply.workoutID = workoutId
+        reply.setID = setID
+        reply.answer = answer
         var intent = Workout_V1_WearIntent()
         intent.intentID = UUID().uuidString
-        intent.intent = .answerEffort(answer)
+        intent.intent = .answerQuestion(reply)
         guard let data = try? intent.serializedData() else { return }
         beginPendingAction()
         sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)

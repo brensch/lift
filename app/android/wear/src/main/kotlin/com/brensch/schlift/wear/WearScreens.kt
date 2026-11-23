@@ -62,7 +62,6 @@ import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.dialog.Dialog
 import workout.v1.Wearable
-import workout.v1.WorkoutOuterClass
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -1054,14 +1053,14 @@ private fun heartRateColor(bpm: Float?): Color {
 internal fun parseHex(hex: String): Color = runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(WearPalette.Muted)
 
 /**
- * The effort question after a set with an effort target: the phone's words,
- * its three answers as buttons, and a quiet "not sure" that puts it away.
+ * The banner's question after a set that asks how it went: the phone's
+ * words, easy / hard / fail as buttons, and a quiet skip that puts it away.
  */
 @Composable
-internal fun EffortScreen(
-    question: Wearable.WearEffortQuestion,
+internal fun QuestionScreen(
+    question: Wearable.WearQuestion,
     enabled: Boolean,
-    onAnswer: (WorkoutOuterClass.RepsLeft) -> Unit,
+    onAnswer: (Wearable.QuickAnswer) -> Unit,
     onSkip: () -> Unit,
 ) {
     BoxWithConstraints(
@@ -1078,7 +1077,7 @@ internal fun EffortScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = question.question,
+                text = question.title,
                 color = WearPalette.Text,
                 fontSize = (d * 0.065f).asSp(),
                 fontWeight = FontWeight.Bold,
@@ -1093,7 +1092,7 @@ internal fun EffortScreen(
                             .height(d * 0.13f)
                             .clip(RoundedCornerShape(d * 0.03f))
                             .background(WearPalette.Ready)
-                            .clickable(enabled = enabled) { onAnswer(answer.repsLeft) },
+                            .clickable(enabled = enabled) { onAnswer(answer.answer) },
                     contentAlignment = Alignment.Center,
                 ) {
                     FitText(

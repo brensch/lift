@@ -175,14 +175,13 @@ class WearableSyncCoordinator {
             set,
           );
         }
-      } else if (intent.hasAnswerEffort() &&
-          intent.answerEffort.workoutId == workoutId) {
-        // The effort question answered on the watch; "not sure" sends no
-        // answer and leaves it open on the phone until the next set.
-        final answer = intent.answerEffort;
-        if (answer.repsLeft != RepsLeft.REPS_LEFT_UNSPECIFIED) {
-          await _workoutProvider.answerEffort(answer.setId, answer.repsLeft);
-        }
+      } else if (intent.hasAnswerQuestion() &&
+          intent.answerQuestion.workoutId == workoutId) {
+        // The banner's question answered on the watch.
+        await _workoutProvider.answerQuick(
+          intent.answerQuestion.setId,
+          intent.answerQuestion.answer,
+        );
       } else if (intent.hasEndWorkout() &&
           intent.endWorkout.workoutId == workoutId) {
         await _workoutProvider.endWorkout();

@@ -2341,7 +2341,6 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? passedWarmupIds,
     $core.Iterable<ExerciseLog>? exerciseLogs,
     $core.String? rungQuestionSetId,
-    $core.Iterable<RungOutcome>? rungOutcomes,
     $core.Iterable<$core.String>? firstTimeSetIds,
     $core.Iterable<ExerciseInfo>? exercises,
     $core.String? effortQuestionSetId,
@@ -2356,7 +2355,6 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     if (passedWarmupIds != null) result.passedWarmupIds.addAll(passedWarmupIds);
     if (exerciseLogs != null) result.exerciseLogs.addAll(exerciseLogs);
     if (rungQuestionSetId != null) result.rungQuestionSetId = rungQuestionSetId;
-    if (rungOutcomes != null) result.rungOutcomes.addAll(rungOutcomes);
     if (firstTimeSetIds != null) result.firstTimeSetIds.addAll(firstTimeSetIds);
     if (exercises != null) result.exercises.addAll(exercises);
     if (effortQuestionSetId != null)
@@ -2393,8 +2391,6 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     ..pPM<ExerciseLog>(11, _omitFieldNames ? '' : 'exerciseLogs',
         subBuilder: ExerciseLog.create)
     ..aOS(12, _omitFieldNames ? '' : 'rungQuestionSetId')
-    ..pPM<RungOutcome>(13, _omitFieldNames ? '' : 'rungOutcomes',
-        subBuilder: RungOutcome.create)
     ..pPS(14, _omitFieldNames ? '' : 'firstTimeSetIds')
     ..pPM<ExerciseInfo>(15, _omitFieldNames ? '' : 'exercises',
         subBuilder: ExerciseInfo.create)
@@ -2492,33 +2488,27 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(12)
   void clearRungQuestionSetId() => $_clearField(12);
 
-  /// What each range answer to that question leads to, worked out by
-  /// answering a copy: 0–1 settles the ramp (weight = the working sets'),
-  /// 2–4 and 5+ the next ramp set's weight. Empty when no question is open.
-  @$pb.TagNumber(13)
-  $pb.PbList<RungOutcome> get rungOutcomes => $_getList(9);
-
   /// The calibration sets of exercises never done before, not being lifted:
   /// none of that exercise's calibration sets is done yet, so the phone asks
   /// for the weight first.
   @$pb.TagNumber(14)
-  $pb.PbList<$core.String> get firstTimeSetIds => $_getList(10);
+  $pb.PbList<$core.String> get firstTimeSetIds => $_getList(9);
 
   /// The workout's lifts as the program it was planned under defines them:
   /// what to call a lift, whoever's program it came from.
   @$pb.TagNumber(15)
-  $pb.PbList<ExerciseInfo> get exercises => $_getList(11);
+  $pb.PbList<ExerciseInfo> get exercises => $_getList(10);
 
   /// A set with an effort target, just done and unanswered, whose "how many
   /// more could you have done?" is open; empty when none. An
   /// AnswerEffortRequest applies only to this set. Dismissing it leaves the
   /// set unanswered.
   @$pb.TagNumber(16)
-  $core.String get effortQuestionSetId => $_getSZ(12);
+  $core.String get effortQuestionSetId => $_getSZ(11);
   @$pb.TagNumber(16)
-  set effortQuestionSetId($core.String value) => $_setString(12, value);
+  set effortQuestionSetId($core.String value) => $_setString(11, value);
   @$pb.TagNumber(16)
-  $core.bool hasEffortQuestionSetId() => $_has(12);
+  $core.bool hasEffortQuestionSetId() => $_has(11);
   @$pb.TagNumber(16)
   void clearEffortQuestionSetId() => $_clearField(16);
 }
@@ -3513,87 +3503,6 @@ class SkipWarmupsRequest extends $pb.GeneratedMessage {
   $core.bool hasExercise() => $_has(2);
   @$pb.TagNumber(4)
   void clearExercise() => $_clearField(4);
-}
-
-/// What one answer to a rung's question leads to (GetWorkoutResponse.rung_outcomes).
-class RungOutcome extends $pb.GeneratedMessage {
-  factory RungOutcome({
-    RepsLeft? repsLeft,
-    $core.double? weight,
-    $core.bool? settles,
-  }) {
-    final result = create();
-    if (repsLeft != null) result.repsLeft = repsLeft;
-    if (weight != null) result.weight = weight;
-    if (settles != null) result.settles = settles;
-    return result;
-  }
-
-  RungOutcome._();
-
-  factory RungOutcome.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory RungOutcome.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'RungOutcome',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..aE<RepsLeft>(1, _omitFieldNames ? '' : 'repsLeft',
-        enumValues: RepsLeft.values)
-    ..aD(2, _omitFieldNames ? '' : 'weight', fieldType: $pb.PbFieldType.OF)
-    ..aOB(3, _omitFieldNames ? '' : 'settles')
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  RungOutcome clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  RungOutcome copyWith(void Function(RungOutcome) updates) =>
-      super.copyWith((message) => updates(message as RungOutcome))
-          as RungOutcome;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static RungOutcome create() => RungOutcome._();
-  @$core.override
-  RungOutcome createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static RungOutcome getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<RungOutcome>(create);
-  static RungOutcome? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  RepsLeft get repsLeft => $_getN(0);
-  @$pb.TagNumber(1)
-  set repsLeft(RepsLeft value) => $_setField(1, value);
-  @$pb.TagNumber(1)
-  $core.bool hasRepsLeft() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearRepsLeft() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.double get weight => $_getN(1);
-  @$pb.TagNumber(2)
-  set weight($core.double value) => $_setFloat(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasWeight() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearWeight() => $_clearField(2);
-
-  /// The ramp ends: the weight is the working sets', not a next ramp set's.
-  @$pb.TagNumber(3)
-  $core.bool get settles => $_getBF(2);
-  @$pb.TagNumber(3)
-  set settles($core.bool value) => $_setBool(2, value);
-  @$pb.TagNumber(3)
-  $core.bool hasSettles() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearSettles() => $_clearField(3);
 }
 
 /// The answer to "how many more could you have done?" on a calibration rung

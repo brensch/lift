@@ -100,11 +100,12 @@ The first set of an exercise never done (`first_time`, until it is started)
 waits on the phone, which asks for your weight or tests you: the band shows
 the state as usual, the weight row shows `first_time_text` ("Open phone!")
 in place of weight × reps, and nothing on the face taps a set. Once the
-phone starts the set, the face is the usual one again. A ramp set done in
-full asks "How many more could you have done?" on the phone; while that is
-open (`rung_question_set_id`) the card is `first_time` with "Open phone!"
-the same way, and the watch never answers it. Answered, or the next set
-started, the face is the usual one again.
+phone starts the set, the face is the usual one again. A set that asks how
+it went (a ramp set done in full, or a lift's last set with an effort
+target) puts the phone banner's question on the watch too: the snapshot's
+`question` (its title and Easy / Hard / Fail, in the phone's words) is a
+screen of three buttons that answer with `AnswerQuestionIntent`, and a skip
+that puts it away on the watch. Answered, or the next set done, it's gone.
 Done (on `ALL_DONE`, with `END_WORKOUT`) and Idle (no snapshot) are their own
 screens. Hardware keys (the crown) never act on the face.
 

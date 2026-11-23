@@ -982,14 +982,6 @@ const GetWorkoutResponse$json = {
       '10': 'rungQuestionSetId'
     },
     {
-      '1': 'rung_outcomes',
-      '3': 13,
-      '4': 3,
-      '5': 11,
-      '6': '.workout.v1.RungOutcome',
-      '10': 'rungOutcomes'
-    },
-    {
       '1': 'passed_warmup_ids',
       '3': 10,
       '4': 3,
@@ -1031,8 +1023,14 @@ const GetWorkoutResponse$json = {
     {'1': 2, '2': 3},
     {'1': 6, '2': 7},
     {'1': 8, '2': 9},
+    {'1': 13, '2': 14},
   ],
-  '10': ['exercise_groups', 'plan_change_stats', 'user_messages'],
+  '10': [
+    'exercise_groups',
+    'plan_change_stats',
+    'user_messages',
+    'rung_outcomes'
+  ],
 };
 
 /// Descriptor for `GetWorkoutResponse`. Decode as a `google.protobuf.DescriptorProto`.
@@ -1044,14 +1042,13 @@ final $typed_data.Uint8List getWorkoutResponseDescriptor = $convert.base64Decode
     'b3V0LnYxLlByb3Bvc2VkU2V0UgluZXh0VXBTZXQSRwoOc3RhdGVfc25hcHNob3QYByABKAsyIC'
     '53b3Jrb3V0LnYxLldvcmtvdXRTdGF0ZVNuYXBzaG90Ug1zdGF0ZVNuYXBzaG90EjQKB3N1bW1h'
     'cnkYCSABKAsyGi53b3Jrb3V0LnYxLldvcmtvdXRTdW1tYXJ5UgdzdW1tYXJ5Ei8KFHJ1bmdfcX'
-    'Vlc3Rpb25fc2V0X2lkGAwgASgJUhFydW5nUXVlc3Rpb25TZXRJZBI8Cg1ydW5nX291dGNvbWVz'
-    'GA0gAygLMhcud29ya291dC52MS5SdW5nT3V0Y29tZVIMcnVuZ091dGNvbWVzEioKEXBhc3NlZF'
-    '93YXJtdXBfaWRzGAogAygJUg9wYXNzZWRXYXJtdXBJZHMSKwoSZmlyc3RfdGltZV9zZXRfaWRz'
-    'GA4gAygJUg9maXJzdFRpbWVTZXRJZHMSPAoNZXhlcmNpc2VfbG9ncxgLIAMoCzIXLndvcmtvdX'
-    'QudjEuRXhlcmNpc2VMb2dSDGV4ZXJjaXNlTG9ncxI2CglleGVyY2lzZXMYDyADKAsyGC53b3Jr'
-    'b3V0LnYxLkV4ZXJjaXNlSW5mb1IJZXhlcmNpc2VzEjMKFmVmZm9ydF9xdWVzdGlvbl9zZXRfaW'
-    'QYECABKAlSE2VmZm9ydFF1ZXN0aW9uU2V0SWRKBAgCEANKBAgGEAdKBAgIEAlSD2V4ZXJjaXNl'
-    'X2dyb3Vwc1IRcGxhbl9jaGFuZ2Vfc3RhdHNSDXVzZXJfbWVzc2FnZXM=');
+    'Vlc3Rpb25fc2V0X2lkGAwgASgJUhFydW5nUXVlc3Rpb25TZXRJZBIqChFwYXNzZWRfd2FybXVw'
+    'X2lkcxgKIAMoCVIPcGFzc2VkV2FybXVwSWRzEisKEmZpcnN0X3RpbWVfc2V0X2lkcxgOIAMoCV'
+    'IPZmlyc3RUaW1lU2V0SWRzEjwKDWV4ZXJjaXNlX2xvZ3MYCyADKAsyFy53b3Jrb3V0LnYxLkV4'
+    'ZXJjaXNlTG9nUgxleGVyY2lzZUxvZ3MSNgoJZXhlcmNpc2VzGA8gAygLMhgud29ya291dC52MS'
+    '5FeGVyY2lzZUluZm9SCWV4ZXJjaXNlcxIzChZlZmZvcnRfcXVlc3Rpb25fc2V0X2lkGBAgASgJ'
+    'UhNlZmZvcnRRdWVzdGlvblNldElkSgQIAhADSgQIBhAHSgQICBAJSgQIDRAOUg9leGVyY2lzZV'
+    '9ncm91cHNSEXBsYW5fY2hhbmdlX3N0YXRzUg11c2VyX21lc3NhZ2VzUg1ydW5nX291dGNvbWVz');
 
 @$core.Deprecated('Use workoutStateSnapshotDescriptor instead')
 const WorkoutStateSnapshot$json = {
@@ -1340,29 +1337,6 @@ final $typed_data.Uint8List skipWarmupsRequestDescriptor = $convert.base64Decode
     'ChJTa2lwV2FybXVwc1JlcXVlc3QSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dElkEhoKCG'
     'V4ZXJjaXNlGAQgASgJUghleGVyY2lzZRImCg9wcm9wb3NlZF9zZXRfaWQYAyABKAlSDXByb3Bv'
     'c2VkU2V0SWRKBAgCEAM=');
-
-@$core.Deprecated('Use rungOutcomeDescriptor instead')
-const RungOutcome$json = {
-  '1': 'RungOutcome',
-  '2': [
-    {
-      '1': 'reps_left',
-      '3': 1,
-      '4': 1,
-      '5': 14,
-      '6': '.workout.v1.RepsLeft',
-      '10': 'repsLeft'
-    },
-    {'1': 'weight', '3': 2, '4': 1, '5': 2, '10': 'weight'},
-    {'1': 'settles', '3': 3, '4': 1, '5': 8, '10': 'settles'},
-  ],
-};
-
-/// Descriptor for `RungOutcome`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List rungOutcomeDescriptor = $convert.base64Decode(
-    'CgtSdW5nT3V0Y29tZRIxCglyZXBzX2xlZnQYASABKA4yFC53b3Jrb3V0LnYxLlJlcHNMZWZ0Ug'
-    'hyZXBzTGVmdBIWCgZ3ZWlnaHQYAiABKAJSBndlaWdodBIYCgdzZXR0bGVzGAMgASgIUgdzZXR0'
-    'bGVz');
 
 @$core.Deprecated('Use answerRungRequestDescriptor instead')
 const AnswerRungRequest$json = {

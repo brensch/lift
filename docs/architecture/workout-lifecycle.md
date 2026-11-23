@@ -491,32 +491,31 @@ straight after it (`would_append`):
   as best it can be: a set to failure of at least one rep,
   `shown_max(weight, max(reps, 1), 0)`.
 
-A rung done with every rep (not the sixth) asks "How many more could you
-have done?": `GetWorkoutResponse.rung_question_set_id` names it while the
-question is open (it is the latest done set, unanswered, nothing pending
-for its lift but the rung it appended, nothing being lifted). The phone
-shows a dialog with three answers (`RungQuestionDialog`, opened once per
-rung by `WorkoutProvider.onRungQuestion`, whether the set was done on the
-phone or the watch); the watch's weight row says "Open phone!" meanwhile.
-A tap records `AnswerRung` (kept on the done set as `reps_left`), which
-counts as reps in reserve: 0–1 as 0.5, 2–4 as 3, 5+ as 8.
+A rung done with every rep (not the sixth) asks how it went:
+`GetWorkoutResponse.rung_question_set_id` names it while the question is
+open (it is the latest done set, unanswered, nothing pending for its lift
+but the rung it appended, nothing being lifted). The phone asks in the
+banner, in place of weight × reps (`QuickQuestion`: Easy, Hard, Fail), and
+the watch shows the same three as buttons (`WearQuestion`, answered with
+`AnswerQuestionIntent`); there is no dialog. The phone turns the word into
+the core's answer (`WorkoutProvider.answerQuick`):
 
-- 0–1 → the ramp ends there: the working sets from
-  `shown_max(weight, 5, 0.5)`, as a miss's, `CALIBRATION_SETTLED`;
-- 2–4 or 5+ → the pending rung is re-planned: the heaviest loadable weight
-  `w` with `w × (1 + 6/30) ≤ shown_max(weight, 5, reserve)` (a rep in
-  reserve on five), never under the usual rung, `CALIBRATION_STEP`;
-- a specific jump (the field under the three answers, in the user's
-  unit, sent as `AnswerRung.jump_lb` in pounds and kept on the done set as
-  `jump_lb`) → the pending rung is re-planned to the rung's weight plus
-  the jump, snapped to what the lift loads and at least one step up
-  (`planning::jumped_calibration_weight`), `CALIBRATION_STEP`; the ramp
-  goes on;
-- no answer (dismissed) → the usual rung stands.
+- Easy → `AnswerRung` 5+ (kept on the done set as `reps_left`, a reserve of
+  8): the pending rung is re-planned, the heaviest loadable weight `w` with
+  `w × (1 + 6/30) ≤ shown_max(weight, 5, reserve)` (a rep in reserve on
+  five), never under the usual rung, `CALIBRATION_STEP`;
+- Hard → `AnswerRung` 0–1 (a reserve of 0.5): the ramp ends there, the
+  working sets from `shown_max(weight, 5, 0.5)`, as a miss's,
+  `CALIBRATION_SETTLED`;
+- Fail → the set edited a rep short: a miss, which settles or steps down
+  as any miss does;
+- no answer (the next set done) → the usual rung stands.
 
-An answer carries exactly one of `reps_left` and `jump_lb`; both, neither,
-or a jump not over 0 or over twice the rung (`max_jump_fraction`) is a
-no-op, and the phone's button is off for those.
+The same question follows a lift's last set with an effort target
+(`effort_question_set_id`, done in full): Easy and Hard record
+`EffortAnswered` 5+ and 0–1, Fail the set a rep short. The core still reads
+2–4 and `AnswerRung.jump_lb` (a specific jump) from accounts that recorded
+them; the app no longer sends them.
 
 An answer to any other set, or once the question is closed, is a no-op. A
 rung corrected to a miss drops its answer, jump included. The walk's ramp

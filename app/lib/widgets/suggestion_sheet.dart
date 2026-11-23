@@ -130,8 +130,7 @@ class _SuggestionSheetState extends State<SuggestionSheet> {
               ),
             const SizedBox(height: 12),
             FlatHeading(c.changesHeading),
-            for (final change in s.changes)
-              FlatRow(label: changeText(change)),
+            for (final change in s.changes) FlatRow(label: changeText(change)),
             // A workout: its lifts as they'd start today.
             for (final p in _plan?.plans ?? const <ExercisePlan>[])
               if (p.hasDecision())

@@ -9310,7 +9310,6 @@
             "workout_order": 2
           }
         ],
-        "rung_outcomes": [],
         "rung_question_set_id": "",
         "state_snapshot": {
           "display_set": null,
@@ -17374,7 +17373,6 @@
             "workout_order": 21
           }
         ],
-        "rung_outcomes": [],
         "rung_question_set_id": "",
         "state_snapshot": {
           "display_set": null,
@@ -25071,7 +25069,6 @@
             "workout_order": 19
           }
         ],
-        "rung_outcomes": [],
         "rung_question_set_id": "",
         "state_snapshot": {
           "display_set": null,
