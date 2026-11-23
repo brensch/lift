@@ -27,6 +27,7 @@ use serde::{Deserialize, Serialize};
 use crate::pb::{EquipmentKind, MuscleGroup};
 use crate::weight_units::AppWeightUnit;
 
+pub mod edit;
 pub mod formula;
 mod loading;
 mod validate;

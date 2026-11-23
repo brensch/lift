@@ -5,3 +5,4 @@
 - Library workouts are now your own copies when you add them, so you can edit them freely.
 - An assistant can try a program on any lifts you name, even before you've saved a workout.
 - The developer sign-in turns down the same usernames that making an account does.
+- An assistant changes your program with small edits instead of rewriting it, so it's much faster, and it can look up exercises and ready-made workouts.

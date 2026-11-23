@@ -1,4 +1,5 @@
 use super::*;
+use crate::db::MAX_FEEDBACK_CHARS;
 use axum::body::Body;
 use axum::http::Request;
 use http_body_util::BodyExt;
@@ -218,7 +219,11 @@ async fn an_assistant_connects_and_sets_a_program() {
             "get_history",
             "validate_program",
             "simulate_program",
-            "set_program"
+            "set_program",
+            "list_exercises",
+            "list_library",
+            "get_program_part",
+            "send_feedback"
         ]
     );
     let call = |name: &str, arguments: Value| {
@@ -331,4 +336,172 @@ async fn an_assistant_connects_and_sets_a_program() {
     )
     .await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
+}
+
+/// A tool called as the server calls it, for the person "u1" by Claude.
+async fn tool(mcp: &Mcp, name: &str, arguments: Value) -> Result<Value, String> {
+    match tools::call(mcp, "u1", "Claude", name, &arguments).await {
+        Ok(v) => Ok(v["structuredContent"].clone()),
+        Err(tools::Failure::Tool(m)) => Err(m),
+        Err(tools::Failure::Server(m)) => panic!("server failure: {m}"),
+        Err(tools::Failure::Unknown) => panic!("no tool {name}"),
+    }
+}
+
+/// The program as an assistant sees it leaves out the built-in exercises
+/// and says so; a change is a few edits, simulated and set the same way,
+/// and a bad one changes nothing and says which.
+#[tokio::test]
+async fn an_assistant_changes_the_program_by_edits() {
+    let mcp = mcp().await;
+    let got = tool(&mcp, "get_program", json!({})).await.unwrap();
+    assert_eq!(got["program"]["exercises"], json!([]));
+    assert!(got["exercises_note"].as_str().unwrap().contains("built-in"));
+
+    let edits = json!([
+        { "set": "name", "value": "Upper/Lower" },
+        { "set": "classes.heavy.rest_seconds", "value": 150 },
+        { "set": "workouts[upper]", "value": { "name": "Upper", "exercises": ["bench_press", "barbell_row"] } },
+        { "set": "workouts[lower]", "value": { "name": "Lower", "exercises": ["squat", "romanian_deadlift"] } }
+    ]);
+    let checked = tool(&mcp, "validate_program", json!({ "edits": edits }))
+        .await
+        .unwrap();
+    assert_eq!(
+        (checked["ok"].clone(), checked["applied"].clone()),
+        (json!(true), json!(4)),
+        "{checked}"
+    );
+    let run = tool(
+        &mcp,
+        "simulate_program",
+        json!({ "edits": edits, "sessions": 2 }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(run["workouts"].as_array().unwrap().len(), 2, "{run}");
+    let set = tool(
+        &mcp,
+        "set_program",
+        json!({ "edits": edits, "note": "Split it" }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(set["set"], true, "{set}");
+    let account = mcp.db.read_account("u1", Clone::clone).await.unwrap();
+    assert_eq!(account.program.name, "Upper/Lower");
+    assert_eq!(account.program.classes["heavy"].rest_seconds, 150);
+    let ids: Vec<&str> = account
+        .program
+        .workouts
+        .iter()
+        .map(|w| w.id.as_str())
+        .collect();
+    assert_eq!(ids, ["upper", "lower"]);
+    assert_eq!(
+        account.program.exercises.len(),
+        schlift_core::program::Program::builtin().exercises.len(),
+        "the recorded program is whole"
+    );
+
+    let bad = tool(
+        &mcp,
+        "set_program",
+        json!({ "edits": [{ "set": "name", "value": "x" }, { "remove": "workouts[nope]" }], "note": "x" }),
+    )
+    .await
+    .unwrap_err();
+    assert!(
+        bad.contains("\"failed_edit\": 1") && bad.contains("workouts[nope]"),
+        "{bad}"
+    );
+    let wrong = tool(
+        &mcp,
+        "simulate_program",
+        json!({ "edits": [{ "set": "workouts[upper].exercises", "value": ["bench_press", "nope"] }] }),
+    )
+    .await
+    .unwrap_err();
+    assert!(wrong.contains("workouts[upper].exercises[1]"), "{wrong}");
+    assert!(tool(
+        &mcp,
+        "set_program",
+        json!({ "edits": edits, "program": {}, "note": "x" })
+    )
+    .await
+    .unwrap_err()
+    .contains("not both"));
+
+    let part = tool(
+        &mcp,
+        "get_program_part",
+        json!({ "path": "workouts[lower].exercises" }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(part["value"], json!(["squat", "romanian_deadlift"]));
+}
+
+#[tokio::test]
+async fn helpers_find_exercises_and_the_library() {
+    let mcp = mcp().await;
+    let found = tool(
+        &mcp,
+        "list_exercises",
+        json!({ "muscle": "chest", "primary_only": true, "equipment": "barbell" }),
+    )
+    .await
+    .unwrap();
+    let keys: Vec<&str> = found["exercises"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["key"].as_str().unwrap())
+        .collect();
+    assert!(keys.contains(&"bench_press"), "{keys:?}");
+    assert!(found["exercises"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|e| e["muscles"][0] == "chest" && e["built_in"] == true));
+    let library = tool(&mcp, "list_library", json!({})).await.unwrap();
+    assert!(!library["workouts"].as_array().unwrap().is_empty());
+}
+
+/// Feedback is one short line, kept for the admin page with the assistant
+/// and tool but no user; past the day's cap it is thanked for and dropped.
+#[tokio::test]
+async fn feedback_is_kept_short_and_capped() {
+    let mcp = mcp().await;
+    tool(
+        &mcp,
+        "send_feedback",
+        json!({ "text": "Edits were easy.", "tool": "set_program" }),
+    )
+    .await
+    .unwrap();
+    let too_long = "x".repeat(MAX_FEEDBACK_CHARS + 1);
+    assert!(tool(&mcp, "send_feedback", json!({ "text": too_long }))
+        .await
+        .unwrap_err()
+        .contains("1 to 144"));
+    assert!(tool(&mcp, "send_feedback", json!({ "text": "  " }))
+        .await
+        .is_err());
+    let kept = mcp.db.assistant_feedback(10).await.unwrap();
+    assert_eq!(kept.len(), 1);
+    assert_eq!(
+        (
+            kept[0].client_name.as_str(),
+            kept[0].tool.as_str(),
+            kept[0].text.as_str()
+        ),
+        ("Claude", "set_program", "Edits were easy.")
+    );
+    for _ in 0..30 {
+        tool(&mcp, "send_feedback", json!({ "text": "again" }))
+            .await
+            .unwrap();
+    }
+    assert_eq!(mcp.db.assistant_feedback(100).await.unwrap().len(), 20);
 }

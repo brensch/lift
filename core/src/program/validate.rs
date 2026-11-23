@@ -67,7 +67,59 @@ pub fn validate(json: &str) -> (Option<Program>, Vec<Problem>) {
     let written = serde_json::to_value(&program).expect("a program serialises");
     unknown_fields(&value, &written, "", &mut problems);
     problems.extend(check(&program));
+    name_paths(&program, &mut problems);
     (Some(program), problems)
+}
+
+/// Exercises and workouts named in a path by key and id, not position:
+/// `exercises[zercher_squat].class`, `workouts[upper_a].exercises`, the
+/// paths an assistant's edits use, so a problem points at the edit that
+/// fixes it. A position stays where the key or id is missing, malformed or
+/// used twice, since then it is the only way to say which one.
+pub fn name_paths(p: &Program, problems: &mut [Problem]) {
+    let names = |list: &str| -> Vec<Option<String>> {
+        let all: Vec<&str> = match list {
+            "exercises" => p.exercises.iter().map(|e| e.key.as_str()).collect(),
+            _ => p.workouts.iter().map(|w| w.id.as_str()).collect(),
+        };
+        all.iter()
+            .map(|n| {
+                (is_path_name(n) && all.iter().filter(|m| *m == n).count() == 1)
+                    .then(|| n.to_string())
+            })
+            .collect()
+    };
+    let lists = [
+        ("exercises", names("exercises")),
+        ("workouts", names("workouts")),
+    ];
+    for problem in problems.iter_mut() {
+        for (list, named) in &lists {
+            let Some(rest) = problem
+                .path
+                .strip_prefix(list)
+                .and_then(|r| r.strip_prefix('['))
+            else {
+                continue;
+            };
+            let Some((index, tail)) = rest.split_once(']') else {
+                continue;
+            };
+            if let Some(Some(name)) = index.parse::<usize>().ok().and_then(|i| named.get(i)) {
+                problem.path = format!("{list}[{name}]{tail}");
+            }
+        }
+    }
+}
+
+/// A key or id that can stand in a path: no brackets, dots or spaces, and
+/// not all digits (which would read as a position).
+pub fn is_path_name(name: &str) -> bool {
+    !name.is_empty()
+        && !name.chars().all(|c| c.is_ascii_digit())
+        && !name
+            .chars()
+            .any(|c| matches!(c, '[' | ']' | '.') || c.is_whitespace())
 }
 
 /// Keys in what was given that the program doesn't have: a typo, or a
@@ -133,8 +185,14 @@ impl Checker {
     }
 }
 
-/// Every check on a parsed program.
+/// Every check on a parsed program, paths by name ([`name_paths`]).
 pub fn check(p: &Program) -> Vec<Problem> {
+    let mut out = check_positions(p);
+    name_paths(p, &mut out);
+    out
+}
+
+fn check_positions(p: &Program) -> Vec<Problem> {
     let mut c = Checker { out: Vec::new() };
     if p.schema != SCHEMA {
         c.err("schema", format!("must be {SCHEMA:?}"));

@@ -17,21 +17,71 @@ reverted.
 
 ## How to work
 
-1. Read the current program (`get_program`) and the person's history
-   (`get_history`, `get_profile`). Start from the current document. Change
-   what needs changing and keep the rest.
-2. Write the **whole** document. Every field is required, and a field the
-   program doesn't have is an error. This catches typos instead of quietly
-   dropping them.
-3. Check it (`validate_program`). Each problem names its path, like
-   `progressions.squat_lp.reps`.
-4. Run it (`simulate_program`). This shows what the draft would have
-   prescribed for their past workouts, and what it prescribes for the next
-   sessions under an assumption ("every rep hit", "the last set one rep
-   short"). Read the numbers. Do they progress the way you meant?
-5. Set it (`set_program`) with a one-line `note` saying why. The person
-   sees the note. To go back to an earlier program, open it
-   (`get_earlier_program`) and set it again with today's `workouts`.
+1. Look first. `get_profile` says where the person stands, `get_history`
+   what they did, and `get_program` the current program. Built-in exercises
+   it leaves as they are aren't shown; `list_exercises` finds those (by
+   muscle, equipment or name), and `list_library` has ready-made workouts.
+2. Change the program with **edits**, not by rewriting it (below). Send
+   only what changes; everything else stays as it is.
+3. Run it: `simulate_program` with the same edits. It checks them (each
+   problem names its path, like `workouts[upper_a].exercises[2]`) and shows
+   what the draft would have prescribed for their past workouts, and what
+   it prescribes for the next sessions under an assumption ("every rep
+   hit", "the last set one rep short"). Read the numbers. Do they progress
+   the way you meant?
+4. Set it: `set_program` with the same edits and a one-line `note` saying
+   why. The person sees the note, and the next workout plans from it. To
+   go back to an earlier program, open it (`get_earlier_program`) and set
+   it again with today's `workouts`.
+5. Say how it went: `send_feedback`, one line (at most 144 characters) on
+   what was easy, hard or missing in these tools.
+
+## Editing
+
+An edit is one small, named change. A list of them applies in order, all or
+none: if one can't apply, nothing changes and the error says which one and
+why.
+
+```json
+[
+  { "set": "name", "value": "Upper/Lower for size" },
+  { "set": "classes.heavy.rest_seconds", "value": 150 },
+  { "set": "workouts[upper_a]", "value": {
+      "name": "Upper A", "exercises": ["bench_press", "barbell_row", "lateral_raise"] } },
+  { "set": "workouts[a].rotation", "value": false },
+  { "remove": "workouts[b]" },
+  { "move": "workouts[upper_a]", "before": "workouts[a]" },
+  { "set": "progressions.squat_lp", "value": {
+      "kind": "linear", "reps": 5, "increment_lb": 5,
+      "deload_after_fails": 3, "deload_factor": 0.9 } },
+  { "set": "exercises[squat].progression", "value": "squat_lp" }
+]
+```
+
+- **Paths** are dot-separated from the top of the document. An exercise is
+  `exercises[<key>]` and a workout `workouts[<id>]`, by name, never by
+  position. Lists without names use a position: `time_off[0].days`,
+  `warmups.ladder[2].reps`. Map entries are fields: `classes.heavy`,
+  `progressions.squat_lp`, `recovery.hours.chest`.
+- **`set`** puts the value at the path, replacing what is there. To change
+  one field, point at that field (`workouts[a].rotation`), not the whole
+  item. Setting an exercise or workout that doesn't exist adds it at the
+  end; its key or id comes from the path. A new workout's `rotation`
+  defaults to true and its `notes` and `from_library` to "". A new
+  exercise's `short_name` defaults to its name (cut to 12), `progression`
+  to none and `description` to "".
+- **`remove`** takes out a workout, an exercise of the program's own, a
+  list item or a map entry. Built-in exercises stay: leave one out of the
+  workouts instead.
+- **`move`** reorders a workout or exercise: `"before"` names the item it
+  goes in front of, or `null` for the end.
+- `validate_program`, `simulate_program` and `set_program` all take the
+  same `edits`. Each says how many `applied`.
+
+A whole document still works for a full rewrite: send `program` instead of
+`edits`. Every field is required and a field the program doesn't have is
+an error, which catches typos instead of quietly dropping them. Built-in
+exercises it leaves out are added back.
 
 All weights are in **pounds**, whatever unit the person lifts in. The app
 converts for display, and every planned weight is snapped to what their
@@ -71,6 +121,9 @@ equipment can load in their unit. 20 kg is 44.0925 lb. A 2.5 kg step is
 ### `exercises`
 
 Every lift the program knows, in the order the app's picker shows them.
+The built-in ones (squat, bench press and about 75 more) are in every
+program; `get_program` shows only those a program adds or changes, and
+`list_exercises` finds the rest.
 Each one looks like this:
 
 ```json
