@@ -313,6 +313,9 @@ class ProposedSet extends $pb.GeneratedMessage {
     $core.String? group,
     $core.int? everySeconds,
     $core.double? fraction,
+    OnMiss? onMiss,
+    $core.String? missFrom,
+    $core.double? weightBeforeMiss,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -335,6 +338,9 @@ class ProposedSet extends $pb.GeneratedMessage {
     if (group != null) result.group = group;
     if (everySeconds != null) result.everySeconds = everySeconds;
     if (fraction != null) result.fraction = fraction;
+    if (onMiss != null) result.onMiss = onMiss;
+    if (missFrom != null) result.missFrom = missFrom;
+    if (weightBeforeMiss != null) result.weightBeforeMiss = weightBeforeMiss;
     return result;
   }
 
@@ -373,6 +379,11 @@ class ProposedSet extends $pb.GeneratedMessage {
     ..aOS(24, _omitFieldNames ? '' : 'group')
     ..aI(25, _omitFieldNames ? '' : 'everySeconds')
     ..aD(26, _omitFieldNames ? '' : 'fraction', fieldType: $pb.PbFieldType.OF)
+    ..aOM<OnMiss>(27, _omitFieldNames ? '' : 'onMiss',
+        subBuilder: OnMiss.create)
+    ..aOS(28, _omitFieldNames ? '' : 'missFrom')
+    ..aD(29, _omitFieldNames ? '' : 'weightBeforeMiss',
+        fieldType: $pb.PbFieldType.OF)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -595,6 +606,38 @@ class ProposedSet extends $pb.GeneratedMessage {
   $core.bool hasFraction() => $_has(19);
   @$pb.TagNumber(26)
   void clearFraction() => $_clearField(26);
+
+  /// What missing it changes for the rest of its lift (PlannedSet.on_miss).
+  @$pb.TagNumber(27)
+  OnMiss get onMiss => $_getN(20);
+  @$pb.TagNumber(27)
+  set onMiss(OnMiss value) => $_setField(27, value);
+  @$pb.TagNumber(27)
+  $core.bool hasOnMiss() => $_has(20);
+  @$pb.TagNumber(27)
+  void clearOnMiss() => $_clearField(27);
+  @$pb.TagNumber(27)
+  OnMiss ensureOnMiss() => $_ensure(20);
+
+  /// The set whose miss lightened or dropped this one, and its weight
+  /// before; a set put back to every rep restores it.
+  @$pb.TagNumber(28)
+  $core.String get missFrom => $_getSZ(21);
+  @$pb.TagNumber(28)
+  set missFrom($core.String value) => $_setString(21, value);
+  @$pb.TagNumber(28)
+  $core.bool hasMissFrom() => $_has(21);
+  @$pb.TagNumber(28)
+  void clearMissFrom() => $_clearField(28);
+
+  @$pb.TagNumber(29)
+  $core.double get weightBeforeMiss => $_getN(22);
+  @$pb.TagNumber(29)
+  set weightBeforeMiss($core.double value) => $_setFloat(22, value);
+  @$pb.TagNumber(29)
+  $core.bool hasWeightBeforeMiss() => $_has(22);
+  @$pb.TagNumber(29)
+  void clearWeightBeforeMiss() => $_clearField(29);
 }
 
 class CompletedSet extends $pb.GeneratedMessage {
@@ -1069,6 +1112,7 @@ class PlannedSet extends $pb.GeneratedMessage {
     $core.int? rir,
     $core.int? restSeconds,
     $core.int? everySeconds,
+    OnMiss? onMiss,
   }) {
     final result = create();
     if (role != null) result.role = role;
@@ -1078,6 +1122,7 @@ class PlannedSet extends $pb.GeneratedMessage {
     if (rir != null) result.rir = rir;
     if (restSeconds != null) result.restSeconds = restSeconds;
     if (everySeconds != null) result.everySeconds = everySeconds;
+    if (onMiss != null) result.onMiss = onMiss;
     return result;
   }
 
@@ -1101,6 +1146,7 @@ class PlannedSet extends $pb.GeneratedMessage {
     ..aI(5, _omitFieldNames ? '' : 'rir')
     ..aI(6, _omitFieldNames ? '' : 'restSeconds')
     ..aI(7, _omitFieldNames ? '' : 'everySeconds')
+    ..aOM<OnMiss>(8, _omitFieldNames ? '' : 'onMiss', subBuilder: OnMiss.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1186,6 +1232,101 @@ class PlannedSet extends $pb.GeneratedMessage {
   $core.bool hasEverySeconds() => $_has(6);
   @$pb.TagNumber(7)
   void clearEverySeconds() => $_clearField(7);
+
+  /// What missing this set changes for the rest of its lift; unset: nothing.
+  @$pb.TagNumber(8)
+  OnMiss get onMiss => $_getN(7);
+  @$pb.TagNumber(8)
+  set onMiss(OnMiss value) => $_setField(8, value);
+  @$pb.TagNumber(8)
+  $core.bool hasOnMiss() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearOnMiss() => $_clearField(8);
+  @$pb.TagNumber(8)
+  OnMiss ensureOnMiss() => $_ensure(7);
+}
+
+/// What a set missed (logged short of its target) changes for the rest of
+/// its lift in that workout. A set put back to every rep takes it back.
+class OnMiss extends $pb.GeneratedMessage {
+  factory OnMiss({
+    $core.int? restSeconds,
+    $core.double? fraction,
+    $core.bool? stop,
+  }) {
+    final result = create();
+    if (restSeconds != null) result.restSeconds = restSeconds;
+    if (fraction != null) result.fraction = fraction;
+    if (stop != null) result.stop = stop;
+    return result;
+  }
+
+  OnMiss._();
+
+  factory OnMiss.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory OnMiss.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'OnMiss',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aI(1, _omitFieldNames ? '' : 'restSeconds')
+    ..aD(2, _omitFieldNames ? '' : 'fraction', fieldType: $pb.PbFieldType.OF)
+    ..aOB(3, _omitFieldNames ? '' : 'stop')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  OnMiss clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  OnMiss copyWith(void Function(OnMiss) updates) =>
+      super.copyWith((message) => updates(message as OnMiss)) as OnMiss;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static OnMiss create() => OnMiss._();
+  @$core.override
+  OnMiss createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static OnMiss getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<OnMiss>(create);
+  static OnMiss? _defaultInstance;
+
+  /// The rest after the missed set; 0: its usual rest.
+  @$pb.TagNumber(1)
+  $core.int get restSeconds => $_getIZ(0);
+  @$pb.TagNumber(1)
+  set restSeconds($core.int value) => $_setSignedInt32(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRestSeconds() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRestSeconds() => $_clearField(1);
+
+  /// The lift's sets still to do, at this share of their weight; 0: as they
+  /// are.
+  @$pb.TagNumber(2)
+  $core.double get fraction => $_getN(1);
+  @$pb.TagNumber(2)
+  set fraction($core.double value) => $_setFloat(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFraction() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFraction() => $_clearField(2);
+
+  /// The lift's sets still to do are dropped.
+  @$pb.TagNumber(3)
+  $core.bool get stop => $_getBF(2);
+  @$pb.TagNumber(3)
+  set stop($core.bool value) => $_setBool(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasStop() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearStop() => $_clearField(3);
 }
 
 /// What one lift is given in a workout: everything its sets are laid out

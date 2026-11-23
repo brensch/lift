@@ -88,6 +88,12 @@ message ProposedSet {
   // Its weight as a share of the lift's working weight (a back-off, a
   // drop, a pyramid step): a new working weight scales it. 0 reads as 1.
   float fraction = 26;
+  // What missing it changes for the rest of its lift (PlannedSet.on_miss).
+  OnMiss on_miss = 27;
+  // The set whose miss lightened or dropped this one, and its weight
+  // before; a set put back to every rep restores it.
+  string miss_from = 28;
+  float weight_before_miss = 29;
   reserved 8, 10, 12, 13, 14;
   reserved "exercise_group_id", "is_amrap", "instruction", "progression_hint", "rest_after_success", "rest_after_failure";
   // Exercises were enum numbers before they were keys.
@@ -274,6 +280,20 @@ message PlannedSet {
   optional int32 rir = 5;
   int32 rest_seconds = 6;
   int32 every_seconds = 7;
+  // What missing this set changes for the rest of its lift; unset: nothing.
+  OnMiss on_miss = 8;
+}
+
+// What a set missed (logged short of its target) changes for the rest of
+// its lift in that workout. A set put back to every rep takes it back.
+message OnMiss {
+  // The rest after the missed set; 0: its usual rest.
+  int32 rest_seconds = 1;
+  // The lift's sets still to do, at this share of their weight; 0: as they
+  // are.
+  float fraction = 2;
+  // The lift's sets still to do are dropped.
+  bool stop = 3;
 }
 
 // What one lift is given in a workout: everything its sets are laid out
@@ -331,6 +351,9 @@ enum WeightChangeCause {
   WEIGHT_CHANGE_CAUSE_CALIBRATION_SETTLED = 3;
   // EditCompletedSet: the weight recorded on a done set fixed.
   WEIGHT_CHANGE_CAUSE_CORRECTION = 4;
+  // A set missed: the lift's sets still to do lighter (OnMiss.fraction),
+  // or back where they were once it's put back to every rep.
+  WEIGHT_CHANGE_CAUSE_MISS = 5;
 }
 
 // A weight changed during a workout, and why.

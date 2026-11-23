@@ -154,6 +154,7 @@ const WeightChangeCause$json = {
     {'1': 'WEIGHT_CHANGE_CAUSE_CALIBRATION_STEP', '2': 2},
     {'1': 'WEIGHT_CHANGE_CAUSE_CALIBRATION_SETTLED', '2': 3},
     {'1': 'WEIGHT_CHANGE_CAUSE_CORRECTION', '2': 4},
+    {'1': 'WEIGHT_CHANGE_CAUSE_MISS', '2': 5},
   ],
 };
 
@@ -162,7 +163,8 @@ final $typed_data.Uint8List weightChangeCauseDescriptor = $convert.base64Decode(
     'ChFXZWlnaHRDaGFuZ2VDYXVzZRIjCh9XRUlHSFRfQ0hBTkdFX0NBVVNFX1VOU1BFQ0lGSUVEEA'
     'ASIwofV0VJR0hUX0NIQU5HRV9DQVVTRV9VU0VSX0FESlVTVBABEigKJFdFSUdIVF9DSEFOR0Vf'
     'Q0FVU0VfQ0FMSUJSQVRJT05fU1RFUBACEisKJ1dFSUdIVF9DSEFOR0VfQ0FVU0VfQ0FMSUJSQV'
-    'RJT05fU0VUVExFRBADEiIKHldFSUdIVF9DSEFOR0VfQ0FVU0VfQ09SUkVDVElPThAE');
+    'RJT05fU0VUVExFRBADEiIKHldFSUdIVF9DSEFOR0VfQ0FVU0VfQ09SUkVDVElPThAEEhwKGFdF'
+    'SUdIVF9DSEFOR0VfQ0FVU0VfTUlTUxAF');
 
 @$core.Deprecated('Use workoutStateDescriptor instead')
 const WorkoutState$json = {
@@ -377,6 +379,22 @@ const ProposedSet$json = {
     {'1': 'group', '3': 24, '4': 1, '5': 9, '10': 'group'},
     {'1': 'every_seconds', '3': 25, '4': 1, '5': 5, '10': 'everySeconds'},
     {'1': 'fraction', '3': 26, '4': 1, '5': 2, '10': 'fraction'},
+    {
+      '1': 'on_miss',
+      '3': 27,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.OnMiss',
+      '10': 'onMiss'
+    },
+    {'1': 'miss_from', '3': 28, '4': 1, '5': 9, '10': 'missFrom'},
+    {
+      '1': 'weight_before_miss',
+      '3': 29,
+      '4': 1,
+      '5': 2,
+      '10': 'weightBeforeMiss'
+    },
   ],
   '8': [
     {'1': '_target_rir'},
@@ -412,9 +430,12 @@ final $typed_data.Uint8List proposedSetDescriptor = $convert.base64Decode(
     'LQoHbWVhc3VyZRgVIAEoDjITLndvcmtvdXQudjEuTWVhc3VyZVIHbWVhc3VyZRIZCghwZXJfc2'
     'lkZRgWIAEoCFIHcGVyU2lkZRIUCgV0ZW1wbxgXIAEoCVIFdGVtcG8SFAoFZ3JvdXAYGCABKAlS'
     'BWdyb3VwEiMKDWV2ZXJ5X3NlY29uZHMYGSABKAVSDGV2ZXJ5U2Vjb25kcxIaCghmcmFjdGlvbh'
-    'gaIAEoAlIIZnJhY3Rpb25CDQoLX3RhcmdldF9yaXJKBAgIEAlKBAgKEAtKBAgMEA1KBAgNEA5K'
-    'BAgOEA9KBAgEEAVSEWV4ZXJjaXNlX2dyb3VwX2lkUghpc19hbXJhcFILaW5zdHJ1Y3Rpb25SEH'
-    'Byb2dyZXNzaW9uX2hpbnRSEnJlc3RfYWZ0ZXJfc3VjY2Vzc1IScmVzdF9hZnRlcl9mYWlsdXJl');
+    'gaIAEoAlIIZnJhY3Rpb24SKwoHb25fbWlzcxgbIAEoCzISLndvcmtvdXQudjEuT25NaXNzUgZv'
+    'bk1pc3MSGwoJbWlzc19mcm9tGBwgASgJUghtaXNzRnJvbRIsChJ3ZWlnaHRfYmVmb3JlX21pc3'
+    'MYHSABKAJSEHdlaWdodEJlZm9yZU1pc3NCDQoLX3RhcmdldF9yaXJKBAgIEAlKBAgKEAtKBAgM'
+    'EA1KBAgNEA5KBAgOEA9KBAgEEAVSEWV4ZXJjaXNlX2dyb3VwX2lkUghpc19hbXJhcFILaW5zdH'
+    'J1Y3Rpb25SEHByb2dyZXNzaW9uX2hpbnRSEnJlc3RfYWZ0ZXJfc3VjY2Vzc1IScmVzdF9hZnRl'
+    'cl9mYWlsdXJl');
 
 @$core.Deprecated('Use completedSetDescriptor instead')
 const CompletedSet$json = {
@@ -535,6 +556,14 @@ const PlannedSet$json = {
     {'1': 'rir', '3': 5, '4': 1, '5': 5, '9': 0, '10': 'rir', '17': true},
     {'1': 'rest_seconds', '3': 6, '4': 1, '5': 5, '10': 'restSeconds'},
     {'1': 'every_seconds', '3': 7, '4': 1, '5': 5, '10': 'everySeconds'},
+    {
+      '1': 'on_miss',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.OnMiss',
+      '10': 'onMiss'
+    },
   ],
   '8': [
     {'1': '_rir'},
@@ -546,8 +575,23 @@ final $typed_data.Uint8List plannedSetDescriptor = $convert.base64Decode(
     'CgpQbGFubmVkU2V0EicKBHJvbGUYASABKA4yEy53b3Jrb3V0LnYxLlNldFJvbGVSBHJvbGUSEg'
     'oEcmVwcxgCIAEoBVIEcmVwcxIaCghmcmFjdGlvbhgDIAEoAlIIZnJhY3Rpb24SFAoFYW1yYXAY'
     'BCABKAhSBWFtcmFwEhUKA3JpchgFIAEoBUgAUgNyaXKIAQESIQoMcmVzdF9zZWNvbmRzGAYgAS'
-    'gFUgtyZXN0U2Vjb25kcxIjCg1ldmVyeV9zZWNvbmRzGAcgASgFUgxldmVyeVNlY29uZHNCBgoE'
-    'X3Jpcg==');
+    'gFUgtyZXN0U2Vjb25kcxIjCg1ldmVyeV9zZWNvbmRzGAcgASgFUgxldmVyeVNlY29uZHMSKwoH'
+    'b25fbWlzcxgIIAEoCzISLndvcmtvdXQudjEuT25NaXNzUgZvbk1pc3NCBgoEX3Jpcg==');
+
+@$core.Deprecated('Use onMissDescriptor instead')
+const OnMiss$json = {
+  '1': 'OnMiss',
+  '2': [
+    {'1': 'rest_seconds', '3': 1, '4': 1, '5': 5, '10': 'restSeconds'},
+    {'1': 'fraction', '3': 2, '4': 1, '5': 2, '10': 'fraction'},
+    {'1': 'stop', '3': 3, '4': 1, '5': 8, '10': 'stop'},
+  ],
+};
+
+/// Descriptor for `OnMiss`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List onMissDescriptor = $convert.base64Decode(
+    'CgZPbk1pc3MSIQoMcmVzdF9zZWNvbmRzGAEgASgFUgtyZXN0U2Vjb25kcxIaCghmcmFjdGlvbh'
+    'gCIAEoAlIIZnJhY3Rpb24SEgoEc3RvcBgDIAEoCFIEc3RvcA==');
 
 @$core.Deprecated('Use exerciseDecisionDescriptor instead')
 const ExerciseDecision$json = {

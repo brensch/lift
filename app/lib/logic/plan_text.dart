@@ -238,6 +238,10 @@ String changeText(WeightChange change, WeightUnit unit) {
     WeightChangeCause.WEIGHT_CHANGE_CAUSE_CALIBRATION_SETTLED =>
       c.calibrationSettled,
     WeightChangeCause.WEIGHT_CHANGE_CAUSE_CORRECTION => c.correction,
+    WeightChangeCause.WEIGHT_CHANGE_CAUSE_MISS
+        when change.after > change.before =>
+      c.missBack,
+    WeightChangeCause.WEIGHT_CHANGE_CAUSE_MISS => c.miss,
     _ => '',
   };
   return template

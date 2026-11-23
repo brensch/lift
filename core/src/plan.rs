@@ -1365,6 +1365,11 @@ pub fn shape_lift(inputs: &LiftInputs, d: &mut ExerciseDecision) {
                     d.rest_seconds
                 }),
                 every_seconds: step.every_seconds.unwrap_or(0),
+                on_miss: step.on_miss.as_ref().map(|m| crate::pb::OnMiss {
+                    rest_seconds: m.rest_seconds.unwrap_or(0),
+                    fraction: m.fraction.unwrap_or(0.0),
+                    stop: m.stop,
+                }),
             });
         }
     }

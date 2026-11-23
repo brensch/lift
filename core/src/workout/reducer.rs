@@ -1,7 +1,8 @@
+use super::planning::scaled;
 use super::*;
 use crate::history::done_set_ids;
 use crate::ids::{derived_id, Ids};
-use crate::pb::{RepsLeft, WeightChange, WeightChangeCause, Workout};
+use crate::pb::{OnMiss, RepsLeft, WeightChange, WeightChangeCause, Workout};
 use crate::program::Program;
 use crate::progress::{compute_next_up_set, is_done};
 use crate::weight_units::AppWeightUnit;
@@ -301,6 +302,7 @@ pub fn apply_complete_set_to_active(
         is_final_set_of_exercise,
         started_at,
         ended_at,
+        req.actual_reps,
     );
     workout_ref.workout.lifting_set_id.clear();
     workout_ref.workout.lifting_started_at = 0;
@@ -320,6 +322,96 @@ pub fn apply_complete_set_to_active(
     // A calibration rung settles the moment it's done (`would_append`).
     if proposed.calibration {
         settle_rung(workout_ref, &completed_set_id, unit, ended_at);
+    }
+    apply_on_miss(workout_ref, &req.proposed_set_id, unit, ended_at);
+}
+
+/// The set's rule for a miss, when it has one and `reps` miss its target.
+/// Warmups and ramp sets never miss this way.
+fn miss_rule(proposed: &ProposedSet, reps: i32) -> Option<&OnMiss> {
+    proposed
+        .on_miss
+        .as_ref()
+        .filter(|_| !proposed.warmup && !proposed.calibration && reps < proposed.target_reps)
+}
+
+/// Bring the lift in line with whether `set_id` is a miss now: missed, its
+/// rule lightens (`fraction`) or drops (`stop`) the lift's sets still to
+/// do, each marked with it; put back to every rep, or undone, they're as
+/// they were (any done since stay done). Folding the same facts always
+/// gives the same sets: it reads only the record.
+fn apply_on_miss(workout_ref: &mut WorkoutRecord, set_id: &str, unit: AppWeightUnit, at: i64) {
+    let Some(proposed) = workout_ref
+        .proposed_sets
+        .iter()
+        .find(|p| p.id == set_id)
+        .cloned()
+    else {
+        return;
+    };
+    let Some(rule) = proposed.on_miss else {
+        return;
+    };
+    let missed = workout_ref.completed_sets.iter().any(|c| {
+        c.proposed_set_id == set_id
+            && c.ended_at != 0
+            && miss_rule(&proposed, c.actual_reps).is_some()
+    });
+    let applied = workout_ref
+        .proposed_sets
+        .iter()
+        .any(|s| s.miss_from == set_id);
+    if missed == applied {
+        return;
+    }
+    let done = done_set_ids(&workout_ref.completed_sets);
+    let program = workout_ref.program.clone();
+    let mut moved: Option<(f32, f32)> = None;
+    for s in workout_ref.proposed_sets.iter_mut() {
+        if missed {
+            let later = s.exercise == proposed.exercise
+                && s.workout_order > proposed.workout_order
+                && !s.warmup
+                && !s.calibration
+                && !s.cancelled
+                && s.miss_from.is_empty()
+                && !done.contains(s.id.as_str());
+            if !later {
+                continue;
+            }
+            s.miss_from = set_id.to_string();
+            if rule.stop {
+                s.cancelled = true;
+            } else if rule.fraction > 0.0 {
+                let lighter = scaled(&program, &s.exercise, s.target_weight, rule.fraction, unit);
+                moved.get_or_insert((s.target_weight, lighter));
+                s.weight_before_miss = s.target_weight;
+                s.target_weight = lighter;
+            }
+        } else if s.miss_from == set_id {
+            s.miss_from.clear();
+            if rule.stop {
+                s.cancelled = false;
+            } else if s.weight_before_miss > 0.0 {
+                if !done.contains(s.id.as_str()) {
+                    moved.get_or_insert((s.target_weight, s.weight_before_miss));
+                    s.target_weight = s.weight_before_miss;
+                }
+                s.weight_before_miss = 0.0;
+            }
+        }
+    }
+    if let Some((before, after)) = moved {
+        workout_ref.log_change(
+            &proposed.exercise,
+            WeightChange {
+                at,
+                from_set_id: set_id.to_string(),
+                before,
+                after,
+                cause: WeightChangeCause::Miss as i32,
+            },
+        );
     }
 }
 
@@ -343,7 +435,15 @@ fn rest_until(
     is_final: bool,
     started_at: i64,
     ended_at: i64,
+    reps: i32,
 ) -> i64 {
+    // A miss rests what the program says after one, if it says.
+    if let Some(rest) = miss_rule(proposed, reps)
+        .map(|m| m.rest_seconds)
+        .filter(|r| *r > 0)
+    {
+        return ended_at + rest as i64;
+    }
     if proposed.every_seconds > 0 && !is_final {
         let from = if started_at > 0 { started_at } else { ended_at };
         return (from + proposed.every_seconds as i64).max(ended_at);
@@ -397,7 +497,14 @@ pub fn apply_edit_completed_set_to_active(
     }
     set.actual_reps = req.actual_reps;
     set.actual_weight = req.actual_weight;
-    set.rest_until = rest_until(&program, &proposed, is_final, set.started_at, set.ended_at);
+    set.rest_until = rest_until(
+        &program,
+        &proposed,
+        is_final,
+        set.started_at,
+        set.ended_at,
+        req.actual_reps,
+    );
     let ended_at = set.ended_at;
     workout_ref.log_change(
         &proposed.exercise,
@@ -413,6 +520,7 @@ pub fn apply_edit_completed_set_to_active(
     if proposed.calibration {
         resettle_rung(workout_ref, &req.completed_set_id, unit, ended_at);
     }
+    apply_on_miss(workout_ref, &proposed_id, unit, at);
     Ok(())
 }
 
@@ -873,11 +981,25 @@ fn heaviest_full_rung(
         })
 }
 
-pub fn apply_delete_completed_set_to_active(workout_ref: &mut WorkoutRecord, req: &SetUndone) {
+pub fn apply_delete_completed_set_to_active(
+    workout_ref: &mut WorkoutRecord,
+    req: &SetUndone,
+    unit: AppWeightUnit,
+    at: i64,
+) {
     let rung = rung_of(workout_ref, &req.completed_set_id);
+    let undone_set = workout_ref
+        .completed_sets
+        .iter()
+        .find(|c| c.workout_id == req.workout_id && c.id == req.completed_set_id)
+        .map(|c| c.proposed_set_id.clone());
     workout_ref
         .completed_sets
         .retain(|c| !(c.workout_id == req.workout_id && c.id == req.completed_set_id));
+    // Undone, it isn't a miss: what its miss changed goes back.
+    if let Some(set_id) = undone_set {
+        apply_on_miss(workout_ref, &set_id, unit, at);
+    }
     // An undone rung takes back what it appended while none of it is
     // lifted: done again, it appends afresh, never a second time.
     if rung.is_some() {
@@ -1255,6 +1377,8 @@ mod tests {
                 workout_id: "w1".to_string(),
                 completed_set_id: completed_id,
             },
+            AppWeightUnit::Lb,
+            0,
         );
 
         assert!(active.completed_sets.is_empty());
@@ -2072,6 +2196,8 @@ mod tests {
                 workout_id: "w1".to_string(),
                 completed_set_id: done,
             },
+            AppWeightUnit::Lb,
+            0,
         );
         assert_eq!(squat_plan(&active), Vec::<(f32, bool)>::new());
         assert!(causes(&active).is_empty(), "and its log entry");

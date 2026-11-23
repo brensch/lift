@@ -353,7 +353,7 @@ impl Account {
                 reducer::apply_answer_effort_to_active(&mut record, answered)
             }
             Fact::SetUndone(undone) => {
-                reducer::apply_delete_completed_set_to_active(&mut record, undone)
+                reducer::apply_delete_completed_set_to_active(&mut record, undone, unit, at)
             }
             Fact::WorkoutEnded(ended) => {
                 // Ending twice changes nothing.
