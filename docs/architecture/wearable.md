@@ -106,8 +106,8 @@ target) puts the phone banner's question on the watch too: the snapshot's
 `question` (its title, Easy and Hard in the phone's words, and the reps
 logged as a one-less button) is a screen of buttons that answer with
 `AnswerQuestionIntent`, and a skip that puts it away on the watch. A rep off
-leaves only the reps button, for the next tap. Answered with Easy or Hard,
-or the next set started, it's gone.
+leaves only the reps button, for five seconds from the last tap. Answered
+with Easy or Hard, that window over, or the next set started, it's gone.
 Done (on `ALL_DONE`, with `END_WORKOUT`) and Idle (no snapshot) are their own
 screens. Hardware keys (the crown) never act on the face.
 
