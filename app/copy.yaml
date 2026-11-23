@@ -313,6 +313,21 @@ workout:
   warm_short: "Warm {count}"
   warmup_label: Warmup
   working_label: Working
+  # Set types (docs/plans/set-types.md). Placeholders: the owner writes these.
+  drop_label: Drop
+  mini_label: Mini
+  top_line: Top set
+  backoff_line: Back-off {n} of {m}
+  drop_line: Drop {n} of {m}
+  mini_line: Mini {n} of {m}
+  as_many_as_you_can: as many as you can
+  each_side: each side
+  tempo_line: "tempo {tempo}"
+  superset_label: Superset
+  circuit_label: Circuit
+  effort_question: How many more could you have done?
+  effort_question_hint: Your best guess. It sharpens your next plan.
+  effort_skip: Not sure
   # In the band of whoever's turn on the rack it is, on two lines.
   up_next: "Up\nnext"
   skip_warmups: Skip
@@ -376,6 +391,8 @@ workout:
 # workout card, the template editor, the live workout when a lift comes up,
 # and the summary. {…} are substituted by the code. All placeholder copy.
 plan:
+  # A schemed lift's drops after its runs ("1×5 @ 200 lb, +2 drops"). Placeholder.
+  drops: "+{n} drops"
   # Home's time control: "− 60 min +".
   budget: "{min} min"
   # In place of the time control when a lift in the workout is new.

@@ -4436,3 +4436,39 @@ mod set_types {
         assert!(outcome.all_hit(), "{outcome:?}");
     }
 }
+
+/// A hold climbs by its `rep_step`: seconds at a time, not one.
+mod rep_step {
+    use super::*;
+    use schlift_core::program::{Measure, Program, Progression};
+
+    #[test]
+    fn a_double_climbs_by_its_step() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        let mut p: Program = (*app.account.program).clone();
+        p.progressions.insert(
+            "hold".into(),
+            Progression::Double {
+                sets: Some(3),
+                rep_low: 30,
+                rep_high: 60,
+                increment_lb: 0.0,
+                rep_step: 5,
+            },
+        );
+        for e in p.exercises.iter_mut().filter(|e| e.key == "plank") {
+            e.measure = Measure::Seconds;
+            e.progression = Some("hold".into());
+        }
+        app.call()
+            .set_program(SetProgramRequest {
+                program_json: p.to_json(),
+                note: "holds".into(),
+                author: "test".into(),
+            })
+            .unwrap();
+        import_session(&mut app, "plank", 0.0, 30, &[30, 30, 30], NOW - 2 * DAY);
+        assert_eq!(plan(&app, "plank").reps, 35);
+    }
+}

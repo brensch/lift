@@ -950,6 +950,7 @@ pub fn plan_lift(inputs: &LiftInputs, sets: i32) -> ExerciseDecision {
             rep_low,
             rep_high,
             increment_lb,
+            rep_step,
             ..
         } => {
             let step = if *increment_lb > 0.0 {
@@ -964,9 +965,10 @@ pub fn plan_lift(inputs: &LiftInputs, sets: i32) -> ExerciseDecision {
                         PlanChangeCause::Hit if reps >= *rep_high && step > 0.0 => {
                             (p.snap_lb(ex, last.weight + step, unit), *rep_low)
                         }
-                        PlanChangeCause::Hit => {
-                            (p.snap_lb(ex, last.weight, unit), (reps + 1).min(*rep_high))
-                        }
+                        PlanChangeCause::Hit => (
+                            p.snap_lb(ex, last.weight, unit),
+                            (reps + (*rep_step).max(1)).min(*rep_high),
+                        ),
                         _ => (p.snap_lb(ex, last.weight, unit), reps),
                     };
                     if bodyweight {

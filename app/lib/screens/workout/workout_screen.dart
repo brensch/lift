@@ -120,6 +120,19 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         if (_unfinishedIds.contains(block.stableId)) block.stableId,
     };
     _unfinishedIds = {for (final block in unfinishedBlocks) block.stableId};
+    // A group's name over its first lift in each list: "Superset" for two,
+    // "Circuit" for more.
+    String? groupOf(ExerciseBlock b) =>
+        b.sets.map((s) => s.group).where((g) => g.isNotEmpty).firstOrNull;
+    String? headingFor(List<ExerciseBlock> list, int i) {
+      final group = groupOf(list[i]);
+      if (group == null || (i > 0 && groupOf(list[i - 1]) == group)) {
+        return null;
+      }
+      final size = blocks.where((b) => groupOf(b) == group).length;
+      return size > 2 ? copy.workout.circuitLabel : copy.workout.supersetLabel;
+    }
+
     // Overall progress for the first row's hairline: every set still in the
     // plan (warmups and calibration rungs included, cancelled ones not), so
     // each Done moves it. An exercise still finding its weight has no
@@ -183,10 +196,11 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                 ),
               // Done exercises stay pinned at the top; the rest drag
               // into any order by their grip.
-              for (final block in completedBlocks) ...[
+              for (final (i, block) in completedBlocks.indexed) ...[
                 ExerciseSection(
                   key: ValueKey('section-${block.stableId}'),
                   block: block,
+                  groupHeading: headingFor(completedBlocks, i),
                   workout: sectionWorkout,
                   focused: false,
                   finished: true,
@@ -238,6 +252,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                             ? _focusKey
                             : null,
                         block: block,
+                        groupHeading: headingFor(unfinishedBlocks, idx),
                         workout: sectionWorkout,
                         focused: focusedBlock?.stableId == block.stableId,
                         finished: false,
