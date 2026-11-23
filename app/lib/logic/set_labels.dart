@@ -92,3 +92,28 @@ String setTextFor(ProposedSet set, WeightUnit unit) {
   final weight = formatWeight(set.targetWeight.toDouble(), unit);
   return '$weight ${weightUnitSuffix(unit)} × $reps';
 }
+
+/// The set a lift's card speaks for: its next main set still to do, or its
+/// last once all are done. Drops and minis aren't it.
+ProposedSet? cardSet(
+  Iterable<ProposedSet> liftSets,
+  bool Function(String setId) isDone,
+) {
+  final main = liftSets
+      .where((s) => !s.cancelled && !s.warmup && !isPartial(s))
+      .toList();
+  return main.where((s) => !isDone(s.id)).firstOrNull ?? main.lastOrNull;
+}
+
+/// Small, under a set's circle: its weight where it isn't the card's
+/// ([card]: a back-off, a drop, a pyramid step) and its effort target
+/// ("@2"). Null when it needs none.
+String? circleCaption(ProposedSet set, ProposedSet? card, WeightUnit unit) {
+  if (set.warmup) return null;
+  final parts = [
+    if (card != null && (set.targetWeight - card.targetWeight).abs() > 0.01)
+      formatWeight(set.targetWeight.toDouble(), unit),
+    if (set.hasTargetRir()) '@${set.targetRir}',
+  ];
+  return parts.isEmpty ? null : parts.join(' ');
+}

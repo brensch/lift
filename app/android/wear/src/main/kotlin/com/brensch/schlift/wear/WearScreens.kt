@@ -24,6 +24,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Favorite
@@ -61,6 +62,7 @@ import androidx.wear.compose.material.Icon
 import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.dialog.Dialog
 import workout.v1.Wearable
+import workout.v1.WorkoutOuterClass
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -991,12 +993,17 @@ internal data class RestTimer(
     val countingUp: Boolean,
 )
 
-/** Counts up from Start while a set is being lifted. Decided locally each tick. */
+/**
+ * Counts up from Start while a set is being lifted; a timed set counts down
+ * from its seconds instead, as on the phone. Decided locally each tick.
+ */
 internal fun deriveLiftingTimer(snapshot: Wearable.WearWorkoutSnapshot): String {
     val startedAt = snapshot.liftingStartedAt.toLong()
     if (startedAt <= 0L) return snapshot.youCard.timerText
-    val deltaMs = WearDataRepository.synchronizedNowUnixMillis() - startedAt * 1000L
-    return formatElapsedDuration((deltaMs.coerceAtLeast(0L) / 1000L).toInt())
+    val elapsed = ((WearDataRepository.synchronizedNowUnixMillis() - startedAt * 1000L).coerceAtLeast(0L) / 1000L).toInt()
+    val target = snapshot.liftingTargetSeconds
+    if (target > 0) return formatDuration((target - elapsed).coerceAtLeast(0))
+    return formatElapsedDuration(elapsed)
 }
 
 /**
@@ -1045,3 +1052,64 @@ private fun heartRateColor(bpm: Float?): Color {
 }
 
 internal fun parseHex(hex: String): Color = runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(WearPalette.Muted)
+
+/**
+ * The effort question after a set with an effort target: the phone's words,
+ * its three answers as buttons, and a quiet "not sure" that puts it away.
+ */
+@Composable
+internal fun EffortScreen(
+    question: Wearable.WearEffortQuestion,
+    enabled: Boolean,
+    onAnswer: (WorkoutOuterClass.RepsLeft) -> Unit,
+    onSkip: () -> Unit,
+) {
+    BoxWithConstraints(
+        modifier =
+            Modifier
+                .fillMaxSize()
+                .background(WearPalette.Ground),
+        contentAlignment = Alignment.Center,
+    ) {
+        val d = minOf(maxWidth, maxHeight)
+        Column(
+            modifier = Modifier.fillMaxWidth(0.78f),
+            verticalArrangement = Arrangement.spacedBy(d * 0.025f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = question.question,
+                color = WearPalette.Text,
+                fontSize = (d * 0.065f).asSp(),
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+            )
+            for (answer in question.answersList) {
+                Box(
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .height(d * 0.13f)
+                            .clip(RoundedCornerShape(d * 0.03f))
+                            .background(WearPalette.Ready)
+                            .clickable(enabled = enabled) { onAnswer(answer.repsLeft) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    FitText(
+                        text = answer.label,
+                        size = (d * 0.075f).asSp(),
+                        color = WearPalette.OnDark,
+                        align = TextAlign.Center,
+                    )
+                }
+            }
+            Text(
+                text = question.skipLabel,
+                modifier = Modifier.clickable(onClick = onSkip),
+                color = WearPalette.Muted,
+                fontSize = (d * 0.055f).asSp(),
+            )
+        }
+    }
+}

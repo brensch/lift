@@ -3992,7 +3992,7 @@ public final class Wearable {
 
     /**
      * <pre>
-     * the number in it: reps done, or the target; "?" on a first time
+     * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
      * </pre>
      *
      * <code>string text = 2 [json_name = "text"];</code>
@@ -4001,7 +4001,7 @@ public final class Wearable {
     java.lang.String getText();
     /**
      * <pre>
-     * the number in it: reps done, or the target; "?" on a first time
+     * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
      * </pre>
      *
      * <code>string text = 2 [json_name = "text"];</code>
@@ -4099,7 +4099,7 @@ public final class Wearable {
     private java.lang.String text_;
     /**
      * <pre>
-     * the number in it: reps done, or the target; "?" on a first time
+     * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
      * </pre>
      *
      * <code>string text = 2 [json_name = "text"];</code>
@@ -4111,7 +4111,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * the number in it: reps done, or the target; "?" on a first time
+     * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
      * </pre>
      *
      * <code>string text = 2 [json_name = "text"];</code>
@@ -4124,7 +4124,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * the number in it: reps done, or the target; "?" on a first time
+     * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
      * </pre>
      *
      * <code>string text = 2 [json_name = "text"];</code>
@@ -4138,7 +4138,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * the number in it: reps done, or the target; "?" on a first time
+     * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
      * </pre>
      *
      * <code>string text = 2 [json_name = "text"];</code>
@@ -4149,7 +4149,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * the number in it: reps done, or the target; "?" on a first time
+     * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
      * </pre>
      *
      * <code>string text = 2 [json_name = "text"];</code>
@@ -4393,7 +4393,7 @@ public final class Wearable {
 
       /**
        * <pre>
-       * the number in it: reps done, or the target; "?" on a first time
+       * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
        * </pre>
        *
        * <code>string text = 2 [json_name = "text"];</code>
@@ -4405,7 +4405,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * the number in it: reps done, or the target; "?" on a first time
+       * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
        * </pre>
        *
        * <code>string text = 2 [json_name = "text"];</code>
@@ -4418,7 +4418,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * the number in it: reps done, or the target; "?" on a first time
+       * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
        * </pre>
        *
        * <code>string text = 2 [json_name = "text"];</code>
@@ -4433,7 +4433,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * the number in it: reps done, or the target; "?" on a first time
+       * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
        * </pre>
        *
        * <code>string text = 2 [json_name = "text"];</code>
@@ -4446,7 +4446,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * the number in it: reps done, or the target; "?" on a first time
+       * the number in it: reps done, or the target; "?" on a first time; "8+", "30s"
        * </pre>
        *
        * <code>string text = 2 [json_name = "text"];</code>
@@ -6156,6 +6156,40 @@ public final class Wearable {
      * @return The ambientCopy.
      */
     workout.v1.Wearable.WearAmbientCopy getAmbientCopy();
+
+    /**
+     * <pre>
+     * A set with an effort target, just done: "how many more could you have
+     * done?" and its answers, in the phone's words. The watch shows them as
+     * buttons and answers with AnswerEffortIntent. Unset when none is open.
+     * </pre>
+     *
+     * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+     * @return Whether the effortQuestion field is set.
+     */
+    boolean hasEffortQuestion();
+    /**
+     * <pre>
+     * A set with an effort target, just done: "how many more could you have
+     * done?" and its answers, in the phone's words. The watch shows them as
+     * buttons and answers with AnswerEffortIntent. Unset when none is open.
+     * </pre>
+     *
+     * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+     * @return The effortQuestion.
+     */
+    workout.v1.Wearable.WearEffortQuestion getEffortQuestion();
+
+    /**
+     * <pre>
+     * Lifting a timed set: its seconds. The watch counts down from
+     * lifting_started_at + this instead of up. 0 for any other set.
+     * </pre>
+     *
+     * <code>int32 lifting_target_seconds = 24 [json_name = "liftingTargetSeconds"];</code>
+     * @return The liftingTargetSeconds.
+     */
+    int getLiftingTargetSeconds();
   }
   /**
    * Protobuf type {@code workout.v1.WearWorkoutSnapshot}
@@ -7014,6 +7048,123 @@ public final class Wearable {
      */
     private void clearAmbientCopy() {  ambientCopy_ = null;
       
+    }
+
+    public static final int EFFORT_QUESTION_FIELD_NUMBER = 23;
+    private workout.v1.Wearable.WearEffortQuestion effortQuestion_;
+    /**
+     * <pre>
+     * A set with an effort target, just done: "how many more could you have
+     * done?" and its answers, in the phone's words. The watch shows them as
+     * buttons and answers with AnswerEffortIntent. Unset when none is open.
+     * </pre>
+     *
+     * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+     */
+    @java.lang.Override
+    public boolean hasEffortQuestion() {
+      return effortQuestion_ != null;
+    }
+    /**
+     * <pre>
+     * A set with an effort target, just done: "how many more could you have
+     * done?" and its answers, in the phone's words. The watch shows them as
+     * buttons and answers with AnswerEffortIntent. Unset when none is open.
+     * </pre>
+     *
+     * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Wearable.WearEffortQuestion getEffortQuestion() {
+      return effortQuestion_ == null ? workout.v1.Wearable.WearEffortQuestion.getDefaultInstance() : effortQuestion_;
+    }
+    /**
+     * <pre>
+     * A set with an effort target, just done: "how many more could you have
+     * done?" and its answers, in the phone's words. The watch shows them as
+     * buttons and answers with AnswerEffortIntent. Unset when none is open.
+     * </pre>
+     *
+     * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+     */
+    private void setEffortQuestion(workout.v1.Wearable.WearEffortQuestion value) {
+      value.getClass();
+  effortQuestion_ = value;
+      
+      }
+    /**
+     * <pre>
+     * A set with an effort target, just done: "how many more could you have
+     * done?" and its answers, in the phone's words. The watch shows them as
+     * buttons and answers with AnswerEffortIntent. Unset when none is open.
+     * </pre>
+     *
+     * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeEffortQuestion(workout.v1.Wearable.WearEffortQuestion value) {
+      value.getClass();
+  if (effortQuestion_ != null &&
+          effortQuestion_ != workout.v1.Wearable.WearEffortQuestion.getDefaultInstance()) {
+        effortQuestion_ =
+          workout.v1.Wearable.WearEffortQuestion.newBuilder(effortQuestion_).mergeFrom(value).buildPartial();
+      } else {
+        effortQuestion_ = value;
+      }
+      
+    }
+    /**
+     * <pre>
+     * A set with an effort target, just done: "how many more could you have
+     * done?" and its answers, in the phone's words. The watch shows them as
+     * buttons and answers with AnswerEffortIntent. Unset when none is open.
+     * </pre>
+     *
+     * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+     */
+    private void clearEffortQuestion() {  effortQuestion_ = null;
+      
+    }
+
+    public static final int LIFTING_TARGET_SECONDS_FIELD_NUMBER = 24;
+    private int liftingTargetSeconds_;
+    /**
+     * <pre>
+     * Lifting a timed set: its seconds. The watch counts down from
+     * lifting_started_at + this instead of up. 0 for any other set.
+     * </pre>
+     *
+     * <code>int32 lifting_target_seconds = 24 [json_name = "liftingTargetSeconds"];</code>
+     * @return The liftingTargetSeconds.
+     */
+    @java.lang.Override
+    public int getLiftingTargetSeconds() {
+      return liftingTargetSeconds_;
+    }
+    /**
+     * <pre>
+     * Lifting a timed set: its seconds. The watch counts down from
+     * lifting_started_at + this instead of up. 0 for any other set.
+     * </pre>
+     *
+     * <code>int32 lifting_target_seconds = 24 [json_name = "liftingTargetSeconds"];</code>
+     * @param value The liftingTargetSeconds to set.
+     */
+    private void setLiftingTargetSeconds(int value) {
+      
+      liftingTargetSeconds_ = value;
+    }
+    /**
+     * <pre>
+     * Lifting a timed set: its seconds. The watch counts down from
+     * lifting_started_at + this instead of up. 0 for any other set.
+     * </pre>
+     *
+     * <code>int32 lifting_target_seconds = 24 [json_name = "liftingTargetSeconds"];</code>
+     */
+    private void clearLiftingTargetSeconds() {
+      
+      liftingTargetSeconds_ = 0;
     }
 
     public static workout.v1.Wearable.WearWorkoutSnapshot parseFrom(
@@ -8007,6 +8158,132 @@ public final class Wearable {
         return this;
       }
 
+      /**
+       * <pre>
+       * A set with an effort target, just done: "how many more could you have
+       * done?" and its answers, in the phone's words. The watch shows them as
+       * buttons and answers with AnswerEffortIntent. Unset when none is open.
+       * </pre>
+       *
+       * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+       */
+      @java.lang.Override
+      public boolean hasEffortQuestion() {
+        return instance.hasEffortQuestion();
+      }
+      /**
+       * <pre>
+       * A set with an effort target, just done: "how many more could you have
+       * done?" and its answers, in the phone's words. The watch shows them as
+       * buttons and answers with AnswerEffortIntent. Unset when none is open.
+       * </pre>
+       *
+       * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Wearable.WearEffortQuestion getEffortQuestion() {
+        return instance.getEffortQuestion();
+      }
+      /**
+       * <pre>
+       * A set with an effort target, just done: "how many more could you have
+       * done?" and its answers, in the phone's words. The watch shows them as
+       * buttons and answers with AnswerEffortIntent. Unset when none is open.
+       * </pre>
+       *
+       * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+       */
+      public Builder setEffortQuestion(workout.v1.Wearable.WearEffortQuestion value) {
+        copyOnWrite();
+        instance.setEffortQuestion(value);
+        return this;
+        }
+      /**
+       * <pre>
+       * A set with an effort target, just done: "how many more could you have
+       * done?" and its answers, in the phone's words. The watch shows them as
+       * buttons and answers with AnswerEffortIntent. Unset when none is open.
+       * </pre>
+       *
+       * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+       */
+      public Builder setEffortQuestion(
+          workout.v1.Wearable.WearEffortQuestion.Builder builderForValue) {
+        copyOnWrite();
+        instance.setEffortQuestion(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * A set with an effort target, just done: "how many more could you have
+       * done?" and its answers, in the phone's words. The watch shows them as
+       * buttons and answers with AnswerEffortIntent. Unset when none is open.
+       * </pre>
+       *
+       * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+       */
+      public Builder mergeEffortQuestion(workout.v1.Wearable.WearEffortQuestion value) {
+        copyOnWrite();
+        instance.mergeEffortQuestion(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * A set with an effort target, just done: "how many more could you have
+       * done?" and its answers, in the phone's words. The watch shows them as
+       * buttons and answers with AnswerEffortIntent. Unset when none is open.
+       * </pre>
+       *
+       * <code>.workout.v1.WearEffortQuestion effort_question = 23 [json_name = "effortQuestion"];</code>
+       */
+      public Builder clearEffortQuestion() {  copyOnWrite();
+        instance.clearEffortQuestion();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * Lifting a timed set: its seconds. The watch counts down from
+       * lifting_started_at + this instead of up. 0 for any other set.
+       * </pre>
+       *
+       * <code>int32 lifting_target_seconds = 24 [json_name = "liftingTargetSeconds"];</code>
+       * @return The liftingTargetSeconds.
+       */
+      @java.lang.Override
+      public int getLiftingTargetSeconds() {
+        return instance.getLiftingTargetSeconds();
+      }
+      /**
+       * <pre>
+       * Lifting a timed set: its seconds. The watch counts down from
+       * lifting_started_at + this instead of up. 0 for any other set.
+       * </pre>
+       *
+       * <code>int32 lifting_target_seconds = 24 [json_name = "liftingTargetSeconds"];</code>
+       * @param value The liftingTargetSeconds to set.
+       * @return This builder for chaining.
+       */
+      public Builder setLiftingTargetSeconds(int value) {
+        copyOnWrite();
+        instance.setLiftingTargetSeconds(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * Lifting a timed set: its seconds. The watch counts down from
+       * lifting_started_at + this instead of up. 0 for any other set.
+       * </pre>
+       *
+       * <code>int32 lifting_target_seconds = 24 [json_name = "liftingTargetSeconds"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearLiftingTargetSeconds() {
+        copyOnWrite();
+        instance.clearLiftingTargetSeconds();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.WearWorkoutSnapshot)
     }
     @java.lang.Override
@@ -8040,11 +8317,13 @@ public final class Wearable {
               "upNextText_",
               "ambientCopy_",
               "upNextEmoji_",
+              "effortQuestion_",
+              "liftingTargetSeconds_",
             };
             java.lang.String info =
-                "\u0000\u000f\u0000\u0000\u0001\u0016\u000f\u0000\u0002\u0000\u0001\u0208\u0002\u0002" +
+                "\u0000\u0011\u0000\u0000\u0001\u0018\u0011\u0000\u0002\u0000\u0001\u0208\u0002\u0002" +
                 "\u0003\f\u0004\u0002\u0006\u0002\b\u0208\t\t\u000b\u001b\f\t\u000f\u0002\u0010\u0002" +
-                "\u0011\u001b\u0014\u0208\u0015\t\u0016\u0208";
+                "\u0011\u001b\u0014\u0208\u0015\t\u0016\u0208\u0017\t\u0018\u0004";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -8095,6 +8374,1221 @@ public final class Wearable {
     private static volatile com.google.protobuf.Parser<WearWorkoutSnapshot> PARSER;
 
     public static com.google.protobuf.Parser<WearWorkoutSnapshot> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface WearEffortQuestionOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.WearEffortQuestion)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @return The setId.
+     */
+    java.lang.String getSetId();
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @return The bytes for setId.
+     */
+    com.google.protobuf.ByteString
+        getSetIdBytes();
+
+    /**
+     * <code>string question = 2 [json_name = "question"];</code>
+     * @return The question.
+     */
+    java.lang.String getQuestion();
+    /**
+     * <code>string question = 2 [json_name = "question"];</code>
+     * @return The bytes for question.
+     */
+    com.google.protobuf.ByteString
+        getQuestionBytes();
+
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    java.util.List<workout.v1.Wearable.WearEffortAnswer> 
+        getAnswersList();
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    workout.v1.Wearable.WearEffortAnswer getAnswers(int index);
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    int getAnswersCount();
+
+    /**
+     * <pre>
+     * leaves it unanswered
+     * </pre>
+     *
+     * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+     * @return The skipLabel.
+     */
+    java.lang.String getSkipLabel();
+    /**
+     * <pre>
+     * leaves it unanswered
+     * </pre>
+     *
+     * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+     * @return The bytes for skipLabel.
+     */
+    com.google.protobuf.ByteString
+        getSkipLabelBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.WearEffortQuestion}
+   */
+  public  static final class WearEffortQuestion extends
+      com.google.protobuf.GeneratedMessageLite<
+          WearEffortQuestion, WearEffortQuestion.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.WearEffortQuestion)
+      WearEffortQuestionOrBuilder {
+    private WearEffortQuestion() {
+      setId_ = "";
+      question_ = "";
+      answers_ = emptyProtobufList();
+      skipLabel_ = "";
+    }
+    public static final int SET_ID_FIELD_NUMBER = 1;
+    private java.lang.String setId_;
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @return The setId.
+     */
+    @java.lang.Override
+    public java.lang.String getSetId() {
+      return setId_;
+    }
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @return The bytes for setId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSetIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(setId_);
+    }
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @param value The setId to set.
+     */
+    private void setSetId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      setId_ = value;
+    }
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     */
+    private void clearSetId() {
+      
+      setId_ = getDefaultInstance().getSetId();
+    }
+    /**
+     * <code>string set_id = 1 [json_name = "setId"];</code>
+     * @param value The bytes for setId to set.
+     */
+    private void setSetIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      setId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int QUESTION_FIELD_NUMBER = 2;
+    private java.lang.String question_;
+    /**
+     * <code>string question = 2 [json_name = "question"];</code>
+     * @return The question.
+     */
+    @java.lang.Override
+    public java.lang.String getQuestion() {
+      return question_;
+    }
+    /**
+     * <code>string question = 2 [json_name = "question"];</code>
+     * @return The bytes for question.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getQuestionBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(question_);
+    }
+    /**
+     * <code>string question = 2 [json_name = "question"];</code>
+     * @param value The question to set.
+     */
+    private void setQuestion(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      question_ = value;
+    }
+    /**
+     * <code>string question = 2 [json_name = "question"];</code>
+     */
+    private void clearQuestion() {
+      
+      question_ = getDefaultInstance().getQuestion();
+    }
+    /**
+     * <code>string question = 2 [json_name = "question"];</code>
+     * @param value The bytes for question to set.
+     */
+    private void setQuestionBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      question_ = value.toStringUtf8();
+      
+    }
+
+    public static final int ANSWERS_FIELD_NUMBER = 3;
+    private com.google.protobuf.Internal.ProtobufList<workout.v1.Wearable.WearEffortAnswer> answers_;
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    @java.lang.Override
+    public java.util.List<workout.v1.Wearable.WearEffortAnswer> getAnswersList() {
+      return answers_;
+    }
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    public java.util.List<? extends workout.v1.Wearable.WearEffortAnswerOrBuilder> 
+        getAnswersOrBuilderList() {
+      return answers_;
+    }
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    @java.lang.Override
+    public int getAnswersCount() {
+      return answers_.size();
+    }
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Wearable.WearEffortAnswer getAnswers(int index) {
+      return answers_.get(index);
+    }
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    public workout.v1.Wearable.WearEffortAnswerOrBuilder getAnswersOrBuilder(
+        int index) {
+      return answers_.get(index);
+    }
+    private void ensureAnswersIsMutable() {
+      com.google.protobuf.Internal.ProtobufList<workout.v1.Wearable.WearEffortAnswer> tmp = answers_;
+      if (!tmp.isModifiable()) {
+        answers_ =
+            com.google.protobuf.GeneratedMessageLite.mutableCopy(tmp);
+       }
+    }
+
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    private void setAnswers(
+        int index, workout.v1.Wearable.WearEffortAnswer value) {
+      value.getClass();
+  ensureAnswersIsMutable();
+      answers_.set(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    private void addAnswers(workout.v1.Wearable.WearEffortAnswer value) {
+      value.getClass();
+  ensureAnswersIsMutable();
+      answers_.add(value);
+    }
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    private void addAnswers(
+        int index, workout.v1.Wearable.WearEffortAnswer value) {
+      value.getClass();
+  ensureAnswersIsMutable();
+      answers_.add(index, value);
+    }
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    private void addAllAnswers(
+        java.lang.Iterable<? extends workout.v1.Wearable.WearEffortAnswer> values) {
+      ensureAnswersIsMutable();
+      com.google.protobuf.AbstractMessageLite.addAll(
+          values, answers_);
+    }
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    private void clearAnswers() {
+      answers_ = emptyProtobufList();
+    }
+    /**
+     * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+     */
+    private void removeAnswers(int index) {
+      ensureAnswersIsMutable();
+      answers_.remove(index);
+    }
+
+    public static final int SKIP_LABEL_FIELD_NUMBER = 4;
+    private java.lang.String skipLabel_;
+    /**
+     * <pre>
+     * leaves it unanswered
+     * </pre>
+     *
+     * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+     * @return The skipLabel.
+     */
+    @java.lang.Override
+    public java.lang.String getSkipLabel() {
+      return skipLabel_;
+    }
+    /**
+     * <pre>
+     * leaves it unanswered
+     * </pre>
+     *
+     * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+     * @return The bytes for skipLabel.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSkipLabelBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(skipLabel_);
+    }
+    /**
+     * <pre>
+     * leaves it unanswered
+     * </pre>
+     *
+     * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+     * @param value The skipLabel to set.
+     */
+    private void setSkipLabel(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      skipLabel_ = value;
+    }
+    /**
+     * <pre>
+     * leaves it unanswered
+     * </pre>
+     *
+     * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+     */
+    private void clearSkipLabel() {
+      
+      skipLabel_ = getDefaultInstance().getSkipLabel();
+    }
+    /**
+     * <pre>
+     * leaves it unanswered
+     * </pre>
+     *
+     * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+     * @param value The bytes for skipLabel to set.
+     */
+    private void setSkipLabelBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      skipLabel_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Wearable.WearEffortQuestion parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearEffortQuestion parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearEffortQuestion parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearEffortQuestion parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearEffortQuestion parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearEffortQuestion parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearEffortQuestion parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearEffortQuestion parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearEffortQuestion parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearEffortQuestion parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearEffortQuestion parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearEffortQuestion parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Wearable.WearEffortQuestion prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.WearEffortQuestion}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Wearable.WearEffortQuestion, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.WearEffortQuestion)
+        workout.v1.Wearable.WearEffortQuestionOrBuilder {
+      // Construct using workout.v1.Wearable.WearEffortQuestion.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string set_id = 1 [json_name = "setId"];</code>
+       * @return The setId.
+       */
+      @java.lang.Override
+      public java.lang.String getSetId() {
+        return instance.getSetId();
+      }
+      /**
+       * <code>string set_id = 1 [json_name = "setId"];</code>
+       * @return The bytes for setId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSetIdBytes() {
+        return instance.getSetIdBytes();
+      }
+      /**
+       * <code>string set_id = 1 [json_name = "setId"];</code>
+       * @param value The setId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSetId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSetId(value);
+        return this;
+      }
+      /**
+       * <code>string set_id = 1 [json_name = "setId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSetId() {
+        copyOnWrite();
+        instance.clearSetId();
+        return this;
+      }
+      /**
+       * <code>string set_id = 1 [json_name = "setId"];</code>
+       * @param value The bytes for setId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSetIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSetIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string question = 2 [json_name = "question"];</code>
+       * @return The question.
+       */
+      @java.lang.Override
+      public java.lang.String getQuestion() {
+        return instance.getQuestion();
+      }
+      /**
+       * <code>string question = 2 [json_name = "question"];</code>
+       * @return The bytes for question.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getQuestionBytes() {
+        return instance.getQuestionBytes();
+      }
+      /**
+       * <code>string question = 2 [json_name = "question"];</code>
+       * @param value The question to set.
+       * @return This builder for chaining.
+       */
+      public Builder setQuestion(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setQuestion(value);
+        return this;
+      }
+      /**
+       * <code>string question = 2 [json_name = "question"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearQuestion() {
+        copyOnWrite();
+        instance.clearQuestion();
+        return this;
+      }
+      /**
+       * <code>string question = 2 [json_name = "question"];</code>
+       * @param value The bytes for question to set.
+       * @return This builder for chaining.
+       */
+      public Builder setQuestionBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setQuestionBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      @java.lang.Override
+      public java.util.List<workout.v1.Wearable.WearEffortAnswer> getAnswersList() {
+        return java.util.Collections.unmodifiableList(
+            instance.getAnswersList());
+      }
+      /**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      @java.lang.Override
+      public int getAnswersCount() {
+        return instance.getAnswersCount();
+      }/**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Wearable.WearEffortAnswer getAnswers(int index) {
+        return instance.getAnswers(index);
+      }
+      /**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      public Builder setAnswers(
+          int index, workout.v1.Wearable.WearEffortAnswer value) {
+        copyOnWrite();
+        instance.setAnswers(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      public Builder setAnswers(
+          int index, workout.v1.Wearable.WearEffortAnswer.Builder builderForValue) {
+        copyOnWrite();
+        instance.setAnswers(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      public Builder addAnswers(workout.v1.Wearable.WearEffortAnswer value) {
+        copyOnWrite();
+        instance.addAnswers(value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      public Builder addAnswers(
+          int index, workout.v1.Wearable.WearEffortAnswer value) {
+        copyOnWrite();
+        instance.addAnswers(index, value);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      public Builder addAnswers(
+          workout.v1.Wearable.WearEffortAnswer.Builder builderForValue) {
+        copyOnWrite();
+        instance.addAnswers(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      public Builder addAnswers(
+          int index, workout.v1.Wearable.WearEffortAnswer.Builder builderForValue) {
+        copyOnWrite();
+        instance.addAnswers(index,
+            builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      public Builder addAllAnswers(
+          java.lang.Iterable<? extends workout.v1.Wearable.WearEffortAnswer> values) {
+        copyOnWrite();
+        instance.addAllAnswers(values);
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      public Builder clearAnswers() {
+        copyOnWrite();
+        instance.clearAnswers();
+        return this;
+      }
+      /**
+       * <code>repeated .workout.v1.WearEffortAnswer answers = 3 [json_name = "answers"];</code>
+       */
+      public Builder removeAnswers(int index) {
+        copyOnWrite();
+        instance.removeAnswers(index);
+        return this;
+      }
+
+      /**
+       * <pre>
+       * leaves it unanswered
+       * </pre>
+       *
+       * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+       * @return The skipLabel.
+       */
+      @java.lang.Override
+      public java.lang.String getSkipLabel() {
+        return instance.getSkipLabel();
+      }
+      /**
+       * <pre>
+       * leaves it unanswered
+       * </pre>
+       *
+       * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+       * @return The bytes for skipLabel.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSkipLabelBytes() {
+        return instance.getSkipLabelBytes();
+      }
+      /**
+       * <pre>
+       * leaves it unanswered
+       * </pre>
+       *
+       * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+       * @param value The skipLabel to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSkipLabel(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSkipLabel(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * leaves it unanswered
+       * </pre>
+       *
+       * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSkipLabel() {
+        copyOnWrite();
+        instance.clearSkipLabel();
+        return this;
+      }
+      /**
+       * <pre>
+       * leaves it unanswered
+       * </pre>
+       *
+       * <code>string skip_label = 4 [json_name = "skipLabel"];</code>
+       * @param value The bytes for skipLabel to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSkipLabelBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSkipLabelBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.WearEffortQuestion)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Wearable.WearEffortQuestion();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "setId_",
+              "question_",
+              "answers_",
+              workout.v1.Wearable.WearEffortAnswer.class,
+              "skipLabel_",
+            };
+            java.lang.String info =
+                "\u0000\u0004\u0000\u0000\u0001\u0004\u0004\u0000\u0001\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\u001b\u0004\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Wearable.WearEffortQuestion> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Wearable.WearEffortQuestion.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Wearable.WearEffortQuestion>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.WearEffortQuestion)
+    private static final workout.v1.Wearable.WearEffortQuestion DEFAULT_INSTANCE;
+    static {
+      WearEffortQuestion defaultInstance = new WearEffortQuestion();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        WearEffortQuestion.class, defaultInstance);
+    }
+
+    public static workout.v1.Wearable.WearEffortQuestion getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<WearEffortQuestion> PARSER;
+
+    public static com.google.protobuf.Parser<WearEffortQuestion> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface WearEffortAnswerOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.WearEffortAnswer)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+     * @return The enum numeric value on the wire for repsLeft.
+     */
+    int getRepsLeftValue();
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+     * @return The repsLeft.
+     */
+    workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft();
+
+    /**
+     * <pre>
+     * "2–4"
+     * </pre>
+     *
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @return The label.
+     */
+    java.lang.String getLabel();
+    /**
+     * <pre>
+     * "2–4"
+     * </pre>
+     *
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @return The bytes for label.
+     */
+    com.google.protobuf.ByteString
+        getLabelBytes();
+  }
+  /**
+   * Protobuf type {@code workout.v1.WearEffortAnswer}
+   */
+  public  static final class WearEffortAnswer extends
+      com.google.protobuf.GeneratedMessageLite<
+          WearEffortAnswer, WearEffortAnswer.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.WearEffortAnswer)
+      WearEffortAnswerOrBuilder {
+    private WearEffortAnswer() {
+      label_ = "";
+    }
+    public static final int REPS_LEFT_FIELD_NUMBER = 1;
+    private int repsLeft_;
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+     * @return The enum numeric value on the wire for repsLeft.
+     */
+    @java.lang.Override
+    public int getRepsLeftValue() {
+      return repsLeft_;
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+     * @return The repsLeft.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft() {
+      workout.v1.WorkoutOuterClass.RepsLeft result = workout.v1.WorkoutOuterClass.RepsLeft.forNumber(repsLeft_);
+      return result == null ? workout.v1.WorkoutOuterClass.RepsLeft.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+     * @param value The enum numeric value on the wire for repsLeft to set.
+     */
+    private void setRepsLeftValue(int value) {
+        repsLeft_ = value;
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+     * @param value The repsLeft to set.
+     */
+    private void setRepsLeft(workout.v1.WorkoutOuterClass.RepsLeft value) {
+      repsLeft_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+     */
+    private void clearRepsLeft() {
+      
+      repsLeft_ = 0;
+    }
+
+    public static final int LABEL_FIELD_NUMBER = 2;
+    private java.lang.String label_;
+    /**
+     * <pre>
+     * "2–4"
+     * </pre>
+     *
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @return The label.
+     */
+    @java.lang.Override
+    public java.lang.String getLabel() {
+      return label_;
+    }
+    /**
+     * <pre>
+     * "2–4"
+     * </pre>
+     *
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @return The bytes for label.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getLabelBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(label_);
+    }
+    /**
+     * <pre>
+     * "2–4"
+     * </pre>
+     *
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @param value The label to set.
+     */
+    private void setLabel(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      label_ = value;
+    }
+    /**
+     * <pre>
+     * "2–4"
+     * </pre>
+     *
+     * <code>string label = 2 [json_name = "label"];</code>
+     */
+    private void clearLabel() {
+      
+      label_ = getDefaultInstance().getLabel();
+    }
+    /**
+     * <pre>
+     * "2–4"
+     * </pre>
+     *
+     * <code>string label = 2 [json_name = "label"];</code>
+     * @param value The bytes for label to set.
+     */
+    private void setLabelBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      label_ = value.toStringUtf8();
+      
+    }
+
+    public static workout.v1.Wearable.WearEffortAnswer parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearEffortAnswer parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearEffortAnswer parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearEffortAnswer parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearEffortAnswer parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.WearEffortAnswer parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearEffortAnswer parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearEffortAnswer parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearEffortAnswer parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearEffortAnswer parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.WearEffortAnswer parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.WearEffortAnswer parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Wearable.WearEffortAnswer prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code workout.v1.WearEffortAnswer}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Wearable.WearEffortAnswer, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.WearEffortAnswer)
+        workout.v1.Wearable.WearEffortAnswerOrBuilder {
+      // Construct using workout.v1.Wearable.WearEffortAnswer.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+       * @return The enum numeric value on the wire for repsLeft.
+       */
+      @java.lang.Override
+      public int getRepsLeftValue() {
+        return instance.getRepsLeftValue();
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+       * @param value The repsLeft to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRepsLeftValue(int value) {
+        copyOnWrite();
+        instance.setRepsLeftValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+       * @return The repsLeft.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft() {
+        return instance.getRepsLeft();
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+       * @param value The enum numeric value on the wire for repsLeft to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRepsLeft(workout.v1.WorkoutOuterClass.RepsLeft value) {
+        copyOnWrite();
+        instance.setRepsLeft(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 1 [json_name = "repsLeft"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRepsLeft() {
+        copyOnWrite();
+        instance.clearRepsLeft();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * "2–4"
+       * </pre>
+       *
+       * <code>string label = 2 [json_name = "label"];</code>
+       * @return The label.
+       */
+      @java.lang.Override
+      public java.lang.String getLabel() {
+        return instance.getLabel();
+      }
+      /**
+       * <pre>
+       * "2–4"
+       * </pre>
+       *
+       * <code>string label = 2 [json_name = "label"];</code>
+       * @return The bytes for label.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getLabelBytes() {
+        return instance.getLabelBytes();
+      }
+      /**
+       * <pre>
+       * "2–4"
+       * </pre>
+       *
+       * <code>string label = 2 [json_name = "label"];</code>
+       * @param value The label to set.
+       * @return This builder for chaining.
+       */
+      public Builder setLabel(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setLabel(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * "2–4"
+       * </pre>
+       *
+       * <code>string label = 2 [json_name = "label"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearLabel() {
+        copyOnWrite();
+        instance.clearLabel();
+        return this;
+      }
+      /**
+       * <pre>
+       * "2–4"
+       * </pre>
+       *
+       * <code>string label = 2 [json_name = "label"];</code>
+       * @param value The bytes for label to set.
+       * @return This builder for chaining.
+       */
+      public Builder setLabelBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setLabelBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.WearEffortAnswer)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Wearable.WearEffortAnswer();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "repsLeft_",
+              "label_",
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\f\u0002\u0208" +
+                "";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Wearable.WearEffortAnswer> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Wearable.WearEffortAnswer.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Wearable.WearEffortAnswer>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.WearEffortAnswer)
+    private static final workout.v1.Wearable.WearEffortAnswer DEFAULT_INSTANCE;
+    static {
+      WearEffortAnswer defaultInstance = new WearEffortAnswer();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        WearEffortAnswer.class, defaultInstance);
+    }
+
+    public static workout.v1.Wearable.WearEffortAnswer getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<WearEffortAnswer> PARSER;
+
+    public static com.google.protobuf.Parser<WearEffortAnswer> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }
@@ -10483,6 +11977,517 @@ public final class Wearable {
     }
   }
 
+  public interface AnswerEffortIntentOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.AnswerEffortIntent)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The workoutId.
+     */
+    java.lang.String getWorkoutId();
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The bytes for workoutId.
+     */
+    com.google.protobuf.ByteString
+        getWorkoutIdBytes();
+
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @return The setId.
+     */
+    java.lang.String getSetId();
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @return The bytes for setId.
+     */
+    com.google.protobuf.ByteString
+        getSetIdBytes();
+
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @return The enum numeric value on the wire for repsLeft.
+     */
+    int getRepsLeftValue();
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @return The repsLeft.
+     */
+    workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft();
+  }
+  /**
+   * <pre>
+   * An answer to the effort question on the watch.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.AnswerEffortIntent}
+   */
+  public  static final class AnswerEffortIntent extends
+      com.google.protobuf.GeneratedMessageLite<
+          AnswerEffortIntent, AnswerEffortIntent.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.AnswerEffortIntent)
+      AnswerEffortIntentOrBuilder {
+    private AnswerEffortIntent() {
+      workoutId_ = "";
+      setId_ = "";
+    }
+    public static final int WORKOUT_ID_FIELD_NUMBER = 1;
+    private java.lang.String workoutId_;
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The workoutId.
+     */
+    @java.lang.Override
+    public java.lang.String getWorkoutId() {
+      return workoutId_;
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @return The bytes for workoutId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getWorkoutIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(workoutId_);
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @param value The workoutId to set.
+     */
+    private void setWorkoutId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      workoutId_ = value;
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     */
+    private void clearWorkoutId() {
+      
+      workoutId_ = getDefaultInstance().getWorkoutId();
+    }
+    /**
+     * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+     * @param value The bytes for workoutId to set.
+     */
+    private void setWorkoutIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      workoutId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int SET_ID_FIELD_NUMBER = 2;
+    private java.lang.String setId_;
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @return The setId.
+     */
+    @java.lang.Override
+    public java.lang.String getSetId() {
+      return setId_;
+    }
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @return The bytes for setId.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getSetIdBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(setId_);
+    }
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @param value The setId to set.
+     */
+    private void setSetId(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      setId_ = value;
+    }
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     */
+    private void clearSetId() {
+      
+      setId_ = getDefaultInstance().getSetId();
+    }
+    /**
+     * <code>string set_id = 2 [json_name = "setId"];</code>
+     * @param value The bytes for setId to set.
+     */
+    private void setSetIdBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      setId_ = value.toStringUtf8();
+      
+    }
+
+    public static final int REPS_LEFT_FIELD_NUMBER = 3;
+    private int repsLeft_;
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @return The enum numeric value on the wire for repsLeft.
+     */
+    @java.lang.Override
+    public int getRepsLeftValue() {
+      return repsLeft_;
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @return The repsLeft.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft() {
+      workout.v1.WorkoutOuterClass.RepsLeft result = workout.v1.WorkoutOuterClass.RepsLeft.forNumber(repsLeft_);
+      return result == null ? workout.v1.WorkoutOuterClass.RepsLeft.UNRECOGNIZED : result;
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @param value The enum numeric value on the wire for repsLeft to set.
+     */
+    private void setRepsLeftValue(int value) {
+        repsLeft_ = value;
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     * @param value The repsLeft to set.
+     */
+    private void setRepsLeft(workout.v1.WorkoutOuterClass.RepsLeft value) {
+      repsLeft_ = value.getNumber();
+      
+    }
+    /**
+     * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+     */
+    private void clearRepsLeft() {
+      
+      repsLeft_ = 0;
+    }
+
+    public static workout.v1.Wearable.AnswerEffortIntent parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.AnswerEffortIntent parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.AnswerEffortIntent parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.AnswerEffortIntent parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.AnswerEffortIntent parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.Wearable.AnswerEffortIntent parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.Wearable.AnswerEffortIntent parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.AnswerEffortIntent parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.AnswerEffortIntent parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.AnswerEffortIntent parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.Wearable.AnswerEffortIntent parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.Wearable.AnswerEffortIntent parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.Wearable.AnswerEffortIntent prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * An answer to the effort question on the watch.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.AnswerEffortIntent}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.Wearable.AnswerEffortIntent, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.AnswerEffortIntent)
+        workout.v1.Wearable.AnswerEffortIntentOrBuilder {
+      // Construct using workout.v1.Wearable.AnswerEffortIntent.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @return The workoutId.
+       */
+      @java.lang.Override
+      public java.lang.String getWorkoutId() {
+        return instance.getWorkoutId();
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @return The bytes for workoutId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getWorkoutIdBytes() {
+        return instance.getWorkoutIdBytes();
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @param value The workoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setWorkoutId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setWorkoutId(value);
+        return this;
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearWorkoutId() {
+        copyOnWrite();
+        instance.clearWorkoutId();
+        return this;
+      }
+      /**
+       * <code>string workout_id = 1 [json_name = "workoutId"];</code>
+       * @param value The bytes for workoutId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setWorkoutIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setWorkoutIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string set_id = 2 [json_name = "setId"];</code>
+       * @return The setId.
+       */
+      @java.lang.Override
+      public java.lang.String getSetId() {
+        return instance.getSetId();
+      }
+      /**
+       * <code>string set_id = 2 [json_name = "setId"];</code>
+       * @return The bytes for setId.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getSetIdBytes() {
+        return instance.getSetIdBytes();
+      }
+      /**
+       * <code>string set_id = 2 [json_name = "setId"];</code>
+       * @param value The setId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSetId(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setSetId(value);
+        return this;
+      }
+      /**
+       * <code>string set_id = 2 [json_name = "setId"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSetId() {
+        copyOnWrite();
+        instance.clearSetId();
+        return this;
+      }
+      /**
+       * <code>string set_id = 2 [json_name = "setId"];</code>
+       * @param value The bytes for setId to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSetIdBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setSetIdBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+       * @return The enum numeric value on the wire for repsLeft.
+       */
+      @java.lang.Override
+      public int getRepsLeftValue() {
+        return instance.getRepsLeftValue();
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+       * @param value The repsLeft to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRepsLeftValue(int value) {
+        copyOnWrite();
+        instance.setRepsLeftValue(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+       * @return The repsLeft.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.RepsLeft getRepsLeft() {
+        return instance.getRepsLeft();
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+       * @param value The enum numeric value on the wire for repsLeft to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRepsLeft(workout.v1.WorkoutOuterClass.RepsLeft value) {
+        copyOnWrite();
+        instance.setRepsLeft(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.RepsLeft reps_left = 3 [json_name = "repsLeft"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRepsLeft() {
+        copyOnWrite();
+        instance.clearRepsLeft();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.AnswerEffortIntent)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.Wearable.AnswerEffortIntent();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "workoutId_",
+              "setId_",
+              "repsLeft_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0003\f";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.Wearable.AnswerEffortIntent> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.Wearable.AnswerEffortIntent.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.Wearable.AnswerEffortIntent>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.AnswerEffortIntent)
+    private static final workout.v1.Wearable.AnswerEffortIntent DEFAULT_INSTANCE;
+    static {
+      AnswerEffortIntent defaultInstance = new AnswerEffortIntent();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        AnswerEffortIntent.class, defaultInstance);
+    }
+
+    public static workout.v1.Wearable.AnswerEffortIntent getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<AnswerEffortIntent> PARSER;
+
+    public static com.google.protobuf.Parser<AnswerEffortIntent> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
   public interface WearIntentOrBuilder extends
       // @@protoc_insertion_point(interface_extends:workout.v1.WearIntent)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -10551,6 +12556,17 @@ public final class Wearable {
      */
     workout.v1.Wearable.TapSetIntent getTapSet();
 
+    /**
+     * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+     * @return Whether the answerEffort field is set.
+     */
+    boolean hasAnswerEffort();
+    /**
+     * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+     * @return The answerEffort.
+     */
+    workout.v1.Wearable.AnswerEffortIntent getAnswerEffort();
+
     public workout.v1.Wearable.WearIntent.IntentCase getIntentCase();
   }
   /**
@@ -10571,6 +12587,7 @@ public final class Wearable {
       END_WORKOUT(13),
       START_SET(17),
       TAP_SET(19),
+      ANSWER_EFFORT(20),
       INTENT_NOT_SET(0);
       private final int value;
       private IntentCase(int value) {
@@ -10590,6 +12607,7 @@ public final class Wearable {
           case 13: return END_WORKOUT;
           case 17: return START_SET;
           case 19: return TAP_SET;
+          case 20: return ANSWER_EFFORT;
           case 0: return INTENT_NOT_SET;
           default: return null;
         }
@@ -10873,6 +12891,56 @@ public final class Wearable {
      */
     private void clearTapSet() {
       if (intentCase_ == 19) {
+        intentCase_ = 0;
+        intent_ = null;
+      }
+    }
+
+    public static final int ANSWER_EFFORT_FIELD_NUMBER = 20;
+    /**
+     * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+     */
+    @java.lang.Override
+    public boolean hasAnswerEffort() {
+      return intentCase_ == 20;
+    }
+    /**
+     * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.Wearable.AnswerEffortIntent getAnswerEffort() {
+      if (intentCase_ == 20) {
+         return (workout.v1.Wearable.AnswerEffortIntent) intent_;
+      }
+      return workout.v1.Wearable.AnswerEffortIntent.getDefaultInstance();
+    }
+    /**
+     * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+     */
+    private void setAnswerEffort(workout.v1.Wearable.AnswerEffortIntent value) {
+      value.getClass();
+  intent_ = value;
+      intentCase_ = 20;
+    }
+    /**
+     * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+     */
+    private void mergeAnswerEffort(workout.v1.Wearable.AnswerEffortIntent value) {
+      value.getClass();
+  if (intentCase_ == 20 &&
+          intent_ != workout.v1.Wearable.AnswerEffortIntent.getDefaultInstance()) {
+        intent_ = workout.v1.Wearable.AnswerEffortIntent.newBuilder((workout.v1.Wearable.AnswerEffortIntent) intent_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        intent_ = value;
+      }
+      intentCase_ = 20;
+    }
+    /**
+     * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+     */
+    private void clearAnswerEffort() {
+      if (intentCase_ == 20) {
         intentCase_ = 0;
         intent_ = null;
       }
@@ -11246,6 +13314,54 @@ public final class Wearable {
         return this;
       }
 
+      /**
+       * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+       */
+      @java.lang.Override
+      public boolean hasAnswerEffort() {
+        return instance.hasAnswerEffort();
+      }
+      /**
+       * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.Wearable.AnswerEffortIntent getAnswerEffort() {
+        return instance.getAnswerEffort();
+      }
+      /**
+       * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+       */
+      public Builder setAnswerEffort(workout.v1.Wearable.AnswerEffortIntent value) {
+        copyOnWrite();
+        instance.setAnswerEffort(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+       */
+      public Builder setAnswerEffort(
+          workout.v1.Wearable.AnswerEffortIntent.Builder builderForValue) {
+        copyOnWrite();
+        instance.setAnswerEffort(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+       */
+      public Builder mergeAnswerEffort(workout.v1.Wearable.AnswerEffortIntent value) {
+        copyOnWrite();
+        instance.mergeAnswerEffort(value);
+        return this;
+      }
+      /**
+       * <code>.workout.v1.AnswerEffortIntent answer_effort = 20 [json_name = "answerEffort"];</code>
+       */
+      public Builder clearAnswerEffort() {
+        copyOnWrite();
+        instance.clearAnswerEffort();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.WearIntent)
     }
     @java.lang.Override
@@ -11269,10 +13385,11 @@ public final class Wearable {
               workout.v1.Wearable.EndWorkoutIntent.class,
               workout.v1.Wearable.StartSetIntent.class,
               workout.v1.Wearable.TapSetIntent.class,
+              workout.v1.Wearable.AnswerEffortIntent.class,
             };
             java.lang.String info =
-                "\u0000\u0005\u0001\u0000\u0001\u0013\u0005\u0000\u0000\u0000\u0001\u0208\u000b<\u0000" +
-                "\r<\u0000\u0011<\u0000\u0013<\u0000";
+                "\u0000\u0006\u0001\u0000\u0001\u0014\u0006\u0000\u0000\u0000\u0001\u0208\u000b<\u0000" +
+                "\r<\u0000\u0011<\u0000\u0013<\u0000\u0014<\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

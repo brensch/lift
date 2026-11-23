@@ -18,7 +18,6 @@ import '../../logic/exercises.dart';
 import '../../theme/app_icons.dart';
 import '../../providers/settings_provider.dart';
 import '../../logic/set_labels.dart';
-import '../../logic/weight_units.dart';
 import '../../theme/theme_spec.dart';
 import 'section_workout.dart';
 import 'live_set_circle.dart';
@@ -145,15 +144,7 @@ class _ExerciseSectionState extends State<ExerciseSection> {
 
     // Under a circle, small: its weight where it isn't the header's (a
     // back-off, a drop, a pyramid step) and its effort target ("@2").
-    String? caption(ProposedSet set) {
-      final parts = [
-        if (targetSet != null &&
-            (set.targetWeight - targetSet.targetWeight).abs() > 0.01)
-          formatWeight(set.targetWeight.toDouble(), unit),
-        if (set.hasTargetRir()) '@${set.targetRir}',
-      ];
-      return parts.isEmpty ? null : parts.join(' ');
-    }
+    String? caption(ProposedSet set) => circleCaption(set, targetSet, unit);
 
     // A row's circles, captioned when any of them needs one, so a row's
     // circles stay level.

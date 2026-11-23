@@ -322,6 +322,21 @@ const WearWorkoutSnapshot$json = {
       '6': '.workout.v1.WearAmbientCopy',
       '10': 'ambientCopy'
     },
+    {
+      '1': 'effort_question',
+      '3': 23,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.WearEffortQuestion',
+      '10': 'effortQuestion'
+    },
+    {
+      '1': 'lifting_target_seconds',
+      '3': 24,
+      '4': 1,
+      '5': 5,
+      '10': 'liftingTargetSeconds'
+    },
   ],
   '9': [
     {'1': 5, '2': 6},
@@ -355,9 +370,57 @@ final $typed_data.Uint8List wearWorkoutSnapshotDescriptor = $convert.base64Decod
     'ABKANSDmxhc3RTZXRFbmRlZEF0EjMKB2NpcmNsZXMYESADKAsyGS53b3Jrb3V0LnYxLldlYXJT'
     'ZXRDaXJjbGVSB2NpcmNsZXMSIAoMdXBfbmV4dF90ZXh0GBQgASgJUgp1cE5leHRUZXh0EiIKDX'
     'VwX25leHRfZW1vamkYFiABKAlSC3VwTmV4dEVtb2ppEj4KDGFtYmllbnRfY29weRgVIAEoCzIb'
-    'LndvcmtvdXQudjEuV2VhckFtYmllbnRDb3B5UgthbWJpZW50Q29weUoECAUQBkoECAcQCEoECB'
-    'IQE0oECBMQFEoECAoQC0oECA0QDkoECA4QD1IRYWN0aXZlX3N0YXJ0ZWRfYXRSDWxhc3RfcmVz'
-    'dF9lbmRSCmdyb3VwX2NhcmRSDWVmZm9ydF9wcm9tcHRSDW5leHRfdXBfZW1vamk=');
+    'LndvcmtvdXQudjEuV2VhckFtYmllbnRDb3B5UgthbWJpZW50Q29weRJHCg9lZmZvcnRfcXVlc3'
+    'Rpb24YFyABKAsyHi53b3Jrb3V0LnYxLldlYXJFZmZvcnRRdWVzdGlvblIOZWZmb3J0UXVlc3Rp'
+    'b24SNAoWbGlmdGluZ190YXJnZXRfc2Vjb25kcxgYIAEoBVIUbGlmdGluZ1RhcmdldFNlY29uZH'
+    'NKBAgFEAZKBAgHEAhKBAgSEBNKBAgTEBRKBAgKEAtKBAgNEA5KBAgOEA9SEWFjdGl2ZV9zdGFy'
+    'dGVkX2F0Ug1sYXN0X3Jlc3RfZW5kUgpncm91cF9jYXJkUg1lZmZvcnRfcHJvbXB0Ug1uZXh0X3'
+    'VwX2Vtb2pp');
+
+@$core.Deprecated('Use wearEffortQuestionDescriptor instead')
+const WearEffortQuestion$json = {
+  '1': 'WearEffortQuestion',
+  '2': [
+    {'1': 'set_id', '3': 1, '4': 1, '5': 9, '10': 'setId'},
+    {'1': 'question', '3': 2, '4': 1, '5': 9, '10': 'question'},
+    {
+      '1': 'answers',
+      '3': 3,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.WearEffortAnswer',
+      '10': 'answers'
+    },
+    {'1': 'skip_label', '3': 4, '4': 1, '5': 9, '10': 'skipLabel'},
+  ],
+};
+
+/// Descriptor for `WearEffortQuestion`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List wearEffortQuestionDescriptor = $convert.base64Decode(
+    'ChJXZWFyRWZmb3J0UXVlc3Rpb24SFQoGc2V0X2lkGAEgASgJUgVzZXRJZBIaCghxdWVzdGlvbh'
+    'gCIAEoCVIIcXVlc3Rpb24SNgoHYW5zd2VycxgDIAMoCzIcLndvcmtvdXQudjEuV2VhckVmZm9y'
+    'dEFuc3dlclIHYW5zd2VycxIdCgpza2lwX2xhYmVsGAQgASgJUglza2lwTGFiZWw=');
+
+@$core.Deprecated('Use wearEffortAnswerDescriptor instead')
+const WearEffortAnswer$json = {
+  '1': 'WearEffortAnswer',
+  '2': [
+    {
+      '1': 'reps_left',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.RepsLeft',
+      '10': 'repsLeft'
+    },
+    {'1': 'label', '3': 2, '4': 1, '5': 9, '10': 'label'},
+  ],
+};
+
+/// Descriptor for `WearEffortAnswer`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List wearEffortAnswerDescriptor = $convert.base64Decode(
+    'ChBXZWFyRWZmb3J0QW5zd2VyEjEKCXJlcHNfbGVmdBgBIAEoDjIULndvcmtvdXQudjEuUmVwc0'
+    'xlZnRSCHJlcHNMZWZ0EhQKBWxhYmVsGAIgASgJUgVsYWJlbA==');
 
 @$core.Deprecated('Use wearCompletionSummaryDescriptor instead')
 const WearCompletionSummary$json = {
@@ -451,6 +514,29 @@ const EndWorkoutIntent$json = {
 final $typed_data.Uint8List endWorkoutIntentDescriptor = $convert.base64Decode(
     'ChBFbmRXb3Jrb3V0SW50ZW50Eh0KCndvcmtvdXRfaWQYASABKAlSCXdvcmtvdXRJZA==');
 
+@$core.Deprecated('Use answerEffortIntentDescriptor instead')
+const AnswerEffortIntent$json = {
+  '1': 'AnswerEffortIntent',
+  '2': [
+    {'1': 'workout_id', '3': 1, '4': 1, '5': 9, '10': 'workoutId'},
+    {'1': 'set_id', '3': 2, '4': 1, '5': 9, '10': 'setId'},
+    {
+      '1': 'reps_left',
+      '3': 3,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.RepsLeft',
+      '10': 'repsLeft'
+    },
+  ],
+};
+
+/// Descriptor for `AnswerEffortIntent`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List answerEffortIntentDescriptor = $convert.base64Decode(
+    'ChJBbnN3ZXJFZmZvcnRJbnRlbnQSHQoKd29ya291dF9pZBgBIAEoCVIJd29ya291dElkEhUKBn'
+    'NldF9pZBgCIAEoCVIFc2V0SWQSMQoJcmVwc19sZWZ0GAMgASgOMhQud29ya291dC52MS5SZXBz'
+    'TGVmdFIIcmVwc0xlZnQ=');
+
 @$core.Deprecated('Use wearIntentDescriptor instead')
 const WearIntent$json = {
   '1': 'WearIntent',
@@ -492,6 +578,15 @@ const WearIntent$json = {
       '9': 0,
       '10': 'tapSet'
     },
+    {
+      '1': 'answer_effort',
+      '3': 20,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.AnswerEffortIntent',
+      '9': 0,
+      '10': 'answerEffort'
+    },
   ],
   '8': [
     {'1': 'intent'},
@@ -522,9 +617,10 @@ final $typed_data.Uint8List wearIntentDescriptor = $convert.base64Decode(
     'CgtlbmRfd29ya291dBgNIAEoCzIcLndvcmtvdXQudjEuRW5kV29ya291dEludGVudEgAUgplbm'
     'RXb3Jrb3V0EjkKCXN0YXJ0X3NldBgRIAEoCzIaLndvcmtvdXQudjEuU3RhcnRTZXRJbnRlbnRI'
     'AFIIc3RhcnRTZXQSMwoHdGFwX3NldBgTIAEoCzIYLndvcmtvdXQudjEuVGFwU2V0SW50ZW50SA'
-    'BSBnRhcFNldEIICgZpbnRlbnRKBAgCEANKBAgKEAtKBAgMEA1KBAgOEA9KBAgPEBBKBAgQEBFK'
-    'BAgSEBNSB3NlbnRfYXRSCmZld2VyX3JlcHNSCXNraXBfcmVzdFINcmF0ZV9leGVyY2lzZVILc2'
-    'tpcF93YXJtdXBSEmVkaXRfY29tcGxldGVkX3NldA==');
+    'BSBnRhcFNldBJFCg1hbnN3ZXJfZWZmb3J0GBQgASgLMh4ud29ya291dC52MS5BbnN3ZXJFZmZv'
+    'cnRJbnRlbnRIAFIMYW5zd2VyRWZmb3J0QggKBmludGVudEoECAIQA0oECAoQC0oECAwQDUoECA'
+    '4QD0oECA8QEEoECBAQEUoECBIQE1IHc2VudF9hdFIKZmV3ZXJfcmVwc1IJc2tpcF9yZXN0Ug1y'
+    'YXRlX2V4ZXJjaXNlUgtza2lwX3dhcm11cFISZWRpdF9jb21wbGV0ZWRfc2V0');
 
 @$core.Deprecated('Use heartRateSampleDescriptor instead')
 const HeartRateSample$json = {

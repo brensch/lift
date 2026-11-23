@@ -55,10 +55,15 @@ func deriveElapsedText(_ snapshot: Workout_V1_WearWorkoutSnapshot, currentApiNow
     return formatElapsedDuration(elapsedSeconds)
 }
 
-/// The Lifting screen's timer: a count-up from Start.
+/// The Lifting screen's timer: a count-up from Start; a timed set counts down from its
+/// seconds instead, as on the phone.
 func deriveLiftingTimer(_ snapshot: Workout_V1_WearWorkoutSnapshot, currentApiNowMs: Int64) -> String {
     guard snapshot.liftingStartedAt > 0 else { return snapshot.youCard.timerText }
     let seconds = Int(max(0, (currentApiNowMs - snapshot.liftingStartedAt * 1000) / 1000))
+    let target = Int(snapshot.liftingTargetSeconds)
+    if target > 0 {
+        return formatDuration(max(0, target - seconds))
+    }
     return formatElapsedDuration(seconds)
 }
 
