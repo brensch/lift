@@ -97,9 +97,9 @@ class JustDoneCircle extends StatelessWidget {
   }
 }
 
-/// A ring on the circle's own edge running down to [until], when the
-/// banner goes on to the next set; each tap sets a new [until] and the ring
-/// starts full again. It takes no room of its own, so nothing moves.
+/// A ring just outside the circle running down to [until], when the banner
+/// goes on to the next set; each tap sets a new [until] and the ring starts
+/// full again. It takes no room of its own, so nothing moves.
 /// Nothing while there's no window.
 class _Countdown extends StatelessWidget {
   final DateTime? until;
@@ -113,10 +113,18 @@ class _Countdown extends StatelessWidget {
     if (end == null) return child;
     final total = WorkoutProvider.oneLessWindow.inMilliseconds;
     final left = end.difference(DateTime.now()).inMilliseconds.clamp(0, total);
+    // Just outside the circle's edge, as thick as the up-next ring: drawn
+    // over its surroundings, so it takes no room and nothing moves.
+    const width = SetCircle.outlineNext;
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         child,
-        Positioned.fill(
+        Positioned(
+          left: -width,
+          top: -width,
+          right: -width,
+          bottom: -width,
           child: IgnorePointer(
             child: TweenAnimationBuilder<double>(
               key: ValueKey(end),
@@ -124,8 +132,7 @@ class _Countdown extends StatelessWidget {
               duration: Duration(milliseconds: left),
               builder: (context, value, _) => CircularProgressIndicator(
                 value: value,
-                // The circles' own outline: as thick, just as far in.
-                strokeWidth: SetCircle.outline,
+                strokeWidth: width,
                 color: Theme.of(context).colorScheme.primary,
                 backgroundColor: Colors.transparent,
               ),
