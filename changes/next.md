@@ -9,5 +9,5 @@
 - An assistant can give a lift its own numbers inside a shared progression (say, bigger jumps for legs), and can see how each lift has progressed over time.
 - Programs can now prescribe top sets and back-offs, pyramids, AMRAP sets, drop sets, myo-reps, clusters, EMOM, effort targets, timed and distance lifts, per-side work and tempo, and workouts can pair lifts into supersets and circuits.
 - Friends you've trained with can be allowed to suggest workouts. Their suggestions show up on Home and in Settings → Program with who sent them, and nothing changes until you add one.
-- A suggestion from a friend is now one change to your program, and opening it shows your week before and after, how each lift will progress, and your next few sessions with it.
+- A suggestion from a friend is now one change to your program, and opening it shows your week before and after and how each lift will progress.
 - After a ramp set or a lift's last set, the bar at the bottom (and your watch) asks how it went: Easy, Hard or Fail, instead of a pop-up.

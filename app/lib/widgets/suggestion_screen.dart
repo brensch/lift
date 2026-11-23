@@ -1,7 +1,6 @@
 /// A suggestion laid out to decide on, as one change to the program, on a
 /// page of its own: who and why, the week before and after, how each lift's
-/// progression moves, those lifts' next sessions with it, and the other
-/// numbers it changes; then use it or not, pinned at the bottom. Home's
+/// progression moves, and the other numbers it changes; then use it or not, pinned at the bottom. Home's
 /// pending row and the Program screen open it.
 library;
 
@@ -11,7 +10,6 @@ import 'package:provider/provider.dart';
 import '../gen/copy.dart';
 import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../gen/workout/v1/workout.pb.dart';
-import '../logic/plan_text.dart';
 import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
@@ -207,25 +205,6 @@ class _SuggestionScreenState extends State<SuggestionScreen> {
                   else
                     c.ruleNewLift,
                 ].join('\n'),
-              ),
-          ],
-          if (shown != null && shown.forecasts.isNotEmpty) ...[
-            FlatHeading(c.nextHeading),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
-              child: Text(c.nextNote, style: muted),
-            ),
-            for (final f in shown.forecasts)
-              FlatRow(
-                label: f.name,
-                subtitle: f.hasNow()
-                    ? c.nextNow.replaceAll('{plan}', planLine(f.now, unit))
-                    : null,
-                trailing: Text(
-                  f.next.map((d) => planLine(d, unit)).join('\n'),
-                  textAlign: TextAlign.end,
-                  style: mono,
-                ),
               ),
           ],
           if (shown != null && shown.numbers.isNotEmpty) ...[

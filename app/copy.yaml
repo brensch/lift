@@ -1175,9 +1175,6 @@ suggestions:
   rule_step_default: the smallest jump
   rule_deload: "{n} misses in a row takes it back to {pct}%"
   rule_scheme: "Sets laid out as {scheme}"
-  next_heading: Your next sessions
-  next_note: If you hit every rep.
-  next_now: "Now {plan}"
   also_heading: Also
   number_line: "{before} → {after}"
   no_longer_fits: "This doesn't fit your program any more: {problem}"

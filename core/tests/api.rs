@@ -4570,8 +4570,8 @@ mod suggestions {
     }
 
     /// The whole change laid out: the lift whose rule moves (before and
-    /// after as numbers), its next sessions with the change, a new workout
-    /// in the week, and a plain number that changes.
+    /// after as numbers), a new workout in the week, and a plain number that
+    /// changes.
     #[test]
     fn a_suggestion_explains_the_whole_change() {
         let mut app = App::new();
@@ -4602,17 +4602,6 @@ mod suggestions {
                 .all(|l| l.exercise == "squat" || l.before.is_none()),
             "only squat's rule changes: {:?}",
             shown.lifts
-        );
-        let forecast = shown
-            .forecasts
-            .iter()
-            .find(|f| f.exercise == "squat")
-            .unwrap();
-        assert!(forecast.now.is_some(), "squat has a plan now");
-        assert!(!forecast.next.is_empty());
-        assert!(
-            forecast.next.windows(2).all(|w| w[1].weight >= w[0].weight),
-            "every rep hit: it climbs"
         );
         assert!(shown.rotation_after.contains(&"Sam's arms".to_string()));
         assert!(!shown.rotation_before.contains(&"Sam's arms".to_string()));
