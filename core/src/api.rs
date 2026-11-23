@@ -1287,9 +1287,7 @@ impl<'a> View<'a> {
 
     /// One suggestion laid out to decide on (`ExplainSuggestionResponse`):
     /// the week before and after, each trained lift's rule where it
-    /// changes, those lifts' next sessions with it (the simulator, every rep
-    /// hit, from this account's history) beside their next plan now, and the
-    /// other numbers it changes. A suggestion that no longer applies has
+    /// changes, and the other numbers it changes. A suggestion that no longer applies has
     /// only itself, with its problem.
     pub fn explain_suggestion(
         &self,
@@ -1382,75 +1380,12 @@ impl<'a> View<'a> {
                 })
             })
             .collect();
-        // Their next sessions: the draft run forward (every rep hit), and
-        // the lifts new to the rotation too.
-        let before_rotation: Vec<&String> = now_program
-            .workouts
-            .iter()
-            .filter(|w| w.rotation)
-            .flat_map(|w| &w.exercises)
-            .collect();
-        let mut forecast_keys: Vec<String> = lifts.iter().map(|l| l.exercise.clone()).collect();
-        for w in draft.workouts.iter().filter(|w| w.rotation) {
-            for k in &w.exercises {
-                if !before_rotation.contains(&k) && !forecast_keys.contains(k) {
-                    forecast_keys.push(k.clone());
-                }
-            }
-        }
-        forecast_keys.truncate(8);
-        let rotation_len = draft.workouts.iter().filter(|w| w.rotation).count().max(1);
-        let run = crate::simulate::simulate(
-            self.account,
-            self.now,
-            &SimulateProgramRequest {
-                program_json: draft.to_json(),
-                sessions: (rotation_len * 3).min(12) as i32,
-                every_days: 2,
-                effort: SimulatedEffort::AllHit as i32,
-                history: 0,
-                ..Default::default()
-            },
-        );
-        let forecasts = forecast_keys
-            .iter()
-            .map(|k| {
-                let next: Vec<ExerciseDecision> = run
-                    .workouts
-                    .iter()
-                    .filter(|w| !w.past)
-                    .flat_map(|w| &w.lifts)
-                    .filter(|l| l.exercise == *k)
-                    .filter_map(|l| l.decision.clone())
-                    .take(3)
-                    .collect();
-                let now = (now_program.knows(k)
-                    && self
-                        .account
-                        .workouts
-                        .iter()
-                        .any(|r| r.proposed_sets.iter().any(|s| s.exercise == *k)))
-                .then(|| self.exercise_plan(k, 0).decision)
-                .flatten();
-                LiftForecast {
-                    exercise: k.clone(),
-                    name: draft
-                        .exercise(k)
-                        .map(|e| e.name.clone())
-                        .unwrap_or_default(),
-                    now,
-                    next,
-                }
-            })
-            .filter(|f| !f.next.is_empty())
-            .collect();
         Ok(ExplainSuggestionResponse {
             suggestion: Some(suggestion),
             rotation_before: rotation(now_program),
             rotation_after: rotation(&draft),
             workouts,
             lifts,
-            forecasts,
             numbers: number_changes(now_program, &draft),
         })
     }

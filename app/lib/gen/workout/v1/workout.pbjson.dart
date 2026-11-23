@@ -2978,14 +2978,6 @@ const ExplainSuggestionResponse$json = {
       '10': 'lifts'
     },
     {
-      '1': 'forecasts',
-      '3': 6,
-      '4': 3,
-      '5': 11,
-      '6': '.workout.v1.LiftForecast',
-      '10': 'forecasts'
-    },
-    {
       '1': 'numbers',
       '3': 7,
       '4': 3,
@@ -2994,6 +2986,10 @@ const ExplainSuggestionResponse$json = {
       '10': 'numbers'
     },
   ],
+  '9': [
+    {'1': 6, '2': 7},
+  ],
+  '10': ['forecasts'],
 };
 
 /// Descriptor for `ExplainSuggestionResponse`. Decode as a `google.protobuf.DescriptorProto`.
@@ -3002,9 +2998,9 @@ final $typed_data.Uint8List explainSuggestionResponseDescriptor = $convert.base6
     'V0LnYxLlN1Z2dlc3Rpb25SCnN1Z2dlc3Rpb24SJwoPcm90YXRpb25fYmVmb3JlGAIgAygJUg5y'
     'b3RhdGlvbkJlZm9yZRIlCg5yb3RhdGlvbl9hZnRlchgDIAMoCVINcm90YXRpb25BZnRlchI1Cg'
     'h3b3Jrb3V0cxgEIAMoCzIZLndvcmtvdXQudjEuV29ya291dENoYW5nZVIId29ya291dHMSMAoF'
-    'bGlmdHMYBSADKAsyGi53b3Jrb3V0LnYxLkxpZnRSdWxlQ2hhbmdlUgVsaWZ0cxI2Cglmb3JlY2'
-    'FzdHMYBiADKAsyGC53b3Jrb3V0LnYxLkxpZnRGb3JlY2FzdFIJZm9yZWNhc3RzEjIKB251bWJl'
-    'cnMYByADKAsyGC53b3Jrb3V0LnYxLk51bWJlckNoYW5nZVIHbnVtYmVycw==');
+    'bGlmdHMYBSADKAsyGi53b3Jrb3V0LnYxLkxpZnRSdWxlQ2hhbmdlUgVsaWZ0cxIyCgdudW1iZX'
+    'JzGAcgAygLMhgud29ya291dC52MS5OdW1iZXJDaGFuZ2VSB251bWJlcnNKBAgGEAdSCWZvcmVj'
+    'YXN0cw==');
 
 @$core.Deprecated('Use workoutChangeDescriptor instead')
 const WorkoutChange$json = {
@@ -3094,37 +3090,6 @@ final $typed_data.Uint8List liftRuleChangeDescriptor = $convert.base64Decode(
     'Cg5MaWZ0UnVsZUNoYW5nZRIaCghleGVyY2lzZRgBIAEoCVIIZXhlcmNpc2USEgoEbmFtZRgCIA'
     'EoCVIEbmFtZRIvCgZiZWZvcmUYAyABKAsyFy53b3Jrb3V0LnYxLlJ1bGVTdW1tYXJ5UgZiZWZv'
     'cmUSLQoFYWZ0ZXIYBCABKAsyFy53b3Jrb3V0LnYxLlJ1bGVTdW1tYXJ5UgVhZnRlcg==');
-
-@$core.Deprecated('Use liftForecastDescriptor instead')
-const LiftForecast$json = {
-  '1': 'LiftForecast',
-  '2': [
-    {'1': 'exercise', '3': 1, '4': 1, '5': 9, '10': 'exercise'},
-    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
-    {
-      '1': 'now',
-      '3': 3,
-      '4': 1,
-      '5': 11,
-      '6': '.workout.v1.ExerciseDecision',
-      '10': 'now'
-    },
-    {
-      '1': 'next',
-      '3': 4,
-      '4': 3,
-      '5': 11,
-      '6': '.workout.v1.ExerciseDecision',
-      '10': 'next'
-    },
-  ],
-};
-
-/// Descriptor for `LiftForecast`. Decode as a `google.protobuf.DescriptorProto`.
-final $typed_data.Uint8List liftForecastDescriptor = $convert.base64Decode(
-    'CgxMaWZ0Rm9yZWNhc3QSGgoIZXhlcmNpc2UYASABKAlSCGV4ZXJjaXNlEhIKBG5hbWUYAiABKA'
-    'lSBG5hbWUSLgoDbm93GAMgASgLMhwud29ya291dC52MS5FeGVyY2lzZURlY2lzaW9uUgNub3cS'
-    'MAoEbmV4dBgEIAMoCzIcLndvcmtvdXQudjEuRXhlcmNpc2VEZWNpc2lvblIEbmV4dA==');
 
 @$core.Deprecated('Use numberChangeDescriptor instead')
 const NumberChange$json = {

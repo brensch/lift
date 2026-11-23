@@ -8291,8 +8291,7 @@ class Suggestion extends $pb.GeneratedMessage {
 }
 
 /// A suggestion laid out to decide on: what the week becomes, how each
-/// lift's rule changes, what the next sessions would be, and the other
-/// numbers it changes. Facts, not words: the app says them.
+/// lift's rule changes, and the other numbers it changes. Facts, not words: the app says them.
 class ExplainSuggestionRequest extends $pb.GeneratedMessage {
   factory ExplainSuggestionRequest({
     $core.String? suggestionId,
@@ -8355,7 +8354,6 @@ class ExplainSuggestionResponse extends $pb.GeneratedMessage {
     $core.Iterable<$core.String>? rotationAfter,
     $core.Iterable<WorkoutChange>? workouts,
     $core.Iterable<LiftRuleChange>? lifts,
-    $core.Iterable<LiftForecast>? forecasts,
     $core.Iterable<NumberChange>? numbers,
   }) {
     final result = create();
@@ -8364,7 +8362,6 @@ class ExplainSuggestionResponse extends $pb.GeneratedMessage {
     if (rotationAfter != null) result.rotationAfter.addAll(rotationAfter);
     if (workouts != null) result.workouts.addAll(workouts);
     if (lifts != null) result.lifts.addAll(lifts);
-    if (forecasts != null) result.forecasts.addAll(forecasts);
     if (numbers != null) result.numbers.addAll(numbers);
     return result;
   }
@@ -8390,8 +8387,6 @@ class ExplainSuggestionResponse extends $pb.GeneratedMessage {
         subBuilder: WorkoutChange.create)
     ..pPM<LiftRuleChange>(5, _omitFieldNames ? '' : 'lifts',
         subBuilder: LiftRuleChange.create)
-    ..pPM<LiftForecast>(6, _omitFieldNames ? '' : 'forecasts',
-        subBuilder: LiftForecast.create)
     ..pPM<NumberChange>(7, _omitFieldNames ? '' : 'numbers',
         subBuilder: NumberChange.create)
     ..hasRequiredFields = false;
@@ -8441,13 +8436,9 @@ class ExplainSuggestionResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   $pb.PbList<LiftRuleChange> get lifts => $_getList(4);
 
-  /// Lifts whose plan changes: their next sessions with the change.
-  @$pb.TagNumber(6)
-  $pb.PbList<LiftForecast> get forecasts => $_getList(5);
-
   /// Other numbers it changes, by path (classes.heavy.rest_seconds).
   @$pb.TagNumber(7)
-  $pb.PbList<NumberChange> get numbers => $_getList(6);
+  $pb.PbList<NumberChange> get numbers => $_getList(5);
 }
 
 class WorkoutChange extends $pb.GeneratedMessage {
@@ -8821,96 +8812,6 @@ class LiftRuleChange extends $pb.GeneratedMessage {
   void clearAfter() => $_clearField(4);
   @$pb.TagNumber(4)
   RuleSummary ensureAfter() => $_ensure(3);
-}
-
-class LiftForecast extends $pb.GeneratedMessage {
-  factory LiftForecast({
-    $core.String? exercise,
-    $core.String? name,
-    ExerciseDecision? now,
-    $core.Iterable<ExerciseDecision>? next,
-  }) {
-    final result = create();
-    if (exercise != null) result.exercise = exercise;
-    if (name != null) result.name = name;
-    if (now != null) result.now = now;
-    if (next != null) result.next.addAll(next);
-    return result;
-  }
-
-  LiftForecast._();
-
-  factory LiftForecast.fromBuffer($core.List<$core.int> data,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromBuffer(data, registry);
-  factory LiftForecast.fromJson($core.String json,
-          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
-      create()..mergeFromJson(json, registry);
-
-  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
-      _omitMessageNames ? '' : 'LiftForecast',
-      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
-      createEmptyInstance: create)
-    ..aOS(1, _omitFieldNames ? '' : 'exercise')
-    ..aOS(2, _omitFieldNames ? '' : 'name')
-    ..aOM<ExerciseDecision>(3, _omitFieldNames ? '' : 'now',
-        subBuilder: ExerciseDecision.create)
-    ..pPM<ExerciseDecision>(4, _omitFieldNames ? '' : 'next',
-        subBuilder: ExerciseDecision.create)
-    ..hasRequiredFields = false;
-
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  LiftForecast clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  LiftForecast copyWith(void Function(LiftForecast) updates) =>
-      super.copyWith((message) => updates(message as LiftForecast))
-          as LiftForecast;
-
-  @$core.override
-  $pb.BuilderInfo get info_ => _i;
-
-  @$core.pragma('dart2js:noInline')
-  static LiftForecast create() => LiftForecast._();
-  @$core.override
-  LiftForecast createEmptyInstance() => create();
-  @$core.pragma('dart2js:noInline')
-  static LiftForecast getDefault() => _defaultInstance ??=
-      $pb.GeneratedMessage.$_defaultFor<LiftForecast>(create);
-  static LiftForecast? _defaultInstance;
-
-  @$pb.TagNumber(1)
-  $core.String get exercise => $_getSZ(0);
-  @$pb.TagNumber(1)
-  set exercise($core.String value) => $_setString(0, value);
-  @$pb.TagNumber(1)
-  $core.bool hasExercise() => $_has(0);
-  @$pb.TagNumber(1)
-  void clearExercise() => $_clearField(1);
-
-  @$pb.TagNumber(2)
-  $core.String get name => $_getSZ(1);
-  @$pb.TagNumber(2)
-  set name($core.String value) => $_setString(1, value);
-  @$pb.TagNumber(2)
-  $core.bool hasName() => $_has(1);
-  @$pb.TagNumber(2)
-  void clearName() => $_clearField(2);
-
-  /// Its next plan as things are; unset for a lift new to the person.
-  @$pb.TagNumber(3)
-  ExerciseDecision get now => $_getN(2);
-  @$pb.TagNumber(3)
-  set now(ExerciseDecision value) => $_setField(3, value);
-  @$pb.TagNumber(3)
-  $core.bool hasNow() => $_has(2);
-  @$pb.TagNumber(3)
-  void clearNow() => $_clearField(3);
-  @$pb.TagNumber(3)
-  ExerciseDecision ensureNow() => $_ensure(2);
-
-  /// Its next sessions with the change, every rep hit.
-  @$pb.TagNumber(4)
-  $pb.PbList<ExerciseDecision> get next => $_getList(3);
 }
 
 class NumberChange extends $pb.GeneratedMessage {

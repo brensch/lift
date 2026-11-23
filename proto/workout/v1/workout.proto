@@ -1198,8 +1198,7 @@ message Suggestion {
 }
 
 // A suggestion laid out to decide on: what the week becomes, how each
-// lift's rule changes, what the next sessions would be, and the other
-// numbers it changes. Facts, not words: the app says them.
+// lift's rule changes, and the other numbers it changes. Facts, not words: the app says them.
 message ExplainSuggestionRequest {
   string suggestion_id = 1;
 }
@@ -1211,10 +1210,10 @@ message ExplainSuggestionResponse {
   repeated WorkoutChange workouts = 4;
   // Each lift the person trains whose rule or scheme changes.
   repeated LiftRuleChange lifts = 5;
-  // Lifts whose plan changes: their next sessions with the change.
-  repeated LiftForecast forecasts = 6;
   // Other numbers it changes, by path (classes.heavy.rest_seconds).
   repeated NumberChange numbers = 7;
+  reserved 6;
+  reserved "forecasts";
 }
 
 message WorkoutChange {
@@ -1249,15 +1248,6 @@ message LiftRuleChange {
   string name = 2;
   RuleSummary before = 3;
   RuleSummary after = 4;
-}
-
-message LiftForecast {
-  string exercise = 1;
-  string name = 2;
-  // Its next plan as things are; unset for a lift new to the person.
-  ExerciseDecision now = 3;
-  // Its next sessions with the change, every rep hit.
-  repeated ExerciseDecision next = 4;
 }
 
 message NumberChange {

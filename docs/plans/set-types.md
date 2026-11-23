@@ -286,9 +286,6 @@ No inbox; the existing places:
   - *How your lifts move*: each trained lift whose progression or scheme
     changes, in a sentence ("5 reps a set; hit them all and it adds 5 lb"),
     with "Was: …" under it, or "New to you";
-  - *Your next sessions*: those lifts' next three plans with the change
-    (the simulator, every rep hit, from your history), with today's plan
-    beside them;
   - *Also*: any other number it changes, before → after;
   - *Use this program* and *No thanks*.
 - **Settings → Program:** **Pending suggestions** above Earlier programs,
