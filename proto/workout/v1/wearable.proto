@@ -148,18 +148,19 @@ message WearQuestion {
 
 message WearAnswer {
   QuickAnswer answer = 1;
-  string label = 2; // "Easy"
+  string label = 2; // "Easy", or the reps for one less
 }
 
-// How a set went, in three words: what the banner and the watch ask.
+// How a set went: what the banner and the watch ask.
 enum QuickAnswer {
   QUICK_ANSWER_UNSPECIFIED = 0;
   // Plenty left: a ramp jumps further; an effort target had room.
   QUICK_ANSWER_EASY = 1;
   // Nearly all out: a ramp is done; an effort target was about right.
   QUICK_ANSWER_HARD = 2;
-  // Couldn't finish the reps: recorded as a miss.
-  QUICK_ANSWER_FAIL = 3;
+  // A rep off the set, a tap on its circle: its label is the reps logged,
+  // and it stays to be tapped again.
+  QUICK_ANSWER_ONE_LESS = 3;
 }
 
 message WearCompletionSummary {

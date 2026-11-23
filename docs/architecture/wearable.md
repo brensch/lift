@@ -103,9 +103,11 @@ in place of weight × reps, and nothing on the face taps a set. Once the
 phone starts the set, the face is the usual one again. A set that asks how
 it went (a ramp set done in full, or a lift's last set with an effort
 target) puts the phone banner's question on the watch too: the snapshot's
-`question` (its title and Easy / Hard / Fail, in the phone's words) is a
-screen of three buttons that answer with `AnswerQuestionIntent`, and a skip
-that puts it away on the watch. Answered, or the next set done, it's gone.
+`question` (its title, Easy and Hard in the phone's words, and the reps
+logged as a one-less button) is a screen of buttons that answer with
+`AnswerQuestionIntent`, and a skip that puts it away on the watch. A rep off
+leaves only the reps button, for the next tap. Answered with Easy or Hard,
+or the next set started, it's gone.
 Done (on `ALL_DONE`, with `END_WORKOUT`) and Idle (no snapshot) are their own
 screens. Hardware keys (the crown) never act on the face.
 

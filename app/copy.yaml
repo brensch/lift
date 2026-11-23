@@ -342,7 +342,6 @@ workout:
   quick_question: How was that?
   quick_easy: Easy
   quick_hard: Hard
-  quick_fail: Fail
   # The watch's way back to its face without answering.
   quick_skip: Skip
   # Under the plates on the watch's plate screen: "45 · 25 each side".
@@ -1162,7 +1161,7 @@ suggestions:
   workout_added: "New: {name}"
   workout_changed: "Changed: {name}"
   workout_removed: "Gone: {name}"
-  lifts_heading: How your lifts move
+  lifts_heading: Weight progression method
   rule_was: "Was: {rule}"
   rule_new_lift: New to you
   # A progression in a sentence. {step} is the jump, in your unit.

@@ -61,6 +61,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   WorkoutSummary? _summary;
   String _rungQuestion = '';
   String _effortQuestion = '';
+  // The set last asked about: its circle stays in the banner while its reps
+  // are tapped down, which closes the question itself.
+  String _asked = '';
 
   /// The timed set whose end has been cued, so it rings once.
   String? _timedSetCued;
@@ -173,6 +176,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _summary = response.hasSummary() ? response.summary : null;
     _rungQuestion = response.rungQuestionSetId;
     _effortQuestion = response.effortQuestionSetId;
+    if (questionSetId.isNotEmpty) _asked = questionSetId;
     _nextUp = response.hasNextUpSet() ? response.nextUpSet : null;
     _applyStateSnapshot(
       response.hasStateSnapshot() ? response.stateSnapshot : null,
@@ -556,6 +560,31 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   String get questionSetId =>
       _rungQuestion.isNotEmpty ? _rungQuestion : _effortQuestion;
 
+  /// The set the banner asks about: the open question's, or the one it
+  /// asked about while its reps are tapped down (a miss closes the
+  /// question), until the next set starts or another is done.
+  String get askingSetId {
+    final open = questionSetId;
+    if (open.isNotEmpty) return open;
+    final w = _workout;
+    if (_asked.isEmpty || w == null || w.liftingSetId.isNotEmpty) return '';
+    CompletedSet? latest;
+    for (final c in _completed) {
+      if (c.endedAt == Int64.ZERO) continue;
+      if (latest == null || c.endedAt > latest.endedAt) latest = c;
+    }
+    return latest?.proposedSetId == _asked ? _asked : '';
+  }
+
+  /// The reps logged on the set the banner asks about.
+  int get askingReps {
+    final id = askingSetId;
+    for (final c in _completed.reversed) {
+      if (c.proposedSetId == id && c.endedAt != Int64.ZERO) return c.actualReps;
+    }
+    return 0;
+  }
+
   ExerciseLog? logFor(String exercise) {
     for (final log in _logs) {
       if (log.decision.exercise == exercise) return log;
@@ -696,6 +725,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _summary = null;
     _rungQuestion = '';
     _effortQuestion = '';
+    _asked = '';
     _nextUp = null;
     _blocksCache.clear();
     _applyStateSnapshot(null);
@@ -912,28 +942,23 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// The answer to the question the banner and the watch ask after a set:
   /// Easy (plenty left: a ramp jumps further), Hard (nearly all out: a ramp
-  /// is done) or Fail (the reps weren't all there: the set is recorded one
-  /// short, a miss, and the core goes on from that). Anything but the open
-  /// question is ignored.
+  /// is done) or one less (the set's circle: a rep off per tap, a miss, and
+  /// the core goes on from that). Anything but the set asked about is
+  /// ignored.
   Future<void> answerQuick(String setId, QuickAnswer answer) async {
-    if (_workout == null || setId.isEmpty || setId != questionSetId) return;
-    if (answer == QuickAnswer.QUICK_ANSWER_FAIL) {
-      final set = proposedSetById(setId);
+    if (_workout == null || setId.isEmpty || setId != askingSetId) return;
+    // One less: a rep off the set, as a tap on its circle; the circle stays
+    // for the next tap.
+    if (answer == QuickAnswer.QUICK_ANSWER_ONE_LESS) {
       CompletedSet? done;
       for (final c in _completed) {
-        if (c.proposedSetId == setId) done = c;
+        if (c.proposedSetId == setId && c.endedAt != Int64.ZERO) done = c;
       }
-      if (set == null || done == null) return;
-      await _mutate(
-        WorkoutMutation()
-          ..editCompletedSet = (EditCompletedSetRequest()
-            ..workoutId = _workoutId
-            ..completedSetId = done.id
-            ..actualReps = (set.targetReps - 1).clamp(0, done.actualReps)
-            ..actualWeight = done.actualWeight),
-      );
+      if (done != null && done.actualReps > 0) await tapDoneSet(done.id);
       return;
     }
+    if (setId != questionSetId) return;
+    _asked = '';
     final repsLeft = answer == QuickAnswer.QUICK_ANSWER_EASY
         ? RepsLeft.REPS_LEFT_FIVE_PLUS
         : RepsLeft.REPS_LEFT_ZERO_TO_ONE;

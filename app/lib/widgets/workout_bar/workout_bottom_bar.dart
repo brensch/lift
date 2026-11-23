@@ -366,9 +366,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         firstTime:
                             you.proposedSet != null &&
                             wp.firstTimeSetIds.contains(you.proposedSet!.id),
-                        question: wp.questionSetId.isEmpty || ended
+                        question: wp.askingSetId.isEmpty || ended
                             ? null
-                            : QuickQuestion(setId: wp.questionSetId),
+                            : QuickQuestion(setId: wp.askingSetId),
                       ),
                     ),
                     if (allDone && wp.workout?.endTime == Int64.ZERO) ...[

@@ -251,23 +251,40 @@ void main() {
     },
   );
 
-  test(
-    'fail records the set a rep short: a miss, and nothing to ask',
-    () async {
-      await h.start(['deadlift']);
-      final p = h.provider;
-      final first = p.doneTargetSet!;
-      await p.completeSet(first.id, first.targetReps, first.targetWeight);
-      await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_FAIL);
-      expect(
-        p.completedSets
-            .firstWhere((c) => c.proposedSetId == first.id)
-            .actualReps,
-        first.targetReps - 1,
-      );
-      expect(p.questionSetId, isEmpty);
-    },
-  );
+  test('one less takes a rep off per tap; the circle stays until the '
+      'next set starts', () async {
+    await h.start(['deadlift']);
+    final p = h.provider;
+    final first = p.doneTargetSet!;
+    await p.completeSet(first.id, first.targetReps, first.targetWeight);
+    int reps() => p.completedSets
+        .firstWhere((c) => c.proposedSetId == first.id)
+        .actualReps;
+
+    await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_ONE_LESS);
+    expect(reps(), first.targetReps - 1);
+    expect(p.questionSetId, isEmpty, reason: 'a miss asks nothing');
+    expect(p.askingSetId, first.id, reason: 'its circle stays');
+    expect(p.askingReps, first.targetReps - 1);
+
+    await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_ONE_LESS);
+    expect(reps(), first.targetReps - 2);
+    // Easy and Hard are for the open question only.
+    await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_EASY);
+    expect(reps(), first.targetReps - 2);
+
+    await p.startSet(p.doneTargetSet!.id);
+    expect(p.askingSetId, isEmpty, reason: 'the next set started');
+  });
+
+  test('easy or hard puts the question away', () async {
+    await h.start(['deadlift']);
+    final p = h.provider;
+    final first = p.doneTargetSet!;
+    await p.completeSet(first.id, first.targetReps, first.targetWeight);
+    await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_EASY);
+    expect(p.askingSetId, isEmpty);
+  });
 
   test('a session is recorded once while the first is in flight', () async {
     await h.start([raise]);
