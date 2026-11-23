@@ -972,26 +972,133 @@
       "rep_high": 8,
       "rest_seconds": 180,
       "warmups": true,
-      "progression": "estimated_max"
+      "progression": "estimated_max",
+      "scheme": "straight"
     },
     "standard": {
       "rep_low": 8,
       "rep_high": 12,
       "rest_seconds": 120,
       "warmups": false,
-      "progression": "estimated_max"
+      "progression": "estimated_max",
+      "scheme": "straight"
     },
     "bodyweight": {
       "rep_low": 5,
       "rep_high": 15,
       "rest_seconds": 90,
       "warmups": false,
-      "progression": "estimated_max"
+      "progression": "estimated_max",
+      "scheme": "straight"
     }
   },
   "progressions": {
     "estimated_max": {
       "kind": "estimated_max"
+    }
+  },
+  "schemes": {
+    "straight": {
+      "steps": [
+        {
+          "role": "working",
+          "count": "rest"
+        }
+      ]
+    },
+    "top_backoff": {
+      "steps": [
+        {
+          "role": "top",
+          "count": 1
+        },
+        {
+          "role": "backoff",
+          "count": "rest",
+          "fraction": 0.85,
+          "reps": 8
+        }
+      ]
+    },
+    "plus_set": {
+      "steps": [
+        {
+          "role": "working",
+          "count": "rest",
+          "fraction": 0.9
+        },
+        {
+          "role": "working",
+          "count": 1,
+          "amrap": true
+        }
+      ]
+    },
+    "pyramid": {
+      "steps": [
+        {
+          "role": "working",
+          "count": 1,
+          "fraction": 0.8,
+          "reps": 10
+        },
+        {
+          "role": "working",
+          "count": 1,
+          "fraction": 0.9,
+          "reps": 8
+        },
+        {
+          "role": "top",
+          "count": 1
+        }
+      ]
+    },
+    "drop_finish": {
+      "steps": [
+        {
+          "role": "working",
+          "count": "rest"
+        },
+        {
+          "role": "drop",
+          "count": 2,
+          "fraction": 0.8
+        }
+      ]
+    },
+    "myo": {
+      "steps": [
+        {
+          "role": "working",
+          "count": 1
+        },
+        {
+          "role": "mini",
+          "count": 4,
+          "reps": 4,
+          "rest_seconds": 15
+        }
+      ]
+    },
+    "cluster": {
+      "steps": [
+        {
+          "role": "working",
+          "count": "rest",
+          "rest_seconds": 20,
+          "reps": 2
+        }
+      ]
+    },
+    "emom": {
+      "steps": [
+        {
+          "role": "working",
+          "count": "rest",
+          "every_seconds": 60
+        }
+      ]
     }
   },
   "estimate": {
@@ -1063,7 +1170,8 @@
     "target_low": 10,
     "target_high": 20,
     "secondary_credit": 0.5,
-    "tie_fraction": 0.8
+    "tie_fraction": 0.8,
+    "partial_credit": 0.5
   },
   "recovery": {
     "hours": {
@@ -1085,6 +1193,7 @@
     "overlap_fraction": 0.7
   },
   "end_of_exercise_rest_seconds": 60,
+  "transition_seconds": 15,
   "equipment": {
     "barbell": {
       "opener": null,

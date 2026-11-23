@@ -158,6 +158,17 @@ Each one looks like this:
 - `params` (optional): this lift's own values for numbers of the rule it
   follows, so one rule serves lifts that differ in a number. See "One rule,
   several lifts" under `progressions`.
+- `measure` (optional): what its number counts: `"reps"` (the default),
+  `"seconds"` (a plank, a hang) or `"metres"` (a carry, a sled push). Its
+  rule, scheme and history all count that: a `double` from 30 to 60 with
+  `rep_step` 5 climbs a hold five seconds a session. It walks like a
+  bodyweight lift: its max is the most it has shown.
+- `per_side` (optional): the number is for each side (single-leg,
+  single-arm work). The app says "each side".
+- `tempo` (optional): a short cue such as `"3-1-1"` or `"pause at the
+  bottom"`, at most 20 characters. Shown with its sets, never timed.
+- `scheme` (optional): a name in `schemes` that lays out its sets, over its
+  class's.
 
 To add a lift, add an entry with a new key. You cannot remove a lift the
 person has done, has a starting weight for, or has set by hand; validation
@@ -181,6 +192,19 @@ The workouts the person picks from, in their order:
   rested muscles are furthest behind on the week's volume.
 - `notes`: free text.
 - `from_library`: the library entry it was copied from, or `""`.
+- `groups` (optional): lifts whose sets alternate, a superset (two) or a
+  circuit or giant set (more):
+
+  ```json
+  "groups": [ { "exercises": ["bench_press", "barbell_row"], "rest_seconds": 90 } ]
+  ```
+
+  Each group's lifts are from this workout, 2 to 8 of them, and a lift is in
+  at most one. Their sets go round by round in the workout's order: each
+  lift's warmups first, then the first set of each, the second of each, and
+  so on (a set's drops and minis stay with it). Between lifts inside a
+  round the rest is the program's `transition_seconds`; after a round,
+  `rest_seconds`, or the last lift's own rest when it's `null`.
 
 The person can still start any workout, or a workout of any lifts, in the
 app. The app's template editor changes this list too.
@@ -199,6 +223,8 @@ Groups of lifts that share a rep range, rest and warmups:
 - `warmups`: whether the warmup ladder (`warmups`) leads into the working
   sets.
 - `progression`: the name in `progressions` that its lifts follow.
+- `scheme`: the name in `schemes` its lifts' sets are laid out by;
+  `"straight"` (identical sets) unless you change it.
 
 Names are lowercase with underscores. The built-in program has `heavy`
 (barbell compounds), `standard` (every other loaded lift) and `bodyweight`.
@@ -289,10 +315,11 @@ never change, or for a deload week.
 #### `double`
 
 ```json
-{ "kind": "double", "sets": null, "rep_low": 8, "rep_high": 12, "increment_lb": 0 }
+{ "kind": "double", "sets": null, "rep_low": 8, "rep_high": 12, "increment_lb": 0,
+  "rep_step": 1 }
 ```
 
-Reps climb by one each session with every rep hit, from `rep_low` to
+Reps climb by `rep_step` (default 1) each session with every rep hit, from `rep_low` to
 `rep_high`. Past the top, the weight goes up a step (`increment_lb`, where
 0 means the equipment's step) and reps go back to `rep_low`. A miss holds
 both. A bodyweight lift with `increment_lb` 0 stays at the top.
@@ -358,6 +385,8 @@ load).
 | `last.reps` | The reps that set was planned for |
 | `last.sets` | The working sets that session was planned for |
 | `last.best_reps` | The most reps done in one working set at that weight |
+| `last.amrap_reps` | The reps on its as-many-as-you-can set, 0 if it had none (see `schemes`) |
+| `last.rir` | The reps left its effort answers said, on average; -1 if none was asked |
 | `last.hit` | 1 when every working rep was hit |
 | `last.missed` | 1 when a rep was missed (not stopped early or rushed) |
 | `last.stopped_early` | 1 when working sets were left undone, or a miss was rushed |
@@ -376,6 +405,53 @@ load).
 
 For a periodised formula, use `sessions % n` to know where in a block the
 lift is.
+
+### `schemes`
+
+How a lift's sets are laid out. A progression decides a lift's working
+weight W, its reps R and how many main sets N it does; its scheme turns
+those into the sets one by one: top sets and back-offs, pyramids, AMRAP
+sets, drop sets, rest-pause and myo-reps, clusters, EMOM. A class names
+its scheme, and an exercise may name its own.
+
+```json
+"top_backoff": { "steps": [
+  { "role": "top", "count": 1 },
+  { "role": "backoff", "count": "rest", "fraction": 0.85, "reps": 8 } ] }
+```
+
+A scheme is a list of `steps`, each some sets of one role, in order:
+
+- `role`: `working`, `top` or `backoff` (the **main** sets: they count as
+  the lift's sets and say whether the session was hit), or `drop` or `mini`
+  (taken to failure by design: they don't judge the session or move the
+  max, and count `volume.partial_credit` of a set toward a muscle's week).
+  The first step is a main one.
+- `count`: a number of sets (0 to 20), or `"rest"`: N less the numbered
+  main sets, so the time budget or the rule still sets the volume. At most
+  one step takes the rest, and only a main one.
+- `reps` (optional): the number for each set (reps, seconds or metres, by
+  the lift's measure). Without it, the rule's R.
+- `fraction` (optional, default 1): of W. For a `drop`, of the set before
+  it, so two drops of 0.8 are 80% then 64%. Every weight is snapped to
+  what loads.
+- `amrap` (optional): as many as you can. R is the minimum; the set is hit
+  at R or more, and what was done feeds the rule (`last.amrap_reps`, and
+  the estimated max).
+- `rir` (optional): an effort target, 0 to 5 reps left in the tank. After
+  the set the app asks "how many more could you have done?" with three
+  answers (0–1, 2–4, 5+), which tighten the estimated max and give
+  `last.rir`. Beginners judge this poorly, so ask for it where it matters.
+- `rest_seconds` (optional): after each of its sets; for a `mini`, the
+  short pause before each one. Without it, the class's rest. A set before
+  a drop rests none, and a lift's last drop or mini rests the class's rest.
+- `every_seconds` (optional): EMOM. The next set starts this long after
+  this one started (10 to 600).
+
+The built-in program defines `straight`, `top_backoff`, `plus_set` (5/3/1's
+last set), `pyramid`, `drop_finish`, `myo`, `cluster` and `emom`. Use them,
+or write your own. A lift whose weight the person set by hand does exactly
+that, straight sets, until the rule takes over again.
 
 ### `estimate`
 
@@ -457,7 +533,8 @@ settles the ramp), 2–4 counts `reserve_two_to_four`, and 5+ counts
 
 Hard sets per muscle over the last `window_days`, which Home shows against
 `target_low` to `target_high`. A working set counts 1 for its exercise's
-primary muscle and `secondary_credit` for each other. Rotation workouts
+primary muscle and `secondary_credit` for each other; a drop or mini set
+counts `partial_credit` of that (default 0.5). Rotation workouts
 within `tie_fraction` of the best score are tied, and the tie goes to the
 one done least recently.
 
@@ -477,6 +554,11 @@ workouts sharing more than `overlap_fraction` of the smaller one's lifts.
 ### `end_of_exercise_rest_seconds`
 
 The rest after a lift's last set, before moving on.
+
+### `transition_seconds`
+
+The rest between two lifts of a group (`workouts.groups`) inside a round,
+0 to 300 (default 15): the walk from one station to the next.
 
 ### `equipment`
 

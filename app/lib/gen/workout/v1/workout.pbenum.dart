@@ -234,6 +234,65 @@ class PlanChangeCause extends $pb.ProtobufEnum {
   const PlanChangeCause._(super.value, super.name);
 }
 
+/// A set's role within its lift (docs/plans/set-types.md).
+class SetRole extends $pb.ProtobufEnum {
+  /// A plain working set: every set recorded before roles, and a warmup or
+  /// rung (which keep their own flags).
+  static const SetRole SET_ROLE_UNSPECIFIED =
+      SetRole._(0, _omitEnumNames ? '' : 'SET_ROLE_UNSPECIFIED');
+  static const SetRole SET_ROLE_TOP =
+      SetRole._(1, _omitEnumNames ? '' : 'SET_ROLE_TOP');
+  static const SetRole SET_ROLE_BACKOFF =
+      SetRole._(2, _omitEnumNames ? '' : 'SET_ROLE_BACKOFF');
+
+  /// Straight after the set before it, lighter, no rest: taken to failure.
+  static const SetRole SET_ROLE_DROP =
+      SetRole._(3, _omitEnumNames ? '' : 'SET_ROLE_DROP');
+
+  /// A short set after a short rest: rest-pause, myo-reps, clusters.
+  static const SetRole SET_ROLE_MINI =
+      SetRole._(4, _omitEnumNames ? '' : 'SET_ROLE_MINI');
+
+  static const $core.List<SetRole> values = <SetRole>[
+    SET_ROLE_UNSPECIFIED,
+    SET_ROLE_TOP,
+    SET_ROLE_BACKOFF,
+    SET_ROLE_DROP,
+    SET_ROLE_MINI,
+  ];
+
+  static final $core.List<SetRole?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 4);
+  static SetRole? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const SetRole._(super.value, super.name);
+}
+
+/// What a lift's number counts.
+class Measure extends $pb.ProtobufEnum {
+  /// Reps: every lift before measures.
+  static const Measure MEASURE_UNSPECIFIED =
+      Measure._(0, _omitEnumNames ? '' : 'MEASURE_UNSPECIFIED');
+  static const Measure MEASURE_SECONDS =
+      Measure._(1, _omitEnumNames ? '' : 'MEASURE_SECONDS');
+  static const Measure MEASURE_METRES =
+      Measure._(2, _omitEnumNames ? '' : 'MEASURE_METRES');
+
+  static const $core.List<Measure> values = <Measure>[
+    MEASURE_UNSPECIFIED,
+    MEASURE_SECONDS,
+    MEASURE_METRES,
+  ];
+
+  static final $core.List<Measure?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static Measure? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const Measure._(super.value, super.name);
+}
+
 class WeightChangeCause extends $pb.ProtobufEnum {
   static const WeightChangeCause WEIGHT_CHANGE_CAUSE_UNSPECIFIED =
       WeightChangeCause._(

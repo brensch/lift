@@ -28,8 +28,11 @@ small named changes like {\"set\": \"classes.heavy.rest_seconds\", \"value\": 15
 not by rewriting the document; when lifts differ only in a number, give one rule \
 and set each lift's `params`. simulate_program with the edits (lifts and summary \
 keep the output short) to see what it prescribes, then set_program with the same edits and a one-line note to the person. \
-Weights are always pounds. When you are done, send_feedback: one line on what was \
-easy or hard about these tools.";
+Any set type is a program's: schemes lay out a lift's sets (top sets and back-offs, \
+pyramids, AMRAP, drops, myo-reps, clusters, EMOM, effort targets) and a workout's \
+groups make supersets and circuits; see the guide's `schemes`. Weights are always \
+pounds. When you are done, send_feedback: one line on what was easy or hard about \
+these tools.";
 
 pub enum Failure {
     Unknown,
@@ -291,10 +294,46 @@ fn round(x: f32) -> f64 {
     (f64::from(x) * 10.0).round() / 10.0
 }
 
+/// A planned set in a few characters: `top 5 @ 100%`, `drop @ 64%`,
+/// `working 8+ @ 90% rir 2`, `working 5 every 60s`.
+fn planned_set(p: &schlift_core::pb::PlannedSet, lift_reps: i32) -> String {
+    let role = match schlift_core::pb::SetRole::try_from(p.role) {
+        Ok(schlift_core::pb::SetRole::Unspecified) | Err(_) => "working".to_string(),
+        Ok(r) => r
+            .as_str_name()
+            .trim_start_matches("SET_ROLE_")
+            .to_lowercase(),
+    };
+    let reps = if p.reps > 0 { p.reps } else { lift_reps };
+    let mut out = format!(
+        "{role} {reps}{} @ {}%",
+        if p.amrap { "+" } else { "" },
+        (if p.fraction > 0.0 { p.fraction } else { 1.0 } * 100.0).round()
+    );
+    if let Some(rir) = p.rir {
+        out.push_str(&format!(" rir {rir}"));
+    }
+    if p.every_seconds > 0 {
+        out.push_str(&format!(" every {}s", p.every_seconds));
+    }
+    out
+}
+
 fn plan(d: &ExerciseDecision) -> Value {
+    let measure = match schlift_core::pb::Measure::try_from(d.measure) {
+        Ok(schlift_core::pb::Measure::Seconds) => "seconds",
+        Ok(schlift_core::pb::Measure::Metres) => "metres",
+        _ => "reps",
+    };
     json!({
         "sets": d.sets,
         "reps": d.reps,
+        "measure": measure,
+        "per_side": d.per_side,
+        "tempo": d.tempo,
+        "scheme": if d.scheme.is_empty() { "straight" } else { d.scheme.as_str() },
+        "sets_one_by_one": d.scheme_sets.iter().map(|p| planned_set(p, d.reps)).collect::<Vec<_>>(),
+        "group": d.group,
         "weight_lb": round(d.weight),
         "rest_seconds": d.rest_seconds,
         "warmups": d.warmups,
@@ -642,6 +681,10 @@ fn exercises(program: &Program, arguments: &Value) -> Value {
                 "class": e.class,
                 "progression": e.progression,
                 "params": e.params,
+                "scheme": e.scheme,
+                "measure": v["measure"],
+                "per_side": e.per_side,
+                "tempo": e.tempo,
                 "built_in": builtin.contains(&e.key),
                 "in_workouts": program.workouts.iter().filter(|w| w.exercises.contains(&e.key)).map(|w| w.id.clone()).collect::<Vec<_>>(),
             })
@@ -796,7 +839,10 @@ fn summary(
             let Some(d) = l.decision.as_ref() else {
                 continue;
             };
-            let planned = scheme(d.sets, d.reps, d.weight);
+            let mut planned = scheme(d.sets, d.reps, d.weight);
+            if !d.scheme.is_empty() && d.scheme != "straight" {
+                planned.push_str(&format!(" ({})", d.scheme));
+            }
             let mut line = format!(
                 "{} {}{planned}",
                 date(w.at),
