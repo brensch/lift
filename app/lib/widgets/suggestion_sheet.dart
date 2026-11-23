@@ -25,7 +25,14 @@ Future<void> showSuggestionSheet(BuildContext context, Suggestion suggestion) {
     isScrollControlled: true,
     useSafeArea: true,
     backgroundColor: AppTheme.sheetColor(context),
-    builder: (_) => SuggestionSheet(suggestion: suggestion),
+    builder: (_) => DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.4,
+      maxChildSize: 0.95,
+      expand: false,
+      builder: (_, controller) =>
+          SuggestionSheet(suggestion: suggestion, controller: controller),
+    ),
   );
 }
 
@@ -85,7 +92,10 @@ String _number(double v) =>
 class SuggestionSheet extends StatefulWidget {
   final Suggestion suggestion;
 
-  const SuggestionSheet({super.key, required this.suggestion});
+  /// The sheet's: at the top, a drag down moves the sheet, not the list.
+  final ScrollController? controller;
+
+  const SuggestionSheet({super.key, required this.suggestion, this.controller});
 
   @override
   State<SuggestionSheet> createState() => _SuggestionSheetState();
@@ -163,6 +173,7 @@ class _SuggestionSheetState extends State<SuggestionSheet> {
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
+        controller: widget.controller,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
