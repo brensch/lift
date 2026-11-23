@@ -647,56 +647,8 @@ pub fn apply_reorder_exercises(
             s.workout_order,
         )
     });
-    split_moved_groups(&mut workout_ref.proposed_sets, &req.exercises);
     workout_ref.renumber_sets();
     Ok(())
-}
-
-/// A lift dragged away from its superset or circuit partners leaves the
-/// group: the group keeps its longest run of lifts side by side in the new
-/// order, and the others are done on their own where they were put (a group
-/// left with one lift is no group). Otherwise renumbering would pull them
-/// back together and undo the move.
-fn split_moved_groups(sets: &mut [ProposedSet], order: &[String]) {
-    let mut groups: Vec<String> = Vec::new();
-    for set in sets.iter() {
-        if !set.group.is_empty() && !groups.contains(&set.group) {
-            groups.push(set.group.clone());
-        }
-    }
-    for group in groups {
-        let member = |exercise: &str| {
-            sets.iter()
-                .any(|s| s.group == group && s.exercise == exercise)
-        };
-        // Runs of the group's lifts next to each other in the new order.
-        let mut runs: Vec<Vec<&String>> = Vec::new();
-        let mut run: Vec<&String> = Vec::new();
-        for exercise in order {
-            if member(exercise) {
-                run.push(exercise);
-            } else if !run.is_empty() {
-                runs.push(std::mem::take(&mut run));
-            }
-        }
-        if !run.is_empty() {
-            runs.push(run);
-        }
-        if runs.len() < 2 {
-            continue;
-        }
-        let keep: Vec<String> = runs
-            .iter()
-            .max_by_key(|r| r.len())
-            .filter(|r| r.len() > 1)
-            .map(|r| r.iter().map(|e| (*e).clone()).collect())
-            .unwrap_or_default();
-        for set in sets.iter_mut() {
-            if set.group == group && !keep.contains(&set.exercise) {
-                set.group.clear();
-            }
-        }
-    }
 }
 
 #[cfg(test)]
@@ -1494,43 +1446,6 @@ mod plan_op_tests {
             .iter()
             .enumerate()
             .all(|(i, s)| s.workout_order == i as i32));
-    }
-
-    #[test]
-    fn a_lift_dragged_out_of_its_superset_stays_where_it_was_put() {
-        let mut active = workout_with(&[
-            plan(SQUAT, 200.0, false),
-            plan(BENCH, 135.0, false),
-            plan(DEADLIFT, 100.0, false),
-        ]);
-        for s in &mut active.proposed_sets {
-            if s.exercise != SQUAT {
-                s.group = "g1".into();
-            }
-        }
-        active.renumber_sets();
-        // Deadlift dragged above squat, away from bench.
-        apply_reorder_exercises(
-            &mut active,
-            &ExercisesReordered {
-                workout_id: "w1".to_string(),
-                exercises: vec![DEADLIFT.to_string(), SQUAT.to_string(), BENCH.to_string()],
-            },
-        )
-        .unwrap();
-        let exercises: Vec<&str> = active
-            .proposed_sets
-            .iter()
-            .map(|s| s.exercise.as_str())
-            .collect();
-        assert_eq!(
-            exercises,
-            vec![DEADLIFT, DEADLIFT, DEADLIFT, SQUAT, SQUAT, SQUAT, BENCH, BENCH, BENCH]
-        );
-        assert!(
-            active.proposed_sets.iter().all(|s| s.group.is_empty()),
-            "a pair split up is no group"
-        );
     }
 
     #[test]
