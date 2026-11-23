@@ -51,6 +51,25 @@ const RECOVERY_REQUEST_HEADER: &str = "x-recovery-request";
 
 /// Longest username a new account may take.
 const MAX_USERNAME_CHARS: usize = 64;
+
+/// The one rule for a username: what registration and dev login both
+/// accept, as the error to refuse with (`invalid_argument`). The app and the
+/// website show it as it comes; they keep no copy of the rule, so the two
+/// sign-ins can't disagree about a name.
+fn username_problem(username: &str) -> Option<&'static str> {
+    if username.is_empty() {
+        Some("username is required")
+    } else if username.chars().any(char::is_whitespace) {
+        Some("username cannot contain spaces")
+    } else if username.chars().count() > MAX_USERNAME_CHARS
+        || username.chars().any(char::is_control)
+    {
+        Some("username is not valid")
+    } else {
+        None
+    }
+}
+
 /// Passkey names past this are cut short.
 const MAX_PASSKEY_NAME_CHARS: usize = 64;
 
@@ -138,8 +157,8 @@ impl AuthService for ServerAuthService {
         let req = request.into_inner();
         let username = req.username.trim();
         info!(rpc = "TestLogin", %username, "request");
-        if username.is_empty() {
-            return Err(Status::invalid_argument("username is required"));
+        if let Some(problem) = username_problem(username) {
+            return Err(Status::invalid_argument(problem));
         }
         let (user, token) = self
             .db
@@ -176,14 +195,8 @@ impl AuthService for ServerAuthService {
         let req = request.into_inner();
         let username = req.username.trim().to_string();
         info!(rpc = "RegisterStart", %username, "request");
-        if username.is_empty() {
-            return Err(Status::invalid_argument("username is required"));
-        }
-        if username.contains(' ') {
-            return Err(Status::invalid_argument("username cannot contain spaces"));
-        }
-        if username.chars().count() > MAX_USERNAME_CHARS || username.chars().any(char::is_control) {
-            return Err(Status::invalid_argument("username is not valid"));
+        if let Some(problem) = username_problem(&username) {
+            return Err(Status::invalid_argument(problem));
         }
         if self
             .db
@@ -671,6 +684,38 @@ mod test_login_gate_tests {
 
         assert!(!response.session_token.is_empty());
         assert_eq!(response.username, "dev-user");
+    }
+
+    /// Dev login and registration share one username rule: a name one refuses,
+    /// the other refuses with the same error (dev login once made "mcp lad",
+    /// a name no real account could have).
+    #[cfg(feature = "test-auth")]
+    #[tokio::test]
+    async fn dev_login_and_registration_refuse_the_same_names() {
+        let svc = service().await;
+        for name in [
+            "",
+            "   ",
+            "mcp lad",
+            "tab\there",
+            &"x".repeat(MAX_USERNAME_CHARS + 1),
+        ] {
+            let dev = svc
+                .test_login(Request::new(TestLoginRequest {
+                    username: name.to_string(),
+                }))
+                .await
+                .expect_err("dev login must refuse it");
+            let register = svc
+                .register_start(Request::new(RegisterStartRequest {
+                    username: name.to_string(),
+                    ..Default::default()
+                }))
+                .await
+                .expect_err("registration must refuse it");
+            assert_eq!(dev.code(), tonic::Code::InvalidArgument, "{name:?}");
+            assert_eq!(dev.message(), register.message(), "{name:?}");
+        }
     }
 }
 
