@@ -89,6 +89,13 @@ FLUTTER_RUN_ARGS ?=
 # in the file is still a flutter process and not a recycled one.
 SIGNAL_FLUTTER = PID=$$(cat "$(FLUTTER_PID_FILE)" 2>/dev/null); \
 	[ -n "$$PID" ] && grep -q flutter_tools "/proc/$$PID/cmdline" 2>/dev/null && kill -$(1) "$$PID"
+#
+# Without a debug APK, flutter run finds the launch activity in the source
+# manifest, where it only looks at <activity>: the launcher is an
+# <activity-alias> (the app icon picker), so on a fresh checkout it stops with
+# "No application found". From a built APK it reads aliases too, so build one
+# first when there is none.
+DEBUG_APK = app/build/app/outputs/flutter-apk/app-debug.apk
 run-android:
 	@bash -ec '\
 		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
@@ -96,6 +103,7 @@ run-android:
 		$(ADB) -s "$$SERIAL" reverse tcp:50051 tcp:50051 || true; \
 		mkdir -p "$(dir $(FLUTTER_PID_FILE))"; \
 		rm -f "$(FLUTTER_PID_FILE)"; \
+		if [ ! -f "$(DEBUG_APK)" ]; then echo "No debug APK yet; building one first."; (cd app && $(FLUTTER) build apk --debug); fi; \
 		cd app && $(FLUTTER) run -d "$$SERIAL" --pid-file "$(FLUTTER_PID_FILE)" $(FLUTTER_RUN_ARGS); \
 	'
 
