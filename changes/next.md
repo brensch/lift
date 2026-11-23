@@ -11,3 +11,4 @@
 - Friends you've trained with can be allowed to suggest workouts. Their suggestions show up on Home and in Settings → Program with who sent them, and nothing changes until you add one.
 - A suggestion from a friend is now one change to your program, and opening it shows your week before and after and how each lift will progress.
 - After a ramp set or a lift's last set, the bar at the bottom (and your watch) asks how it went: Easy, Hard, or tap the reps down if you didn't get them all, instead of a pop-up.
+- Programs can say what a missed set changes for the rest of that lift: more rest, lighter sets, or stopping there.

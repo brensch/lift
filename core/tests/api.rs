@@ -4105,6 +4105,114 @@ mod set_types {
         }
     }
 
+    /// Squat on a scheme whose working sets say what a miss does.
+    fn on_miss(on_miss: serde_json::Value) -> App {
+        let mut app = trained(&[("squat", 200.0)]);
+        let mut doc = serde_json::to_value(current(&app)).unwrap();
+        doc["schemes"]["careful"] = serde_json::json!({ "steps": [
+            { "role": "working", "count": "rest", "on_miss": on_miss }
+        ]});
+        set_program(&mut app, &Program::parse(&doc.to_string()).unwrap());
+        scheme_on(&mut app, "squat", "careful");
+        app
+    }
+
+    fn edit(set: &CompletedSet, reps: i32) -> WorkoutMutation {
+        mutation(Mutation::EditCompletedSet(EditCompletedSetRequest {
+            workout_id: set.workout_id.clone(),
+            completed_set_id: set.id.clone(),
+            actual_reps: reps,
+            actual_weight: set.actual_weight,
+        }))
+    }
+
+    /// A miss on a set that says so rests longer and lightens the sets
+    /// still to do; put back to every rep, they're as they were.
+    #[test]
+    fn a_miss_rests_longer_and_lightens_what_is_left_until_it_is_put_back() {
+        let mut app = on_miss(serde_json::json!({ "rest_seconds": 240, "fraction": 0.9 }));
+        let started = start(&mut app, &["squat"]);
+        let sets = working(&started.proposed_sets, "squat");
+        assert!(sets.len() >= 3);
+        let planned = sets[1].target_weight;
+        let at = NOW + 60;
+        let state = batch(
+            &mut app,
+            vec![complete_set(&sets[0], 3, sets[0].target_weight, at)],
+        )
+        .workout_state
+        .unwrap();
+        let done = state.completed_sets[0].clone();
+        assert_eq!(done.rest_until, at + 240, "the miss's rest");
+        let later = working(&state.proposed_sets, "squat");
+        assert!(later[1].target_weight < planned, "lighter: {later:?}");
+        assert!(later[1].target_weight >= planned * 0.85);
+        assert!(later[1..].iter().all(|s| s.miss_from == sets[0].id));
+
+        let state = batch(&mut app, vec![edit(&done, sets[0].target_reps)])
+            .workout_state
+            .unwrap();
+        let back = working(&state.proposed_sets, "squat");
+        assert_eq!(back[1].target_weight, planned, "put back: as planned");
+        assert!(back.iter().all(|s| s.miss_from.is_empty()));
+        assert_ne!(state.completed_sets[0].rest_until, at + 240);
+    }
+
+    /// Stop drops the lift's sets still to do; the miss undone brings them
+    /// back.
+    #[test]
+    fn a_miss_that_stops_drops_the_rest_until_undone() {
+        let mut app = on_miss(serde_json::json!({ "stop": true }));
+        let started = start(&mut app, &["squat"]);
+        let sets = working(&started.proposed_sets, "squat");
+        let state = batch(
+            &mut app,
+            vec![complete_set(&sets[0], 2, sets[0].target_weight, NOW + 60)],
+        )
+        .workout_state
+        .unwrap();
+        assert_eq!(
+            working(&state.proposed_sets, "squat").len(),
+            1,
+            "the rest dropped"
+        );
+        let done = state.completed_sets[0].clone();
+        let state = batch(
+            &mut app,
+            vec![mutation(Mutation::DeleteCompletedSet(
+                DeleteCompletedSetRequest {
+                    workout_id: done.workout_id.clone(),
+                    completed_set_id: done.id.clone(),
+                },
+            ))],
+        )
+        .workout_state
+        .unwrap();
+        assert_eq!(working(&state.proposed_sets, "squat").len(), sets.len());
+    }
+
+    #[test]
+    fn an_on_miss_must_say_one_thing_that_fits() {
+        let app = trained(&[("squat", 200.0)]);
+        for bad in [
+            serde_json::json!({}),
+            serde_json::json!({ "stop": true, "fraction": 0.9 }),
+            serde_json::json!({ "fraction": 1.2 }),
+        ] {
+            let mut doc = serde_json::to_value(current(&app)).unwrap();
+            doc["schemes"]["careful"] = serde_json::json!({ "steps": [
+                { "role": "working", "count": "rest", "on_miss": bad }
+            ]});
+            let (_, problems) = schlift_core::program::validate(&doc.to_string());
+            assert!(
+                problems
+                    .iter()
+                    .any(|p| p.error && p.path.contains("on_miss")),
+                "{bad}: {problems:?}"
+            );
+        }
+    }
+
     /// Drops chain off the set before them with no rest between; minis
     /// follow a short pause; after the last, the lift's usual rest.
     #[test]

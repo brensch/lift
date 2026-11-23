@@ -318,16 +318,22 @@ class WeightChangeCause extends $pb.ProtobufEnum {
       WeightChangeCause._(
           4, _omitEnumNames ? '' : 'WEIGHT_CHANGE_CAUSE_CORRECTION');
 
+  /// A set missed: the lift's sets still to do lighter (OnMiss.fraction),
+  /// or back where they were once it's put back to every rep.
+  static const WeightChangeCause WEIGHT_CHANGE_CAUSE_MISS =
+      WeightChangeCause._(5, _omitEnumNames ? '' : 'WEIGHT_CHANGE_CAUSE_MISS');
+
   static const $core.List<WeightChangeCause> values = <WeightChangeCause>[
     WEIGHT_CHANGE_CAUSE_UNSPECIFIED,
     WEIGHT_CHANGE_CAUSE_USER_ADJUST,
     WEIGHT_CHANGE_CAUSE_CALIBRATION_STEP,
     WEIGHT_CHANGE_CAUSE_CALIBRATION_SETTLED,
     WEIGHT_CHANGE_CAUSE_CORRECTION,
+    WEIGHT_CHANGE_CAUSE_MISS,
   ];
 
   static final $core.List<WeightChangeCause?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 4);
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
   static WeightChangeCause? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

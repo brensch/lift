@@ -60,7 +60,8 @@ or a lift. One mechanism covers the whole table:
 | Drop sets | `{role: drop, count: 2, fraction: 0.8}` after the working steps: each drop is 80% of the set before it, no rest |
 | Rest-pause, myo-reps | `{role: mini, count: 4, reps: 3, rest_seconds: 15}` after an activation set |
 | Clusters | `working` sets of `mini` blocks: `{role: mini, count: "rest", reps: 2, rest_seconds: 20}` |
-| Effort target (RIR) | `rir: 2` on a step: after the set the app asks the ramp's question, *how many more could you have done?* |
+| Effort target (RIR) | `rir: 2` on a step: after the lift's last such set the banner asks *how was that?*: Easy, Hard, or its reps tapped down |
+| On a miss | `on_miss: {rest_seconds: 240, fraction: 0.9}` on a step: a missed set rests longer and lightens what's left; `{stop: true}` ends the lift there |
 | Timed (planks, holds) | the lift's `measure: "seconds"`: R is seconds |
 | Distance (carries, sleds) | `measure: "metres"` |
 | Per side | the lift's `per_side: true`: "8 each side" |
@@ -104,6 +105,7 @@ or a lift. One mechanism covers the whole table:
   | `rir` | none | an effort target, 0 to 5: reps left in the tank |
   | `rest_seconds` | the class's rest; 0 for a drop | after each set of the step |
   | `every_seconds` | none | EMOM: the next set starts this long after this one started |
+  | `on_miss` | none | what a miss (a set logged short of its reps) changes for the rest of the lift that workout: `rest_seconds` (the rest after it instead), `fraction` (the sets still to do at this share of their weight), `stop` (they're dropped). Put back to every rep, or undone, it's taken back |
 
 - **On the exercise:** `measure` (`"reps"`, `"seconds"` or `"metres"`;
   default reps), `per_side` (default false), `tempo` (a short cue, default

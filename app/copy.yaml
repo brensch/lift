@@ -339,6 +339,11 @@ workout:
   watch_first_time_status: Open phone!
   # Asked in the banner (and on the watch) after a ramp set done in full,
   # or a lift's last set with an effort target. Placeholders.
+  # Under the lift, while a missed set has changed what comes next (the
+  # program's on_miss).
+  after_miss_lighter: "Lighter after a miss: {weight}"
+  after_miss_rest: Extra rest after a miss
+  after_miss_both: "Extra rest after a miss, then {weight}"
   quick_question: How was that?
   quick_easy: Easy
   quick_hard: Hard
@@ -436,6 +441,9 @@ plan:
     calibration_step_down: "Too heavy: ramp down to {after}"
     calibration_settled: "Ramp done: {after}"
     correction: "Fixed a set: {before} → {after}"
+    # A set missed: the program lightens what's left; put back, it isn't.
+    miss: "Lighter after a miss: {after}"
+    miss_back: "Back to {after}"
   # The sheet in the template editor: the user's own numbers for a lift.
   override:
     body: Your weight and reps. I carry on from here.

@@ -1120,6 +1120,15 @@ public final class WorkoutOuterClass {
      * <code>WEIGHT_CHANGE_CAUSE_CORRECTION = 4;</code>
      */
     WEIGHT_CHANGE_CAUSE_CORRECTION(4),
+    /**
+     * <pre>
+     * A set missed: the lift's sets still to do lighter (OnMiss.fraction),
+     * or back where they were once it's put back to every rep.
+     * </pre>
+     *
+     * <code>WEIGHT_CHANGE_CAUSE_MISS = 5;</code>
+     */
+    WEIGHT_CHANGE_CAUSE_MISS(5),
     UNRECOGNIZED(-1),
     ;
 
@@ -1159,6 +1168,15 @@ public final class WorkoutOuterClass {
      * <code>WEIGHT_CHANGE_CAUSE_CORRECTION = 4;</code>
      */
     public static final int WEIGHT_CHANGE_CAUSE_CORRECTION_VALUE = 4;
+    /**
+     * <pre>
+     * A set missed: the lift's sets still to do lighter (OnMiss.fraction),
+     * or back where they were once it's put back to every rep.
+     * </pre>
+     *
+     * <code>WEIGHT_CHANGE_CAUSE_MISS = 5;</code>
+     */
+    public static final int WEIGHT_CHANGE_CAUSE_MISS_VALUE = 5;
 
 
     @java.lang.Override
@@ -1187,6 +1205,7 @@ public final class WorkoutOuterClass {
         case 2: return WEIGHT_CHANGE_CAUSE_CALIBRATION_STEP;
         case 3: return WEIGHT_CHANGE_CAUSE_CALIBRATION_SETTLED;
         case 4: return WEIGHT_CHANGE_CAUSE_CORRECTION;
+        case 5: return WEIGHT_CHANGE_CAUSE_MISS;
         default: return null;
       }
     }
@@ -4275,6 +4294,53 @@ public final class WorkoutOuterClass {
      * @return The fraction.
      */
     float getFraction();
+
+    /**
+     * <pre>
+     * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+     * @return Whether the onMiss field is set.
+     */
+    boolean hasOnMiss();
+    /**
+     * <pre>
+     * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+     * @return The onMiss.
+     */
+    workout.v1.WorkoutOuterClass.OnMiss getOnMiss();
+
+    /**
+     * <pre>
+     * The set whose miss lightened or dropped this one, and its weight
+     * before; a set put back to every rep restores it.
+     * </pre>
+     *
+     * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+     * @return The missFrom.
+     */
+    java.lang.String getMissFrom();
+    /**
+     * <pre>
+     * The set whose miss lightened or dropped this one, and its weight
+     * before; a set put back to every rep restores it.
+     * </pre>
+     *
+     * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+     * @return The bytes for missFrom.
+     */
+    com.google.protobuf.ByteString
+        getMissFromBytes();
+
+    /**
+     * <code>float weight_before_miss = 29 [json_name = "weightBeforeMiss"];</code>
+     * @return The weightBeforeMiss.
+     */
+    float getWeightBeforeMiss();
   }
   /**
    * Protobuf type {@code workout.v1.ProposedSet}
@@ -4290,6 +4356,7 @@ public final class WorkoutOuterClass {
       exercise_ = "";
       tempo_ = "";
       group_ = "";
+      missFrom_ = "";
     }
     private int bitField0_;
     public static final int ID_FIELD_NUMBER = 1;
@@ -5174,6 +5241,170 @@ public final class WorkoutOuterClass {
     private void clearFraction() {
       
       fraction_ = 0F;
+    }
+
+    public static final int ON_MISS_FIELD_NUMBER = 27;
+    private workout.v1.WorkoutOuterClass.OnMiss onMiss_;
+    /**
+     * <pre>
+     * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+     */
+    @java.lang.Override
+    public boolean hasOnMiss() {
+      return onMiss_ != null;
+    }
+    /**
+     * <pre>
+     * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.OnMiss getOnMiss() {
+      return onMiss_ == null ? workout.v1.WorkoutOuterClass.OnMiss.getDefaultInstance() : onMiss_;
+    }
+    /**
+     * <pre>
+     * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+     */
+    private void setOnMiss(workout.v1.WorkoutOuterClass.OnMiss value) {
+      value.getClass();
+  onMiss_ = value;
+      
+      }
+    /**
+     * <pre>
+     * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeOnMiss(workout.v1.WorkoutOuterClass.OnMiss value) {
+      value.getClass();
+  if (onMiss_ != null &&
+          onMiss_ != workout.v1.WorkoutOuterClass.OnMiss.getDefaultInstance()) {
+        onMiss_ =
+          workout.v1.WorkoutOuterClass.OnMiss.newBuilder(onMiss_).mergeFrom(value).buildPartial();
+      } else {
+        onMiss_ = value;
+      }
+      
+    }
+    /**
+     * <pre>
+     * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+     */
+    private void clearOnMiss() {  onMiss_ = null;
+      
+    }
+
+    public static final int MISS_FROM_FIELD_NUMBER = 28;
+    private java.lang.String missFrom_;
+    /**
+     * <pre>
+     * The set whose miss lightened or dropped this one, and its weight
+     * before; a set put back to every rep restores it.
+     * </pre>
+     *
+     * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+     * @return The missFrom.
+     */
+    @java.lang.Override
+    public java.lang.String getMissFrom() {
+      return missFrom_;
+    }
+    /**
+     * <pre>
+     * The set whose miss lightened or dropped this one, and its weight
+     * before; a set put back to every rep restores it.
+     * </pre>
+     *
+     * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+     * @return The bytes for missFrom.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getMissFromBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(missFrom_);
+    }
+    /**
+     * <pre>
+     * The set whose miss lightened or dropped this one, and its weight
+     * before; a set put back to every rep restores it.
+     * </pre>
+     *
+     * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+     * @param value The missFrom to set.
+     */
+    private void setMissFrom(
+        java.lang.String value) {
+      java.lang.Class<?> valueClass = value.getClass();
+  
+      missFrom_ = value;
+    }
+    /**
+     * <pre>
+     * The set whose miss lightened or dropped this one, and its weight
+     * before; a set put back to every rep restores it.
+     * </pre>
+     *
+     * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+     */
+    private void clearMissFrom() {
+      
+      missFrom_ = getDefaultInstance().getMissFrom();
+    }
+    /**
+     * <pre>
+     * The set whose miss lightened or dropped this one, and its weight
+     * before; a set put back to every rep restores it.
+     * </pre>
+     *
+     * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+     * @param value The bytes for missFrom to set.
+     */
+    private void setMissFromBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      missFrom_ = value.toStringUtf8();
+      
+    }
+
+    public static final int WEIGHT_BEFORE_MISS_FIELD_NUMBER = 29;
+    private float weightBeforeMiss_;
+    /**
+     * <code>float weight_before_miss = 29 [json_name = "weightBeforeMiss"];</code>
+     * @return The weightBeforeMiss.
+     */
+    @java.lang.Override
+    public float getWeightBeforeMiss() {
+      return weightBeforeMiss_;
+    }
+    /**
+     * <code>float weight_before_miss = 29 [json_name = "weightBeforeMiss"];</code>
+     * @param value The weightBeforeMiss to set.
+     */
+    private void setWeightBeforeMiss(float value) {
+      
+      weightBeforeMiss_ = value;
+    }
+    /**
+     * <code>float weight_before_miss = 29 [json_name = "weightBeforeMiss"];</code>
+     */
+    private void clearWeightBeforeMiss() {
+      
+      weightBeforeMiss_ = 0F;
     }
 
     public static workout.v1.WorkoutOuterClass.ProposedSet parseFrom(
@@ -6199,6 +6430,179 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+       */
+      @java.lang.Override
+      public boolean hasOnMiss() {
+        return instance.hasOnMiss();
+      }
+      /**
+       * <pre>
+       * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.OnMiss getOnMiss() {
+        return instance.getOnMiss();
+      }
+      /**
+       * <pre>
+       * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+       */
+      public Builder setOnMiss(workout.v1.WorkoutOuterClass.OnMiss value) {
+        copyOnWrite();
+        instance.setOnMiss(value);
+        return this;
+        }
+      /**
+       * <pre>
+       * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+       */
+      public Builder setOnMiss(
+          workout.v1.WorkoutOuterClass.OnMiss.Builder builderForValue) {
+        copyOnWrite();
+        instance.setOnMiss(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+       */
+      public Builder mergeOnMiss(workout.v1.WorkoutOuterClass.OnMiss value) {
+        copyOnWrite();
+        instance.mergeOnMiss(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * What missing it changes for the rest of its lift (PlannedSet.on_miss).
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 27 [json_name = "onMiss"];</code>
+       */
+      public Builder clearOnMiss() {  copyOnWrite();
+        instance.clearOnMiss();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * The set whose miss lightened or dropped this one, and its weight
+       * before; a set put back to every rep restores it.
+       * </pre>
+       *
+       * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+       * @return The missFrom.
+       */
+      @java.lang.Override
+      public java.lang.String getMissFrom() {
+        return instance.getMissFrom();
+      }
+      /**
+       * <pre>
+       * The set whose miss lightened or dropped this one, and its weight
+       * before; a set put back to every rep restores it.
+       * </pre>
+       *
+       * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+       * @return The bytes for missFrom.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getMissFromBytes() {
+        return instance.getMissFromBytes();
+      }
+      /**
+       * <pre>
+       * The set whose miss lightened or dropped this one, and its weight
+       * before; a set put back to every rep restores it.
+       * </pre>
+       *
+       * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+       * @param value The missFrom to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMissFrom(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setMissFrom(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The set whose miss lightened or dropped this one, and its weight
+       * before; a set put back to every rep restores it.
+       * </pre>
+       *
+       * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMissFrom() {
+        copyOnWrite();
+        instance.clearMissFrom();
+        return this;
+      }
+      /**
+       * <pre>
+       * The set whose miss lightened or dropped this one, and its weight
+       * before; a set put back to every rep restores it.
+       * </pre>
+       *
+       * <code>string miss_from = 28 [json_name = "missFrom"];</code>
+       * @param value The bytes for missFrom to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMissFromBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setMissFromBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>float weight_before_miss = 29 [json_name = "weightBeforeMiss"];</code>
+       * @return The weightBeforeMiss.
+       */
+      @java.lang.Override
+      public float getWeightBeforeMiss() {
+        return instance.getWeightBeforeMiss();
+      }
+      /**
+       * <code>float weight_before_miss = 29 [json_name = "weightBeforeMiss"];</code>
+       * @param value The weightBeforeMiss to set.
+       * @return This builder for chaining.
+       */
+      public Builder setWeightBeforeMiss(float value) {
+        copyOnWrite();
+        instance.setWeightBeforeMiss(value);
+        return this;
+      }
+      /**
+       * <code>float weight_before_miss = 29 [json_name = "weightBeforeMiss"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearWeightBeforeMiss() {
+        copyOnWrite();
+        instance.clearWeightBeforeMiss();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.ProposedSet)
     }
     @java.lang.Override
@@ -6236,12 +6640,16 @@ public final class WorkoutOuterClass {
               "group_",
               "everySeconds_",
               "fraction_",
+              "onMiss_",
+              "missFrom_",
+              "weightBeforeMiss_",
             };
             java.lang.String info =
-                "\u0000\u0014\u0000\u0001\u0001\u001a\u0014\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "\u0000\u0017\u0000\u0001\u0001\u001d\u0017\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
                 "\u0003\u0004\u0005\u0004\u0006\u0001\u0007\u0007\t\u0004\u000b\u0007\u000f\u0007" +
                 "\u0010\u0007\u0011\u0208\u0012\f\u0013\u0007\u0014\u1004\u0000\u0015\f\u0016\u0007" +
-                "\u0017\u0208\u0018\u0208\u0019\u0004\u001a\u0001";
+                "\u0017\u0208\u0018\u0208\u0019\u0004\u001a\u0001\u001b\t\u001c\u0208\u001d\u0001" +
+                "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -9508,6 +9916,25 @@ public final class WorkoutOuterClass {
      * @return The everySeconds.
      */
     int getEverySeconds();
+
+    /**
+     * <pre>
+     * What missing this set changes for the rest of its lift; unset: nothing.
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+     * @return Whether the onMiss field is set.
+     */
+    boolean hasOnMiss();
+    /**
+     * <pre>
+     * What missing this set changes for the rest of its lift; unset: nothing.
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+     * @return The onMiss.
+     */
+    workout.v1.WorkoutOuterClass.OnMiss getOnMiss();
   }
   /**
    * <pre>
@@ -9756,6 +10183,72 @@ public final class WorkoutOuterClass {
     private void clearEverySeconds() {
       
       everySeconds_ = 0;
+    }
+
+    public static final int ON_MISS_FIELD_NUMBER = 8;
+    private workout.v1.WorkoutOuterClass.OnMiss onMiss_;
+    /**
+     * <pre>
+     * What missing this set changes for the rest of its lift; unset: nothing.
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+     */
+    @java.lang.Override
+    public boolean hasOnMiss() {
+      return onMiss_ != null;
+    }
+    /**
+     * <pre>
+     * What missing this set changes for the rest of its lift; unset: nothing.
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.OnMiss getOnMiss() {
+      return onMiss_ == null ? workout.v1.WorkoutOuterClass.OnMiss.getDefaultInstance() : onMiss_;
+    }
+    /**
+     * <pre>
+     * What missing this set changes for the rest of its lift; unset: nothing.
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+     */
+    private void setOnMiss(workout.v1.WorkoutOuterClass.OnMiss value) {
+      value.getClass();
+  onMiss_ = value;
+      
+      }
+    /**
+     * <pre>
+     * What missing this set changes for the rest of its lift; unset: nothing.
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+     */
+    @java.lang.SuppressWarnings({"ReferenceEquality"})
+    private void mergeOnMiss(workout.v1.WorkoutOuterClass.OnMiss value) {
+      value.getClass();
+  if (onMiss_ != null &&
+          onMiss_ != workout.v1.WorkoutOuterClass.OnMiss.getDefaultInstance()) {
+        onMiss_ =
+          workout.v1.WorkoutOuterClass.OnMiss.newBuilder(onMiss_).mergeFrom(value).buildPartial();
+      } else {
+        onMiss_ = value;
+      }
+      
+    }
+    /**
+     * <pre>
+     * What missing this set changes for the rest of its lift; unset: nothing.
+     * </pre>
+     *
+     * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+     */
+    private void clearOnMiss() {  onMiss_ = null;
+      
     }
 
     public static workout.v1.WorkoutOuterClass.PlannedSet parseFrom(
@@ -10107,6 +10600,77 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * What missing this set changes for the rest of its lift; unset: nothing.
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+       */
+      @java.lang.Override
+      public boolean hasOnMiss() {
+        return instance.hasOnMiss();
+      }
+      /**
+       * <pre>
+       * What missing this set changes for the rest of its lift; unset: nothing.
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.OnMiss getOnMiss() {
+        return instance.getOnMiss();
+      }
+      /**
+       * <pre>
+       * What missing this set changes for the rest of its lift; unset: nothing.
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+       */
+      public Builder setOnMiss(workout.v1.WorkoutOuterClass.OnMiss value) {
+        copyOnWrite();
+        instance.setOnMiss(value);
+        return this;
+        }
+      /**
+       * <pre>
+       * What missing this set changes for the rest of its lift; unset: nothing.
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+       */
+      public Builder setOnMiss(
+          workout.v1.WorkoutOuterClass.OnMiss.Builder builderForValue) {
+        copyOnWrite();
+        instance.setOnMiss(builderForValue.build());
+        return this;
+      }
+      /**
+       * <pre>
+       * What missing this set changes for the rest of its lift; unset: nothing.
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+       */
+      public Builder mergeOnMiss(workout.v1.WorkoutOuterClass.OnMiss value) {
+        copyOnWrite();
+        instance.mergeOnMiss(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * What missing this set changes for the rest of its lift; unset: nothing.
+       * </pre>
+       *
+       * <code>.workout.v1.OnMiss on_miss = 8 [json_name = "onMiss"];</code>
+       */
+      public Builder clearOnMiss() {  copyOnWrite();
+        instance.clearOnMiss();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.PlannedSet)
     }
     @java.lang.Override
@@ -10131,10 +10695,11 @@ public final class WorkoutOuterClass {
               "rir_",
               "restSeconds_",
               "everySeconds_",
+              "onMiss_",
             };
             java.lang.String info =
-                "\u0000\u0007\u0000\u0001\u0001\u0007\u0007\u0000\u0000\u0000\u0001\f\u0002\u0004" +
-                "\u0003\u0001\u0004\u0007\u0005\u1004\u0000\u0006\u0004\u0007\u0004";
+                "\u0000\b\u0000\u0001\u0001\b\b\u0000\u0000\u0000\u0001\f\u0002\u0004\u0003\u0001" +
+                "\u0004\u0007\u0005\u1004\u0000\u0006\u0004\u0007\u0004\b\t";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -10185,6 +10750,473 @@ public final class WorkoutOuterClass {
     private static volatile com.google.protobuf.Parser<PlannedSet> PARSER;
 
     public static com.google.protobuf.Parser<PlannedSet> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface OnMissOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:workout.v1.OnMiss)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <pre>
+     * The rest after the missed set; 0: its usual rest.
+     * </pre>
+     *
+     * <code>int32 rest_seconds = 1 [json_name = "restSeconds"];</code>
+     * @return The restSeconds.
+     */
+    int getRestSeconds();
+
+    /**
+     * <pre>
+     * The lift's sets still to do, at this share of their weight; 0: as they
+     * are.
+     * </pre>
+     *
+     * <code>float fraction = 2 [json_name = "fraction"];</code>
+     * @return The fraction.
+     */
+    float getFraction();
+
+    /**
+     * <pre>
+     * The lift's sets still to do are dropped.
+     * </pre>
+     *
+     * <code>bool stop = 3 [json_name = "stop"];</code>
+     * @return The stop.
+     */
+    boolean getStop();
+  }
+  /**
+   * <pre>
+   * What a set missed (logged short of its target) changes for the rest of
+   * its lift in that workout. A set put back to every rep takes it back.
+   * </pre>
+   *
+   * Protobuf type {@code workout.v1.OnMiss}
+   */
+  public  static final class OnMiss extends
+      com.google.protobuf.GeneratedMessageLite<
+          OnMiss, OnMiss.Builder> implements
+      // @@protoc_insertion_point(message_implements:workout.v1.OnMiss)
+      OnMissOrBuilder {
+    private OnMiss() {
+    }
+    public static final int REST_SECONDS_FIELD_NUMBER = 1;
+    private int restSeconds_;
+    /**
+     * <pre>
+     * The rest after the missed set; 0: its usual rest.
+     * </pre>
+     *
+     * <code>int32 rest_seconds = 1 [json_name = "restSeconds"];</code>
+     * @return The restSeconds.
+     */
+    @java.lang.Override
+    public int getRestSeconds() {
+      return restSeconds_;
+    }
+    /**
+     * <pre>
+     * The rest after the missed set; 0: its usual rest.
+     * </pre>
+     *
+     * <code>int32 rest_seconds = 1 [json_name = "restSeconds"];</code>
+     * @param value The restSeconds to set.
+     */
+    private void setRestSeconds(int value) {
+      
+      restSeconds_ = value;
+    }
+    /**
+     * <pre>
+     * The rest after the missed set; 0: its usual rest.
+     * </pre>
+     *
+     * <code>int32 rest_seconds = 1 [json_name = "restSeconds"];</code>
+     */
+    private void clearRestSeconds() {
+      
+      restSeconds_ = 0;
+    }
+
+    public static final int FRACTION_FIELD_NUMBER = 2;
+    private float fraction_;
+    /**
+     * <pre>
+     * The lift's sets still to do, at this share of their weight; 0: as they
+     * are.
+     * </pre>
+     *
+     * <code>float fraction = 2 [json_name = "fraction"];</code>
+     * @return The fraction.
+     */
+    @java.lang.Override
+    public float getFraction() {
+      return fraction_;
+    }
+    /**
+     * <pre>
+     * The lift's sets still to do, at this share of their weight; 0: as they
+     * are.
+     * </pre>
+     *
+     * <code>float fraction = 2 [json_name = "fraction"];</code>
+     * @param value The fraction to set.
+     */
+    private void setFraction(float value) {
+      
+      fraction_ = value;
+    }
+    /**
+     * <pre>
+     * The lift's sets still to do, at this share of their weight; 0: as they
+     * are.
+     * </pre>
+     *
+     * <code>float fraction = 2 [json_name = "fraction"];</code>
+     */
+    private void clearFraction() {
+      
+      fraction_ = 0F;
+    }
+
+    public static final int STOP_FIELD_NUMBER = 3;
+    private boolean stop_;
+    /**
+     * <pre>
+     * The lift's sets still to do are dropped.
+     * </pre>
+     *
+     * <code>bool stop = 3 [json_name = "stop"];</code>
+     * @return The stop.
+     */
+    @java.lang.Override
+    public boolean getStop() {
+      return stop_;
+    }
+    /**
+     * <pre>
+     * The lift's sets still to do are dropped.
+     * </pre>
+     *
+     * <code>bool stop = 3 [json_name = "stop"];</code>
+     * @param value The stop to set.
+     */
+    private void setStop(boolean value) {
+      
+      stop_ = value;
+    }
+    /**
+     * <pre>
+     * The lift's sets still to do are dropped.
+     * </pre>
+     *
+     * <code>bool stop = 3 [json_name = "stop"];</code>
+     */
+    private void clearStop() {
+      
+      stop_ = false;
+    }
+
+    public static workout.v1.WorkoutOuterClass.OnMiss parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.OnMiss parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.OnMiss parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.OnMiss parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.OnMiss parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static workout.v1.WorkoutOuterClass.OnMiss parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.OnMiss parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.OnMiss parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.OnMiss parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.OnMiss parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static workout.v1.WorkoutOuterClass.OnMiss parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static workout.v1.WorkoutOuterClass.OnMiss parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(workout.v1.WorkoutOuterClass.OnMiss prototype) {
+      return (Builder) DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * <pre>
+     * What a set missed (logged short of its target) changes for the rest of
+     * its lift in that workout. A set put back to every rep takes it back.
+     * </pre>
+     *
+     * Protobuf type {@code workout.v1.OnMiss}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          workout.v1.WorkoutOuterClass.OnMiss, Builder> implements
+        // @@protoc_insertion_point(builder_implements:workout.v1.OnMiss)
+        workout.v1.WorkoutOuterClass.OnMissOrBuilder {
+      // Construct using workout.v1.WorkoutOuterClass.OnMiss.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <pre>
+       * The rest after the missed set; 0: its usual rest.
+       * </pre>
+       *
+       * <code>int32 rest_seconds = 1 [json_name = "restSeconds"];</code>
+       * @return The restSeconds.
+       */
+      @java.lang.Override
+      public int getRestSeconds() {
+        return instance.getRestSeconds();
+      }
+      /**
+       * <pre>
+       * The rest after the missed set; 0: its usual rest.
+       * </pre>
+       *
+       * <code>int32 rest_seconds = 1 [json_name = "restSeconds"];</code>
+       * @param value The restSeconds to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRestSeconds(int value) {
+        copyOnWrite();
+        instance.setRestSeconds(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The rest after the missed set; 0: its usual rest.
+       * </pre>
+       *
+       * <code>int32 rest_seconds = 1 [json_name = "restSeconds"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRestSeconds() {
+        copyOnWrite();
+        instance.clearRestSeconds();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * The lift's sets still to do, at this share of their weight; 0: as they
+       * are.
+       * </pre>
+       *
+       * <code>float fraction = 2 [json_name = "fraction"];</code>
+       * @return The fraction.
+       */
+      @java.lang.Override
+      public float getFraction() {
+        return instance.getFraction();
+      }
+      /**
+       * <pre>
+       * The lift's sets still to do, at this share of their weight; 0: as they
+       * are.
+       * </pre>
+       *
+       * <code>float fraction = 2 [json_name = "fraction"];</code>
+       * @param value The fraction to set.
+       * @return This builder for chaining.
+       */
+      public Builder setFraction(float value) {
+        copyOnWrite();
+        instance.setFraction(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The lift's sets still to do, at this share of their weight; 0: as they
+       * are.
+       * </pre>
+       *
+       * <code>float fraction = 2 [json_name = "fraction"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearFraction() {
+        copyOnWrite();
+        instance.clearFraction();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * The lift's sets still to do are dropped.
+       * </pre>
+       *
+       * <code>bool stop = 3 [json_name = "stop"];</code>
+       * @return The stop.
+       */
+      @java.lang.Override
+      public boolean getStop() {
+        return instance.getStop();
+      }
+      /**
+       * <pre>
+       * The lift's sets still to do are dropped.
+       * </pre>
+       *
+       * <code>bool stop = 3 [json_name = "stop"];</code>
+       * @param value The stop to set.
+       * @return This builder for chaining.
+       */
+      public Builder setStop(boolean value) {
+        copyOnWrite();
+        instance.setStop(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The lift's sets still to do are dropped.
+       * </pre>
+       *
+       * <code>bool stop = 3 [json_name = "stop"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearStop() {
+        copyOnWrite();
+        instance.clearStop();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:workout.v1.OnMiss)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"unchecked", "fallthrough"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new workout.v1.WorkoutOuterClass.OnMiss();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "restSeconds_",
+              "fraction_",
+              "stop_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0004\u0002\u0001" +
+                "\u0003\u0007";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        // fall through
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<workout.v1.WorkoutOuterClass.OnMiss> parser = PARSER;
+          if (parser == null) {
+            synchronized (workout.v1.WorkoutOuterClass.OnMiss.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<workout.v1.WorkoutOuterClass.OnMiss>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+      }
+      case GET_MEMOIZED_IS_INITIALIZED: {
+        return (byte) 1;
+      }
+      case SET_MEMOIZED_IS_INITIALIZED: {
+        return null;
+      }
+      }
+      throw new UnsupportedOperationException();
+    }
+
+
+    // @@protoc_insertion_point(class_scope:workout.v1.OnMiss)
+    private static final workout.v1.WorkoutOuterClass.OnMiss DEFAULT_INSTANCE;
+    static {
+      OnMiss defaultInstance = new OnMiss();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        OnMiss.class, defaultInstance);
+    }
+
+    public static workout.v1.WorkoutOuterClass.OnMiss getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<OnMiss> PARSER;
+
+    public static com.google.protobuf.Parser<OnMiss> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }

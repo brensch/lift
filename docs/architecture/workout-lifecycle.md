@@ -519,6 +519,16 @@ The same question follows a lift's last set with an effort target
 2–4 and `AnswerRung.jump_lb` (a specific jump) from accounts that recorded
 them; the app no longer sends them.
 
+A scheme step's `on_miss` (`ProposedSet.on_miss`, from `PlannedSet`) acts
+when one of its sets is done short of its reps (not a warmup or a ramp
+set): the rest after it is `on_miss.rest_seconds` if given, and the lift's
+sets still to do are marked `miss_from` it and lightened by `fraction`
+(the weight before kept in `weight_before_miss`, logged
+`WEIGHT_CHANGE_CAUSE_MISS`) or dropped (`stop`: cancelled). The set edited
+back to every rep, or undone, puts them back (any done since stay done).
+It's folded from the set facts alone (`reducer::apply_on_miss`), so the
+phone and the server agree. The line under the lift says what it did.
+
 Any set just done stays in the banner a moment (`WorkoutProvider.askingSetId`,
 `oneLessWindow`, five seconds): its circle, with a ring counting down, where
 a tap takes a rep off (adds one to as many as you can) instead of starting

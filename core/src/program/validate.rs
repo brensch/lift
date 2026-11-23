@@ -339,6 +339,7 @@ fn check_schemes(p: &Program, c: &mut Checker) {
                     && step.rir.is_none()
                     && step.rest_seconds.is_none()
                     && step.every_seconds.is_none()
+                    && step.on_miss.is_none()
             )
         {
             c.err(
@@ -393,6 +394,24 @@ fn check_schemes(p: &Program, c: &mut Checker) {
             }
             if let Some(e) = step.every_seconds {
                 c.int(&format!("{s}.every_seconds"), e.into(), 10, 600);
+            }
+            if let Some(m) = &step.on_miss {
+                let at = format!("{s}.on_miss");
+                if let Some(r) = m.rest_seconds {
+                    c.int(&format!("{at}.rest_seconds"), r.into(), 0, 1800);
+                }
+                if let Some(f) = m.fraction {
+                    c.above(&format!("{at}.fraction"), f, 0.0, 0.99);
+                }
+                if m.rest_seconds.is_none() && m.fraction.is_none() && !m.stop {
+                    c.err(&at, "says nothing: give rest_seconds, fraction or stop");
+                }
+                if m.stop && m.fraction.is_some() {
+                    c.err(
+                        &at,
+                        "stop drops the sets still to do: a fraction has nothing left to lighten",
+                    );
+                }
             }
             if step.amrap && !step.role.is_main() {
                 c.err(

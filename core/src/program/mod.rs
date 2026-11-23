@@ -173,6 +173,24 @@ pub struct Step {
     /// EMOM: the next set starts this long after this one started.
     #[serde(default)]
     pub every_seconds: Option<i32>,
+    /// What missing one of its sets changes for the rest of the lift.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_miss: Option<OnMiss>,
+}
+
+/// What a set missed (logged short of its target) changes for the rest of
+/// its lift that workout; put back to every rep, it's taken back.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+pub struct OnMiss {
+    /// The rest after the missed set, over the step's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rest_seconds: Option<i32>,
+    /// The lift's sets still to do, at this share of their weight.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fraction: Option<f32>,
+    /// The lift's sets still to do are dropped.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub stop: bool,
 }
 
 fn one() -> f32 {

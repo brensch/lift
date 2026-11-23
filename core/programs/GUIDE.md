@@ -439,15 +439,29 @@ A scheme is a list of `steps`, each some sets of one role, in order:
   at R or more, and what was done feeds the rule (`last.amrap_reps`, and
   the estimated max).
 - `rir` (optional): an effort target, 0 to 5 reps left in the tank, shown
-  with each of its sets. After the lift's last set with a target the app
-  asks once, "how many more could you have done?", with three answers
-  (0–1, 2–4, 5+), which tighten the estimated max and give `last.rir`.
-  Beginners judge this poorly, so ask for it where it matters.
+  with each of its sets. After the lift's last set with a target, done in
+  full, the app asks once how it went: Easy (read as 5+ left) or Hard (0–1
+  left), which tighten the estimated max and give `last.rir`; a rep tapped
+  off instead is a miss. Beginners judge this poorly, so ask for it where
+  it matters.
 - `rest_seconds` (optional): after each of its sets; for a `mini`, the
   short pause before each one. Without it, the class's rest. A set before
   a drop rests none, and a lift's last drop or mini rests the class's rest.
 - `every_seconds` (optional): EMOM. The next set starts this long after
   this one started (10 to 600).
+- `on_miss` (optional): what missing one of its sets (logged short of its
+  reps) changes for the rest of the lift that workout. Any of:
+  - `rest_seconds`: the rest after the missed set instead (0 to 1800);
+  - `fraction`: the lift's sets still to do at this share of their weight
+    (under 1), snapped to what loads;
+  - `stop`: true drops the lift's sets still to do (not with `fraction`).
+
+  The set put back to every rep, or undone, takes it back. Without it a
+  miss changes nothing until the next session, where the rule reads it.
+  For example, back-offs that ease off after a miss:
+  `{"role": "backoff", "count": "rest", "reps": 8, "fraction": 0.85,
+  "on_miss": {"rest_seconds": 240, "fraction": 0.9}}`. A straight lift that
+  wants one gets a scheme of one working step with `"count": "rest"`.
 
 The built-in program defines `straight`, `top_backoff`, `plus_set` (5/3/1's
 last set), `pyramid`, `drop_finish`, `myo`, `cluster` and `emom`. Use them,

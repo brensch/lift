@@ -279,6 +279,7 @@ fn working_sets(
             set.target_rir = planned.rir;
             set.every_seconds = planned.every_seconds;
             set.fraction = fraction;
+            set.on_miss = planned.on_miss;
             dress(set, decision)
         })
         .collect()
