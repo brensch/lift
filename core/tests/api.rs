@@ -4158,6 +4158,35 @@ mod set_types {
         assert_ne!(state.completed_sets[0].rest_until, at + 240);
     }
 
+    /// Marked a miss a minute after it was done, the rest still runs from
+    /// when the set ended: a minute of the miss's rest is already gone.
+    #[test]
+    fn a_miss_marked_later_rests_from_the_end_of_the_set() {
+        let mut app = on_miss(serde_json::json!({ "rest_seconds": 300 }));
+        let started = start(&mut app, &["squat"]);
+        let sets = working(&started.proposed_sets, "squat");
+        let ended = app.now + 60;
+        let state = batch(
+            &mut app,
+            vec![complete_set(
+                &sets[0],
+                sets[0].target_reps,
+                sets[0].target_weight,
+                ended,
+            )],
+        )
+        .workout_state
+        .unwrap();
+        let done = state.completed_sets[0].clone();
+        app.now = ended + 60;
+        let state = batch(&mut app, vec![edit(&done, sets[0].target_reps - 1)])
+            .workout_state
+            .unwrap();
+        assert_eq!(state.completed_sets[0].rest_until, ended + 300);
+        let snap = state.state_snapshot.unwrap();
+        assert_eq!(snap.rest_until, ended + 300, "4:00 left, not 5:00");
+    }
+
     /// A miss rest under the set's usual one never shortens it.
     #[test]
     fn a_miss_rest_never_shortens_the_usual_rest() {
