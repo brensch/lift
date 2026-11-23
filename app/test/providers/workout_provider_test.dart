@@ -265,10 +265,17 @@ void main() {
     expect(reps(), first.targetReps - 1);
     expect(p.questionSetId, isEmpty, reason: 'a miss asks nothing');
     expect(p.askingSetId, first.id, reason: 'its circle stays');
+    final window = p.askingUntil!;
+    expect(window.isAfter(DateTime.now()), isTrue, reason: 'counting down');
     expect(p.askingReps, first.targetReps - 1);
 
     await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_ONE_LESS);
     expect(reps(), first.targetReps - 2);
+    expect(
+      p.askingUntil!.isBefore(window),
+      isFalse,
+      reason: 'each tap starts the window again',
+    );
     // Easy and Hard are for the open question only.
     await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_EASY);
     expect(reps(), first.targetReps - 2);

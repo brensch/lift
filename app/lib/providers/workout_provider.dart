@@ -61,9 +61,15 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   WorkoutSummary? _summary;
   String _rungQuestion = '';
   String _effortQuestion = '';
-  // The set last asked about: its circle stays in the banner while its reps
-  // are tapped down, which closes the question itself.
+  // The set last tapped down from the banner's question: its circle stays
+  // there until [_askedUntil] (each tap moves it on), though the miss closes
+  // the question itself; then the banner goes on to the next set.
   String _asked = '';
+  DateTime? _askedUntil;
+  Timer? _askedTimer;
+
+  /// How long the banner's circle waits after a rep off for another.
+  static const oneLessWindow = Duration(seconds: 5);
 
   /// The timed set whose end has been cued, so it rings once.
   String? _timedSetCued;
@@ -176,7 +182,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _summary = response.hasSummary() ? response.summary : null;
     _rungQuestion = response.rungQuestionSetId;
     _effortQuestion = response.effortQuestionSetId;
-    if (questionSetId.isNotEmpty) _asked = questionSetId;
     _nextUp = response.hasNextUpSet() ? response.nextUpSet : null;
     _applyStateSnapshot(
       response.hasStateSnapshot() ? response.stateSnapshot : null,
@@ -560,20 +565,28 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   String get questionSetId =>
       _rungQuestion.isNotEmpty ? _rungQuestion : _effortQuestion;
 
-  /// The set the banner asks about: the open question's, or the one it
-  /// asked about while its reps are tapped down (a miss closes the
-  /// question), until the next set starts or another is done.
+  /// The set the banner asks about: the open question's, or the one tapped
+  /// down from it (a miss closes the question) until [askingUntil], unless
+  /// a set is started first.
   String get askingSetId {
     final open = questionSetId;
     if (open.isNotEmpty) return open;
     final w = _workout;
-    if (_asked.isEmpty || w == null || w.liftingSetId.isNotEmpty) return '';
-    CompletedSet? latest;
-    for (final c in _completed) {
-      if (c.endedAt == Int64.ZERO) continue;
-      if (latest == null || c.endedAt > latest.endedAt) latest = c;
-    }
-    return latest?.proposedSetId == _asked ? _asked : '';
+    final until = _askedUntil;
+    if (_asked.isEmpty || w == null || until == null) return '';
+    if (w.liftingSetId.isNotEmpty || !DateTime.now().isBefore(until)) return '';
+    return _asked;
+  }
+
+  /// When the banner's circle stops waiting for another tap; null while
+  /// none is counting down.
+  DateTime? get askingUntil => askingSetId == _asked ? _askedUntil : null;
+
+  void _endAsking() {
+    _askedTimer?.cancel();
+    _askedTimer = null;
+    _asked = '';
+    _askedUntil = null;
   }
 
   /// The reps logged on the set the banner asks about.
@@ -725,7 +738,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _summary = null;
     _rungQuestion = '';
     _effortQuestion = '';
-    _asked = '';
+    _endAsking();
     _nextUp = null;
     _blocksCache.clear();
     _applyStateSnapshot(null);
@@ -954,11 +967,21 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       for (final c in _completed) {
         if (c.proposedSetId == setId && c.endedAt != Int64.ZERO) done = c;
       }
-      if (done != null && done.actualReps > 0) await tapDoneSet(done.id);
+      if (done == null || done.actualReps <= 0) return;
+      // The window opens before the edit lands, so the circle never drops
+      // out between the miss closing the question and the window.
+      _asked = setId;
+      _askedUntil = DateTime.now().add(oneLessWindow);
+      _askedTimer?.cancel();
+      _askedTimer = Timer(oneLessWindow, () {
+        _endAsking();
+        notifyListeners();
+      });
+      await tapDoneSet(done.id);
       return;
     }
     if (setId != questionSetId) return;
-    _asked = '';
+    _endAsking();
     final repsLeft = answer == QuickAnswer.QUICK_ANSWER_EASY
         ? RepsLeft.REPS_LEFT_FIVE_PLUS
         : RepsLeft.REPS_LEFT_ZERO_TO_ONE;
@@ -1381,6 +1404,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _stopTimer();
+    _askedTimer?.cancel();
     _clock.dispose();
     _onboarded.dispose();
     super.dispose();

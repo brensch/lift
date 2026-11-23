@@ -510,8 +510,10 @@ the core's answer (`WorkoutProvider.answerQuick`):
 - the circle (`QUICK_ANSWER_ONE_LESS`) → a rep off per tap, as a done
   circle's tap: a miss, which settles or steps down as any miss does. The
   miss closes the question, but the circle stays in the banner
-  (`WorkoutProvider.askingSetId`), alone, for the next tap, until the next
-  set starts or another is done; it stops at zero;
+  (`WorkoutProvider.askingSetId`), alone, with a ring counting down five
+  seconds (`oneLessWindow`) that each tap starts again; when it runs out,
+  or a set is started, the banner goes on to the next set. It stops at
+  zero. The exercise list's circles have no window: a tap there is final;
 - no answer (the next set done) → the usual rung stands.
 
 The same question follows a lift's last set with an effort target

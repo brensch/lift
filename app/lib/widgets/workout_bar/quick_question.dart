@@ -2,8 +2,9 @@
 /// a lift's last set with an effort target), in the row the weight and reps
 /// take: Easy, Hard, and the set's own circle, which takes a rep off per
 /// tap when they weren't all there. A rep off is a miss, which closes the
-/// question: the circle stays, alone, for the next tap, until the next set
-/// starts. No dialog, so the watch asks it the same way.
+/// question: the circle stays, alone, with a ring counting down five
+/// seconds that each tap starts again; when it runs out the banner goes on
+/// to the next set. No dialog, so the watch asks it the same way.
 library;
 
 import 'package:flutter/material.dart';
@@ -69,14 +70,57 @@ class QuickQuestion extends StatelessWidget {
         ] else
           const Spacer(),
         if (set != null)
-          SetCircle(
-            number: reps,
-            state: LiveSetCircle.setCircleState(SectionWorkout.mine(wp), set),
-            text: needsLabel(set) ? repsLabel(set, reps, done: true) : null,
-            onTap: reps > 0
-                ? () => wp.answerQuick(setId, QuickAnswer.QUICK_ANSWER_ONE_LESS)
-                : null,
+          _Countdown(
+            until: wp.askingUntil,
+            child: SetCircle(
+              number: reps,
+              state: LiveSetCircle.setCircleState(SectionWorkout.mine(wp), set),
+              text: needsLabel(set) ? repsLabel(set, reps, done: true) : null,
+              onTap: reps > 0
+                  ? () =>
+                        wp.answerQuick(setId, QuickAnswer.QUICK_ANSWER_ONE_LESS)
+                  : null,
+            ),
           ),
+      ],
+    );
+  }
+}
+
+/// A ring around the circle running down to [until], when the banner goes
+/// on to the next set; each tap sets a new [until] and the ring starts
+/// full again. Nothing while there's no window.
+class _Countdown extends StatelessWidget {
+  final DateTime? until;
+  final Widget child;
+
+  const _Countdown({required this.until, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final end = until;
+    if (end == null) return child;
+    final total = WorkoutProvider.oneLessWindow.inMilliseconds;
+    final left = end.difference(DateTime.now()).inMilliseconds.clamp(0, total);
+    const ring = SetCircle.diameter + 8;
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        SizedBox.square(
+          dimension: ring,
+          child: TweenAnimationBuilder<double>(
+            key: ValueKey(end),
+            tween: Tween(begin: left / total, end: 0),
+            duration: Duration(milliseconds: left),
+            builder: (context, value, _) => CircularProgressIndicator(
+              value: value,
+              strokeWidth: 3,
+              color: Theme.of(context).colorScheme.primary,
+              backgroundColor: Colors.transparent,
+            ),
+          ),
+        ),
+        child,
       ],
     );
   }
