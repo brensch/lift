@@ -509,11 +509,8 @@ the core's answer (`WorkoutProvider.answerQuick`):
   `CALIBRATION_SETTLED`;
 - the circle (`QUICK_ANSWER_ONE_LESS`) → a rep off per tap, as a done
   circle's tap: a miss, which settles or steps down as any miss does. The
-  miss closes the question, but the circle stays in the banner
-  (`WorkoutProvider.askingSetId`), alone, with a ring counting down five
-  seconds (`oneLessWindow`) that each tap starts again; when it runs out,
-  or a set is started, the banner goes on to the next set. It stops at
-  zero. The exercise list's circles have no window: a tap there is final;
+  miss closes the question, and the banner shows the set as any set just
+  done (below). It stops at zero;
 - no answer (the next set done) → the usual rung stands.
 
 The same question follows a lift's last set with an effort target
@@ -521,6 +518,13 @@ The same question follows a lift's last set with an effort target
 `EffortAnswered` 5+ and 0–1, the circle a rep off per tap. The core still reads
 2–4 and `AnswerRung.jump_lb` (a specific jump) from accounts that recorded
 them; the app no longer sends them.
+
+Any set just done stays in the banner a moment (`WorkoutProvider.askingSetId`,
+`oneLessWindow`, five seconds): its circle, with a ring counting down, where
+a tap takes a rep off (adds one to as many as you can) instead of starting
+the next set, and each tap starts the ring again. When it runs out, or a set
+is started, the banner goes on to the next set. The exercise list's circles
+have no window: they already move on.
 
 An answer to any other set, or once the question is closed, is a no-op. A
 rung corrected to a miss drops its answer, jump included. The walk's ramp

@@ -1,10 +1,9 @@
 /// The banner's question after a set that asks how it went (a ramp set, or
 /// a lift's last set with an effort target), in the row the weight and reps
-/// take: Easy, Hard, and the set's own circle, which takes a rep off per
-/// tap when they weren't all there. A rep off is a miss, which closes the
-/// question: the circle stays, alone, with a ring counting down five
-/// seconds that each tap starts again; when it runs out the banner goes on
-/// to the next set. No dialog, so the watch asks it the same way.
+/// take: Easy, Hard, and the set's own circle ([JustDoneCircle]), which
+/// takes a rep off per tap when they weren't all there. A rep off is a
+/// miss, which closes the question, and the banner shows the set as any
+/// set just done. No dialog, so the watch asks it the same way.
 library;
 
 import 'package:flutter/material.dart';
@@ -28,10 +27,7 @@ class QuickQuestion extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = context.tokens;
     final w = copy.workout;
-    final wp = context.watch<WorkoutProvider>();
-    final set = wp.proposedSetById(setId);
-    final open = wp.questionSetId == setId;
-    final reps = wp.askingReps;
+    final wp = context.read<WorkoutProvider>();
     Widget answer(QuickAnswer answer, String label) => Expanded(
       child: SizedBox(
         height: 48,
@@ -62,27 +58,41 @@ class QuickQuestion extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 10),
-        if (open) ...[
-          answer(QuickAnswer.QUICK_ANSWER_EASY, w.quickEasy),
-          const SizedBox(width: 6),
-          answer(QuickAnswer.QUICK_ANSWER_HARD, w.quickHard),
-          const SizedBox(width: 10),
-        ] else
-          const Spacer(),
-        if (set != null)
-          _Countdown(
-            until: wp.askingUntil,
-            child: SetCircle(
-              number: reps,
-              state: LiveSetCircle.setCircleState(SectionWorkout.mine(wp), set),
-              text: needsLabel(set) ? repsLabel(set, reps, done: true) : null,
-              onTap: reps > 0
-                  ? () =>
-                        wp.answerQuick(setId, QuickAnswer.QUICK_ANSWER_ONE_LESS)
-                  : null,
-            ),
-          ),
+        answer(QuickAnswer.QUICK_ANSWER_EASY, w.quickEasy),
+        const SizedBox(width: 6),
+        answer(QuickAnswer.QUICK_ANSWER_HARD, w.quickHard),
+        const SizedBox(width: 10),
+        JustDoneCircle(setId: setId),
       ],
+    );
+  }
+}
+
+/// The banner's circle for a set just done: a tap takes a rep off (adds one
+/// to as many as you can) instead of starting the next set, and a ring
+/// counts down the seconds left before the banner goes on to it; each tap
+/// starts the ring again. The exercise list's circles have none of this.
+class JustDoneCircle extends StatelessWidget {
+  final String setId;
+
+  const JustDoneCircle({super.key, required this.setId});
+
+  @override
+  Widget build(BuildContext context) {
+    final wp = context.watch<WorkoutProvider>();
+    final set = wp.proposedSetById(setId);
+    if (set == null) return const SizedBox.shrink();
+    final reps = wp.askingReps;
+    return _Countdown(
+      until: wp.askingUntil,
+      child: SetCircle(
+        number: reps,
+        state: LiveSetCircle.setCircleState(SectionWorkout.mine(wp), set),
+        text: needsLabel(set) ? repsLabel(set, reps, done: true) : null,
+        onTap: reps > 0 || set.amrap
+            ? () => wp.answerQuick(setId, QuickAnswer.QUICK_ANSWER_ONE_LESS)
+            : null,
+      ),
     );
   }
 }
