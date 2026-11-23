@@ -105,7 +105,7 @@ or a lift. One mechanism covers the whole table:
   | `rir` | none | an effort target, 0 to 5: reps left in the tank |
   | `rest_seconds` | the class's rest; 0 for a drop | after each set of the step |
   | `every_seconds` | none | EMOM: the next set starts this long after this one started |
-  | `on_miss` | none | what a miss (a set logged short of its reps) changes for the rest of the lift that workout: `rest_seconds` (the rest after it instead), `fraction` (the sets still to do at this share of their weight), `stop` (they're dropped). Put back to every rep, or undone, it's taken back |
+  | `on_miss` | none | what a miss (a set logged short of its reps) changes for the rest of the lift that workout: `rest_seconds` (the rest after it, never less than the usual), `fraction` (the sets still to do at this share of their weight), `stop` (they're dropped). Put back to every rep, or undone, it's taken back |
 
 - **On the exercise:** `measure` (`"reps"`, `"seconds"` or `"metres"`;
   default reps), `per_side` (default false), `tempo` (a short cue, default

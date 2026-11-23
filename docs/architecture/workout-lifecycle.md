@@ -521,7 +521,8 @@ them; the app no longer sends them.
 
 A scheme step's `on_miss` (`ProposedSet.on_miss`, from `PlannedSet`) acts
 when one of its sets is done short of its reps (not a warmup or a ramp
-set): the rest after it is `on_miss.rest_seconds` if given, and the lift's
+set): the rest after it is `on_miss.rest_seconds` if given (never less
+than its usual rest), and the lift's
 sets still to do are marked `miss_from` it and lightened by `fraction`
 (the weight before kept in `weight_before_miss`, logged
 `WEIGHT_CHANGE_CAUSE_MISS`) or dropped (`stop`: cancelled). The set edited

@@ -437,13 +437,25 @@ fn rest_until(
     ended_at: i64,
     reps: i32,
 ) -> i64 {
-    // A miss rests what the program says after one, if it says.
-    if let Some(rest) = miss_rule(proposed, reps)
+    let usual = usual_rest_until(program, proposed, is_final, started_at, ended_at);
+    // A miss rests what the program says after one, if it says: more, never
+    // less, than the set's usual rest.
+    match miss_rule(proposed, reps)
         .map(|m| m.rest_seconds)
         .filter(|r| *r > 0)
     {
-        return ended_at + rest as i64;
+        Some(rest) => usual.max(ended_at + rest as i64),
+        None => usual,
     }
+}
+
+fn usual_rest_until(
+    program: &Program,
+    proposed: &ProposedSet,
+    is_final: bool,
+    started_at: i64,
+    ended_at: i64,
+) -> i64 {
     if proposed.every_seconds > 0 && !is_final {
         let from = if started_at > 0 { started_at } else { ended_at };
         return (from + proposed.every_seconds as i64).max(ended_at);
