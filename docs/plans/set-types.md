@@ -191,9 +191,10 @@ rows of circles labelled down the left edge.
     circle);
   - **EMOM** resting counts down to the next start;
   - tempo and per side ride the position line, never a new element.
-- **Effort question:** after a set with a target, the ramp's dialog asks
-  *how many more could you have done?* with the same three answers. It can
-  be dismissed; an unanswered set is simply unanswered.
+- **Effort question:** once a lift a workout, after its last set with a
+  target, the ramp's dialog asks *how many more could you have done?* with
+  the same three answers (asking after every set was too much). It can be
+  dismissed; an unanswered set is simply unanswered.
 - **AMRAP entry:** a circle shows `8+`. Tapping the lifted set completes it
   at 8 as now, and each further tap on the done circle adds a rep, up to
   99, instead of taking one off (a short/zero tap-down stays on every other

@@ -524,8 +524,10 @@ pub fn rung_question(workout_ref: &WorkoutRecord) -> Option<String> {
 }
 
 /// The set whose effort question is open: the last set done, if it has an
-/// effort target, isn't a rung, has no answer yet, and nothing is being
-/// lifted. Doing another set closes it, answered or not.
+/// effort target, isn't a rung, has no answer yet, nothing is being lifted,
+/// and it's its lift's last set with a target: one question a lift a
+/// workout, after its last such set (each set's target still shows). Doing
+/// another set closes it, answered or not.
 pub fn effort_question(workout_ref: &WorkoutRecord) -> Option<String> {
     if !workout_ref.workout.lifting_set_id.is_empty() {
         return None;
@@ -539,7 +541,14 @@ pub fn effort_question(workout_ref: &WorkoutRecord) -> Option<String> {
         .proposed_sets
         .iter()
         .find(|s| s.id == last.proposed_set_id && !s.cancelled)?;
+    let later_target = workout_ref.proposed_sets.iter().any(|s| {
+        s.exercise == set.exercise
+            && !s.cancelled
+            && s.target_rir.is_some()
+            && s.workout_order > set.workout_order
+    });
     (set.target_rir.is_some()
+        && !later_target
         && !set.calibration
         && !set.warmup
         && last.reps_left == RepsLeft::Unspecified as i32)

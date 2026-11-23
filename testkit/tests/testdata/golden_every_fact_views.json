@@ -18,7 +18,7 @@
       ],
       "from_library": "push",
       "groups": [],
-      "id": "8a30e09e-2392-5ec5-b1bd-5274f6cd54dd",
+      "id": "38b4e1ae-5911-5389-bc17-edf0bf9b0226",
       "name": "Push",
       "notes": "",
       "rotation": true
@@ -31,7 +31,7 @@
       ],
       "from_library": "stronglifts_b",
       "groups": [],
-      "id": "1ad3963c-b623-5c5d-ac42-80d49d82ec23",
+      "id": "a1c803a1-76c3-5626-a408-75859d8809e9",
       "name": "StrongLifts B",
       "notes": "",
       "rotation": false
@@ -52,7 +52,7 @@
           "rest_seconds": 90
         }
       ],
-      "id": "54715a2c-6a0c-5751-b7e0-4f8eb8e0def5",
+      "id": "0c04a304-89b9-5463-88bf-7d307e8019f5",
       "name": "StrongLifts A (mine)",
       "notes": "",
       "rotation": false
@@ -67,7 +67,7 @@
       ],
       "from_library": "lower",
       "groups": [],
-      "id": "45a1bbf1-60d7-580d-a1e1-cf9d0d2d2714",
+      "id": "7c543b94-ea4b-57bb-9f10-c352a7b12eb0",
       "name": "Lower",
       "notes": "",
       "rotation": false
@@ -82,7 +82,7 @@
       ],
       "from_library": "upper",
       "groups": [],
-      "id": "cb9eeb74-f465-5750-bbb9-6522b666faea",
+      "id": "3a8baae7-9e9a-5846-a25c-6693be36684c",
       "name": "Upper",
       "notes": "",
       "rotation": false
@@ -269,7 +269,7 @@
                 "sets_before": 0,
                 "text": "",
                 "weekly_sets": 0.0,
-                "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
               },
               {
                 "after": 137.1550750732422,
@@ -436,7 +436,7 @@
                 "sets_before": 0,
                 "text": "",
                 "weekly_sets": 0.0,
-                "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
               },
               {
                 "after": 58.698081970214844,
@@ -1254,7 +1254,7 @@
                 "sets_before": 0,
                 "text": "",
                 "weekly_sets": 0.0,
-                "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
               },
               {
                 "after": 23.54537010192871,
@@ -2678,12 +2678,12 @@
                 "reps_after": 0,
                 "reps_before": 0,
                 "rule": "",
-                "set_id": "5647201a-30a6-53d3-9fe3-18693eb09c4b",
+                "set_id": "2159a409-b538-5545-b6d5-1c097a5d4f84",
                 "sets_after": 0,
                 "sets_before": 0,
                 "text": "",
                 "weekly_sets": 0.0,
-                "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
               },
               {
                 "after": 20.63526725769043,
@@ -3090,7 +3090,7 @@
                 "sets_before": 0,
                 "text": "",
                 "weekly_sets": 0.0,
-                "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+                "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
               },
               {
                 "after": 26.700000762939453,
@@ -3643,7 +3643,7 @@
                 "sets_before": 0,
                 "text": "",
                 "weekly_sets": 0.0,
-                "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
               },
               {
                 "after": 53.57232666015625,
@@ -6110,7 +6110,7 @@
               5,
               1
             ],
-            "template_id": "1ad3963c-b623-5c5d-ac42-80d49d82ec23"
+            "template_id": "a1c803a1-76c3-5626-a408-75859d8809e9"
           },
           {
             "library_id": "",
@@ -6118,7 +6118,7 @@
               5,
               1
             ],
-            "template_id": "54715a2c-6a0c-5751-b7e0-4f8eb8e0def5"
+            "template_id": "0c04a304-89b9-5463-88bf-7d307e8019f5"
           },
           {
             "library_id": "",
@@ -6129,14 +6129,14 @@
               9,
               10
             ],
-            "template_id": "45a1bbf1-60d7-580d-a1e1-cf9d0d2d2714"
+            "template_id": "7c543b94-ea4b-57bb-9f10-c352a7b12eb0"
           },
           {
             "library_id": "",
             "muscles": [
               5
             ],
-            "template_id": "cb9eeb74-f465-5750-bbb9-6522b666faea"
+            "template_id": "3a8baae7-9e9a-5846-a25c-6693be36684c"
           },
           {
             "library_id": "big_three",
@@ -6302,7 +6302,7 @@
           }
         ]
       },
-      "suggested_template_id": "8a30e09e-2392-5ec5-b1bd-5274f6cd54dd",
+      "suggested_template_id": "38b4e1ae-5911-5389-bc17-edf0bf9b0226",
       "suggestion_reason": {
         "behind": [
           {
@@ -6383,7 +6383,7 @@
                     "sets_before": 0,
                     "text": "",
                     "weekly_sets": 0.0,
-                    "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                    "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
                   },
                   {
                     "after": 137.1550750732422,
@@ -6477,7 +6477,7 @@
                     "sets_before": 0,
                     "text": "",
                     "weekly_sets": 0.0,
-                    "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                    "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
                   },
                   {
                     "after": 58.698081970214844,
@@ -6611,7 +6611,7 @@
                     "sets_before": 0,
                     "text": "",
                     "weekly_sets": 0.0,
-                    "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                    "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
                   },
                   {
                     "after": 23.54537010192871,
@@ -6721,12 +6721,12 @@
                     "reps_after": 0,
                     "reps_before": 0,
                     "rule": "",
-                    "set_id": "5647201a-30a6-53d3-9fe3-18693eb09c4b",
+                    "set_id": "2159a409-b538-5545-b6d5-1c097a5d4f84",
                     "sets_after": 0,
                     "sets_before": 0,
                     "text": "",
                     "weekly_sets": 0.0,
-                    "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                    "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
                   },
                   {
                     "after": 20.63526725769043,
@@ -6841,7 +6841,7 @@
                     "sets_before": 0,
                     "text": "",
                     "weekly_sets": 0.0,
-                    "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                    "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
                   },
                   {
                     "after": 53.57232666015625,
@@ -6904,7 +6904,7 @@
               "step": 5.511556625366211
             }
           ],
-          "template_id": "8a30e09e-2392-5ec5-b1bd-5274f6cd54dd"
+          "template_id": "38b4e1ae-5911-5389-bc17-edf0bf9b0226"
         },
         {
           "estimated_seconds": 2620,
@@ -7057,7 +7057,7 @@
                     "sets_before": 0,
                     "text": "",
                     "weekly_sets": 0.0,
-                    "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                    "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
                   },
                   {
                     "after": 58.698081970214844,
@@ -7230,7 +7230,7 @@
               "step": 5.511556625366211
             }
           ],
-          "template_id": "1ad3963c-b623-5c5d-ac42-80d49d82ec23"
+          "template_id": "a1c803a1-76c3-5626-a408-75859d8809e9"
         },
         {
           "estimated_seconds": 2620,
@@ -7456,7 +7456,7 @@
                     "sets_before": 0,
                     "text": "",
                     "weekly_sets": 0.0,
-                    "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                    "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
                   },
                   {
                     "after": 137.1550750732422,
@@ -7498,7 +7498,7 @@
               "step": 5.511556625366211
             }
           ],
-          "template_id": "54715a2c-6a0c-5751-b7e0-4f8eb8e0def5"
+          "template_id": "0c04a304-89b9-5463-88bf-7d307e8019f5"
         },
         {
           "estimated_seconds": 2810,
@@ -7891,7 +7891,7 @@
               "step": 0.0
             }
           ],
-          "template_id": "45a1bbf1-60d7-580d-a1e1-cf9d0d2d2714"
+          "template_id": "7c543b94-ea4b-57bb-9f10-c352a7b12eb0"
         },
         {
           "estimated_seconds": 2790,
@@ -7950,7 +7950,7 @@
                     "sets_before": 0,
                     "text": "",
                     "weekly_sets": 0.0,
-                    "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                    "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
                   },
                   {
                     "after": 137.1550750732422,
@@ -8117,7 +8117,7 @@
                     "sets_before": 0,
                     "text": "",
                     "weekly_sets": 0.0,
-                    "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                    "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
                   },
                   {
                     "after": 58.698081970214844,
@@ -8324,7 +8324,7 @@
                     "sets_before": 0,
                     "text": "",
                     "weekly_sets": 0.0,
-                    "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                    "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
                   },
                   {
                     "after": 53.57232666015625,
@@ -8387,7 +8387,7 @@
               "step": 5.511556625366211
             }
           ],
-          "template_id": "cb9eeb74-f465-5750-bbb9-6522b666faea"
+          "template_id": "3a8baae7-9e9a-5846-a25c-6693be36684c"
         },
         {
           "estimated_seconds": 1720,
@@ -8519,7 +8519,7 @@
                     "sets_before": 0,
                     "text": "",
                     "weekly_sets": 0.0,
-                    "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+                    "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
                   },
                   {
                     "after": 53.57232666015625,
@@ -8594,7 +8594,7 @@
             "lateral_raise",
             "skull_crusher"
           ],
-          "id": "8a30e09e-2392-5ec5-b1bd-5274f6cd54dd",
+          "id": "38b4e1ae-5911-5389-bc17-edf0bf9b0226",
           "in_rotation": true,
           "name": "Push",
           "notes": "",
@@ -8606,7 +8606,7 @@
             "overhead_press",
             "deadlift"
           ],
-          "id": "1ad3963c-b623-5c5d-ac42-80d49d82ec23",
+          "id": "a1c803a1-76c3-5626-a408-75859d8809e9",
           "in_rotation": false,
           "name": "StrongLifts B",
           "notes": "",
@@ -8618,7 +8618,7 @@
             "barbell_row",
             "bench_press"
           ],
-          "id": "54715a2c-6a0c-5751-b7e0-4f8eb8e0def5",
+          "id": "0c04a304-89b9-5463-88bf-7d307e8019f5",
           "in_rotation": false,
           "name": "StrongLifts A (mine)",
           "notes": "",
@@ -8632,7 +8632,7 @@
             "calf_raise",
             "crunch"
           ],
-          "id": "45a1bbf1-60d7-580d-a1e1-cf9d0d2d2714",
+          "id": "7c543b94-ea4b-57bb-9f10-c352a7b12eb0",
           "in_rotation": false,
           "name": "Lower",
           "notes": "",
@@ -8646,7 +8646,7 @@
             "chin_up",
             "skull_crusher"
           ],
-          "id": "cb9eeb74-f465-5750-bbb9-6522b666faea",
+          "id": "3a8baae7-9e9a-5846-a25c-6693be36684c",
           "in_rotation": false,
           "name": "Upper",
           "notes": "",
@@ -8750,7 +8750,7 @@
               "top_reps": 5,
               "top_weight": 145.0,
               "volume": 2175.0,
-              "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+              "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
             }
           ]
         },
@@ -8766,7 +8766,7 @@
               "top_reps": 12,
               "top_weight": 15.0,
               "volume": 360.0,
-              "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+              "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
             },
             {
               "date": 1787757690,
@@ -8775,7 +8775,7 @@
               "top_reps": 8,
               "top_weight": 17.636981964111328,
               "volume": 264.55474853515625,
-              "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+              "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
             }
           ]
         },
@@ -8791,7 +8791,7 @@
               "top_reps": 6,
               "top_weight": 115.0,
               "volume": 2760.0,
-              "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+              "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
             },
             {
               "date": 1787757690,
@@ -8800,7 +8800,7 @@
               "top_reps": 6,
               "top_weight": 115.74269104003906,
               "volume": 2777.82470703125,
-              "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+              "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
             }
           ]
         },
@@ -8816,7 +8816,7 @@
               "top_reps": 12,
               "top_weight": 20.0,
               "volume": 480.0,
-              "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+              "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
             }
           ]
         },
@@ -8832,7 +8832,7 @@
               "top_reps": 12,
               "top_weight": 17.636981964111328,
               "volume": 423.2875671386719,
-              "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+              "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
             }
           ]
         },
@@ -8848,7 +8848,7 @@
               "top_reps": 7,
               "top_weight": 49.60401153564453,
               "volume": 699.9677124023438,
-              "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+              "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
             }
           ]
         },
@@ -8864,7 +8864,7 @@
               "top_reps": 8,
               "top_weight": 44.09245300292969,
               "volume": 705.479248046875,
-              "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+              "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
             }
           ]
         }
@@ -8955,14 +8955,14 @@
           },
           "workout": {
             "end_time": 1787760920,
-            "id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "lifting_set_id": "",
             "lifting_started_at": 0,
             "motivation": "",
             "name": "Push",
             "session_id": "",
             "start_time": 1787757690,
-            "template_id": "8a30e09e-2392-5ec5-b1bd-5274f6cd54dd"
+            "template_id": "38b4e1ae-5911-5389-bc17-edf0bf9b0226"
           }
         },
         {
@@ -9013,7 +9013,7 @@
           },
           "workout": {
             "end_time": 1787584230,
-            "id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "lifting_set_id": "",
             "lifting_started_at": 0,
             "motivation": "",
@@ -16232,253 +16232,253 @@
             "actual_reps": 4,
             "actual_weight": 45.0,
             "ended_at": 1787580960,
-            "id": "0cde7227-2127-57c4-a5f2-156c27818579",
+            "id": "9ba84133-7de6-5ac8-a870-bac2c8ecec0f",
             "jump_lb": 0.0,
-            "proposed_set_id": "e90e0bf4-b70f-5077-b345-4f08f180c750",
+            "proposed_set_id": "baf52004-a393-5685-ad41-cc0701941192",
             "reps_left": 0,
             "rest_until": 1787580990,
             "started_at": 1787580920,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 5,
             "actual_weight": 75.0,
             "ended_at": 1787581030,
-            "id": "f783002f-769b-50ab-9371-33d82a94b718",
+            "id": "204b3a4d-1f1d-5f06-8870-48a5d85a0e03",
             "jump_lb": 0.0,
-            "proposed_set_id": "d7e3edbc-51ba-579c-a424-d0d96185a469",
+            "proposed_set_id": "ade4c142-6bc5-53a1-8e1f-18393abd36ae",
             "reps_left": 0,
             "rest_until": 1787581060,
             "started_at": 1787580990,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 5,
             "actual_weight": 20.0,
             "ended_at": 1787581170,
-            "id": "8436a5a0-92fb-5916-95b9-aadf6291376f",
+            "id": "476288b6-da92-5c99-87eb-fca5724bc519",
             "jump_lb": 0.0,
-            "proposed_set_id": "86bd5b25-ff59-5534-bb60-0417e08a673d",
+            "proposed_set_id": "3e69d85a-aa9e-5424-a37b-6e433b6adb0b",
             "reps_left": 1,
             "rest_until": 1787581260,
             "started_at": 1787581130,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 12,
             "actual_weight": 15.0,
             "ended_at": 1787581300,
-            "id": "758d3c9b-1778-5ff5-9a3c-05641a1c9975",
+            "id": "0405e0c6-57e1-52f1-94f4-64af74cd7e5a",
             "jump_lb": 0.0,
-            "proposed_set_id": "4544a73a-2e59-504a-a5b0-808031d66a17",
+            "proposed_set_id": "a4aa2fd2-7e48-562b-9f07-bf135efc06d2",
             "reps_left": 0,
             "rest_until": 1787581420,
             "started_at": 1787581260,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 12,
             "actual_weight": 15.0,
             "ended_at": 1787581460,
-            "id": "1d22e471-2799-5645-b299-6a57772a43a7",
+            "id": "b2212a41-4fad-5f00-b2d2-a6d8883cfb47",
             "jump_lb": 0.0,
-            "proposed_set_id": "7c44cca4-8838-5b72-a431-01c872666cc8",
+            "proposed_set_id": "8d33922f-9023-5da8-9cf2-a263af5c6418",
             "reps_left": 0,
             "rest_until": 1787581520,
             "started_at": 1787581420,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 3,
             "actual_weight": 95.0,
             "ended_at": 1787581620,
-            "id": "a7854779-b6b7-59fd-9fe1-f72ba1726c2e",
+            "id": "d0e90503-69d3-5550-a490-5311794e4608",
             "jump_lb": 0.0,
-            "proposed_set_id": "146d493f-b662-55a2-b2c3-8c67d99a065f",
+            "proposed_set_id": "58b3bec4-b990-5b2b-8197-d227f8534f5e",
             "reps_left": 0,
             "rest_until": 1787581650,
             "started_at": 1787581580,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 2,
             "actual_weight": 125.0,
             "ended_at": 1787581690,
-            "id": "998080ad-d4be-5055-9ebb-ecf9423159f8",
+            "id": "56591a83-efab-51d8-9db9-a8e7ee600517",
             "jump_lb": 0.0,
-            "proposed_set_id": "0c266ff6-d501-542e-a69b-d3e079101863",
+            "proposed_set_id": "be7740ed-85ec-5ee6-99fc-2a40ac9f6940",
             "reps_left": 0,
             "rest_until": 1787581870,
             "started_at": 1787581650,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 5,
             "actual_weight": 145.0,
             "ended_at": 1787581910,
-            "id": "6739233f-537c-53ab-b65c-cfc160ab3da9",
+            "id": "d99c8bb4-b901-5774-b01d-dfc520ff6621",
             "jump_lb": 0.0,
-            "proposed_set_id": "125cc819-dcfd-5279-912a-b94a1d0fbdf3",
+            "proposed_set_id": "6fa42b11-76bb-58a1-9a4f-5a63b9874203",
             "reps_left": 0,
             "rest_until": 1787582090,
             "started_at": 1787581870,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 5,
             "actual_weight": 145.0,
             "ended_at": 1787582130,
-            "id": "30f75c3f-45e9-5345-a184-ad83433c9945",
+            "id": "3c7e071a-3c24-5e66-b460-fbabf3081fff",
             "jump_lb": 0.0,
-            "proposed_set_id": "b9d64eba-e9dd-5e0c-b094-0f9903c3866b",
+            "proposed_set_id": "464f4c8a-6564-55fc-a3cf-ae0e29cd169f",
             "reps_left": 0,
             "rest_until": 1787582310,
             "started_at": 1787582090,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 5,
             "actual_weight": 145.0,
             "ended_at": 1787582350,
-            "id": "7319edb0-ba4a-57fb-bb95-1ba96b06be06",
+            "id": "5e484392-7d7c-5ef0-9d29-2d4f31ffdbb4",
             "jump_lb": 0.0,
-            "proposed_set_id": "48bbc730-d078-52dd-b082-ffbc81f965cc",
+            "proposed_set_id": "4cea2709-e0e1-5e8d-8bc8-a9d1a1d71905",
             "reps_left": 0,
             "rest_until": 1787582410,
             "started_at": 1787582310,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 5,
             "actual_weight": 45.0,
             "ended_at": 1787582570,
-            "id": "196641fc-514a-53ef-83de-24f4eef1678d",
+            "id": "2a493752-7bcd-5baa-bc85-d26e651b5968",
             "jump_lb": 0.0,
-            "proposed_set_id": "dcc70713-9df2-5f01-a319-c873a060fa37",
+            "proposed_set_id": "6e348b9b-88cf-51a2-b698-ec257101d335",
             "reps_left": 0,
             "rest_until": 1787582600,
             "started_at": 1787582530,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 5,
             "actual_weight": 65.0,
             "ended_at": 1787582640,
-            "id": "031211f2-42d1-5351-a7fb-20fb2ab5e932",
+            "id": "4e4e3202-f154-5673-b182-74e8cce7673f",
             "jump_lb": 0.0,
-            "proposed_set_id": "d0379290-c2c8-5011-8ae6-aec0398c3b47",
+            "proposed_set_id": "050e45fd-5384-5ae0-ac92-b6f736560bc4",
             "reps_left": 0,
             "rest_until": 1787582670,
             "started_at": 1787582600,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 3,
             "actual_weight": 85.0,
             "ended_at": 1787582710,
-            "id": "51eb9d45-26a4-51f7-873d-21d266323530",
+            "id": "a7cffb0f-2f8c-5653-ad2d-0e9dc975cdd6",
             "jump_lb": 0.0,
-            "proposed_set_id": "6b7b0229-cab0-5ca9-9600-28c880551ac5",
+            "proposed_set_id": "54bac7b6-4707-536b-a570-19d796011d4e",
             "reps_left": 0,
             "rest_until": 1787582740,
             "started_at": 1787582670,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 2,
             "actual_weight": 95.0,
             "ended_at": 1787582780,
-            "id": "3c261f82-4ce4-5b21-835c-de60391efcec",
+            "id": "b1a04b3d-ad11-573d-b338-c94ae8f45234",
             "jump_lb": 0.0,
-            "proposed_set_id": "ead5ad48-4f12-551c-b944-87b2b8efba60",
+            "proposed_set_id": "62e9685f-eca8-5ee7-a6b2-b1b9876d9123",
             "reps_left": 0,
             "rest_until": 1787582960,
             "started_at": 1787582740,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 6,
             "actual_weight": 115.0,
             "ended_at": 1787583000,
-            "id": "c2b07708-6c00-519d-a89b-4c927d916029",
+            "id": "91629f0f-f749-5c6d-858f-d74c30074cc1",
             "jump_lb": 0.0,
-            "proposed_set_id": "cd5155ba-cd83-5992-8b04-cdf017b347a7",
+            "proposed_set_id": "096dec19-3082-588d-9258-94ce654ae70d",
             "reps_left": 0,
             "rest_until": 1787583180,
             "started_at": 1787582960,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 6,
             "actual_weight": 115.0,
             "ended_at": 1787583220,
-            "id": "8d34e1fc-3b68-530e-aa52-cef6f10cda94",
+            "id": "4f7af704-4f71-5f03-84f7-215ad3bec041",
             "jump_lb": 0.0,
-            "proposed_set_id": "aac4b774-4c22-50a0-bc59-0b31f13bd686",
+            "proposed_set_id": "b51d2a1e-c95f-564c-b405-156732ab8051",
             "reps_left": 0,
             "rest_until": 1787583400,
             "started_at": 1787583180,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 6,
             "actual_weight": 115.0,
             "ended_at": 1787583440,
-            "id": "590cd7a0-e255-5b82-85b1-ca00b8d4c72c",
+            "id": "25326ed5-4089-575f-8f79-4504ab2b8a11",
             "jump_lb": 0.0,
-            "proposed_set_id": "fb391e9a-dd7d-5284-8477-bb87214ba76d",
+            "proposed_set_id": "2c436a90-9fac-556c-bd3c-2e01a3497f49",
             "reps_left": 0,
             "rest_until": 1787583620,
             "started_at": 1787583400,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 6,
             "actual_weight": 115.0,
             "ended_at": 1787583660,
-            "id": "4af7413a-c67e-536c-93a6-769afafd08ad",
+            "id": "f87bb5af-e392-58b1-8ab0-efe98d829143",
             "jump_lb": 0.0,
-            "proposed_set_id": "8385849f-e112-5e12-a974-ce075e7f758e",
+            "proposed_set_id": "032d7abd-44ad-51bf-98f8-8ca07a02583d",
             "reps_left": 0,
             "rest_until": 1787583720,
             "started_at": 1787583620,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 5,
             "actual_weight": 25.0,
             "ended_at": 1787583880,
-            "id": "9ab16698-50a4-58bf-ab1a-2c4bb7ce4b6f",
+            "id": "9a3bd8e0-5aea-5c80-836d-39554e02b074",
             "jump_lb": 0.0,
-            "proposed_set_id": "e8882c8a-65b1-5c5f-8aa6-1bf2b97257fe",
+            "proposed_set_id": "54a8e957-12cd-545b-ada1-9327acce3629",
             "reps_left": 1,
             "rest_until": 1787583970,
             "started_at": 1787583840,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 12,
             "actual_weight": 20.0,
             "ended_at": 1787584010,
-            "id": "bc09a430-8436-569d-a6b2-a8db8294e295",
+            "id": "49bbe17b-aed5-5785-afc0-033b012b7334",
             "jump_lb": 0.0,
-            "proposed_set_id": "f7dc6058-d536-5a88-a558-1bb7263a580a",
+            "proposed_set_id": "23f56de7-32ef-5045-8792-d30e0369aa06",
             "reps_left": 0,
             "rest_until": 1787584130,
             "started_at": 1787583970,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           },
           {
             "actual_reps": 12,
             "actual_weight": 20.0,
             "ended_at": 1787584170,
-            "id": "bea05333-1cab-564d-87c6-737620e69f10",
+            "id": "2e9b169a-cb1d-5f7a-98cc-d7bf7874b60a",
             "jump_lb": 0.0,
-            "proposed_set_id": "e3fa4583-d941-5221-a412-b618104bb602",
+            "proposed_set_id": "e5234520-cc53-569b-afa0-1e07ea1b527c",
             "reps_left": 0,
             "rest_until": 1787584230,
             "started_at": 1787584130,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
           }
         ],
         "effort_question_set_id": "",
@@ -16490,7 +16490,7 @@
                 "at": 1787580920,
                 "before": 140.0,
                 "cause": 1,
-                "from_set_id": "125cc819-dcfd-5279-912a-b94a1d0fbdf3"
+                "from_set_id": "6fa42b11-76bb-58a1-9a4f-5a63b9874203"
               }
             ],
             "decision": {
@@ -16684,7 +16684,7 @@
                 "at": 1787581260,
                 "before": 20.0,
                 "cause": 3,
-                "from_set_id": "4544a73a-2e59-504a-a5b0-808031d66a17"
+                "from_set_id": "a4aa2fd2-7e48-562b-9f07-bf135efc06d2"
               }
             ],
             "decision": {
@@ -16761,14 +16761,14 @@
                 "at": 1787581130,
                 "before": 20.0,
                 "cause": 1,
-                "from_set_id": "e8882c8a-65b1-5c5f-8aa6-1bf2b97257fe"
+                "from_set_id": "54a8e957-12cd-545b-ada1-9327acce3629"
               },
               {
                 "after": 20.0,
                 "at": 1787583970,
                 "before": 25.0,
                 "cause": 3,
-                "from_set_id": "f7dc6058-d536-5a88-a558-1bb7263a580a"
+                "from_set_id": "23f56de7-32ef-5045-8792-d30e0369aa06"
               }
             ],
             "decision": {
@@ -16906,7 +16906,7 @@
           }
         ],
         "first_time_set_ids": [
-          "e4b43578-7f57-51c0-920b-5c43e4da532f"
+          "61d9f2e3-3350-58b1-8454-09285209ea83"
         ],
         "next_up_set": null,
         "passed_warmup_ids": [],
@@ -16919,7 +16919,7 @@
             "exercise": "lateral_raise",
             "fraction": 0.0,
             "group": "",
-            "id": "86bd5b25-ff59-5534-bb60-0417e08a673d",
+            "id": "3e69d85a-aa9e-5424-a37b-6e433b6adb0b",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 90,
@@ -16930,7 +16930,7 @@
             "target_weight": 20.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 0
           },
           {
@@ -16941,7 +16941,7 @@
             "exercise": "lateral_raise",
             "fraction": 0.0,
             "group": "",
-            "id": "4544a73a-2e59-504a-a5b0-808031d66a17",
+            "id": "a4aa2fd2-7e48-562b-9f07-bf135efc06d2",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 120,
@@ -16952,7 +16952,7 @@
             "target_weight": 15.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 1
           },
           {
@@ -16963,7 +16963,7 @@
             "exercise": "lateral_raise",
             "fraction": 0.0,
             "group": "",
-            "id": "7c44cca4-8838-5b72-a431-01c872666cc8",
+            "id": "8d33922f-9023-5da8-9cf2-a263af5c6418",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 120,
@@ -16974,7 +16974,7 @@
             "target_weight": 15.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 2
           },
           {
@@ -16985,7 +16985,7 @@
             "exercise": "squat",
             "fraction": 0.0,
             "group": "",
-            "id": "e90e0bf4-b70f-5077-b345-4f08f180c750",
+            "id": "baf52004-a393-5685-ad41-cc0701941192",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 30,
@@ -16996,7 +16996,7 @@
             "target_weight": 45.0,
             "tempo": "",
             "warmup": true,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 3
           },
           {
@@ -17007,7 +17007,7 @@
             "exercise": "squat",
             "fraction": 0.0,
             "group": "",
-            "id": "d7e3edbc-51ba-579c-a424-d0d96185a469",
+            "id": "ade4c142-6bc5-53a1-8e1f-18393abd36ae",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 30,
@@ -17018,7 +17018,7 @@
             "target_weight": 75.0,
             "tempo": "",
             "warmup": true,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 4
           },
           {
@@ -17029,7 +17029,7 @@
             "exercise": "squat",
             "fraction": 0.0,
             "group": "",
-            "id": "146d493f-b662-55a2-b2c3-8c67d99a065f",
+            "id": "58b3bec4-b990-5b2b-8197-d227f8534f5e",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 30,
@@ -17040,7 +17040,7 @@
             "target_weight": 95.0,
             "tempo": "",
             "warmup": true,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 5
           },
           {
@@ -17051,7 +17051,7 @@
             "exercise": "squat",
             "fraction": 0.0,
             "group": "",
-            "id": "0c266ff6-d501-542e-a69b-d3e079101863",
+            "id": "be7740ed-85ec-5ee6-99fc-2a40ac9f6940",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -17062,7 +17062,7 @@
             "target_weight": 125.0,
             "tempo": "",
             "warmup": true,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 6
           },
           {
@@ -17073,7 +17073,7 @@
             "exercise": "squat",
             "fraction": 0.0,
             "group": "",
-            "id": "125cc819-dcfd-5279-912a-b94a1d0fbdf3",
+            "id": "6fa42b11-76bb-58a1-9a4f-5a63b9874203",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -17084,7 +17084,7 @@
             "target_weight": 145.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 7
           },
           {
@@ -17095,7 +17095,7 @@
             "exercise": "squat",
             "fraction": 0.0,
             "group": "",
-            "id": "b9d64eba-e9dd-5e0c-b094-0f9903c3866b",
+            "id": "464f4c8a-6564-55fc-a3cf-ae0e29cd169f",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -17106,7 +17106,7 @@
             "target_weight": 145.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 8
           },
           {
@@ -17117,7 +17117,7 @@
             "exercise": "squat",
             "fraction": 0.0,
             "group": "",
-            "id": "48bbc730-d078-52dd-b082-ffbc81f965cc",
+            "id": "4cea2709-e0e1-5e8d-8bc8-a9d1a1d71905",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -17128,7 +17128,7 @@
             "target_weight": 145.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 9
           },
           {
@@ -17139,7 +17139,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "dcc70713-9df2-5f01-a319-c873a060fa37",
+            "id": "6e348b9b-88cf-51a2-b698-ec257101d335",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 30,
@@ -17150,7 +17150,7 @@
             "target_weight": 45.0,
             "tempo": "",
             "warmup": true,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 10
           },
           {
@@ -17161,7 +17161,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "d0379290-c2c8-5011-8ae6-aec0398c3b47",
+            "id": "050e45fd-5384-5ae0-ac92-b6f736560bc4",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 30,
@@ -17172,7 +17172,7 @@
             "target_weight": 65.0,
             "tempo": "",
             "warmup": true,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 11
           },
           {
@@ -17183,7 +17183,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "6b7b0229-cab0-5ca9-9600-28c880551ac5",
+            "id": "54bac7b6-4707-536b-a570-19d796011d4e",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 30,
@@ -17194,7 +17194,7 @@
             "target_weight": 85.0,
             "tempo": "",
             "warmup": true,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 12
           },
           {
@@ -17205,7 +17205,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "ead5ad48-4f12-551c-b944-87b2b8efba60",
+            "id": "62e9685f-eca8-5ee7-a6b2-b1b9876d9123",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -17216,7 +17216,7 @@
             "target_weight": 95.0,
             "tempo": "",
             "warmup": true,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 13
           },
           {
@@ -17227,7 +17227,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "cd5155ba-cd83-5992-8b04-cdf017b347a7",
+            "id": "096dec19-3082-588d-9258-94ce654ae70d",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -17238,7 +17238,7 @@
             "target_weight": 115.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 14
           },
           {
@@ -17249,7 +17249,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "aac4b774-4c22-50a0-bc59-0b31f13bd686",
+            "id": "b51d2a1e-c95f-564c-b405-156732ab8051",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -17260,7 +17260,7 @@
             "target_weight": 115.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 15
           },
           {
@@ -17271,7 +17271,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "fb391e9a-dd7d-5284-8477-bb87214ba76d",
+            "id": "2c436a90-9fac-556c-bd3c-2e01a3497f49",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -17282,7 +17282,7 @@
             "target_weight": 115.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 16
           },
           {
@@ -17293,7 +17293,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "8385849f-e112-5e12-a974-ce075e7f758e",
+            "id": "032d7abd-44ad-51bf-98f8-8ca07a02583d",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -17304,7 +17304,7 @@
             "target_weight": 115.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 17
           },
           {
@@ -17315,7 +17315,7 @@
             "exercise": "dumbbell_curl",
             "fraction": 0.0,
             "group": "",
-            "id": "e8882c8a-65b1-5c5f-8aa6-1bf2b97257fe",
+            "id": "54a8e957-12cd-545b-ada1-9327acce3629",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 90,
@@ -17326,7 +17326,7 @@
             "target_weight": 25.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 19
           },
           {
@@ -17337,7 +17337,7 @@
             "exercise": "dumbbell_curl",
             "fraction": 0.0,
             "group": "",
-            "id": "f7dc6058-d536-5a88-a558-1bb7263a580a",
+            "id": "23f56de7-32ef-5045-8792-d30e0369aa06",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 120,
@@ -17348,7 +17348,7 @@
             "target_weight": 20.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 20
           },
           {
@@ -17359,7 +17359,7 @@
             "exercise": "dumbbell_curl",
             "fraction": 0.0,
             "group": "",
-            "id": "e3fa4583-d941-5221-a412-b618104bb602",
+            "id": "e5234520-cc53-569b-afa0-1e07ea1b527c",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 120,
@@ -17370,7 +17370,7 @@
             "target_weight": 20.0,
             "tempo": "",
             "warmup": false,
-            "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+            "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
             "workout_order": 21
           }
         ],
@@ -17429,7 +17429,7 @@
         },
         "workout": {
           "end_time": 1787584230,
-          "id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279",
+          "id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd",
           "lifting_set_id": "",
           "lifting_started_at": 0,
           "motivation": "",
@@ -23911,241 +23911,241 @@
             "actual_reps": 5,
             "actual_weight": 44.09245300292969,
             "ended_at": 1787757850,
-            "id": "95e114b7-1322-5139-b562-a38edd0cb64e",
+            "id": "14d3549e-8603-5caf-80cb-1c2468c26bd2",
             "jump_lb": 0.0,
-            "proposed_set_id": "c553ee36-e69a-55f5-853a-de4a35c90c34",
+            "proposed_set_id": "a02e5010-66b6-516d-b711-5b4798f95ceb",
             "reps_left": 0,
             "rest_until": 1787757880,
             "started_at": 1787757810,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 5,
             "actual_weight": 66.13867950439453,
             "ended_at": 1787757920,
-            "id": "e5a60801-5828-5ce6-84c2-aeb66c4fcb2d",
+            "id": "7c731829-fdbc-5c2e-a5b3-15d4f15b8eab",
             "jump_lb": 0.0,
-            "proposed_set_id": "810f51fa-dea5-57c3-8f7f-8e941ee2fe46",
+            "proposed_set_id": "e6de9ce6-4b05-51df-843c-17618d6e1f6f",
             "reps_left": 0,
             "rest_until": 1787757950,
             "started_at": 1787757880,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 3,
             "actual_weight": 88.18490600585938,
             "ended_at": 1787757990,
-            "id": "61518690-8e35-5c82-b854-7301402454aa",
+            "id": "ca8747a8-d563-57b3-952e-9e64f3c79f92",
             "jump_lb": 0.0,
-            "proposed_set_id": "ad450f9f-5fc2-543a-8b9e-4849a2161454",
+            "proposed_set_id": "6d9036ef-5695-5d79-8821-b9523eb33918",
             "reps_left": 0,
             "rest_until": 1787758020,
             "started_at": 1787757950,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 2,
             "actual_weight": 99.20802307128906,
             "ended_at": 1787758060,
-            "id": "22a09e8b-eafe-5f83-a5a1-0bf24bc7ca91",
+            "id": "f3e67aa1-c0e1-59b7-8404-07940913cc85",
             "jump_lb": 0.0,
-            "proposed_set_id": "62dcaa73-1497-580b-b27e-9517d162e9e6",
+            "proposed_set_id": "18af2b86-d3ff-5974-aaf0-75593a81dfb2",
             "reps_left": 0,
             "rest_until": 1787758240,
             "started_at": 1787758020,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 6,
             "actual_weight": 115.74269104003906,
             "ended_at": 1787758280,
-            "id": "53bfffa3-eb23-5b96-a77e-b779cfdfec09",
+            "id": "2bb9bef6-54ab-50ad-9f2a-c348b2f9f76e",
             "jump_lb": 0.0,
-            "proposed_set_id": "15be02dc-fa05-5441-876d-376e56afa99e",
+            "proposed_set_id": "0d78bd14-bd15-508c-8b3d-5169304005d6",
             "reps_left": 0,
             "rest_until": 1787758460,
             "started_at": 1787758240,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 6,
             "actual_weight": 115.74269104003906,
             "ended_at": 1787758500,
-            "id": "5455c786-35a8-5b5e-88ef-51c22e195fed",
+            "id": "2b3b3939-f5ac-5e0e-becf-b884cc760b91",
             "jump_lb": 0.0,
-            "proposed_set_id": "114a136a-51d1-58e9-8e51-eb8e7572d7fe",
+            "proposed_set_id": "924df067-9bbc-5477-9a8c-dc0d1d0107b6",
             "reps_left": 0,
             "rest_until": 1787758680,
             "started_at": 1787758460,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 6,
             "actual_weight": 115.74269104003906,
             "ended_at": 1787758720,
-            "id": "be957c23-19e0-5103-8dca-c362b4a517dc",
+            "id": "5ec3beb4-9fbe-5274-97e3-2575c2e03f4c",
             "jump_lb": 0.0,
-            "proposed_set_id": "8bef0b37-298c-51f7-a1e4-6ea411a344f6",
+            "proposed_set_id": "e81408ec-be86-5f5e-abf4-9103f747df3f",
             "reps_left": 0,
             "rest_until": 1787758900,
             "started_at": 1787758680,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 6,
             "actual_weight": 115.74269104003906,
             "ended_at": 1787758940,
-            "id": "daccc6d7-5291-5d5e-b582-56170fa9c0ca",
+            "id": "c9feb708-5268-508d-864e-a1bbee2c83c9",
             "jump_lb": 0.0,
-            "proposed_set_id": "9920acb6-c79b-5b30-949f-a2b02935e1eb",
+            "proposed_set_id": "1780b78e-2aa3-59d8-a466-7a06e17419ac",
             "reps_left": 0,
             "rest_until": 1787759000,
             "started_at": 1787758900,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 5,
             "actual_weight": 49.60401153564453,
             "ended_at": 1787759160,
-            "id": "0c7830a4-27a8-5b85-bcde-f9e2428cb58b",
+            "id": "de0c5251-05af-5300-9bc8-b0c611add0ba",
             "jump_lb": 0.0,
-            "proposed_set_id": "93899d20-e0dc-5338-986e-716ad990a58a",
+            "proposed_set_id": "fa36506b-9357-51ac-9d63-97b0079c8bc3",
             "reps_left": 2,
             "rest_until": 1787759250,
             "started_at": 1787759120,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 5,
             "actual_weight": 55.11556625366211,
             "ended_at": 1787759290,
-            "id": "c85679df-7266-537d-bd1c-c86b53938903",
+            "id": "c4cd2ab4-4e7a-5ca4-bf2a-d109d9618e49",
             "jump_lb": 0.0,
-            "proposed_set_id": "885a8022-6b2e-542a-b93e-9e0028efccda",
+            "proposed_set_id": "65d99da1-07f8-56e6-a0db-33c240ce5fae",
             "reps_left": 1,
             "rest_until": 1787759380,
             "started_at": 1787759250,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 7,
             "actual_weight": 49.60401153564453,
             "ended_at": 1787759420,
-            "id": "072b263c-4730-5412-9e82-176c4a20e88c",
+            "id": "904f2423-dbbc-5ee6-bab8-a9f7499787c3",
             "jump_lb": 0.0,
-            "proposed_set_id": "1e9b2ec0-3ec5-59fd-9751-7560e641f688",
+            "proposed_set_id": "d1e334f2-7a8d-540c-a3ff-04d53c369680",
             "reps_left": 0,
             "rest_until": 1787759600,
             "started_at": 1787759380,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 8,
             "actual_weight": 44.09245300292969,
             "ended_at": 1787759640,
-            "id": "d4890490-2658-592a-ba01-3360e1f0883f",
+            "id": "212280b1-0982-5892-8d9b-0ce0f81d9473",
             "jump_lb": 0.0,
-            "proposed_set_id": "88df8f9f-99aa-596b-971c-f4cdc4d539d0",
+            "proposed_set_id": "e0baeb1e-a61a-5eb2-83da-c18a74ca0388",
             "reps_left": 1,
             "rest_until": 1787759700,
             "started_at": 1787759600,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 5,
             "actual_weight": 22.046226501464844,
             "ended_at": 1787759860,
-            "id": "c4c2aeb3-7973-58be-b6c5-b2856cb6d5d6",
+            "id": "c520e4ce-d037-545c-bac7-447b6b46394f",
             "jump_lb": 0.0,
-            "proposed_set_id": "bab80efe-b437-50ca-bc53-eb3fa07a6f96",
+            "proposed_set_id": "55c5f7fa-5944-5ad1-9478-d5f3a45a9834",
             "reps_left": 1,
             "rest_until": 1787759950,
             "started_at": 1787759820,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 12,
             "actual_weight": 17.636981964111328,
             "ended_at": 1787759990,
-            "id": "3ac0906d-ea69-5c09-a7f6-e410f84abf4e",
+            "id": "0a52d778-8a1e-56c1-8a78-2f30307b2bec",
             "jump_lb": 0.0,
-            "proposed_set_id": "af7a6f4f-4475-5384-a230-e9b598c0f16e",
+            "proposed_set_id": "59c4228a-fa99-54ea-baf0-8d5ffeb5923b",
             "reps_left": 0,
             "rest_until": 1787760110,
             "started_at": 1787759950,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 12,
             "actual_weight": 17.636981964111328,
             "ended_at": 1787760150,
-            "id": "8f24e00c-3fd6-5f1c-af13-3a58a83c9e95",
+            "id": "360340e2-7349-5d0b-8831-cdd4d18c7bfa",
             "jump_lb": 0.0,
-            "proposed_set_id": "ab86a223-8c7f-5d39-b5d6-ec6800535183",
+            "proposed_set_id": "beb40a7e-c6aa-55bc-acfd-ca6c4e1120cc",
             "reps_left": 0,
             "rest_until": 1787760210,
             "started_at": 1787760110,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 8,
             "actual_weight": 17.636981964111328,
             "ended_at": 1787760310,
-            "id": "3ad63656-3ad8-5b9a-bc6f-096716f4fd4a",
+            "id": "cf38894c-90e6-59fa-a339-6b2fd749608a",
             "jump_lb": 0.0,
-            "proposed_set_id": "5647201a-30a6-53d3-9fe3-18693eb09c4b",
+            "proposed_set_id": "2159a409-b538-5545-b6d5-1c097a5d4f84",
             "reps_left": 0,
             "rest_until": 1787760430,
             "started_at": 1787760270,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 7,
             "actual_weight": 17.636981964111328,
             "ended_at": 1787760470,
-            "id": "e674c3ec-b98c-55e3-8886-870d791ec4ed",
+            "id": "eb8508ef-dc29-5d24-915f-b03012eb103e",
             "jump_lb": 0.0,
-            "proposed_set_id": "5b2ffb1f-ebd8-5c1a-b2db-4a29d32800a7",
+            "proposed_set_id": "082ca91a-bf7e-548a-9220-1b0194d2c125",
             "reps_left": 0,
             "rest_until": 1787760530,
             "started_at": 1787760430,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 4,
             "actual_weight": 44.09245300292969,
             "ended_at": 1787760630,
-            "id": "302935aa-595f-504c-9419-bb5def0ce74d",
+            "id": "c11951f0-8072-5067-964c-b028c3816c25",
             "jump_lb": 0.0,
-            "proposed_set_id": "56772e2e-287e-5972-8ba6-c19c231ffe2d",
+            "proposed_set_id": "4fd9607a-5359-5fbc-9ba4-48ceb70134fc",
             "reps_left": 0,
             "rest_until": 1787760720,
             "started_at": 1787760590,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 8,
             "actual_weight": 44.09245300292969,
             "ended_at": 1787760760,
-            "id": "463da817-6728-5191-9387-6187701367d7",
+            "id": "08d9e07f-fc3e-551d-a8cd-21f06f3b15ca",
             "jump_lb": 0.0,
-            "proposed_set_id": "c7a298ec-4c90-57ce-bbcb-c663d6ad580a",
+            "proposed_set_id": "a5d3dfe0-1536-517e-a92b-b7c34253322d",
             "reps_left": 0,
             "rest_until": 1787760880,
             "started_at": 1787760720,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           },
           {
             "actual_reps": 8,
             "actual_weight": 44.09245300292969,
             "ended_at": 1787760920,
-            "id": "4b794e2c-ddd8-5b06-8995-34874e3bda80",
+            "id": "3e2d62c7-0f46-578d-9955-ef411a475266",
             "jump_lb": 0.0,
-            "proposed_set_id": "e93d6958-e61d-53d9-ada1-74303666b667",
+            "proposed_set_id": "78b456c7-1399-5b7a-98a2-76d6f053adca",
             "reps_left": 0,
             "rest_until": 1787760980,
             "started_at": 1787760880,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8"
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2"
           }
         ],
         "effort_question_set_id": "",
@@ -24204,7 +24204,7 @@
                   "sets_before": 0,
                   "text": "",
                   "weekly_sets": 0.0,
-                  "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+                  "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
                 }
               ],
               "rep_high": 8,
@@ -24226,14 +24226,14 @@
                 "at": 1787759250,
                 "before": 49.60401153564453,
                 "cause": 2,
-                "from_set_id": "885a8022-6b2e-542a-b93e-9e0028efccda"
+                "from_set_id": "65d99da1-07f8-56e6-a0db-33c240ce5fae"
               },
               {
                 "after": 49.60401153564453,
                 "at": 1787759380,
                 "before": 55.11556625366211,
                 "cause": 3,
-                "from_set_id": "1e9b2ec0-3ec5-59fd-9751-7560e641f688"
+                "from_set_id": "d1e334f2-7a8d-540c-a3ff-04d53c369680"
               }
             ],
             "decision": {
@@ -24329,7 +24329,7 @@
                 "at": 1787759950,
                 "before": 22.046226501464844,
                 "cause": 3,
-                "from_set_id": "af7a6f4f-4475-5384-a230-e9b598c0f16e"
+                "from_set_id": "59c4228a-fa99-54ea-baf0-8d5ffeb5923b"
               }
             ],
             "decision": {
@@ -24453,7 +24453,7 @@
                   "sets_before": 0,
                   "text": "",
                   "weekly_sets": 0.0,
-                  "workout_id": "9f749f3c-5f9a-473c-87bb-27b0e5ef3279"
+                  "workout_id": "50e3164a-42ba-4fd8-a2be-f728df52f4bd"
                 },
                 {
                   "after": 2.0,
@@ -24638,7 +24638,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "c553ee36-e69a-55f5-853a-de4a35c90c34",
+            "id": "a02e5010-66b6-516d-b711-5b4798f95ceb",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 30,
@@ -24649,7 +24649,7 @@
             "target_weight": 44.09245300292969,
             "tempo": "",
             "warmup": true,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 0
           },
           {
@@ -24660,7 +24660,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "810f51fa-dea5-57c3-8f7f-8e941ee2fe46",
+            "id": "e6de9ce6-4b05-51df-843c-17618d6e1f6f",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 30,
@@ -24671,7 +24671,7 @@
             "target_weight": 66.13867950439453,
             "tempo": "",
             "warmup": true,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 1
           },
           {
@@ -24682,7 +24682,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "ad450f9f-5fc2-543a-8b9e-4849a2161454",
+            "id": "6d9036ef-5695-5d79-8821-b9523eb33918",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 30,
@@ -24693,7 +24693,7 @@
             "target_weight": 88.18490600585938,
             "tempo": "",
             "warmup": true,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 2
           },
           {
@@ -24704,7 +24704,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "62dcaa73-1497-580b-b27e-9517d162e9e6",
+            "id": "18af2b86-d3ff-5974-aaf0-75593a81dfb2",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -24715,7 +24715,7 @@
             "target_weight": 99.20802307128906,
             "tempo": "",
             "warmup": true,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 3
           },
           {
@@ -24726,7 +24726,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "15be02dc-fa05-5441-876d-376e56afa99e",
+            "id": "0d78bd14-bd15-508c-8b3d-5169304005d6",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -24737,7 +24737,7 @@
             "target_weight": 115.74269104003906,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 4
           },
           {
@@ -24748,7 +24748,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "114a136a-51d1-58e9-8e51-eb8e7572d7fe",
+            "id": "924df067-9bbc-5477-9a8c-dc0d1d0107b6",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -24759,7 +24759,7 @@
             "target_weight": 115.74269104003906,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 5
           },
           {
@@ -24770,7 +24770,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "8bef0b37-298c-51f7-a1e4-6ea411a344f6",
+            "id": "e81408ec-be86-5f5e-abf4-9103f747df3f",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -24781,7 +24781,7 @@
             "target_weight": 115.74269104003906,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 6
           },
           {
@@ -24792,7 +24792,7 @@
             "exercise": "bench_press",
             "fraction": 0.0,
             "group": "",
-            "id": "9920acb6-c79b-5b30-949f-a2b02935e1eb",
+            "id": "1780b78e-2aa3-59d8-a466-7a06e17419ac",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -24803,7 +24803,7 @@
             "target_weight": 115.74269104003906,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 7
           },
           {
@@ -24814,7 +24814,7 @@
             "exercise": "overhead_press",
             "fraction": 0.0,
             "group": "",
-            "id": "93899d20-e0dc-5338-986e-716ad990a58a",
+            "id": "fa36506b-9357-51ac-9d63-97b0079c8bc3",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 90,
@@ -24825,7 +24825,7 @@
             "target_weight": 49.60401153564453,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 8
           },
           {
@@ -24836,7 +24836,7 @@
             "exercise": "overhead_press",
             "fraction": 0.0,
             "group": "",
-            "id": "885a8022-6b2e-542a-b93e-9e0028efccda",
+            "id": "65d99da1-07f8-56e6-a0db-33c240ce5fae",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 90,
@@ -24847,7 +24847,7 @@
             "target_weight": 55.11556625366211,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 9
           },
           {
@@ -24858,7 +24858,7 @@
             "exercise": "overhead_press",
             "fraction": 1.0,
             "group": "",
-            "id": "1e9b2ec0-3ec5-59fd-9751-7560e641f688",
+            "id": "d1e334f2-7a8d-540c-a3ff-04d53c369680",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -24869,7 +24869,7 @@
             "target_weight": 49.60401153564453,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 10
           },
           {
@@ -24880,7 +24880,7 @@
             "exercise": "overhead_press",
             "fraction": 0.8500000238418579,
             "group": "",
-            "id": "88df8f9f-99aa-596b-971c-f4cdc4d539d0",
+            "id": "e0baeb1e-a61a-5eb2-83da-c18a74ca0388",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 180,
@@ -24891,7 +24891,7 @@
             "target_weight": 44.09245300292969,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 11
           },
           {
@@ -24902,7 +24902,7 @@
             "exercise": "incline_dumbbell_press",
             "fraction": 0.0,
             "group": "",
-            "id": "bab80efe-b437-50ca-bc53-eb3fa07a6f96",
+            "id": "55c5f7fa-5944-5ad1-9478-d5f3a45a9834",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 90,
@@ -24913,7 +24913,7 @@
             "target_weight": 22.046226501464844,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 12
           },
           {
@@ -24924,7 +24924,7 @@
             "exercise": "incline_dumbbell_press",
             "fraction": 0.0,
             "group": "",
-            "id": "af7a6f4f-4475-5384-a230-e9b598c0f16e",
+            "id": "59c4228a-fa99-54ea-baf0-8d5ffeb5923b",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 120,
@@ -24935,7 +24935,7 @@
             "target_weight": 17.636981964111328,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 13
           },
           {
@@ -24946,7 +24946,7 @@
             "exercise": "incline_dumbbell_press",
             "fraction": 0.0,
             "group": "",
-            "id": "ab86a223-8c7f-5d39-b5d6-ec6800535183",
+            "id": "beb40a7e-c6aa-55bc-acfd-ca6c4e1120cc",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 120,
@@ -24957,7 +24957,7 @@
             "target_weight": 17.636981964111328,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 14
           },
           {
@@ -24968,7 +24968,7 @@
             "exercise": "lateral_raise",
             "fraction": 0.0,
             "group": "",
-            "id": "5647201a-30a6-53d3-9fe3-18693eb09c4b",
+            "id": "2159a409-b538-5545-b6d5-1c097a5d4f84",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 120,
@@ -24979,7 +24979,7 @@
             "target_weight": 17.636981964111328,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 15
           },
           {
@@ -24990,7 +24990,7 @@
             "exercise": "lateral_raise",
             "fraction": 0.0,
             "group": "",
-            "id": "5b2ffb1f-ebd8-5c1a-b2db-4a29d32800a7",
+            "id": "082ca91a-bf7e-548a-9220-1b0194d2c125",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 120,
@@ -25001,7 +25001,7 @@
             "target_weight": 17.636981964111328,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 16
           },
           {
@@ -25012,7 +25012,7 @@
             "exercise": "skull_crusher",
             "fraction": 0.0,
             "group": "",
-            "id": "56772e2e-287e-5972-8ba6-c19c231ffe2d",
+            "id": "4fd9607a-5359-5fbc-9ba4-48ceb70134fc",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 90,
@@ -25023,7 +25023,7 @@
             "target_weight": 44.09245300292969,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 17
           },
           {
@@ -25034,7 +25034,7 @@
             "exercise": "skull_crusher",
             "fraction": 0.0,
             "group": "",
-            "id": "c7a298ec-4c90-57ce-bbcb-c663d6ad580a",
+            "id": "a5d3dfe0-1536-517e-a92b-b7c34253322d",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 120,
@@ -25045,7 +25045,7 @@
             "target_weight": 44.09245300292969,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 18
           },
           {
@@ -25056,7 +25056,7 @@
             "exercise": "skull_crusher",
             "fraction": 0.0,
             "group": "",
-            "id": "e93d6958-e61d-53d9-ada1-74303666b667",
+            "id": "78b456c7-1399-5b7a-98a2-76d6f053adca",
             "measure": 0,
             "per_side": false,
             "rest_seconds": 120,
@@ -25067,7 +25067,7 @@
             "target_weight": 44.09245300292969,
             "tempo": "",
             "warmup": false,
-            "workout_id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+            "workout_id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
             "workout_order": 19
           }
         ],
@@ -25135,14 +25135,14 @@
         },
         "workout": {
           "end_time": 1787760920,
-          "id": "15bd6b36-e2ac-4f00-a9fc-d75032612af8",
+          "id": "0472cdd7-0530-41af-bca8-222cbe745bd2",
           "lifting_set_id": "",
           "lifting_started_at": 0,
           "motivation": "",
           "name": "Push",
           "session_id": "",
           "start_time": 1787757690,
-          "template_id": "8a30e09e-2392-5ec5-b1bd-5274f6cd54dd"
+          "template_id": "38b4e1ae-5911-5389-bc17-edf0bf9b0226"
         }
       }
     }
