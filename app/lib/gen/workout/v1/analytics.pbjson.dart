@@ -494,6 +494,53 @@ final $typed_data.Uint8List listRecoveriesResponseDescriptor =
         'ChZMaXN0UmVjb3Zlcmllc1Jlc3BvbnNlEjsKCnJlY292ZXJpZXMYASADKAsyGy53b3Jrb3V0Ln'
         'YxLlJlY292ZXJ5UmVxdWVzdFIKcmVjb3Zlcmllcw==');
 
+@$core.Deprecated('Use listAssistantFeedbackRequestDescriptor instead')
+const ListAssistantFeedbackRequest$json = {
+  '1': 'ListAssistantFeedbackRequest',
+};
+
+/// Descriptor for `ListAssistantFeedbackRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listAssistantFeedbackRequestDescriptor =
+    $convert.base64Decode('ChxMaXN0QXNzaXN0YW50RmVlZGJhY2tSZXF1ZXN0');
+
+@$core.Deprecated('Use listAssistantFeedbackResponseDescriptor instead')
+const ListAssistantFeedbackResponse$json = {
+  '1': 'ListAssistantFeedbackResponse',
+  '2': [
+    {
+      '1': 'feedback',
+      '3': 1,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.AssistantFeedback',
+      '10': 'feedback'
+    },
+  ],
+};
+
+/// Descriptor for `ListAssistantFeedbackResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List listAssistantFeedbackResponseDescriptor =
+    $convert.base64Decode(
+        'Ch1MaXN0QXNzaXN0YW50RmVlZGJhY2tSZXNwb25zZRI5CghmZWVkYmFjaxgBIAMoCzIdLndvcm'
+        'tvdXQudjEuQXNzaXN0YW50RmVlZGJhY2tSCGZlZWRiYWNr');
+
+@$core.Deprecated('Use assistantFeedbackDescriptor instead')
+const AssistantFeedback$json = {
+  '1': 'AssistantFeedback',
+  '2': [
+    {'1': 'client_name', '3': 1, '4': 1, '5': 9, '10': 'clientName'},
+    {'1': 'tool', '3': 2, '4': 1, '5': 9, '10': 'tool'},
+    {'1': 'text', '3': 3, '4': 1, '5': 9, '10': 'text'},
+    {'1': 'created_at', '3': 4, '4': 1, '5': 3, '10': 'createdAt'},
+  ],
+};
+
+/// Descriptor for `AssistantFeedback`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List assistantFeedbackDescriptor = $convert.base64Decode(
+    'ChFBc3Npc3RhbnRGZWVkYmFjaxIfCgtjbGllbnRfbmFtZRgBIAEoCVIKY2xpZW50TmFtZRISCg'
+    'R0b29sGAIgASgJUgR0b29sEhIKBHRleHQYAyABKAlSBHRleHQSHQoKY3JlYXRlZF9hdBgEIAEo'
+    'A1IJY3JlYXRlZEF0');
+
 @$core.Deprecated('Use getRecoveryRequestDescriptor instead')
 const GetRecoveryRequest$json = {
   '1': 'GetRecoveryRequest',

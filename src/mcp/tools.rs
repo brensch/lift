@@ -7,6 +7,7 @@
 use serde_json::{json, Value};
 
 use super::Mcp;
+use crate::db::MAX_FEEDBACK_CHARS;
 use schlift_core::account::Account;
 use schlift_core::api::{Call, View};
 use schlift_core::pb::{
@@ -14,16 +15,20 @@ use schlift_core::pb::{
     SimulateProgramRequest, SimulatedEffort, ValidateProgramRequest,
 };
 use schlift_core::plan::Planner;
-use schlift_core::program::GUIDE;
+use schlift_core::program::{edit, Program, GUIDE};
 
 /// Told to the assistant when it connects.
 pub const INSTRUCTIONS: &str = "Schlift records a person's strength training. \
 Their program — one JSON document — decides every workout the app plans: the \
 exercises, the workouts, how each lift progresses, and every number the planner \
-uses. Read the guide (read_guide) before writing one. To change it: get_program, \
-get_profile and get_history to see where they are; write the whole document; \
-validate_program; simulate_program to check what it prescribes; then set_program \
-with a short note saying why. Weights are always pounds.";
+uses. Read the guide (read_guide) first: its Editing section is how to change a \
+program. Look with get_profile, get_program and get_history (list_exercises and \
+list_library find exercises and ready-made workouts). Change it with `edits` — \
+small named changes like {\"set\": \"classes.heavy.rest_seconds\", \"value\": 150} — \
+not by rewriting the document: simulate_program with the edits to see what it \
+prescribes, then set_program with the same edits and a one-line note to the person. \
+Weights are always pounds. When you are done, send_feedback: one line on what was \
+easy or hard about these tools.";
 
 pub enum Failure {
     Unknown,
@@ -44,8 +49,17 @@ fn schema(properties: Value, required: &[&str]) -> Value {
 
 fn program_property() -> Value {
     json!({
-        "description": "The whole program document (an object, or its JSON as a string)",
+        "description": "A whole program document, for a full rewrite (an object, or its JSON as a string). Built-in exercises it leaves out are added back. Usually send `edits` instead",
         "type": ["object", "string"]
+    })
+}
+
+fn edits_property() -> Value {
+    json!({
+        "description": "Changes to the current program, applied in order, all or none. Each is {\"set\": path, \"value\": v}, {\"remove\": path} or {\"move\": path, \"before\": path-or-null}. A path is dot-separated, with exercises by key and workouts by id: classes.heavy.rest_seconds, workouts[upper_a].exercises, exercises[squat].progression, progressions.squat_lp, time_off[0].days. Setting a named item that doesn't exist adds it. See read_guide's Editing section",
+        "type": "array",
+        "items": { "type": "object" },
+        "maxItems": schlift_core::program::edit::MAX_EDITS
     })
 }
 
@@ -62,7 +76,7 @@ pub fn list() -> Vec<Value> {
         json!({
             "name": "get_program",
             "title": "Get the program",
-            "description": "The person's current program document, who set it and why, and the programs set before it.",
+            "description": "The person's current program, who set it and why, and the programs set before it. Built-in exercises the program leaves as they are aren't shown (list_exercises finds them); any key can be used in workouts.",
             "inputSchema": schema(json!({}), &[]),
             "annotations": { "readOnlyHint": true },
         }),
@@ -96,15 +110,16 @@ pub fn list() -> Vec<Value> {
         json!({
             "name": "validate_program",
             "title": "Check a draft program",
-            "description": "Every problem with a draft, each with its path (progressions.squat_lp.reps). A draft with an error can't be set; warnings are advice.",
-            "inputSchema": schema(json!({ "program": program_property() }), &["program"]),
+            "description": "Every problem with a draft (edits to the current program, or a whole document), each with its path (workouts[upper_a].exercises[2]). A draft with an error can't be set; warnings are advice. simulate_program and set_program check too, so this is only needed on its own.",
+            "inputSchema": schema(json!({ "edits": edits_property(), "program": program_property() }), &[]),
             "annotations": { "readOnlyHint": true },
         }),
         json!({
             "name": "simulate_program",
             "title": "Run a draft program",
-            "description": "What a draft (or the current program) prescribes, without setting it: its past workouts planned again as of just before each, beside what was planned and done; and the next sessions, each done as `effort` says, through the app's own rules (warmups, the calibration ramp, the time budget).",
+            "description": "What a draft (edits to the current program, a whole document, or with neither the current program) prescribes, without setting it: its past workouts planned again as of just before each, beside what was planned and done; and the next sessions, each done as `effort` says, through the app's own rules (warmups, the calibration ramp, the time budget). Its problems too.",
             "inputSchema": schema(json!({
+                "edits": edits_property(),
                 "program": program_property(),
                 "sessions": { "type": "integer", "minimum": 0, "maximum": 60, "description": "Workouts forward from now (default 6)" },
                 "every_days": { "type": "integer", "minimum": 1, "maximum": 14, "description": "Days between them (default 2)" },
@@ -120,11 +135,52 @@ pub fn list() -> Vec<Value> {
         json!({
             "name": "set_program",
             "title": "Set the program",
-            "description": "Make a draft the person's program: it plans every workout from the next one on (none already done changes). Refused, with its problems, if it has an error. Earlier programs stay in their history.",
+            "description": "Make a draft the person's program (edits to the current program, or a whole document): it plans every workout from the next one on (none already done changes) and reaches their phone at once. Refused, with its problems, if it has an error. Earlier programs stay in their history.",
             "inputSchema": schema(json!({
+                "edits": edits_property(),
                 "program": program_property(),
                 "note": { "type": "string", "maxLength": 300, "description": "One line, to the person, on why" }
-            }), &["program", "note"]),
+            }), &["note"]),
+            "annotations": { "readOnlyHint": false, "destructiveHint": false, "idempotentHint": false },
+        }),
+        json!({
+            "name": "list_exercises",
+            "title": "Find exercises",
+            "description": "Exercises the program can use, built-in and its own: key, name, equipment, muscles (primary first), class, own progression, whether built in, and which workouts use it. Filter by muscle, equipment, a name fragment or keys.",
+            "inputSchema": schema(json!({
+                "muscle": { "type": "string", "enum": ["chest", "back", "shoulders", "biceps", "triceps", "quads", "hamstrings", "glutes", "calves", "core"], "description": "Trains this muscle" },
+                "primary_only": { "type": "boolean", "description": "With muscle: only lifts where it is the primary mover" },
+                "equipment": { "type": "string", "enum": ["barbell", "dumbbell", "machine", "cable", "bodyweight"] },
+                "query": { "type": "string", "description": "Name contains this (any case)" },
+                "keys": { "type": "array", "items": { "type": "string" }, "description": "Exactly these keys" },
+                "limit": { "type": "integer", "minimum": 1, "maximum": 100, "description": "At most this many (default 30)" }
+            }), &[]),
+            "annotations": { "readOnlyHint": true },
+        }),
+        json!({
+            "name": "list_library",
+            "title": "Ready-made workouts",
+            "description": "Schlift's workout library: workouts (id, name, group, blurb, exercise keys) and plans (a named rotation of them). To use one, add it with an edit: {\"set\": \"workouts[<new id>]\", \"value\": {\"name\": ..., \"exercises\": [...], \"from_library\": \"<library id>\"}}.",
+            "inputSchema": schema(json!({}), &[]),
+            "annotations": { "readOnlyHint": true },
+        }),
+        json!({
+            "name": "get_program_part",
+            "title": "Get part of the program",
+            "description": "One path of the current program, when only that is needed: classes, progressions, workouts, workouts[upper_a], sets, equipment.barbell.",
+            "inputSchema": schema(json!({
+                "path": { "type": "string", "description": "As in edits: classes.heavy, workouts[a].exercises" }
+            }), &["path"]),
+            "annotations": { "readOnlyHint": true },
+        }),
+        json!({
+            "name": "send_feedback",
+            "title": "Say how the tools went",
+            "description": "One line (at most 144 characters) on what was easy, hard or missing in these tools, for the people who make them. About the tools, never about the person. Send one when a task is done.",
+            "inputSchema": schema(json!({
+                "text": { "type": "string", "minLength": 1, "maxLength": 144 },
+                "tool": { "type": "string", "description": "The tool it is mostly about, if one" }
+            }), &["text"]),
             "annotations": { "readOnlyHint": false, "destructiveHint": false, "idempotentHint": false },
         }),
     ]
@@ -137,15 +193,52 @@ fn text(value: &Value) -> Value {
     })
 }
 
-fn program_json(arguments: &Value) -> Result<String, Failure> {
-    match arguments.get("program") {
-        Some(Value::String(s)) => Ok(s.clone()),
-        Some(v @ Value::Object(_)) => Ok(v.to_string()),
-        Some(_) => Err(Failure::Tool(
+/// The draft a write tool was given, as a whole document: `edits` applied
+/// to the current program, or a `program` with any built-in exercises it
+/// leaves out put back. With neither, "" (the current program, where a
+/// tool allows that). Also how many edits applied.
+fn draft(account: &Account, arguments: &Value) -> Result<(String, usize), Failure> {
+    match (arguments.get("edits"), arguments.get("program")) {
+        (Some(_), Some(_)) => Err(Failure::Tool(
+            "send edits or a whole program, not both".into(),
+        )),
+        (Some(Value::Array(edits)), None) => {
+            let doc = edit::apply(&account.program, edits).map_err(|e| {
+                Failure::Tool(
+                    serde_json::to_string_pretty(&json!({
+                        "applied": 0,
+                        "changed": "nothing: edits apply all or none",
+                        "failed_edit": e.index,
+                        "path": e.path,
+                        "problem": e.message,
+                    }))
+                    .unwrap_or_default(),
+                )
+            })?;
+            Ok((doc.to_string(), edits.len()))
+        }
+        (Some(_), None) => Err(Failure::Tool("edits is a list of edits".into())),
+        (None, Some(Value::String(s))) => {
+            let doc: Value = serde_json::from_str(s)
+                .map_err(|e| Failure::Tool(format!("program is not JSON: {e}")))?;
+            Ok((edit::complete(doc).to_string(), 0))
+        }
+        (None, Some(v @ Value::Object(_))) => Ok((edit::complete(v.clone()).to_string(), 0)),
+        (None, Some(_)) => Err(Failure::Tool(
             "program is an object, or its JSON as a string".into(),
         )),
-        None => Ok(String::new()),
+        (None, None) => Ok((String::new(), 0)),
     }
+}
+
+/// A program as an assistant sees it ([`edit::compact`]), with a word on
+/// what was left out.
+fn shown(program: &Program) -> (Value, Value) {
+    let (doc, left_out) = edit::compact(program);
+    let note = json!(format!(
+        "{left_out} built-in exercises, unchanged, aren't shown; list_exercises finds them, and any key can go in a workout"
+    ));
+    (doc, note)
 }
 
 fn int(arguments: &Value, name: &str, default: i64, lo: i64, hi: i64) -> i32 {
@@ -216,15 +309,17 @@ pub async fn call(
     match name {
         "read_guide" => Ok(json!({ "content": [{ "type": "text", "text": GUIDE }] })),
         "get_program" => {
-            let got = mcp
+            let (got, (program, note)) = mcp
                 .db
-                .read_account(user_id, move |a| View::new(a, now).get_program())
+                .read_account(user_id, move |a| {
+                    (View::new(a, now).get_program(), shown(&a.program))
+                })
                 .await?;
-            let program: Value = serde_json::from_str(&got.program_json).unwrap_or(Value::Null);
             let summary = |s: &schlift_core::pb::ProgramSummary| json!({ "id": s.id, "name": s.name, "author": s.author, "note": s.note, "set_on": if s.set_at > 0 { date(s.set_at) } else { String::new() } });
             Ok(text(&json!({
                 "current": got.summary.as_ref().map(summary),
                 "earlier": got.history.iter().map(summary).collect::<Vec<_>>(),
+                "exercises_note": note,
                 "program": program,
             })))
         }
@@ -242,13 +337,20 @@ pub async fn call(
                 .await?
                 .map_err(|_| Failure::Tool("No earlier program has that id".into()))?;
             let s = got.summary.unwrap_or_default();
-            let program: Value = serde_json::from_str(&got.program_json).unwrap_or(Value::Null);
+            let (program, note) = match Program::parse(&got.program_json) {
+                Ok(p) => shown(&p),
+                Err(_) => (
+                    serde_json::from_str(&got.program_json).unwrap_or(Value::Null),
+                    Value::Null,
+                ),
+            };
             Ok(text(&json!({
                 "id": s.id,
                 "name": s.name,
                 "author": s.author,
                 "note": s.note,
                 "set_on": date(s.set_at),
+                "exercises_note": note,
                 "program": program,
             })))
         }
@@ -278,15 +380,22 @@ pub async fn call(
             Ok(text(&history))
         }
         "validate_program" => {
-            let program_json = program_json(arguments)?;
-            let checked = mcp
+            let args = arguments.clone();
+            let (checked, applied) = mcp
                 .db
-                .read_account(user_id, move |a| {
-                    View::new(a, now).validate_program(ValidateProgramRequest { program_json })
+                .read_account(user_id, move |a| -> Result<_, Failure> {
+                    let (program_json, applied) = draft(a, &args)?;
+                    if program_json.is_empty() {
+                        return Err(Failure::Tool("send edits or a program to check".into()));
+                    }
+                    let checked = View::new(a, now)
+                        .validate_program(ValidateProgramRequest { program_json })?;
+                    Ok((checked, applied))
                 })
                 .await??;
             Ok(text(&json!({
                 "ok": !checked.problems.iter().any(|p| p.error),
+                "applied": applied,
                 "problems": problems(&checked.problems),
             })))
         }
@@ -298,8 +407,8 @@ pub async fn call(
                 Some("miss_every") => SimulatedEffort::MissEvery,
                 Some(other) => return Err(Failure::Tool(format!("no effort {other:?}"))),
             };
-            let request = SimulateProgramRequest {
-                program_json: program_json(arguments)?,
+            let mut request = SimulateProgramRequest {
+                program_json: String::new(),
                 sessions: int(arguments, "sessions", 6, 0, 60),
                 every_days: int(arguments, "every_days", 2, 1, 14),
                 effort: effort as i32,
@@ -322,16 +431,22 @@ pub async fn call(
                     })
                     .unwrap_or_default(),
             };
-            let run = mcp
+            let args = arguments.clone();
+            let (run, applied) = mcp
                 .db
-                .read_account(user_id, move |a| {
-                    View::new(a, now).simulate_program(request)
+                .read_account(user_id, move |a| -> Result<_, Failure> {
+                    let (program_json, applied) = draft(a, &args)?;
+                    request.program_json = program_json;
+                    Ok((View::new(a, now).simulate_program(request)?, applied))
                 })
                 .await??;
             if run.problems.iter().any(|p| p.error) {
                 return Err(Failure::Tool(
-                    serde_json::to_string_pretty(&json!({ "problems": problems(&run.problems) }))
-                        .unwrap_or_default(),
+                    serde_json::to_string_pretty(&json!({
+                        "applied": applied,
+                        "problems": problems(&run.problems),
+                    }))
+                    .unwrap_or_default(),
                 ));
             }
             let workouts: Vec<Value> = run
@@ -351,14 +466,17 @@ pub async fn call(
                     })
                 })
                 .collect();
-            Ok(text(
-                &json!({ "workouts": workouts, "problems": problems(&run.problems) }),
-            ))
+            Ok(text(&json!({
+                "applied": applied,
+                "workouts": workouts,
+                "problems": problems(&run.problems),
+            })))
         }
         "set_program" => {
-            let program_json = program_json(arguments)?;
+            let mut account = mcp.db.read_account(user_id, Clone::clone).await?;
+            let (program_json, applied) = draft(&account, arguments)?;
             if program_json.is_empty() {
-                return Err(Failure::Tool("program is required".into()));
+                return Err(Failure::Tool("send edits or a program to set".into()));
             }
             let note = arguments
                 .get("note")
@@ -366,7 +484,6 @@ pub async fn call(
                 .unwrap_or_default()
                 .to_string();
             let author = format!("mcp:{client_name}");
-            let mut account = mcp.db.read_account(user_id, Clone::clone).await?;
             let mut call = Call::new(&mut account, now, uuid::Uuid::new_v4().to_string());
             let response = call.set_program(SetProgramRequest {
                 program_json,
@@ -378,6 +495,7 @@ pub async fn call(
                 return Err(Failure::Tool(
                     serde_json::to_string_pretty(&json!({
                         "set": false,
+                        "applied": applied,
                         "problems": problems(&response.problems),
                     }))
                     .unwrap_or_default(),
@@ -387,12 +505,130 @@ pub async fn call(
             tracing::info!(%user_id, client = client_name, program = %summary.name, "an assistant set a program");
             Ok(text(&json!({
                 "set": true,
+                "applied": applied,
                 "program": { "id": summary.id, "name": summary.name, "note": summary.note },
                 "problems": problems(&response.problems),
             })))
         }
+        "list_exercises" => {
+            let args = arguments.clone();
+            let found = mcp
+                .db
+                .read_account(user_id, move |a| exercises(&a.program, &args))
+                .await?;
+            Ok(text(&found))
+        }
+        "list_library" => Ok(text(&library())),
+        "get_program_part" => {
+            let path = arguments
+                .get("path")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            let part = mcp
+                .db
+                .read_account(user_id, move |a| edit::part(&a.program, &path))
+                .await?
+                .map_err(Failure::Tool)?;
+            Ok(text(&json!({ "value": part })))
+        }
+        "send_feedback" => {
+            let feedback = arguments
+                .get("text")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .trim();
+            let length = feedback.chars().count();
+            if length == 0 || length > MAX_FEEDBACK_CHARS {
+                return Err(Failure::Tool(format!(
+                    "text is 1 to {MAX_FEEDBACK_CHARS} characters; this is {length}"
+                )));
+            }
+            let tool: String = arguments
+                .get("tool")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .trim()
+                .chars()
+                .take(40)
+                .collect();
+            mcp.db
+                .record_assistant_feedback(user_id, client_name, &tool, feedback)
+                .await?;
+            Ok(text(
+                &json!({ "thanks": "Noted. It goes to the people who make these tools." }),
+            ))
+        }
         _ => Err(Failure::Unknown),
     }
+}
+
+/// The exercises `list_exercises` finds, filtered as `arguments` say.
+fn exercises(program: &Program, arguments: &Value) -> Value {
+    let builtin = edit::builtin_keys();
+    let get = |name: &str| arguments.get(name).and_then(Value::as_str);
+    let query = get("query").map(str::to_lowercase);
+    let keys: Option<Vec<&str>> = arguments
+        .get("keys")
+        .and_then(Value::as_array)
+        .map(|k| k.iter().filter_map(Value::as_str).collect());
+    let primary_only = arguments
+        .get("primary_only")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let limit = int(arguments, "limit", 30, 1, 100) as usize;
+    let matching: Vec<Value> = program
+        .exercises
+        .iter()
+        .map(|e| (e, serde_json::to_value(e).unwrap_or(Value::Null)))
+        .filter(|(e, _)| keys.as_ref().is_none_or(|k| k.contains(&e.key.as_str())))
+        .filter(|(e, _)| {
+            query.as_ref().is_none_or(|q| {
+                e.name.to_lowercase().contains(q.as_str()) || e.key.contains(q.as_str())
+            })
+        })
+        .filter(|(_, v)| get("equipment").is_none_or(|eq| v["equipment"] == eq))
+        .filter(|(_, v)| {
+            get("muscle").is_none_or(|m| {
+                let muscles = v["muscles"].as_array().cloned().unwrap_or_default();
+                if primary_only {
+                    muscles.first().is_some_and(|f| f == m)
+                } else {
+                    muscles.iter().any(|f| f == m)
+                }
+            })
+        })
+        .map(|(e, v)| {
+            json!({
+                "key": e.key,
+                "name": e.name,
+                "equipment": v["equipment"],
+                "muscles": v["muscles"],
+                "class": e.class,
+                "progression": e.progression,
+                "built_in": builtin.contains(&e.key),
+                "in_workouts": program.workouts.iter().filter(|w| w.exercises.contains(&e.key)).map(|w| w.id.clone()).collect::<Vec<_>>(),
+            })
+        })
+        .collect();
+    let total = matching.len();
+    json!({
+        "found": total,
+        "shown": total.min(limit),
+        "exercises": matching.into_iter().take(limit).collect::<Vec<_>>(),
+    })
+}
+
+/// The workout library and its plans, as `list_library` gives them.
+fn library() -> Value {
+    json!({
+        "workouts": schlift_core::template_library::library().iter().map(|t| json!({
+            "library_id": t.id, "name": t.name, "group": t.group_label, "blurb": t.blurb, "exercises": t.exercises,
+        })).collect::<Vec<_>>(),
+        "plans": schlift_core::template_library::plans().iter().map(|p| json!({
+            "id": p.id, "name": p.name, "blurb": p.blurb, "workouts": p.library_ids,
+        })).collect::<Vec<_>>(),
+    })
 }
 
 fn problems(problems: &[schlift_core::pb::ProgramProblem]) -> Vec<Value> {
