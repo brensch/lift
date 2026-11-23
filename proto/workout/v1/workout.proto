@@ -1197,6 +1197,75 @@ message Suggestion {
   repeated string exercises = 12;
 }
 
+// A suggestion laid out to decide on: what the week becomes, how each
+// lift's rule changes, what the next sessions would be, and the other
+// numbers it changes. Facts, not words: the app says them.
+message ExplainSuggestionRequest {
+  string suggestion_id = 1;
+}
+message ExplainSuggestionResponse {
+  Suggestion suggestion = 1;
+  // The rotation's workouts by name, now and with the change.
+  repeated string rotation_before = 2;
+  repeated string rotation_after = 3;
+  repeated WorkoutChange workouts = 4;
+  // Each lift the person trains whose rule or scheme changes.
+  repeated LiftRuleChange lifts = 5;
+  // Lifts whose plan changes: their next sessions with the change.
+  repeated LiftForecast forecasts = 6;
+  // Other numbers it changes, by path (classes.heavy.rest_seconds).
+  repeated NumberChange numbers = 7;
+}
+
+message WorkoutChange {
+  ChangeVerb verb = 1;
+  string name = 2;
+  // Its lifts, by name, with the change.
+  repeated string exercises = 3;
+}
+
+// A progression as numbers, for the app to say in a sentence.
+message RuleSummary {
+  // estimated_max, fixed, linear, double, cycle or formula.
+  string kind = 1;
+  int32 sets = 2; // 0: the time budget's
+  int32 reps = 3;
+  int32 rep_low = 4;
+  int32 rep_high = 5;
+  float increment_lb = 6; // 0: the equipment's step
+  int32 deload_after_fails = 7;
+  float deload_factor = 8;
+  int32 rep_step = 9;
+  float weight_lb = 10;
+  int32 cycle_steps = 11;
+  // A formula's own words for itself.
+  string note = 12;
+  // The scheme that lays out its sets; "straight" for identical sets.
+  string scheme = 13;
+}
+
+message LiftRuleChange {
+  string exercise = 1;
+  string name = 2;
+  RuleSummary before = 3;
+  RuleSummary after = 4;
+}
+
+message LiftForecast {
+  string exercise = 1;
+  string name = 2;
+  // Its next plan as things are; unset for a lift new to the person.
+  ExerciseDecision now = 3;
+  // Its next sessions with the change, every rep hit.
+  repeated ExerciseDecision next = 4;
+}
+
+message NumberChange {
+  string path = 1;
+  double before = 2;
+  double after = 3;
+}
+
 message GetSuggestionsRequest {}
 message GetSuggestionsResponse {
   // Waiting first (newest first), then the answered, newest first.

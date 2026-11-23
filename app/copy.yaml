@@ -1150,26 +1150,38 @@ app_icon:
 # Changes others suggest (docs/plans/set-types.md). Placeholders: the owner
 # writes these.
 suggestions:
-  # Home's row, after Reserves, and the Program screen's section.
-  heading: Suggested
-  program_heading: Suggested changes
+  # Home's row and the Program screen's section: a change waiting on you.
+  heading: Pending suggestion
+  program_heading: Pending suggestions
+  chip: "{title} · {name}"
   from: "From {name}"
-  accept_workout: Add it
-  accept_program: Use it
+  # The popup: the whole change, then one answer.
+  accept: Use this program
   decline: No thanks
-  changes_heading: What it changes
-  # "{verb} {subject} {name}": "Adds the workout Push", "Sets volume".
-  verb_add: Adds
-  verb_change: Changes
-  verb_remove: Removes
-  verb_set: Sets
-  subject_workout: the workout
-  subject_exercise: the exercise
-  subject_scheme: the scheme
-  subject_progression: the progression
-  subject_class: the class
+  week_heading: Your week
+  workout_added: "New: {name}"
+  workout_changed: "Changed: {name}"
+  workout_removed: "Gone: {name}"
+  lifts_heading: How your lifts move
+  rule_was: "Was: {rule}"
+  rule_new_lift: New to you
+  # A progression in a sentence. {step} is the jump, in your unit.
+  rule_estimated_max: Weight follows your estimated max
+  rule_fixed: "{sets}×{reps} at {weight}, every time"
+  rule_linear: "{reps} reps a set; hit them all and it adds {step}"
+  rule_double: "{low}–{high} reps; {high} on every set adds {step}"
+  rule_cycle: "Works through {n} steps, then starts over"
+  rule_formula: A custom formula
+  rule_step_default: the smallest jump
+  rule_deload: "{n} misses in a row takes it back to {pct}%"
+  rule_scheme: "Sets laid out as {scheme}"
+  next_heading: Your next sessions
+  next_note: If you hit every rep.
+  next_now: "Now {plan}"
+  also_heading: Also
+  number_line: "{before} → {after}"
   no_longer_fits: "This doesn't fit your program any more: {problem}"
-  accepted: Added
+  accepted: Using it
   declined: Declined
   # Multiplayer → a friend.
   can_suggest: Can suggest workouts

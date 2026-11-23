@@ -458,6 +458,18 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Accept or decline a suggestion; an accept that no longer fits says
   /// why (null when it was answered).
+  /// A suggestion laid out to decide on: null when it can't be read.
+  Future<ExplainSuggestionResponse?> explainSuggestion(String id) async {
+    try {
+      return await _service.explainSuggestion(id);
+    } catch (e) {
+      AppLogger.instance.warn('Workout', 'explainSuggestion failed', {
+        'error': '$e',
+      });
+      return null;
+    }
+  }
+
   Future<String?> answerSuggestion(String id, bool accept) async {
     final response = await _service.answerSuggestion(id, accept);
     if (response.problem.isNotEmpty) return response.problem;

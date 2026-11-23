@@ -217,7 +217,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          suggestion.title,
+                          copy.suggestions.chip
+                              .replaceAll('{title}', suggestion.title)
+                              .replaceAll('{name}', suggestion.fromName),
                           style: TextStyle(
                             fontSize: context.tokens.size.body,
                             fontWeight: context.tokens.weight.heavy,

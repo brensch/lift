@@ -1285,7 +1285,176 @@ impl<'a> View<'a> {
         Ok(crate::simulate::simulate(self.account, self.now, &req))
     }
 
-    /// The program's exercises as every screen shows them, and the plates.
+    /// One suggestion laid out to decide on (`ExplainSuggestionResponse`):
+    /// the week before and after, each trained lift's rule where it
+    /// changes, those lifts' next sessions with it (the simulator, every rep
+    /// hit, from this account's history) beside their next plan now, and the
+    /// other numbers it changes. A suggestion that no longer applies has
+    /// only itself, with its problem.
+    pub fn explain_suggestion(
+        &self,
+        req: ExplainSuggestionRequest,
+    ) -> Result<ExplainSuggestionResponse, CoreError> {
+        let suggestion = self
+            .get_suggestions()
+            .suggestions
+            .into_iter()
+            .find(|s| s.id == req.suggestion_id)
+            .ok_or_else(|| CoreError::NotFound("No such suggestion".into()))?;
+        let edits = self
+            .account
+            .suggestions
+            .iter()
+            .find(|s| s.id == req.suggestion_id)
+            .map(|s| s.suggested.edits.clone())
+            .unwrap_or_default();
+        let now_program = &self.account.program;
+        let draft = program::edit::apply(now_program, &edits)
+            .ok()
+            .and_then(|doc| program::validate(&doc.to_string()).0);
+        let Some(draft) = draft.filter(|_| suggestion.problem.is_empty()) else {
+            return Ok(ExplainSuggestionResponse {
+                suggestion: Some(suggestion),
+                ..Default::default()
+            });
+        };
+        let rotation = |p: &Program| -> Vec<String> {
+            p.workouts
+                .iter()
+                .filter(|w| w.rotation)
+                .map(|w| w.name.clone())
+                .collect()
+        };
+        let lift_names = |p: &Program, keys: &[String]| -> Vec<String> {
+            keys.iter()
+                .map(|k| p.exercise(k).map_or_else(|| k.clone(), |e| e.name.clone()))
+                .collect()
+        };
+        // Workouts added, changed (lifts, groups or rotation) or removed.
+        let mut workouts = Vec::new();
+        for w in &draft.workouts {
+            match now_program.workout(&w.id) {
+                None => workouts.push(WorkoutChange {
+                    verb: ChangeVerb::Add as i32,
+                    name: w.name.clone(),
+                    exercises: lift_names(&draft, &w.exercises),
+                }),
+                Some(was) if was != w => workouts.push(WorkoutChange {
+                    verb: ChangeVerb::Change as i32,
+                    name: w.name.clone(),
+                    exercises: lift_names(&draft, &w.exercises),
+                }),
+                Some(_) => {}
+            }
+        }
+        for w in &now_program.workouts {
+            if draft.workout(&w.id).is_none() {
+                workouts.push(WorkoutChange {
+                    verb: ChangeVerb::Remove as i32,
+                    name: w.name.clone(),
+                    exercises: Vec::new(),
+                });
+            }
+        }
+        // The lifts trained, with the change and without: their rules.
+        let mut keys: Vec<String> = Vec::new();
+        for w in draft.workouts.iter().chain(&now_program.workouts) {
+            for k in &w.exercises {
+                if !keys.contains(k) {
+                    keys.push(k.clone());
+                }
+            }
+        }
+        let lifts: Vec<LiftRuleChange> = keys
+            .iter()
+            .filter(|k| draft.knows(k))
+            .filter_map(|k| {
+                let before = rule_summary(now_program, k);
+                let after = rule_summary(&draft, k);
+                (before != after).then(|| LiftRuleChange {
+                    exercise: k.clone(),
+                    name: draft
+                        .exercise(k)
+                        .map(|e| e.name.clone())
+                        .unwrap_or_default(),
+                    before: now_program.knows(k).then_some(before),
+                    after: Some(after),
+                })
+            })
+            .collect();
+        // Their next sessions: the draft run forward (every rep hit), and
+        // the lifts new to the rotation too.
+        let before_rotation: Vec<&String> = now_program
+            .workouts
+            .iter()
+            .filter(|w| w.rotation)
+            .flat_map(|w| &w.exercises)
+            .collect();
+        let mut forecast_keys: Vec<String> = lifts.iter().map(|l| l.exercise.clone()).collect();
+        for w in draft.workouts.iter().filter(|w| w.rotation) {
+            for k in &w.exercises {
+                if !before_rotation.contains(&k) && !forecast_keys.contains(k) {
+                    forecast_keys.push(k.clone());
+                }
+            }
+        }
+        forecast_keys.truncate(8);
+        let rotation_len = draft.workouts.iter().filter(|w| w.rotation).count().max(1);
+        let run = crate::simulate::simulate(
+            self.account,
+            self.now,
+            &SimulateProgramRequest {
+                program_json: draft.to_json(),
+                sessions: (rotation_len * 3).min(12) as i32,
+                every_days: 2,
+                effort: SimulatedEffort::AllHit as i32,
+                history: 0,
+                ..Default::default()
+            },
+        );
+        let forecasts = forecast_keys
+            .iter()
+            .map(|k| {
+                let next: Vec<ExerciseDecision> = run
+                    .workouts
+                    .iter()
+                    .filter(|w| !w.past)
+                    .flat_map(|w| &w.lifts)
+                    .filter(|l| l.exercise == *k)
+                    .filter_map(|l| l.decision.clone())
+                    .take(3)
+                    .collect();
+                let now = (now_program.knows(k)
+                    && self
+                        .account
+                        .workouts
+                        .iter()
+                        .any(|r| r.proposed_sets.iter().any(|s| s.exercise == *k)))
+                .then(|| self.exercise_plan(k, 0).decision)
+                .flatten();
+                LiftForecast {
+                    exercise: k.clone(),
+                    name: draft
+                        .exercise(k)
+                        .map(|e| e.name.clone())
+                        .unwrap_or_default(),
+                    now,
+                    next,
+                }
+            })
+            .filter(|f| !f.next.is_empty())
+            .collect();
+        Ok(ExplainSuggestionResponse {
+            suggestion: Some(suggestion),
+            rotation_before: rotation(now_program),
+            rotation_after: rotation(&draft),
+            workouts,
+            lifts,
+            forecasts,
+            numbers: number_changes(now_program, &draft),
+        })
+    }
+
     /// Every suggestion: waiting first, newest first, then the answered.
     pub fn get_suggestions(&self) -> GetSuggestionsResponse {
         let mut waiting = Vec::new();
@@ -1328,6 +1497,7 @@ impl<'a> View<'a> {
         }
     }
 
+    /// The program's exercises as every screen shows them, and the plates.
     pub fn list_exercises(&self) -> ListExercisesResponse {
         let program = self.program();
         let plates = &program.equipment.plates;
@@ -1547,6 +1717,7 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "GetProgramVersion" => get_program_version,
             "ValidateProgram" => validate_program,
             "SimulateProgram" => simulate_program,
+            "ExplainSuggestion" => explain_suggestion,
         }
         plain {
             "GetActiveWorkout" => get_active_workout,
@@ -1702,4 +1873,116 @@ fn suggested_workout(edits: &[serde_json::Value]) -> Vec<String> {
                 .collect()
         })
         .unwrap_or_default()
+}
+
+/// A lift's rule as numbers: its progression (its own `params` in it) and
+/// the scheme that lays out its sets.
+fn rule_summary(p: &Program, key: &str) -> RuleSummary {
+    use crate::program::Progression as P;
+    let mut r = RuleSummary {
+        scheme: p.scheme_name(key).to_string(),
+        ..Default::default()
+    };
+    let rule = p.progression_of(key);
+    r.kind = rule.kind().to_string();
+    match &*rule {
+        P::EstimatedMax => {}
+        P::Fixed {
+            sets,
+            reps,
+            weight_lb,
+        } => {
+            r.sets = *sets;
+            r.reps = *reps;
+            r.weight_lb = *weight_lb;
+        }
+        P::Linear {
+            sets,
+            reps,
+            increment_lb,
+            deload_after_fails,
+            deload_factor,
+        } => {
+            r.sets = sets.unwrap_or(0);
+            r.reps = *reps;
+            r.increment_lb = *increment_lb;
+            r.deload_after_fails = *deload_after_fails;
+            r.deload_factor = *deload_factor;
+        }
+        P::Double {
+            sets,
+            rep_low,
+            rep_high,
+            increment_lb,
+            rep_step,
+        } => {
+            r.sets = sets.unwrap_or(0);
+            r.rep_low = *rep_low;
+            r.rep_high = *rep_high;
+            r.increment_lb = *increment_lb;
+            r.rep_step = *rep_step;
+        }
+        P::Cycle { steps } => r.cycle_steps = steps.len() as i32,
+        P::Formula(f) => r.note = f.note.clone(),
+    }
+    r
+}
+
+/// The numbers two programs differ in, outside what is said elsewhere
+/// (exercises, workouts, progressions, schemes, the name and notes): each
+/// by its path. At most 20.
+fn number_changes(before: &Program, after: &Program) -> Vec<NumberChange> {
+    fn walk(path: &str, a: &serde_json::Value, b: &serde_json::Value, out: &mut Vec<NumberChange>) {
+        use serde_json::Value as V;
+        match (a, b) {
+            (V::Object(x), V::Object(y)) => {
+                for (k, bv) in y {
+                    let at = if path.is_empty() {
+                        k.clone()
+                    } else {
+                        format!("{path}.{k}")
+                    };
+                    if let Some(av) = x.get(k) {
+                        walk(&at, av, bv, out);
+                    }
+                }
+            }
+            (V::Array(x), V::Array(y)) if x.len() == y.len() => {
+                for (i, (av, bv)) in x.iter().zip(y).enumerate() {
+                    walk(&format!("{path}[{i}]"), av, bv, out);
+                }
+            }
+            (V::Number(x), V::Number(y)) if x != y => out.push(NumberChange {
+                path: path.to_string(),
+                before: x.as_f64().unwrap_or(0.0),
+                after: y.as_f64().unwrap_or(0.0),
+            }),
+            (V::Bool(x), V::Bool(y)) if x != y => out.push(NumberChange {
+                path: path.to_string(),
+                before: f64::from(u8::from(*x)),
+                after: f64::from(u8::from(*y)),
+            }),
+            _ => {}
+        }
+    }
+    let strip = |p: &Program| {
+        let mut v = serde_json::to_value(p).expect("a program serialises");
+        if let serde_json::Value::Object(map) = &mut v {
+            for k in [
+                "exercises",
+                "workouts",
+                "progressions",
+                "schemes",
+                "name",
+                "notes",
+            ] {
+                map.remove(k);
+            }
+        }
+        v
+    };
+    let mut out = Vec::new();
+    walk("", &strip(before), &strip(after), &mut out);
+    out.truncate(20);
+    out
 }

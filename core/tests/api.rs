@@ -4569,6 +4569,67 @@ mod suggestions {
         );
     }
 
+    /// The whole change laid out: the lift whose rule moves (before and
+    /// after as numbers), its next sessions with the change, a new workout
+    /// in the week, and a plain number that changes.
+    #[test]
+    fn a_suggestion_explains_the_whole_change() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        import_session(&mut app, "squat", 200.0, 5, &[5, 5, 5], NOW - 2 * DAY);
+        let edits = json!([
+            { "set": "progressions.lp", "value": {
+                "kind": "linear", "sets": 3, "reps": 5, "increment_lb": 5.0,
+                "deload_after_fails": 3, "deload_factor": 0.9 } },
+            { "set": "exercises[squat].progression", "value": "lp" },
+            { "set": "workouts[sam_arms]", "value": {
+                "name": "Sam's arms", "exercises": ["barbell_curl", "skull_crusher"] } },
+            { "set": "transition_seconds", "value": 45 }
+        ]);
+        let id = suggest(&mut app, edits, "Linear squat").unwrap();
+        let shown = app
+            .view()
+            .explain_suggestion(ExplainSuggestionRequest { suggestion_id: id })
+            .unwrap();
+        let squat = shown.lifts.iter().find(|l| l.exercise == "squat").unwrap();
+        assert_eq!(squat.after.as_ref().unwrap().kind, "linear");
+        assert_eq!(squat.after.as_ref().unwrap().increment_lb, 5.0);
+        assert_ne!(squat.before.as_ref().unwrap().kind, "linear");
+        assert!(
+            shown
+                .lifts
+                .iter()
+                .all(|l| l.exercise == "squat" || l.before.is_none()),
+            "only squat's rule changes: {:?}",
+            shown.lifts
+        );
+        let forecast = shown
+            .forecasts
+            .iter()
+            .find(|f| f.exercise == "squat")
+            .unwrap();
+        assert!(forecast.now.is_some(), "squat has a plan now");
+        assert!(!forecast.next.is_empty());
+        assert!(
+            forecast.next.windows(2).all(|w| w[1].weight >= w[0].weight),
+            "every rep hit: it climbs"
+        );
+        assert!(shown.rotation_after.contains(&"Sam's arms".to_string()));
+        assert!(!shown.rotation_before.contains(&"Sam's arms".to_string()));
+        assert!(shown
+            .workouts
+            .iter()
+            .any(|w| w.verb == ChangeVerb::Add as i32 && w.name == "Sam's arms"));
+        assert!(
+            shown
+                .numbers
+                .iter()
+                .any(|n| n.path == "transition_seconds" && n.after == 45.0),
+            "{:?}",
+            shown.numbers
+        );
+    }
+
     /// Nobody is asked about a change that can't be made; one that stopped
     /// applying since says why, and accepting it records nothing.
     #[test]

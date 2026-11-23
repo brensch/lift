@@ -1,15 +1,17 @@
-/// A change someone suggested, laid out to decide on: who and why, what it
-/// changes in plain words, a workout's plan as it would start today, then
-/// add it or not. Home's Suggested row and the Program screen open it.
+/// A suggestion laid out to decide on, as one change to the program: who
+/// and why, the week before and after, how each lift's progression moves,
+/// those lifts' next sessions with it, and the other numbers it changes;
+/// then use it or not. Home's pending row and the Program screen open it.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/copy.dart';
+import '../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../gen/workout/v1/workout.pb.dart';
-import '../logic/exercises.dart';
 import '../logic/plan_text.dart';
+import '../logic/weight_units.dart';
 import '../providers/settings_provider.dart';
 import '../providers/workout_provider.dart';
 import '../services/toast.dart';
@@ -26,25 +28,58 @@ Future<void> showSuggestionSheet(BuildContext context, Suggestion suggestion) {
   );
 }
 
-/// One change in words: "Adds the workout Push", "Sets volume".
-String changeText(SuggestedChange c) {
-  final t = copy.suggestions;
-  final verb = switch (c.verb) {
-    ChangeVerb.CHANGE_VERB_ADD => t.verbAdd,
-    ChangeVerb.CHANGE_VERB_CHANGE => t.verbChange,
-    ChangeVerb.CHANGE_VERB_REMOVE => t.verbRemove,
-    _ => t.verbSet,
+/// A progression in a sentence: "5 reps a set; hit them all and it adds
+/// 5 lb", then its deload and its scheme when it has them.
+String ruleText(RuleSummary r, WeightUnit unit) {
+  final c = copy.suggestions;
+  final step = r.incrementLb > 0
+      ? formatWeight(r.incrementLb, unit, includeUnit: true)
+      : c.ruleStepDefault;
+  final main = switch (r.kind) {
+    'fixed' =>
+      c.ruleFixed
+          .replaceAll('{sets}', '${r.sets}')
+          .replaceAll('{reps}', '${r.reps}')
+          .replaceAll(
+            '{weight}',
+            formatWeight(r.weightLb, unit, includeUnit: true),
+          ),
+    'linear' =>
+      c.ruleLinear.replaceAll('{reps}', '${r.reps}').replaceAll('{step}', step),
+    'double' =>
+      c.ruleDouble
+          .replaceAll('{low}', '${r.repLow}')
+          .replaceAll('{high}', '${r.repHigh}')
+          .replaceAll('{step}', step),
+    'cycle' => c.ruleCycle.replaceAll('{n}', '${r.cycleSteps}'),
+    'formula' => r.note.isNotEmpty ? r.note : c.ruleFormula,
+    _ => c.ruleEstimatedMax,
   };
-  final subject = switch (c.subject) {
-    ChangeSubject.CHANGE_SUBJECT_WORKOUT => t.subjectWorkout,
-    ChangeSubject.CHANGE_SUBJECT_EXERCISE => t.subjectExercise,
-    ChangeSubject.CHANGE_SUBJECT_SCHEME => t.subjectScheme,
-    ChangeSubject.CHANGE_SUBJECT_PROGRESSION => t.subjectProgression,
-    ChangeSubject.CHANGE_SUBJECT_CLASS => t.subjectClass,
-    _ => '',
-  };
-  return [verb, subject, c.name].where((w) => w.isNotEmpty).join(' ');
+  return [
+    main,
+    if (r.kind == 'linear' && r.deloadAfterFails > 0)
+      c.ruleDeload
+          .replaceAll('{n}', '${r.deloadAfterFails}')
+          .replaceAll('{pct}', '${(r.deloadFactor * 100).round()}'),
+    if (r.scheme.isNotEmpty && r.scheme != 'straight')
+      c.ruleScheme.replaceAll('{scheme}', _words(r.scheme)),
+  ].join('. ');
 }
+
+/// A key or path as words: "classes.heavy.rest_seconds" → "Heavy rest
+/// seconds".
+String _words(String key) {
+  final parts = key
+      .replaceAll(RegExp(r'\[\d+\]'), '')
+      .split('.')
+      .where((p) => p != 'classes' && p.isNotEmpty)
+      .map((p) => p.replaceAll('_', ' '));
+  final text = parts.join(' ');
+  return text.isEmpty ? key : text[0].toUpperCase() + text.substring(1);
+}
+
+String _number(double v) =>
+    v == v.roundToDouble() ? '${v.round()}' : v.toStringAsFixed(2);
 
 class SuggestionSheet extends StatefulWidget {
   final Suggestion suggestion;
@@ -56,18 +91,18 @@ class SuggestionSheet extends StatefulWidget {
 }
 
 class _SuggestionSheetState extends State<SuggestionSheet> {
-  TemplatePlan? _plan;
+  ExplainSuggestionResponse? _shown;
   bool _busy = false;
 
   @override
   void initState() {
     super.initState();
-    final exercises = widget.suggestion.exercises;
-    if (exercises.isNotEmpty) {
-      context.read<WorkoutProvider>().planTemplate(exercises).then((plan) {
-        if (mounted) setState(() => _plan = plan);
-      });
-    }
+    context
+        .read<WorkoutProvider>()
+        .explainSuggestion(widget.suggestion.id)
+        .then((shown) {
+          if (mounted) setState(() => _shown = shown);
+        });
   }
 
   Future<void> _answer(bool accept) async {
@@ -98,6 +133,32 @@ class _SuggestionSheetState extends State<SuggestionSheet> {
     final unit = context.watch<SettingsProvider>().weightUnit;
     final waiting = s.status == SuggestionStatus.SUGGESTION_STATUS_UNSPECIFIED;
     final fits = s.problem.isEmpty;
+    final shown = _shown;
+    final muted = TextStyle(fontSize: t.size.body, color: t.muted);
+    final mono = t.mono(TextStyle(fontSize: t.size.body));
+
+    final week = <Widget>[];
+    if (shown != null) {
+      final before = shown.rotationBefore.join(' · ');
+      final after = shown.rotationAfter.join(' · ');
+      if (before != after) {
+        week.add(FlatRow(label: after, subtitle: before));
+      }
+      for (final w in shown.workouts) {
+        final line = switch (w.verb) {
+          ChangeVerb.CHANGE_VERB_ADD => c.workoutAdded,
+          ChangeVerb.CHANGE_VERB_REMOVE => c.workoutRemoved,
+          _ => c.workoutChanged,
+        };
+        week.add(
+          FlatRow(
+            label: line.replaceAll('{name}', w.name),
+            subtitle: w.exercises.isEmpty ? null : w.exercises.join(', '),
+          ),
+        );
+      }
+    }
+
     return SafeArea(
       top: false,
       child: SingleChildScrollView(
@@ -120,7 +181,7 @@ class _SuggestionSheetState extends State<SuggestionSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 c.from.replaceAll('{name}', s.fromName),
-                style: TextStyle(fontSize: t.size.body, color: t.muted),
+                style: muted,
               ),
             ),
             if (s.note.isNotEmpty)
@@ -128,25 +189,65 @@ class _SuggestionSheetState extends State<SuggestionSheet> {
                 padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
                 child: Text(s.note, style: TextStyle(fontSize: t.size.body)),
               ),
-            const SizedBox(height: 12),
-            FlatHeading(c.changesHeading),
-            for (final change in s.changes) FlatRow(label: changeText(change)),
-            // A workout: its lifts as they'd start today.
-            for (final p in _plan?.plans ?? const <ExercisePlan>[])
-              if (p.hasDecision())
+            const SizedBox(height: 8),
+            if (shown == null && fits)
+              const Padding(
+                padding: EdgeInsets.all(24),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            if (week.isNotEmpty) ...[FlatHeading(c.weekHeading), ...week],
+            if (shown != null && shown.lifts.isNotEmpty) ...[
+              FlatHeading(c.liftsHeading),
+              for (final l in shown.lifts)
                 FlatRow(
-                  label: exerciseName(p.decision.exercise),
+                  label: l.name,
+                  subtitle: [
+                    ruleText(l.after, unit),
+                    if (l.hasBefore())
+                      c.ruleWas.replaceAll('{rule}', ruleText(l.before, unit))
+                    else
+                      c.ruleNewLift,
+                  ].join('\n'),
+                ),
+            ],
+            if (shown != null && shown.forecasts.isNotEmpty) ...[
+              FlatHeading(c.nextHeading),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+                child: Text(c.nextNote, style: muted),
+              ),
+              for (final f in shown.forecasts)
+                FlatRow(
+                  label: f.name,
+                  subtitle: f.hasNow()
+                      ? c.nextNow.replaceAll('{plan}', planLine(f.now, unit))
+                      : null,
                   trailing: Text(
-                    planLine(p.decision, unit),
-                    style: t.mono(TextStyle(fontSize: t.size.body)),
+                    f.next.map((d) => planLine(d, unit)).join('\n'),
+                    textAlign: TextAlign.end,
+                    style: mono,
                   ),
                 ),
+            ],
+            if (shown != null && shown.numbers.isNotEmpty) ...[
+              FlatHeading(c.alsoHeading),
+              for (final n in shown.numbers)
+                FlatRow(
+                  label: _words(n.path),
+                  trailing: Text(
+                    c.numberLine
+                        .replaceAll('{before}', _number(n.before))
+                        .replaceAll('{after}', _number(n.after)),
+                    style: mono,
+                  ),
+                ),
+            ],
             if (waiting && !fits)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                 child: Text(
                   c.noLongerFits.replaceAll('{problem}', s.problem),
-                  style: TextStyle(fontSize: t.size.body, color: t.muted),
+                  style: muted,
                 ),
               ),
             if (waiting)
@@ -160,11 +261,7 @@ class _SuggestionSheetState extends State<SuggestionSheet> {
                         height: 52,
                         child: FilledButton(
                           onPressed: _busy ? null : () => _answer(true),
-                          child: Text(
-                            s.kind == 'workout'
-                                ? c.acceptWorkout
-                                : c.acceptProgram,
-                          ),
+                          child: Text(c.accept),
                         ),
                       ),
                     TextButton(
@@ -181,7 +278,7 @@ class _SuggestionSheetState extends State<SuggestionSheet> {
                   s.status == SuggestionStatus.SUGGESTION_STATUS_ACCEPTED
                       ? c.accepted
                       : c.declined,
-                  style: TextStyle(fontSize: t.size.body, color: t.muted),
+                  style: muted,
                 ),
               ),
           ],

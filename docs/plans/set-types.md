@@ -275,14 +275,24 @@ rest is the strings.
 
 No inbox; the existing places:
 
-- **Home:** a **Suggested** row after Reserves, the same tiles as the
-  rotation, each with the suggester's emoji. Tapping one opens the plan
-  preview, with their note on top and *Add to rotation*, *Add to reserves*
-  and *No thanks*.
-- **Settings → Program:** **Suggested changes** above Earlier programs,
-  one row each: "Sam suggests: 5/3/1 for bench", the date and their note.
-  It opens the document screen, which lists the changes in words (from the
-  edits) with *Accept* and *Decline*.
+- **Home:** a **Pending suggestion** row after Reserves, one chip per
+  suggestion ("Push power · Sam"). Every suggestion is one whole change to
+  the program, whether it adds a workout or rewrites the progressions, so
+  it is decided whole.
+- **The popup** (`ExplainSuggestion`, laid out by the core, said in
+  `copy.yaml`): who and their note, then
+  - *Your week*: the rotation after, the one now under it, and each
+    workout added, changed or gone with its lifts;
+  - *How your lifts move*: each trained lift whose progression or scheme
+    changes, in a sentence ("5 reps a set; hit them all and it adds 5 lb"),
+    with "Was: …" under it, or "New to you";
+  - *Your next sessions*: those lifts' next three plans with the change
+    (the simulator, every rep hit, from your history), with today's plan
+    beside them;
+  - *Also*: any other number it changes, before → after;
+  - *Use this program* and *No thanks*.
+- **Settings → Program:** **Pending suggestions** above Earlier programs,
+  one row each with who and their note; it opens the same popup.
 - **The menu button's badge** counts pending suggestions beside the session
   count it shows now.
 - **History:** Earlier programs already say who set each one; an accepted

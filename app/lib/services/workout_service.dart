@@ -142,6 +142,12 @@ class WorkoutServiceWrapper {
       _call('GetProgram', GetProgramRequest(), GetProgramResponse.fromBuffer);
 
   /// Changes others suggested: waiting first, then the answered.
+  Future<ExplainSuggestionResponse> explainSuggestion(String id) => _call(
+    'ExplainSuggestion',
+    ExplainSuggestionRequest(suggestionId: id),
+    ExplainSuggestionResponse.fromBuffer,
+  );
+
   Future<GetSuggestionsResponse> getSuggestions() => _call(
     'GetSuggestions',
     GetSuggestionsRequest(),

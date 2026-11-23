@@ -2933,6 +2933,214 @@ final $typed_data.Uint8List suggestionDescriptor = $convert.base64Decode(
     'syGy53b3Jrb3V0LnYxLlN1Z2dlc3RlZENoYW5nZVIHY2hhbmdlcxIYCgdwcm9ibGVtGAsgASgJ'
     'Ugdwcm9ibGVtEhwKCWV4ZXJjaXNlcxgMIAMoCVIJZXhlcmNpc2Vz');
 
+@$core.Deprecated('Use explainSuggestionRequestDescriptor instead')
+const ExplainSuggestionRequest$json = {
+  '1': 'ExplainSuggestionRequest',
+  '2': [
+    {'1': 'suggestion_id', '3': 1, '4': 1, '5': 9, '10': 'suggestionId'},
+  ],
+};
+
+/// Descriptor for `ExplainSuggestionRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List explainSuggestionRequestDescriptor =
+    $convert.base64Decode(
+        'ChhFeHBsYWluU3VnZ2VzdGlvblJlcXVlc3QSIwoNc3VnZ2VzdGlvbl9pZBgBIAEoCVIMc3VnZ2'
+        'VzdGlvbklk');
+
+@$core.Deprecated('Use explainSuggestionResponseDescriptor instead')
+const ExplainSuggestionResponse$json = {
+  '1': 'ExplainSuggestionResponse',
+  '2': [
+    {
+      '1': 'suggestion',
+      '3': 1,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.Suggestion',
+      '10': 'suggestion'
+    },
+    {'1': 'rotation_before', '3': 2, '4': 3, '5': 9, '10': 'rotationBefore'},
+    {'1': 'rotation_after', '3': 3, '4': 3, '5': 9, '10': 'rotationAfter'},
+    {
+      '1': 'workouts',
+      '3': 4,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.WorkoutChange',
+      '10': 'workouts'
+    },
+    {
+      '1': 'lifts',
+      '3': 5,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.LiftRuleChange',
+      '10': 'lifts'
+    },
+    {
+      '1': 'forecasts',
+      '3': 6,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.LiftForecast',
+      '10': 'forecasts'
+    },
+    {
+      '1': 'numbers',
+      '3': 7,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.NumberChange',
+      '10': 'numbers'
+    },
+  ],
+};
+
+/// Descriptor for `ExplainSuggestionResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List explainSuggestionResponseDescriptor = $convert.base64Decode(
+    'ChlFeHBsYWluU3VnZ2VzdGlvblJlc3BvbnNlEjYKCnN1Z2dlc3Rpb24YASABKAsyFi53b3Jrb3'
+    'V0LnYxLlN1Z2dlc3Rpb25SCnN1Z2dlc3Rpb24SJwoPcm90YXRpb25fYmVmb3JlGAIgAygJUg5y'
+    'b3RhdGlvbkJlZm9yZRIlCg5yb3RhdGlvbl9hZnRlchgDIAMoCVINcm90YXRpb25BZnRlchI1Cg'
+    'h3b3Jrb3V0cxgEIAMoCzIZLndvcmtvdXQudjEuV29ya291dENoYW5nZVIId29ya291dHMSMAoF'
+    'bGlmdHMYBSADKAsyGi53b3Jrb3V0LnYxLkxpZnRSdWxlQ2hhbmdlUgVsaWZ0cxI2Cglmb3JlY2'
+    'FzdHMYBiADKAsyGC53b3Jrb3V0LnYxLkxpZnRGb3JlY2FzdFIJZm9yZWNhc3RzEjIKB251bWJl'
+    'cnMYByADKAsyGC53b3Jrb3V0LnYxLk51bWJlckNoYW5nZVIHbnVtYmVycw==');
+
+@$core.Deprecated('Use workoutChangeDescriptor instead')
+const WorkoutChange$json = {
+  '1': 'WorkoutChange',
+  '2': [
+    {
+      '1': 'verb',
+      '3': 1,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.ChangeVerb',
+      '10': 'verb'
+    },
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {'1': 'exercises', '3': 3, '4': 3, '5': 9, '10': 'exercises'},
+  ],
+};
+
+/// Descriptor for `WorkoutChange`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List workoutChangeDescriptor = $convert.base64Decode(
+    'Cg1Xb3Jrb3V0Q2hhbmdlEioKBHZlcmIYASABKA4yFi53b3Jrb3V0LnYxLkNoYW5nZVZlcmJSBH'
+    'ZlcmISEgoEbmFtZRgCIAEoCVIEbmFtZRIcCglleGVyY2lzZXMYAyADKAlSCWV4ZXJjaXNlcw==');
+
+@$core.Deprecated('Use ruleSummaryDescriptor instead')
+const RuleSummary$json = {
+  '1': 'RuleSummary',
+  '2': [
+    {'1': 'kind', '3': 1, '4': 1, '5': 9, '10': 'kind'},
+    {'1': 'sets', '3': 2, '4': 1, '5': 5, '10': 'sets'},
+    {'1': 'reps', '3': 3, '4': 1, '5': 5, '10': 'reps'},
+    {'1': 'rep_low', '3': 4, '4': 1, '5': 5, '10': 'repLow'},
+    {'1': 'rep_high', '3': 5, '4': 1, '5': 5, '10': 'repHigh'},
+    {'1': 'increment_lb', '3': 6, '4': 1, '5': 2, '10': 'incrementLb'},
+    {
+      '1': 'deload_after_fails',
+      '3': 7,
+      '4': 1,
+      '5': 5,
+      '10': 'deloadAfterFails'
+    },
+    {'1': 'deload_factor', '3': 8, '4': 1, '5': 2, '10': 'deloadFactor'},
+    {'1': 'rep_step', '3': 9, '4': 1, '5': 5, '10': 'repStep'},
+    {'1': 'weight_lb', '3': 10, '4': 1, '5': 2, '10': 'weightLb'},
+    {'1': 'cycle_steps', '3': 11, '4': 1, '5': 5, '10': 'cycleSteps'},
+    {'1': 'note', '3': 12, '4': 1, '5': 9, '10': 'note'},
+    {'1': 'scheme', '3': 13, '4': 1, '5': 9, '10': 'scheme'},
+  ],
+};
+
+/// Descriptor for `RuleSummary`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List ruleSummaryDescriptor = $convert.base64Decode(
+    'CgtSdWxlU3VtbWFyeRISCgRraW5kGAEgASgJUgRraW5kEhIKBHNldHMYAiABKAVSBHNldHMSEg'
+    'oEcmVwcxgDIAEoBVIEcmVwcxIXCgdyZXBfbG93GAQgASgFUgZyZXBMb3cSGQoIcmVwX2hpZ2gY'
+    'BSABKAVSB3JlcEhpZ2gSIQoMaW5jcmVtZW50X2xiGAYgASgCUgtpbmNyZW1lbnRMYhIsChJkZW'
+    'xvYWRfYWZ0ZXJfZmFpbHMYByABKAVSEGRlbG9hZEFmdGVyRmFpbHMSIwoNZGVsb2FkX2ZhY3Rv'
+    'chgIIAEoAlIMZGVsb2FkRmFjdG9yEhkKCHJlcF9zdGVwGAkgASgFUgdyZXBTdGVwEhsKCXdlaW'
+    'dodF9sYhgKIAEoAlIId2VpZ2h0TGISHwoLY3ljbGVfc3RlcHMYCyABKAVSCmN5Y2xlU3RlcHMS'
+    'EgoEbm90ZRgMIAEoCVIEbm90ZRIWCgZzY2hlbWUYDSABKAlSBnNjaGVtZQ==');
+
+@$core.Deprecated('Use liftRuleChangeDescriptor instead')
+const LiftRuleChange$json = {
+  '1': 'LiftRuleChange',
+  '2': [
+    {'1': 'exercise', '3': 1, '4': 1, '5': 9, '10': 'exercise'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {
+      '1': 'before',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.RuleSummary',
+      '10': 'before'
+    },
+    {
+      '1': 'after',
+      '3': 4,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.RuleSummary',
+      '10': 'after'
+    },
+  ],
+};
+
+/// Descriptor for `LiftRuleChange`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List liftRuleChangeDescriptor = $convert.base64Decode(
+    'Cg5MaWZ0UnVsZUNoYW5nZRIaCghleGVyY2lzZRgBIAEoCVIIZXhlcmNpc2USEgoEbmFtZRgCIA'
+    'EoCVIEbmFtZRIvCgZiZWZvcmUYAyABKAsyFy53b3Jrb3V0LnYxLlJ1bGVTdW1tYXJ5UgZiZWZv'
+    'cmUSLQoFYWZ0ZXIYBCABKAsyFy53b3Jrb3V0LnYxLlJ1bGVTdW1tYXJ5UgVhZnRlcg==');
+
+@$core.Deprecated('Use liftForecastDescriptor instead')
+const LiftForecast$json = {
+  '1': 'LiftForecast',
+  '2': [
+    {'1': 'exercise', '3': 1, '4': 1, '5': 9, '10': 'exercise'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '10': 'name'},
+    {
+      '1': 'now',
+      '3': 3,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.ExerciseDecision',
+      '10': 'now'
+    },
+    {
+      '1': 'next',
+      '3': 4,
+      '4': 3,
+      '5': 11,
+      '6': '.workout.v1.ExerciseDecision',
+      '10': 'next'
+    },
+  ],
+};
+
+/// Descriptor for `LiftForecast`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List liftForecastDescriptor = $convert.base64Decode(
+    'CgxMaWZ0Rm9yZWNhc3QSGgoIZXhlcmNpc2UYASABKAlSCGV4ZXJjaXNlEhIKBG5hbWUYAiABKA'
+    'lSBG5hbWUSLgoDbm93GAMgASgLMhwud29ya291dC52MS5FeGVyY2lzZURlY2lzaW9uUgNub3cS'
+    'MAoEbmV4dBgEIAMoCzIcLndvcmtvdXQudjEuRXhlcmNpc2VEZWNpc2lvblIEbmV4dA==');
+
+@$core.Deprecated('Use numberChangeDescriptor instead')
+const NumberChange$json = {
+  '1': 'NumberChange',
+  '2': [
+    {'1': 'path', '3': 1, '4': 1, '5': 9, '10': 'path'},
+    {'1': 'before', '3': 2, '4': 1, '5': 1, '10': 'before'},
+    {'1': 'after', '3': 3, '4': 1, '5': 1, '10': 'after'},
+  ],
+};
+
+/// Descriptor for `NumberChange`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List numberChangeDescriptor = $convert.base64Decode(
+    'CgxOdW1iZXJDaGFuZ2USEgoEcGF0aBgBIAEoCVIEcGF0aBIWCgZiZWZvcmUYAiABKAFSBmJlZm'
+    '9yZRIUCgVhZnRlchgDIAEoAVIFYWZ0ZXI=');
+
 @$core.Deprecated('Use getSuggestionsRequestDescriptor instead')
 const GetSuggestionsRequest$json = {
   '1': 'GetSuggestionsRequest',
