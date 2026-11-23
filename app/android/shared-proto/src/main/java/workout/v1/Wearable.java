@@ -425,7 +425,7 @@ public final class Wearable {
 
   /**
    * <pre>
-   * How a set went, in three words: what the banner and the watch ask.
+   * How a set went: what the banner and the watch ask.
    * </pre>
    *
    * Protobuf enum {@code workout.v1.QuickAnswer}
@@ -454,12 +454,13 @@ public final class Wearable {
     QUICK_ANSWER_HARD(2),
     /**
      * <pre>
-     * Couldn't finish the reps: recorded as a miss.
+     * A rep off the set, a tap on its circle: its label is the reps logged,
+     * and it stays to be tapped again.
      * </pre>
      *
-     * <code>QUICK_ANSWER_FAIL = 3;</code>
+     * <code>QUICK_ANSWER_ONE_LESS = 3;</code>
      */
-    QUICK_ANSWER_FAIL(3),
+    QUICK_ANSWER_ONE_LESS(3),
     UNRECOGNIZED(-1),
     ;
 
@@ -485,12 +486,13 @@ public final class Wearable {
     public static final int QUICK_ANSWER_HARD_VALUE = 2;
     /**
      * <pre>
-     * Couldn't finish the reps: recorded as a miss.
+     * A rep off the set, a tap on its circle: its label is the reps logged,
+     * and it stays to be tapped again.
      * </pre>
      *
-     * <code>QUICK_ANSWER_FAIL = 3;</code>
+     * <code>QUICK_ANSWER_ONE_LESS = 3;</code>
      */
-    public static final int QUICK_ANSWER_FAIL_VALUE = 3;
+    public static final int QUICK_ANSWER_ONE_LESS_VALUE = 3;
 
 
     @java.lang.Override
@@ -517,7 +519,7 @@ public final class Wearable {
         case 0: return QUICK_ANSWER_UNSPECIFIED;
         case 1: return QUICK_ANSWER_EASY;
         case 2: return QUICK_ANSWER_HARD;
-        case 3: return QUICK_ANSWER_FAIL;
+        case 3: return QUICK_ANSWER_ONE_LESS;
         default: return null;
       }
     }
@@ -9365,7 +9367,7 @@ public final class Wearable {
 
     /**
      * <pre>
-     * "Easy"
+     * "Easy", or the reps for one less
      * </pre>
      *
      * <code>string label = 2 [json_name = "label"];</code>
@@ -9374,7 +9376,7 @@ public final class Wearable {
     java.lang.String getLabel();
     /**
      * <pre>
-     * "Easy"
+     * "Easy", or the reps for one less
      * </pre>
      *
      * <code>string label = 2 [json_name = "label"];</code>
@@ -9440,7 +9442,7 @@ public final class Wearable {
     private java.lang.String label_;
     /**
      * <pre>
-     * "Easy"
+     * "Easy", or the reps for one less
      * </pre>
      *
      * <code>string label = 2 [json_name = "label"];</code>
@@ -9452,7 +9454,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * "Easy"
+     * "Easy", or the reps for one less
      * </pre>
      *
      * <code>string label = 2 [json_name = "label"];</code>
@@ -9465,7 +9467,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * "Easy"
+     * "Easy", or the reps for one less
      * </pre>
      *
      * <code>string label = 2 [json_name = "label"];</code>
@@ -9479,7 +9481,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * "Easy"
+     * "Easy", or the reps for one less
      * </pre>
      *
      * <code>string label = 2 [json_name = "label"];</code>
@@ -9490,7 +9492,7 @@ public final class Wearable {
     }
     /**
      * <pre>
-     * "Easy"
+     * "Easy", or the reps for one less
      * </pre>
      *
      * <code>string label = 2 [json_name = "label"];</code>
@@ -9646,7 +9648,7 @@ public final class Wearable {
 
       /**
        * <pre>
-       * "Easy"
+       * "Easy", or the reps for one less
        * </pre>
        *
        * <code>string label = 2 [json_name = "label"];</code>
@@ -9658,7 +9660,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * "Easy"
+       * "Easy", or the reps for one less
        * </pre>
        *
        * <code>string label = 2 [json_name = "label"];</code>
@@ -9671,7 +9673,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * "Easy"
+       * "Easy", or the reps for one less
        * </pre>
        *
        * <code>string label = 2 [json_name = "label"];</code>
@@ -9686,7 +9688,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * "Easy"
+       * "Easy", or the reps for one less
        * </pre>
        *
        * <code>string label = 2 [json_name = "label"];</code>
@@ -9699,7 +9701,7 @@ public final class Wearable {
       }
       /**
        * <pre>
-       * "Easy"
+       * "Easy", or the reps for one less
        * </pre>
        *
        * <code>string label = 2 [json_name = "label"];</code>

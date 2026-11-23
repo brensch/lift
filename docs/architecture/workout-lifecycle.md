@@ -495,9 +495,9 @@ A rung done with every rep (not the sixth) asks how it went:
 `GetWorkoutResponse.rung_question_set_id` names it while the question is
 open (it is the latest done set, unanswered, nothing pending for its lift
 but the rung it appended, nothing being lifted). The phone asks in the
-banner, in place of weight × reps (`QuickQuestion`: Easy, Hard, Fail), and
-the watch shows the same three as buttons (`WearQuestion`, answered with
-`AnswerQuestionIntent`); there is no dialog. The phone turns the word into
+banner, in place of weight × reps (`QuickQuestion`: Easy, Hard, and the
+set's own circle), and the watch shows the same as buttons (`WearQuestion`,
+answered with `AnswerQuestionIntent`); there is no dialog. The phone turns the word into
 the core's answer (`WorkoutProvider.answerQuick`):
 
 - Easy → `AnswerRung` 5+ (kept on the done set as `reps_left`, a reserve of
@@ -507,13 +507,16 @@ the core's answer (`WorkoutProvider.answerQuick`):
 - Hard → `AnswerRung` 0–1 (a reserve of 0.5): the ramp ends there, the
   working sets from `shown_max(weight, 5, 0.5)`, as a miss's,
   `CALIBRATION_SETTLED`;
-- Fail → the set edited a rep short: a miss, which settles or steps down
-  as any miss does;
+- the circle (`QUICK_ANSWER_ONE_LESS`) → a rep off per tap, as a done
+  circle's tap: a miss, which settles or steps down as any miss does. The
+  miss closes the question, but the circle stays in the banner
+  (`WorkoutProvider.askingSetId`), alone, for the next tap, until the next
+  set starts or another is done; it stops at zero;
 - no answer (the next set done) → the usual rung stands.
 
 The same question follows a lift's last set with an effort target
 (`effort_question_set_id`, done in full): Easy and Hard record
-`EffortAnswered` 5+ and 0–1, Fail the set a rep short. The core still reads
+`EffortAnswered` 5+ and 0–1, the circle a rep off per tap. The core still reads
 2–4 and `AnswerRung.jump_lb` (a specific jump) from accounts that recorded
 them; the app no longer sends them.
 

@@ -84,8 +84,9 @@ void main() {
     expect(asking.question.answers.map((a) => a.answer), [
       QuickAnswer.QUICK_ANSWER_EASY,
       QuickAnswer.QUICK_ANSWER_HARD,
-      QuickAnswer.QUICK_ANSWER_FAIL,
+      QuickAnswer.QUICK_ANSWER_ONE_LESS,
     ]);
+    expect(asking.question.answers.last.label, '${first.targetReps}');
 
     await h.provider.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_EASY);
     expect(snapshot().hasQuestion(), isFalse);

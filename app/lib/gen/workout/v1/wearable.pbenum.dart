@@ -99,7 +99,7 @@ class WearCircleState extends $pb.ProtobufEnum {
   const WearCircleState._(super.value, super.name);
 }
 
-/// How a set went, in three words: what the banner and the watch ask.
+/// How a set went: what the banner and the watch ask.
 class QuickAnswer extends $pb.ProtobufEnum {
   static const QuickAnswer QUICK_ANSWER_UNSPECIFIED =
       QuickAnswer._(0, _omitEnumNames ? '' : 'QUICK_ANSWER_UNSPECIFIED');
@@ -112,15 +112,16 @@ class QuickAnswer extends $pb.ProtobufEnum {
   static const QuickAnswer QUICK_ANSWER_HARD =
       QuickAnswer._(2, _omitEnumNames ? '' : 'QUICK_ANSWER_HARD');
 
-  /// Couldn't finish the reps: recorded as a miss.
-  static const QuickAnswer QUICK_ANSWER_FAIL =
-      QuickAnswer._(3, _omitEnumNames ? '' : 'QUICK_ANSWER_FAIL');
+  /// A rep off the set, a tap on its circle: its label is the reps logged,
+  /// and it stays to be tapped again.
+  static const QuickAnswer QUICK_ANSWER_ONE_LESS =
+      QuickAnswer._(3, _omitEnumNames ? '' : 'QUICK_ANSWER_ONE_LESS');
 
   static const $core.List<QuickAnswer> values = <QuickAnswer>[
     QUICK_ANSWER_UNSPECIFIED,
     QUICK_ANSWER_EASY,
     QUICK_ANSWER_HARD,
-    QUICK_ANSWER_FAIL,
+    QUICK_ANSWER_ONE_LESS,
   ];
 
   static final $core.List<QuickAnswer?> _byValue =

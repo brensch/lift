@@ -102,15 +102,15 @@ const QuickAnswer$json = {
     {'1': 'QUICK_ANSWER_UNSPECIFIED', '2': 0},
     {'1': 'QUICK_ANSWER_EASY', '2': 1},
     {'1': 'QUICK_ANSWER_HARD', '2': 2},
-    {'1': 'QUICK_ANSWER_FAIL', '2': 3},
+    {'1': 'QUICK_ANSWER_ONE_LESS', '2': 3},
   ],
 };
 
 /// Descriptor for `QuickAnswer`. Decode as a `google.protobuf.EnumDescriptorProto`.
 final $typed_data.Uint8List quickAnswerDescriptor = $convert.base64Decode(
     'CgtRdWlja0Fuc3dlchIcChhRVUlDS19BTlNXRVJfVU5TUEVDSUZJRUQQABIVChFRVUlDS19BTl'
-    'NXRVJfRUFTWRABEhUKEVFVSUNLX0FOU1dFUl9IQVJEEAISFQoRUVVJQ0tfQU5TV0VSX0ZBSUwQ'
-    'Aw==');
+    'NXRVJfRUFTWRABEhUKEVFVSUNLX0FOU1dFUl9IQVJEEAISGQoVUVVJQ0tfQU5TV0VSX09ORV9M'
+    'RVNTEAM=');
 
 @$core.Deprecated('Use wearStatusCardDescriptor instead')
 const WearStatusCard$json = {

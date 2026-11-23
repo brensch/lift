@@ -664,11 +664,10 @@ class Scenario {
   }
 
   /// The answer's button label.
-  static String answerLabel(QuickAnswer answer) => switch (answer) {
-    QuickAnswer.QUICK_ANSWER_EASY => copy.workout.quickEasy,
-    QuickAnswer.QUICK_ANSWER_FAIL => copy.workout.quickFail,
-    _ => copy.workout.quickHard,
-  };
+  static String answerLabel(QuickAnswer answer) =>
+      answer == QuickAnswer.QUICK_ANSWER_EASY
+      ? copy.workout.quickEasy
+      : copy.workout.quickHard;
 
   /// Lift the next set on its circle: tap to start it, tap again when it is
   /// done, then once more per [missed] rep. A calibration rung done in full
