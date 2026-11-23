@@ -76,10 +76,9 @@ class _LoginScreenState extends State<LoginScreen>
     await auth.passkeyRegister(username);
   }
 
+  // No check here: the server's username rule decides, and its error shows.
   void _devLogin() {
-    final username = _devUsernameController.text.trim();
-    if (username.isEmpty) return;
-    context.read<AuthProvider>().testLogin(username);
+    context.read<AuthProvider>().testLogin(_devUsernameController.text.trim());
   }
 
   @override

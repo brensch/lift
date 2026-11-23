@@ -163,6 +163,28 @@ class MultiplayerProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Let a partner suggest workouts to you, or stop them. Null when it
+  /// worked, else why not.
+  Future<String?> setCanSuggest(String userId, bool allowed) async {
+    try {
+      await _service.setCanSuggest(userId, allowed);
+      await loadTrainingPartners();
+      return null;
+    } catch (e) {
+      return cleanErrorMessage(e);
+    }
+  }
+
+  /// Suggest one of your workouts to a partner. Null when sent, else why not.
+  Future<String?> suggestWorkout(String userId, String templateId) async {
+    try {
+      await _service.suggestWorkout(userId, templateId);
+      return null;
+    } catch (e) {
+      return cleanErrorMessage(e);
+    }
+  }
+
   Future<String?> requestJoinPartner(String partnerUserId) async {
     try {
       await _service.requestJoinPartner(partnerUserId);

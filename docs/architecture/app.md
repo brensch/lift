@@ -347,7 +347,7 @@ screens/workout/       workout_screen, section_workout, exercise_section,
 widgets/workout_bar/   workout_bottom_bar, workout_focus
 widgets/heart_rate/    heart_rate_chart, models (zones/viewport — pure),
                        zone_summary, legend
-widgets/dialogs/       end-workout, participant workout, rung question,
+widgets/dialogs/       end-workout, participant workout,
                        template update, weight adjust, workout sheet
 widgets/common/        flat, horizontal_shaker, primary_button,
                        weight_selector — generic, screen-agnostic

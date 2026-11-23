@@ -19,6 +19,8 @@ struct ContentView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.isLuminanceReduced) var isLuminanceReduced
     @EnvironmentObject var connector: PhoneConnector
+    /// The question put away here (skip); the phone closes it at the next set.
+    @State private var skipped = ""
 
     /// When rest ends (or ended), on this watch's clock.
     private var restBoundaryDate: Date? {
@@ -68,12 +70,23 @@ struct ContentView: View {
 
     @ViewBuilder
     private func workoutView(_ snapshot: Workout_V1_WearWorkoutSnapshot, now: Date) -> some View {
-        // One face for every live state, and Done at the end.
-        switch snapshot.state {
-        case .allDone where snapshot.hasCompletionSummary:
-            WorkoutDoneScreen(snapshot: snapshot, now: now)
-        default:
-            FaceScreen(snapshot: snapshot, now: now)
+        // One face for every live state, and Done at the end; a set just done that
+        // asks how it went asks first.
+        if snapshot.hasQuestion, snapshot.question.setID != skipped, !isLuminanceReduced {
+            QuestionScreen(
+                question: snapshot.question,
+                onAnswer: { answer in
+                    connector.sendAnswer(setID: snapshot.question.setID, answer: answer)
+                },
+                onSkip: { skipped = snapshot.question.setID }
+            )
+        } else {
+            switch snapshot.state {
+            case .allDone where snapshot.hasCompletionSummary:
+                WorkoutDoneScreen(snapshot: snapshot, now: now)
+            default:
+                FaceScreen(snapshot: snapshot, now: now)
+            }
         }
     }
 }

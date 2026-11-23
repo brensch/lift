@@ -615,6 +615,9 @@ impl Client {
                 Move::AnswerRung(answer) => {
                     state = self.mutate(Mutation::AnswerRung(answer))?;
                 }
+                Move::AnswerEffort(answer) => {
+                    state = self.mutate(Mutation::AnswerEffort(answer))?;
+                }
                 Move::Lift(begin, done) => {
                     self.mutate(Mutation::StartSet(begin))?;
                     self.push().await?;

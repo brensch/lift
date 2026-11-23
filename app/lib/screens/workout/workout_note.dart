@@ -10,6 +10,7 @@ import '../../gen/copy.dart';
 import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../logic/plan_text.dart';
+import '../../logic/weight_units.dart';
 import '../../logic/session_state.dart';
 import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
@@ -34,8 +35,25 @@ String _hint(WorkoutProvider wp, int nowUnix) {
 /// in hand; '' when there is nothing to say.
 String _liftReason(WorkoutProvider wp, ProposedSet? set, WeightUnit unit) {
   if (set == null) return '';
+  final miss = _afterMiss(wp, set, unit);
+  if (miss.isNotEmpty) return miss;
   final decision = wp.logFor(set.exercise)?.decision;
   return decision == null ? '' : reasonShort(decision, unit);
+}
+
+/// What a missed set changed about [set] (the program's on_miss): its
+/// lighter weight, the longer rest before it, or both; '' when nothing.
+String _afterMiss(WorkoutProvider wp, ProposedSet set, WeightUnit unit) {
+  if (set.missFrom.isEmpty) return '';
+  final rule = wp.proposedSetById(set.missFrom)?.onMiss;
+  if (rule == null) return '';
+  final w = copy.workout;
+  final weight = formatWeight(set.targetWeight, unit, includeUnit: true);
+  final lighter = rule.fraction > 0;
+  final rest = rule.restSeconds > 0;
+  if (lighter && rest) return w.afterMissBoth.replaceAll('{weight}', weight);
+  if (lighter) return w.afterMissLighter.replaceAll('{weight}', weight);
+  return rest ? w.afterMissRest : '';
 }
 
 /// The line for the workout as it stands now; '' when there is nothing to

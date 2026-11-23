@@ -87,6 +87,22 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 8 {
+        let mut tx = pool.begin().await?;
+        v8(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 8")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
+    if version < 9 {
+        let mut tx = pool.begin().await?;
+        v9(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 9")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     Ok(())
 }
 
@@ -512,6 +528,45 @@ async fn v7(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
     Ok(())
 }
 
+/// What assistants say about the MCP tools (`send_feedback`): server-owned
+/// telemetry, read on the admin page to make the tools easier.
+async fn v8(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS assistant_feedback (
+             id INTEGER PRIMARY KEY,
+             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             -- As the client registered it (\"Claude\").
+             client_name TEXT NOT NULL,
+             -- The tool it is about, or ''.
+             tool TEXT NOT NULL DEFAULT '',
+             text TEXT NOT NULL,
+             created_at INTEGER NOT NULL
+         );
+         CREATE INDEX IF NOT EXISTS assistant_feedback_user ON assistant_feedback(user_id, created_at);",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
+/// Who may suggest changes to whose program (docs/plans/set-types.md):
+/// server-owned grants, made to someone the owner has trained with. Either
+/// account going takes the grant with it.
+async fn v9(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS program_editors (
+             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             editor_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             created_at INTEGER NOT NULL,
+             PRIMARY KEY (user_id, editor_id)
+         );
+         CREATE INDEX IF NOT EXISTS program_editors_editor ON program_editors(editor_id);",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::db::ServerDb;
@@ -566,7 +621,7 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-        assert_eq!(version, 7);
+        assert_eq!(version, 9);
         drop(db);
         // Opening again runs nothing.
         ServerDb::new_in_dir(&dir).await.unwrap();

@@ -4,8 +4,8 @@
 use std::collections::HashSet;
 
 use crate::pb::{
-    CompletedSet, ExerciseDecision, ExerciseLog, ProposedSet, WeightChange, WeightChangeCause,
-    Workout, WorkoutHeartRatePoint,
+    CompletedSet, ExerciseDecision, ExerciseLog, ProposedSet, SetRole, WeightChange,
+    WeightChangeCause, Workout, WorkoutHeartRatePoint,
 };
 use crate::program::ProgramRef;
 use crate::weight_units::AppWeightUnit;
@@ -61,6 +61,7 @@ impl WorkoutRecord {
     /// Reassign workout_order to match the vec's current order. Plan-shaping
     /// operations arrange the vec, then call this to make the order canonical.
     pub fn renumber_sets(&mut self) {
+        interleave_groups(&mut self.proposed_sets);
         for (idx, set) in self.proposed_sets.iter_mut().enumerate() {
             set.workout_order = idx as i32;
         }
@@ -119,6 +120,22 @@ impl ProposedSet {
     pub fn is_working(&self) -> bool {
         !self.warmup && !self.calibration
     }
+
+    /// A drop or a mini-set: work, but taken to failure by design, so it
+    /// says nothing about whether the session was hit and counts partly
+    /// toward a muscle's week.
+    pub fn is_partial(&self) -> bool {
+        matches!(
+            SetRole::try_from(self.role),
+            Ok(SetRole::Drop | SetRole::Mini)
+        )
+    }
+
+    /// A working set that isn't partial: what a lift's sets count and its
+    /// session is judged by.
+    pub fn is_main(&self) -> bool {
+        self.is_working() && !self.is_partial()
+    }
 }
 
 /// The proposed sets with a finished completion, by id.
@@ -136,5 +153,67 @@ pub fn workout_time(record: &WorkoutRecord) -> i64 {
         record.workout.end_time
     } else {
         record.workout.start_time
+    }
+}
+
+/// A group's sets in the order they're done: where the group's first set
+/// is, every lift's warmups and ramp first (in the lifts' order), then
+/// round by round, each lift's next main set with the drops and minis that
+/// follow it. Lifts outside a group keep their places. Doing it again
+/// changes nothing, and a workout without groups is untouched.
+pub fn interleave_groups(sets: &mut Vec<ProposedSet>) {
+    let mut groups: Vec<String> = Vec::new();
+    for set in sets.iter() {
+        if !set.group.is_empty() && !groups.contains(&set.group) {
+            groups.push(set.group.clone());
+        }
+    }
+    for group in groups {
+        let Some(first) = sets.iter().position(|s| s.group == group) else {
+            continue;
+        };
+        let mut taken: Vec<ProposedSet> = Vec::new();
+        let mut kept: Vec<ProposedSet> = Vec::with_capacity(sets.len());
+        for set in sets.drain(..) {
+            if set.group == group {
+                taken.push(set);
+            } else {
+                kept.push(set);
+            }
+        }
+        let mut lifts: Vec<String> = Vec::new();
+        for set in &taken {
+            if !lifts.contains(&set.exercise) {
+                lifts.push(set.exercise.clone());
+            }
+        }
+        let mut leads: Vec<ProposedSet> = Vec::new();
+        let mut rounds: Vec<Vec<Vec<ProposedSet>>> = vec![Vec::new(); lifts.len()];
+        for set in taken {
+            let lift = lifts.iter().position(|k| *k == set.exercise).unwrap_or(0);
+            let main = !matches!(
+                SetRole::try_from(set.role),
+                Ok(SetRole::Drop | SetRole::Mini)
+            );
+            if set.warmup || set.calibration {
+                leads.push(set);
+            } else if main || rounds[lift].is_empty() {
+                rounds[lift].push(vec![set]);
+            } else if let Some(round) = rounds[lift].last_mut() {
+                round.push(set);
+            }
+        }
+        let most = rounds.iter().map(Vec::len).max().unwrap_or(0);
+        let mut ordered = leads;
+        for r in 0..most {
+            for lift in &mut rounds {
+                if let Some(round) = lift.get_mut(r) {
+                    ordered.append(round);
+                }
+            }
+        }
+        let at = first.min(kept.len());
+        kept.splice(at..at, ordered);
+        *sets = kept;
     }
 }

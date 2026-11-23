@@ -163,6 +163,7 @@ pub enum Fact {
     SetEdited(SetEdited),
     SetUndone(SetUndone),
     RungAnswered(RungAnswered),
+    EffortAnswered(EffortAnswered),
     WarmupsSkipped(WarmupsSkipped),
     ExercisesAdded(ExercisesAdded),
     ExerciseAdjusted(ExerciseAdjusted),
@@ -173,6 +174,8 @@ pub enum Fact {
     HeartRateRecorded(HeartRateRecorded),
     ProgramSet(ProgramSet),
     ProgramEdited(ProgramEdited),
+    ProgramSuggested(ProgramSuggested),
+    SuggestionAnswered(SuggestionAnswered),
     Onboarded(Onboarded),
     SettingUpdated(SettingUpdated),
     HistoryImported(HistoryImported),
@@ -193,6 +196,7 @@ impl Fact {
         "SetEdited",
         "SetUndone",
         "RungAnswered",
+        "EffortAnswered",
         "WarmupsSkipped",
         "ExercisesAdded",
         "ExerciseAdjusted",
@@ -203,6 +207,8 @@ impl Fact {
         "HeartRateRecorded",
         "ProgramSet",
         "ProgramEdited",
+        "ProgramSuggested",
+        "SuggestionAnswered",
         "Onboarded",
         "SettingUpdated",
         "HistoryImported",
@@ -219,6 +225,7 @@ impl Fact {
             Fact::SetEdited(f) => &f.workout_id,
             Fact::SetUndone(f) => &f.workout_id,
             Fact::RungAnswered(f) => &f.workout_id,
+            Fact::EffortAnswered(f) => &f.workout_id,
             Fact::WarmupsSkipped(f) => &f.workout_id,
             Fact::ExercisesAdded(f) => &f.workout_id,
             Fact::ExerciseAdjusted(f) => &f.workout_id,
@@ -309,6 +316,16 @@ pub struct RungAnswered {
     pub proposed_set_id: String,
     pub reps_left: i32,
     pub jump_lb: f32,
+}
+
+/// The answer to a set's effort target: reps left in the tank
+/// (`crate::pb::RepsLeft`), recorded on the done set.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct EffortAnswered {
+    pub workout_id: String,
+    pub proposed_set_id: String,
+    pub reps_left: i32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
@@ -439,6 +456,38 @@ pub struct ProgramSet {
     /// Their one line on why.
     #[serde(default)]
     pub note: String,
+}
+
+/// A change to the program someone else suggested (a person the account
+/// lets suggest, or an assistant on "ask me first"): the MCP's edits
+/// (`program::edit`), applied to whatever program is current when it is
+/// accepted, so a suggestion made last week lands on today's program.
+/// Recorded by the server in the account it's for; nothing changes until
+/// the person answers. Its id is the event's.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct ProgramSuggested {
+    pub edits: Vec<serde_json::Value>,
+    /// Their one line on why, to the person.
+    pub note: String,
+    /// `workout` (it adds or changes one workout) or `program`.
+    pub kind: String,
+    /// What it's called where it's listed: the workout's name, or the
+    /// program's.
+    pub title: String,
+    /// Who: `person:<user id>` or `mcp:<client>`.
+    pub from: String,
+    /// What to call them, as they were then.
+    pub from_name: String,
+}
+
+/// The person's answer to a suggestion. Accepting it also records the
+/// program it makes (a `ProgramSet` by the suggester), just before this.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct SuggestionAnswered {
+    pub suggestion_id: String,
+    pub accepted: bool,
 }
 
 /// One change to the program's workouts, made in the app (the template

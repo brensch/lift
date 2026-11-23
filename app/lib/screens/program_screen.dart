@@ -15,6 +15,7 @@ import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
+import '../widgets/suggestion_screen.dart';
 import '../widgets/common/flat.dart';
 import '../widgets/dialogs/confirm_dialog.dart';
 import 'program_document_screen.dart';
@@ -111,6 +112,8 @@ class _ProgramScreenState extends State<ProgramScreen> {
   static String _author(String author) {
     final t = copy.program;
     if (author.startsWith('mcp:')) return author.substring(4);
+    // Accepted from someone's suggestion: them, by name.
+    if (author.startsWith('person:')) return author.substring(7);
     return switch (author) {
       'app' => t.authorApp,
       'migration' || 'builtin' || '' => t.authorBuiltin,
@@ -206,6 +209,27 @@ class _ProgramScreenState extends State<ProgramScreen> {
                     onTap: _busy ? null : _reset,
                   ),
                 if (_error != null) _note(context, _error!, error: true),
+                // Waiting suggestions, above what was set before.
+                if (context
+                    .watch<WorkoutProvider>()
+                    .pendingSuggestions
+                    .isNotEmpty) ...[
+                  FlatHeading(copy.suggestions.programHeading),
+                  for (final suggestion
+                      in context.watch<WorkoutProvider>().pendingSuggestions)
+                    FlatRow(
+                      icon: AppIcons.multiplayer,
+                      label: suggestion.title,
+                      subtitle: [
+                        copy.suggestions.from.replaceAll(
+                          '{name}',
+                          suggestion.fromName,
+                        ),
+                        if (suggestion.note.isNotEmpty) suggestion.note,
+                      ].join('\n'),
+                      onTap: () => openSuggestion(context, suggestion),
+                    ),
+                ],
                 FlatHeading(t.historyHeading),
                 if (program.history.isEmpty) _note(context, t.historyEmpty),
                 for (final s in program.history)

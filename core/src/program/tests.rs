@@ -42,7 +42,8 @@ fn an_unknown_field_is_an_error() {
         "{errs:?}"
     );
     assert!(
-        errs.iter().any(|e| e.starts_with("exercises[0].colour")),
+        errs.iter()
+            .any(|e| e.starts_with("exercises[squat].colour")),
         "{errs:?}"
     );
 }
@@ -59,12 +60,12 @@ fn names_resolve_and_numbers_are_in_range() {
     ]);
     let errs = errors(&problems_of(&v));
     for path in [
-        "exercises[0].class",
+        "exercises[squat].class",
         "classes.heavy.rep_high",
         "sets.max",
         "equipment.plates.lb[1]",
-        "workouts[0].exercises[1]",
-        "workouts[0].exercises[2]",
+        "workouts[a].exercises[1]",
+        "workouts[a].exercises[2]",
     ] {
         assert!(errs.iter().any(|e| e.starts_with(path)), "{path}: {errs:?}");
     }
@@ -191,4 +192,318 @@ fn the_guide_covers_the_document() {
         }
     }
     assert!(missing.is_empty(), "the guide doesn't mention {missing:?}");
+}
+
+mod edits {
+    use super::super::edit::{self, EditError};
+    use super::*;
+    use serde_json::json;
+
+    /// The built-in program with two workouts, as an account would have.
+    fn program() -> Program {
+        let mut v = default_json();
+        v["workouts"] = json!([
+            {"id": "a", "name": "A", "exercises": ["squat", "bench_press"], "rotation": true, "notes": "", "from_library": ""},
+            {"id": "b", "name": "B", "exercises": ["deadlift"], "rotation": true, "notes": "", "from_library": ""}
+        ]);
+        serde_json::from_value(v).unwrap()
+    }
+
+    fn apply(edits: serde_json::Value) -> Result<Program, EditError> {
+        let doc = edit::apply(&program(), edits.as_array().unwrap())?;
+        Ok(serde_json::from_value(doc).unwrap())
+    }
+
+    fn fails(edits: serde_json::Value) -> EditError {
+        edit::apply(&program(), edits.as_array().unwrap()).unwrap_err()
+    }
+
+    #[test]
+    fn set_reaches_fields_maps_and_named_items() {
+        let p = apply(json!([
+            {"set": "name", "value": "Size"},
+            {"set": "classes.heavy.rest_seconds", "value": 150},
+            {"set": "workouts[a].rotation", "value": false},
+            {"set": "exercises[squat].progression", "value": "squat_lp"},
+            {"set": "progressions.squat_lp", "value": {
+                "kind": "linear", "reps": 5, "increment_lb": 5, "deload_after_fails": 3, "deload_factor": 0.9}},
+            {"set": "time_off[0].days", "value": 50}
+        ]))
+        .unwrap();
+        assert_eq!(p.name, "Size");
+        assert_eq!(p.classes["heavy"].rest_seconds, 150);
+        assert!(!p.workout("a").unwrap().rotation);
+        assert_eq!(
+            p.exercise("squat").unwrap().progression.as_deref(),
+            Some("squat_lp")
+        );
+        assert!(p.progressions.contains_key("squat_lp"));
+        assert_eq!(p.time_off[0].days, 50);
+        assert_eq!(errors(&check(&p)), Vec::<String>::new());
+    }
+
+    /// A new workout or exercise takes its name from the path and its
+    /// optional fields from their defaults.
+    #[test]
+    fn set_adds_a_named_item_with_defaults() {
+        let p = apply(json!([
+            {"set": "workouts[upper_a]", "value": {"name": "Upper A", "exercises": ["bench_press", "barbell_row"]}},
+            {"set": "exercises[zercher_squat]", "value": {
+                "name": "Zercher Squat", "equipment": "barbell", "muscles": ["quads", "glutes"], "class": "heavy"}}
+        ]))
+        .unwrap();
+        let w = p.workouts.last().unwrap();
+        assert_eq!(
+            (w.id.as_str(), w.rotation, w.notes.as_str()),
+            ("upper_a", true, "")
+        );
+        let e = p.exercises.last().unwrap();
+        assert_eq!(
+            (e.key.as_str(), e.short_name.as_str()),
+            ("zercher_squat", "Zercher Squa")
+        );
+        assert_eq!(errors(&check(&p)), Vec::<String>::new());
+    }
+
+    #[test]
+    fn remove_and_move() {
+        let p = apply(json!([
+            {"set": "workouts[c]", "value": {"name": "C", "exercises": ["squat"]}},
+            {"move": "workouts[c]", "before": "workouts[a]"},
+            {"remove": "workouts[b]"},
+            {"remove": "recovery.hours.chest"}
+        ]))
+        .unwrap();
+        let ids: Vec<&str> = p.workouts.iter().map(|w| w.id.as_str()).collect();
+        assert_eq!(ids, ["c", "a"]);
+        assert!(!p.recovery.hours.contains_key(&Muscle::Chest));
+        let p = apply(json!([{"move": "workouts[a]", "before": null}])).unwrap();
+        let ids: Vec<&str> = p.workouts.iter().map(|w| w.id.as_str()).collect();
+        assert_eq!(ids, ["b", "a"]);
+    }
+
+    /// One edit that can't apply stops them all, and says which and why.
+    #[test]
+    fn a_bad_edit_names_itself() {
+        let e = fails(json!([
+            {"set": "name", "value": "fine"},
+            {"set": "workouts[nope].rotation", "value": false}
+        ]));
+        assert_eq!((e.index, e.path.as_str()), (1, "workouts[nope].rotation"));
+        assert!(e.message.contains("none named \"nope\""), "{}", e.message);
+        assert!(fails(json!([{"remove": "exercises[squat]"}]))
+            .message
+            .contains("built-in"));
+        assert!(fails(json!([{"set": "x", "value": 1, "remove": "y"}]))
+            .message
+            .contains("exactly one"));
+        assert!(fails(json!([{"set": "name"}]))
+            .message
+            .contains("needs a value"));
+        assert!(fails(json!([{"set": "time_off[9]", "value": {}}]))
+            .message
+            .contains("the list has"));
+        assert!(fails(json!([{"set": "workouts[a]", "value": {"id": "z"}}]))
+            .message
+            .contains("rename"));
+        assert!(fails(json!([])).message.contains("no edits"));
+    }
+
+    /// What an edit gets wrong in the program, not the path, is the
+    /// validator's, at the path the edit used.
+    #[test]
+    fn the_result_is_checked_at_the_edits_paths() {
+        let p =
+            apply(json!([{"set": "workouts[a].exercises", "value": ["squat", "nope"]}])).unwrap();
+        let errs = errors(&check(&p));
+        assert!(
+            errs.iter()
+                .any(|e| e.starts_with("workouts[a].exercises[1]")),
+            "{errs:?}"
+        );
+    }
+
+    /// The built-in exercises leave the assistant's view and come back on
+    /// the way in; a changed one stays in view, and wins on the way back.
+    #[test]
+    fn compact_and_complete_round_trip() {
+        let builtin = Program::builtin().exercises.len();
+        let (doc, left_out) = edit::compact(&program());
+        assert_eq!(left_out, builtin);
+        assert_eq!(doc["exercises"], json!([]));
+        let back: Program = serde_json::from_value(edit::complete(doc)).unwrap();
+        assert_eq!(back, program());
+
+        let changed = apply(json!([
+            {"set": "exercises[squat].class", "value": "standard"},
+            {"set": "exercises[zercher_squat]", "value": {
+                "name": "Zercher Squat", "equipment": "barbell", "muscles": ["quads"], "class": "heavy"}}
+        ]))
+        .unwrap();
+        let (doc, left_out) = edit::compact(&changed);
+        assert_eq!(left_out, builtin - 1);
+        let keys: Vec<&str> = doc["exercises"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|e| e["key"].as_str().unwrap())
+            .collect();
+        assert_eq!(keys, ["squat", "zercher_squat"]);
+        let back: Program = serde_json::from_value(edit::complete(doc)).unwrap();
+        assert_eq!(back, changed);
+        assert!(
+            doc_size(&edit::compact(&program()).0) * 4
+                < doc_size(&serde_json::to_value(program()).unwrap())
+        );
+    }
+
+    fn doc_size(v: &serde_json::Value) -> usize {
+        v.to_string().len()
+    }
+
+    /// The guide's editing example is real: it applies to a program with
+    /// workouts `a` and `b`, and the result checks out.
+    #[test]
+    fn the_guides_editing_example_applies() {
+        let section = &GUIDE[GUIDE.find("## Editing").unwrap()..];
+        let block = &section[section.find("```json").unwrap() + 7..];
+        let example: serde_json::Value =
+            serde_json::from_str(&block[..block.find("```").unwrap()]).unwrap();
+        let p = apply(example).unwrap();
+        assert_eq!(errors(&check(&p)), Vec::<String>::new());
+        let ids: Vec<&str> = p.workouts.iter().map(|w| w.id.as_str()).collect();
+        assert_eq!(ids, ["upper_a", "a"]);
+    }
+
+    #[test]
+    fn part_reads_one_path() {
+        assert_eq!(
+            edit::part(&program(), "workouts[b].exercises").unwrap(),
+            json!(["deadlift"])
+        );
+        assert!(edit::part(&program(), "classes.nope").is_err());
+    }
+}
+
+/// One rule, several lifts: a lift's `params` set its own values for the
+/// rule's numbers, and are checked against the rule it follows.
+mod params {
+    use super::*;
+    use serde_json::json;
+
+    fn with(edits: serde_json::Value) -> serde_json::Value {
+        let mut v = default_json();
+        v["progressions"]["steps"] = json!({
+            "kind": "formula", "let": { "jump_lb": "5" }, "sets": "3", "reps": "8",
+            "weight": "if(has_last and last.hit, last.weight + jump_lb, if(has_last, last.weight, start))",
+            "rest_seconds": null, "note": "A step a session." });
+        v["progressions"]["lp"] = json!({
+            "kind": "linear", "sets": 3, "reps": 5, "increment_lb": 5,
+            "deload_after_fails": 3, "deload_factor": 0.9 });
+        for (key, value) in edits.as_object().unwrap() {
+            let e = v["exercises"]
+                .as_array_mut()
+                .unwrap()
+                .iter_mut()
+                .find(|e| e["key"] == key.as_str())
+                .unwrap();
+            for (field, x) in value.as_object().unwrap() {
+                e[field] = x.clone();
+            }
+        }
+        v
+    }
+
+    #[test]
+    fn a_lift_tunes_the_rule_it_follows() {
+        let v = with(json!({
+            "squat": { "progression": "steps", "params": { "jump_lb": 10 } },
+            "bench_press": { "progression": "steps" },
+            "deadlift": { "progression": "lp", "params": { "increment_lb": 10, "reps": 3 } }
+        }));
+        let (program, problems) = validate(&v.to_string());
+        assert_eq!(errors(&problems), Vec::<String>::new());
+        let p = program.unwrap();
+        let Progression::Formula(squat) = &*p.progression_of("squat") else {
+            panic!()
+        };
+        let Progression::Formula(bench) = &*p.progression_of("bench_press") else {
+            panic!()
+        };
+        assert_eq!(
+            (
+                squat.lets["jump_lb"].as_str(),
+                bench.lets["jump_lb"].as_str()
+            ),
+            ("10", "5")
+        );
+        assert!(matches!(
+            &*p.progression_of("deadlift"),
+            Progression::Linear { increment_lb, reps: 3, .. } if *increment_lb == 10.0
+        ));
+        // The shared rule itself is untouched.
+        assert!(matches!(
+            &p.progressions["lp"],
+            Progression::Linear { reps: 5, .. }
+        ));
+    }
+
+    #[test]
+    fn params_that_dont_fit_are_named() {
+        let cases = [
+            (
+                json!({ "squat": { "progression": "steps", "params": { "jmp": 10 } } }),
+                "exercises[squat].params.jmp",
+                "no `let` named",
+            ),
+            (
+                json!({ "squat": { "progression": "lp", "params": { "reps": 2.5 } } }),
+                "exercises[squat].params.reps",
+                "whole number",
+            ),
+            (
+                json!({ "squat": { "progression": "lp", "params": { "increment_lb": 500 } } }),
+                "exercises[squat].params.increment_lb",
+                "outside",
+            ),
+            (
+                json!({ "squat": { "progression": "lp", "params": { "note": 1 } } }),
+                "exercises[squat].params.note",
+                "has no",
+            ),
+            (
+                json!({ "squat": { "params": { "jump_lb": 1 } } }),
+                "exercises[squat].params.jump_lb",
+                "no numbers",
+            ),
+        ];
+        for (edit, path, says) in cases {
+            let errs = errors(&problems_of(&with(edit)));
+            assert!(
+                errs.iter().any(|e| e.starts_with(path) && e.contains(says)),
+                "{path}: {errs:?}"
+            );
+        }
+    }
+
+    /// A formula a lift tunes is tried on the sample histories like any
+    /// other: a step that makes it give nonsense is caught.
+    #[test]
+    fn a_tuned_formula_is_tried_on_the_samples() {
+        let v =
+            with(json!({ "squat": { "progression": "steps", "params": { "jump_lb": -5000 } } }));
+        let errs = errors(&problems_of(&v));
+        assert!(
+            errs.iter()
+                .any(|e| e.starts_with("exercises[squat].params")),
+            "{errs:?}"
+        );
+    }
+
+    /// A program from before params reads as it did.
+    #[test]
+    fn stored_programs_without_params_read() {
+        let p = Program::parse(DEFAULT_JSON).unwrap();
+        assert!(p.exercises.iter().all(|e| e.params.is_empty()));
+    }
 }

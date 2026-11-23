@@ -67,7 +67,59 @@ pub fn validate(json: &str) -> (Option<Program>, Vec<Problem>) {
     let written = serde_json::to_value(&program).expect("a program serialises");
     unknown_fields(&value, &written, "", &mut problems);
     problems.extend(check(&program));
+    name_paths(&program, &mut problems);
     (Some(program), problems)
+}
+
+/// Exercises and workouts named in a path by key and id, not position:
+/// `exercises[zercher_squat].class`, `workouts[upper_a].exercises`, the
+/// paths an assistant's edits use, so a problem points at the edit that
+/// fixes it. A position stays where the key or id is missing, malformed or
+/// used twice, since then it is the only way to say which one.
+pub fn name_paths(p: &Program, problems: &mut [Problem]) {
+    let names = |list: &str| -> Vec<Option<String>> {
+        let all: Vec<&str> = match list {
+            "exercises" => p.exercises.iter().map(|e| e.key.as_str()).collect(),
+            _ => p.workouts.iter().map(|w| w.id.as_str()).collect(),
+        };
+        all.iter()
+            .map(|n| {
+                (is_path_name(n) && all.iter().filter(|m| *m == n).count() == 1)
+                    .then(|| n.to_string())
+            })
+            .collect()
+    };
+    let lists = [
+        ("exercises", names("exercises")),
+        ("workouts", names("workouts")),
+    ];
+    for problem in problems.iter_mut() {
+        for (list, named) in &lists {
+            let Some(rest) = problem
+                .path
+                .strip_prefix(list)
+                .and_then(|r| r.strip_prefix('['))
+            else {
+                continue;
+            };
+            let Some((index, tail)) = rest.split_once(']') else {
+                continue;
+            };
+            if let Some(Some(name)) = index.parse::<usize>().ok().and_then(|i| named.get(i)) {
+                problem.path = format!("{list}[{name}]{tail}");
+            }
+        }
+    }
+}
+
+/// A key or id that can stand in a path: no brackets, dots or spaces, and
+/// not all digits (which would read as a position).
+pub fn is_path_name(name: &str) -> bool {
+    !name.is_empty()
+        && !name.chars().all(|c| c.is_ascii_digit())
+        && !name
+            .chars()
+            .any(|c| matches!(c, '[' | ']' | '.') || c.is_whitespace())
 }
 
 /// Keys in what was given that the program doesn't have: a typo, or a
@@ -133,8 +185,14 @@ impl Checker {
     }
 }
 
-/// Every check on a parsed program.
+/// Every check on a parsed program, paths by name ([`name_paths`]).
 pub fn check(p: &Program) -> Vec<Problem> {
+    let mut out = check_positions(p);
+    name_paths(p, &mut out);
+    out
+}
+
+fn check_positions(p: &Program) -> Vec<Problem> {
     let mut c = Checker { out: Vec::new() };
     if p.schema != SCHEMA {
         c.err("schema", format!("must be {SCHEMA:?}"));
@@ -144,6 +202,7 @@ pub fn check(p: &Program) -> Vec<Problem> {
     }
     check_classes(p, &mut c);
     check_progressions(p, &mut c);
+    check_schemes(p, &mut c);
     check_exercises(p, &mut c);
     check_workouts(p, &mut c);
     check_numbers(p, &mut c);
@@ -174,6 +233,12 @@ fn check_classes(p: &Program, c: &mut Checker) {
             c.err(
                 format!("{at}.progression"),
                 format!("no progression {:?}", class.progression),
+            );
+        }
+        if !scheme_known(p, &class.scheme) {
+            c.err(
+                format!("{at}.scheme"),
+                format!("no scheme {:?}", class.scheme),
             );
         }
     }
@@ -228,6 +293,160 @@ fn check_exercises(p: &Program, c: &mut Checker) {
                 );
             }
         }
+        check_params(p, e, &at, c);
+        if let Some(name) = &e.scheme {
+            if !scheme_known(p, name) {
+                c.err(format!("{at}.scheme"), format!("no scheme {name:?}"));
+            }
+        }
+        if e.tempo.chars().count() > 20 {
+            c.err(format!("{at}.tempo"), "at most 20 characters");
+        }
+    }
+}
+
+/// A scheme a class or an exercise may name: one the program defines, or
+/// `straight`, which needn't be written.
+fn scheme_known(p: &Program, name: &str) -> bool {
+    name == STRAIGHT || p.schemes.contains_key(name)
+}
+
+/// Each scheme lays out sets a person can do: a main set first (a drop or
+/// a mini follows one), at most one `rest` step and only for main sets,
+/// numbers in range, and not more sets than a lift takes.
+fn check_schemes(p: &Program, c: &mut Checker) {
+    if p.schemes.len() > 50 {
+        c.err("schemes", "at most 50");
+    }
+    for (name, scheme) in &p.schemes {
+        let at = format!("schemes.{name}");
+        if !valid_key(name) {
+            c.err(&at, "a name is lowercase letters, digits and underscores");
+        }
+        if scheme.steps.is_empty() || scheme.steps.len() > 20 {
+            c.err(format!("{at}.steps"), "1 to 20 steps");
+        }
+        // `straight` is identical sets by name: anything else is another
+        // scheme and needs its own.
+        if name == STRAIGHT
+            && !matches!(
+                scheme.steps.as_slice(),
+                [step] if step.role == Role::Working
+                    && step.count.is_rest()
+                    && step.reps.is_none()
+                    && step.fraction == 1.0
+                    && !step.amrap
+                    && step.rir.is_none()
+                    && step.rest_seconds.is_none()
+                    && step.every_seconds.is_none()
+                    && step.on_miss.is_none()
+            )
+        {
+            c.err(
+                &at,
+                "straight is the rule's sets, identical: give a different shape its own name",
+            );
+        }
+        if scheme.steps.first().is_some_and(|s| !s.role.is_main()) {
+            c.err(
+                format!("{at}.steps[0].role"),
+                "the first step is a main set (working, top or backoff): a drop or a mini follows one",
+            );
+        }
+        let mut rests = 0;
+        let mut numbered = 0;
+        for (i, step) in scheme.steps.iter().enumerate() {
+            let s = format!("{at}.steps[{i}]");
+            match &step.count {
+                StepCount::Sets(n) => {
+                    c.int(&format!("{s}.count"), (*n).into(), 0, 20);
+                    numbered += (*n).max(0);
+                }
+                StepCount::Word(w) if w == "rest" => {
+                    rests += 1;
+                    if !step.role.is_main() {
+                        c.err(
+                            format!("{s}.count"),
+                            "only a main step (working, top or backoff) takes the rest of the sets",
+                        );
+                    }
+                }
+                StepCount::Word(w) => {
+                    c.err(
+                        format!("{s}.count"),
+                        format!("{w:?}: a number of sets, or \"rest\""),
+                    );
+                }
+            }
+            if let Some(r) = step.reps {
+                c.int(&format!("{s}.reps"), r.into(), 1, 600);
+            }
+            if step.role == Role::Drop {
+                c.above(&format!("{s}.fraction"), step.fraction, 0.0, 0.99);
+            } else {
+                c.above(&format!("{s}.fraction"), step.fraction, 0.0, 1.5);
+            }
+            if let Some(r) = step.rir {
+                c.int(&format!("{s}.rir"), r.into(), 0, 5);
+            }
+            if let Some(r) = step.rest_seconds {
+                c.int(&format!("{s}.rest_seconds"), r.into(), 0, 1800);
+            }
+            if let Some(e) = step.every_seconds {
+                c.int(&format!("{s}.every_seconds"), e.into(), 10, 600);
+            }
+            if let Some(m) = &step.on_miss {
+                let at = format!("{s}.on_miss");
+                if let Some(r) = m.rest_seconds {
+                    c.int(&format!("{at}.rest_seconds"), r.into(), 0, 1800);
+                }
+                if let Some(f) = m.fraction {
+                    c.above(&format!("{at}.fraction"), f, 0.0, 0.99);
+                }
+                if m.rest_seconds.is_none() && m.fraction.is_none() && !m.stop {
+                    c.err(&at, "says nothing: give rest_seconds, fraction or stop");
+                }
+                if m.stop && m.fraction.is_some() {
+                    c.err(
+                        &at,
+                        "stop drops the sets still to do: a fraction has nothing left to lighten",
+                    );
+                }
+            }
+            if step.amrap && !step.role.is_main() {
+                c.err(
+                    format!("{s}.amrap"),
+                    "a drop or a mini already goes as far as it can",
+                );
+            }
+        }
+        if rests > 1 {
+            c.err(
+                format!("{at}.steps"),
+                "at most one step takes the rest of the sets",
+            );
+        }
+        if numbered > 30 {
+            c.err(format!("{at}.steps"), "more than 30 sets");
+        }
+    }
+}
+
+/// A lift's `params` name numbers its rule has, and the rule they make is
+/// as sound as any written out.
+fn check_params(p: &Program, e: &ExerciseDef, at: &str, c: &mut Checker) {
+    if e.params.is_empty() {
+        return;
+    }
+    if e.params.len() > 20 {
+        c.err(format!("{at}.params"), "at most 20");
+    }
+    let Some(rule) = p.progressions.get(p.progression_name(&e.key)) else {
+        return; // named above
+    };
+    match tune(rule, &e.params) {
+        Err((name, message)) => c.err(format!("{at}.params.{name}"), message),
+        Ok(tuned) => check_progression(&format!("{at}.params"), &tuned, c),
     }
 }
 
@@ -271,6 +490,33 @@ fn check_workouts(p: &Program, c: &mut Checker) {
         if w.notes.chars().count() > 1000 {
             c.err(format!("{at}.notes"), "at most 1000 characters");
         }
+        let mut grouped = BTreeSet::new();
+        for (g, group) in w.groups.iter().enumerate() {
+            let at = format!("{at}.groups[{g}]");
+            if group.exercises.len() < 2 || group.exercises.len() > 8 {
+                c.err(format!("{at}.exercises"), "2 to 8 lifts");
+            }
+            for (j, key) in group.exercises.iter().enumerate() {
+                if !w.exercises.contains(key) {
+                    c.err(
+                        format!("{at}.exercises[{j}]"),
+                        format!("{key:?} isn't one of the workout's exercises"),
+                    );
+                }
+                if !grouped.insert(key) {
+                    c.err(
+                        format!("{at}.exercises[{j}]"),
+                        format!("{key:?} is in two groups (or twice in one)"),
+                    );
+                }
+            }
+            if let Some(r) = group.rest_seconds {
+                c.int(&format!("{at}.rest_seconds"), r.into(), 0, 1800);
+            }
+        }
+        if w.groups.len() > 10 {
+            c.err(format!("{at}.groups"), "at most 10");
+        }
     }
     if !p.workouts.is_empty() && !p.workouts.iter().any(|w| w.rotation) {
         c.warn(
@@ -289,70 +535,78 @@ fn check_progressions(p: &Program, c: &mut Checker) {
         if !valid_key(name) {
             c.err(&at, "a name is lowercase letters, digits and underscores");
         }
-        let sets = |c: &mut Checker, sets: i32| c.int(&format!("{at}.sets"), sets.into(), 1, 20);
-        let reps = |c: &mut Checker, path: &str, reps: i32| {
-            c.int(&format!("{at}.{path}"), reps.into(), 1, 100)
-        };
-        match rule {
-            Progression::EstimatedMax => {}
-            Progression::Fixed {
-                sets: s,
-                reps: r,
-                weight_lb,
-            } => {
-                sets(c, *s);
-                reps(c, "reps", *r);
-                c.num(&format!("{at}.weight_lb"), *weight_lb, 0.0, 2000.0);
-            }
-            Progression::Linear {
-                sets: s,
-                reps: r,
-                increment_lb,
-                deload_after_fails,
-                deload_factor,
-            } => {
-                if let Some(s) = s {
-                    sets(c, *s);
-                }
-                reps(c, "reps", *r);
-                c.num(&format!("{at}.increment_lb"), *increment_lb, 0.0, 100.0);
-                c.int(
-                    &format!("{at}.deload_after_fails"),
-                    (*deload_after_fails).into(),
-                    0,
-                    20,
-                );
-                c.above(&format!("{at}.deload_factor"), *deload_factor, 0.0, 1.0);
-            }
-            Progression::Double {
-                sets: s,
-                rep_low,
-                rep_high,
-                increment_lb,
-            } => {
-                if let Some(s) = s {
-                    sets(c, *s);
-                }
-                reps(c, "rep_low", *rep_low);
-                reps(c, "rep_high", *rep_high);
-                if rep_high < rep_low {
-                    c.err(format!("{at}.rep_high"), "under rep_low");
-                }
-                c.num(&format!("{at}.increment_lb"), *increment_lb, 0.0, 100.0);
-            }
-            Progression::Cycle { steps } => {
-                if steps.is_empty() || steps.len() > 52 {
-                    c.err(format!("{at}.steps"), "1 to 52 steps");
-                }
-                for (i, step) in steps.iter().enumerate() {
-                    let s = format!("{at}.steps[{i}]");
-                    c.int(&format!("{s}.sets"), step.sets.into(), 1, 20);
-                    c.int(&format!("{s}.reps"), step.reps.into(), 1, 100);
-                    c.above(&format!("{s}.fraction"), step.fraction, 0.0, 1.5);
-                }
-            }
-            Progression::Formula(f) => check_formula(&at, f, c),
+        check_progression(&at, rule, c);
+    }
+}
+
+/// One rule's numbers in range and its formula sound, named from `at`: a
+/// rule in `progressions`, or one as a lift's `params` tune it.
+fn check_progression(at: &str, rule: &Progression, c: &mut Checker) {
+    let sets = |c: &mut Checker, sets: i32| c.int(&format!("{at}.sets"), sets.into(), 1, 20);
+    let reps = |c: &mut Checker, path: &str, reps: i32| {
+        c.int(&format!("{at}.{path}"), reps.into(), 1, 100)
+    };
+    match rule {
+        Progression::EstimatedMax => {}
+        Progression::Fixed {
+            sets: s,
+            reps: r,
+            weight_lb,
+        } => {
+            sets(c, *s);
+            reps(c, "reps", *r);
+            c.num(&format!("{at}.weight_lb"), *weight_lb, 0.0, 2000.0);
         }
+        Progression::Linear {
+            sets: s,
+            reps: r,
+            increment_lb,
+            deload_after_fails,
+            deload_factor,
+        } => {
+            if let Some(s) = s {
+                sets(c, *s);
+            }
+            reps(c, "reps", *r);
+            c.num(&format!("{at}.increment_lb"), *increment_lb, 0.0, 100.0);
+            c.int(
+                &format!("{at}.deload_after_fails"),
+                (*deload_after_fails).into(),
+                0,
+                20,
+            );
+            c.above(&format!("{at}.deload_factor"), *deload_factor, 0.0, 1.0);
+        }
+        Progression::Double {
+            sets: s,
+            rep_low,
+            rep_high,
+            increment_lb,
+            rep_step,
+        } => {
+            if let Some(s) = s {
+                sets(c, *s);
+            }
+            reps(c, "rep_low", *rep_low);
+            reps(c, "rep_high", *rep_high);
+            if rep_high < rep_low {
+                c.err(format!("{at}.rep_high"), "under rep_low");
+            }
+            c.num(&format!("{at}.increment_lb"), *increment_lb, 0.0, 100.0);
+            c.int(&format!("{at}.rep_step"), (*rep_step).into(), 1, 60);
+        }
+        Progression::Cycle { steps } => {
+            if steps.is_empty() || steps.len() > 52 {
+                c.err(format!("{at}.steps"), "1 to 52 steps");
+            }
+            for (i, step) in steps.iter().enumerate() {
+                let s = format!("{at}.steps[{i}]");
+                c.int(&format!("{s}.sets"), step.sets.into(), 1, 20);
+                c.int(&format!("{s}.reps"), step.reps.into(), 1, 100);
+                c.above(&format!("{s}.fraction"), step.fraction, 0.0, 1.5);
+            }
+        }
+        Progression::Formula(f) => check_formula(at, f, c),
     }
 }
 
@@ -552,6 +806,8 @@ impl Scope for Sample {
 }
 
 fn check_numbers(p: &Program, c: &mut Checker) {
+    c.int("transition_seconds", p.transition_seconds.into(), 0, 300);
+    c.num("volume.partial_credit", p.volume.partial_credit, 0.0, 1.0);
     let e = &p.estimate;
     c.above("estimate.divisor", e.divisor, 0.0, 1000.0);
     c.num("estimate.reserve_when_hit", e.reserve_when_hit, 0.0, 10.0);

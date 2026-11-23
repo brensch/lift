@@ -19,6 +19,231 @@ import 'workout.pb.dart' as $1;
 
 export 'package:protobuf/protobuf.dart' show GeneratedMessageGenericExtensions;
 
+class SetCanSuggestRequest extends $pb.GeneratedMessage {
+  factory SetCanSuggestRequest({
+    $core.String? userId,
+    $core.bool? allowed,
+  }) {
+    final result = create();
+    if (userId != null) result.userId = userId;
+    if (allowed != null) result.allowed = allowed;
+    return result;
+  }
+
+  SetCanSuggestRequest._();
+
+  factory SetCanSuggestRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetCanSuggestRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetCanSuggestRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'userId')
+    ..aOB(2, _omitFieldNames ? '' : 'allowed')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetCanSuggestRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetCanSuggestRequest copyWith(void Function(SetCanSuggestRequest) updates) =>
+      super.copyWith((message) => updates(message as SetCanSuggestRequest))
+          as SetCanSuggestRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetCanSuggestRequest create() => SetCanSuggestRequest._();
+  @$core.override
+  SetCanSuggestRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetCanSuggestRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetCanSuggestRequest>(create);
+  static SetCanSuggestRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get userId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set userId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUserId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUserId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.bool get allowed => $_getBF(1);
+  @$pb.TagNumber(2)
+  set allowed($core.bool value) => $_setBool(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasAllowed() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearAllowed() => $_clearField(2);
+}
+
+class SetCanSuggestResponse extends $pb.GeneratedMessage {
+  factory SetCanSuggestResponse() => create();
+
+  SetCanSuggestResponse._();
+
+  factory SetCanSuggestResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SetCanSuggestResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SetCanSuggestResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetCanSuggestResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SetCanSuggestResponse copyWith(
+          void Function(SetCanSuggestResponse) updates) =>
+      super.copyWith((message) => updates(message as SetCanSuggestResponse))
+          as SetCanSuggestResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SetCanSuggestResponse create() => SetCanSuggestResponse._();
+  @$core.override
+  SetCanSuggestResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SetCanSuggestResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SetCanSuggestResponse>(create);
+  static SetCanSuggestResponse? _defaultInstance;
+}
+
+class SuggestWorkoutRequest extends $pb.GeneratedMessage {
+  factory SuggestWorkoutRequest({
+    $core.String? userId,
+    $core.String? templateId,
+    $core.String? note,
+  }) {
+    final result = create();
+    if (userId != null) result.userId = userId;
+    if (templateId != null) result.templateId = templateId;
+    if (note != null) result.note = note;
+    return result;
+  }
+
+  SuggestWorkoutRequest._();
+
+  factory SuggestWorkoutRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SuggestWorkoutRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SuggestWorkoutRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'userId')
+    ..aOS(2, _omitFieldNames ? '' : 'templateId')
+    ..aOS(3, _omitFieldNames ? '' : 'note')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SuggestWorkoutRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SuggestWorkoutRequest copyWith(
+          void Function(SuggestWorkoutRequest) updates) =>
+      super.copyWith((message) => updates(message as SuggestWorkoutRequest))
+          as SuggestWorkoutRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SuggestWorkoutRequest create() => SuggestWorkoutRequest._();
+  @$core.override
+  SuggestWorkoutRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SuggestWorkoutRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SuggestWorkoutRequest>(create);
+  static SuggestWorkoutRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get userId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set userId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUserId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUserId() => $_clearField(1);
+
+  /// One of the caller's own workouts.
+  @$pb.TagNumber(2)
+  $core.String get templateId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set templateId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTemplateId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTemplateId() => $_clearField(2);
+
+  /// One line to them on why.
+  @$pb.TagNumber(3)
+  $core.String get note => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set note($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasNote() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNote() => $_clearField(3);
+}
+
+class SuggestWorkoutResponse extends $pb.GeneratedMessage {
+  factory SuggestWorkoutResponse() => create();
+
+  SuggestWorkoutResponse._();
+
+  factory SuggestWorkoutResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SuggestWorkoutResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SuggestWorkoutResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SuggestWorkoutResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SuggestWorkoutResponse copyWith(
+          void Function(SuggestWorkoutResponse) updates) =>
+      super.copyWith((message) => updates(message as SuggestWorkoutResponse))
+          as SuggestWorkoutResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SuggestWorkoutResponse create() => SuggestWorkoutResponse._();
+  @$core.override
+  SuggestWorkoutResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SuggestWorkoutResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<SuggestWorkoutResponse>(create);
+  static SuggestWorkoutResponse? _defaultInstance;
+}
+
 class JoinViaInviteRequest extends $pb.GeneratedMessage {
   factory JoinViaInviteRequest({
     $core.String? inviteToken,
@@ -774,11 +999,15 @@ class TrainingPartner extends $pb.GeneratedMessage {
     $1.User? user,
     $core.int? sessionsTogether,
     $fixnum.Int64? lastTrainedAt,
+    $core.bool? canSuggestToMe,
+    $core.bool? letsMeSuggest,
   }) {
     final result = create();
     if (user != null) result.user = user;
     if (sessionsTogether != null) result.sessionsTogether = sessionsTogether;
     if (lastTrainedAt != null) result.lastTrainedAt = lastTrainedAt;
+    if (canSuggestToMe != null) result.canSuggestToMe = canSuggestToMe;
+    if (letsMeSuggest != null) result.letsMeSuggest = letsMeSuggest;
     return result;
   }
 
@@ -798,6 +1027,8 @@ class TrainingPartner extends $pb.GeneratedMessage {
     ..aOM<$1.User>(1, _omitFieldNames ? '' : 'user', subBuilder: $1.User.create)
     ..aI(2, _omitFieldNames ? '' : 'sessionsTogether')
     ..aInt64(3, _omitFieldNames ? '' : 'lastTrainedAt')
+    ..aOB(4, _omitFieldNames ? '' : 'canSuggestToMe')
+    ..aOB(5, _omitFieldNames ? '' : 'letsMeSuggest')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -847,6 +1078,26 @@ class TrainingPartner extends $pb.GeneratedMessage {
   $core.bool hasLastTrainedAt() => $_has(2);
   @$pb.TagNumber(3)
   void clearLastTrainedAt() => $_clearField(3);
+
+  /// The caller lets them suggest changes to the caller's workouts.
+  @$pb.TagNumber(4)
+  $core.bool get canSuggestToMe => $_getBF(3);
+  @$pb.TagNumber(4)
+  set canSuggestToMe($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasCanSuggestToMe() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearCanSuggestToMe() => $_clearField(4);
+
+  /// They let the caller suggest changes to theirs.
+  @$pb.TagNumber(5)
+  $core.bool get letsMeSuggest => $_getBF(4);
+  @$pb.TagNumber(5)
+  set letsMeSuggest($core.bool value) => $_setBool(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasLetsMeSuggest() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearLetsMeSuggest() => $_clearField(5);
 }
 
 class GetTrainingPartnersRequest extends $pb.GeneratedMessage {

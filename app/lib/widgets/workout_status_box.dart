@@ -61,6 +61,10 @@ class StatusBox extends StatelessWidget {
   /// Opens the exercise's edit sheet: a pencil left of the weight.
   final VoidCallback? onEdit;
 
+  /// Yours, after a set that asks how it went: it takes the weight and
+  /// reps' row until it's answered or the next set is done.
+  final Widget? question;
+
   const StatusBox({
     super.key,
     required this.emoji,
@@ -76,6 +80,7 @@ class StatusBox extends StatelessWidget {
     this.circle,
     this.firstTime = false,
     this.onEdit,
+    this.question,
   });
 
   @override
@@ -228,10 +233,7 @@ class StatusBox extends StatelessWidget {
       // The plates to load, the weight, then × the reps: in the circle
       // (yours), or said after the weight (a partner's).
       final exercise = exerciseName(set.exercise);
-      final position = setLineFor(set, plan);
-      // "Warmup 2 of 3" without its kind: "2 of 3".
-      final cut = position.indexOf(' ');
-      final count = cut < 0 ? position : position.substring(cut + 1);
+      final position = setLineFor(set, plan, short: true);
       final small = TextStyle(
         fontSize: t.size.body,
         fontWeight: t.weight.medium,
@@ -260,12 +262,7 @@ class StatusBox extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    for (final text in [
-                      exercise,
-                      set.warmup
-                          ? copy.workout.warmShort.replaceAll('{count}', count)
-                          : count,
-                    ])
+                    for (final text in [exercise, position])
                       if (text.isNotEmpty)
                         Text(
                           text,
@@ -357,9 +354,7 @@ class StatusBox extends StatelessWidget {
               child: Text(
                 [
                   exercise,
-                  set.warmup
-                      ? copy.workout.warmShort.replaceAll('{count}', count)
-                      : count,
+                  position,
                 ].where((text) => text.isNotEmpty).join(' · '),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -397,7 +392,7 @@ class StatusBox extends StatelessWidget {
           ],
         );
       } else {
-        body = line;
+        body = question ?? line;
       }
     }
 

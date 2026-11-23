@@ -35,6 +35,25 @@ on the phone against it through `adb reverse`, and a hot reload whenever a
 `.dart` file under `app/lib` is saved. A Rust save is serving again in about
 two seconds; a Dart save is on the phone in under one. Ctrl+C stops all of it.
 
+It also runs the website's dev server on `http://localhost:5173` (log in
+`.tmp/dev-web.log`), which passes `/api` on to the backend, and the backend's
+MCP is reached through it, so an assistant on this machine can drive the
+account the phone is signed in to:
+
+```bash
+claude mcp add --transport http schlift-local http://localhost:5173/api/mcp
+```
+
+Then `/mcp` in Claude Code signs in: the browser opens
+`localhost:5173/connect`. Its sign-in is a passkey, which doesn't work on
+localhost, so in another tab open `localhost:5173/login` and use **Dev Name
+Login** with the name the debug app is signed in as (the local database is the
+one the phone talks to); then reload the `/connect` tab, which now has that
+session, and Allow.
+A program the assistant sets streams to the phone straight away. A save under
+`src/` restarts the backend; the assistant's token survives it (it is in the
+local database).
+
 | Target | |
 |---|---|
 | `make hot-reload` / `make hot-restart` | Signal the running `run-android` session, the same as `r` / `R` in its terminal. |

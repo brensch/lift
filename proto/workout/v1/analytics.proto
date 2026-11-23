@@ -197,6 +197,18 @@ message ListRecoveriesResponse {
   repeated RecoveryRequest recoveries = 1;
 }
 
+message ListAssistantFeedbackRequest {}
+message ListAssistantFeedbackResponse {
+  // Newest first, at most 200. No user: it is about the tools.
+  repeated AssistantFeedback feedback = 1;
+}
+message AssistantFeedback {
+  string client_name = 1; // as the assistant registered ("Claude")
+  string tool = 2; // the tool it is about, or ""
+  string text = 3; // at most 144 characters
+  int64 created_at = 4; // Unix seconds
+}
+
 message GetRecoveryRequest {
   // The code the person sent.
   string code = 1;
@@ -267,4 +279,7 @@ service AdminService {
   // the admin reads before approving. NOT_FOUND for a code nothing waits under.
   rpc GetRecovery(GetRecoveryRequest) returns (GetRecoveryResponse);
   rpc DecideRecovery(DecideRecoveryRequest) returns (DecideRecoveryResponse);
+  // Admin only. What assistants said about the MCP tools (send_feedback),
+  // newest first.
+  rpc ListAssistantFeedback(ListAssistantFeedbackRequest) returns (ListAssistantFeedbackResponse);
 }

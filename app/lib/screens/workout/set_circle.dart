@@ -44,6 +44,9 @@ class SetCircle extends StatefulWidget {
 
   final VoidCallback? onTap;
 
+  /// A long press (an as-many-as-you-can set's way back down).
+  final VoidCallback? onLongPress;
+
   /// The up-next ring's colour: the workout's current state (blue resting,
   /// pink yapping, orange otherwise).
   final Color? nextColor;
@@ -55,12 +58,18 @@ class SetCircle extends StatefulWidget {
     this.text,
     this.small = false,
     this.onTap,
+    this.onLongPress,
     this.nextColor,
   });
 
   /// Every circle is this size; a row with more than fit scrolls. Big
   /// enough to hit mid-set, small enough that two exercises fit a phone.
   static const double diameter = 54;
+
+  /// The outline's width, drawn inside the edge (the up-next ring is
+  /// [outlineNext]).
+  static const double outline = 1.5;
+  static const double outlineNext = 2;
 
   @override
   State<SetCircle> createState() => _SetCircleState();
@@ -126,6 +135,7 @@ class _SetCircleState extends State<SetCircle>
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,
+        onLongPress: widget.onLongPress,
         child: AnimatedBuilder(
           animation: _pulse,
           builder: (context, child) => DecoratedBox(
@@ -152,21 +162,31 @@ class _SetCircleState extends State<SetCircle>
               shape: shape.copyWith(
                 side: BorderSide(
                   color: quiet ? ring.withValues(alpha: 0.6) : ring,
-                  width: widget.state == SetCircleState.next ? 2 : 1.5,
+                  width: widget.state == SetCircleState.next
+                      ? SetCircle.outlineNext
+                      : SetCircle.outline,
                 ),
               ),
             ),
-            child: Text(
-              widget.text ??
-                  (widget.state == SetCircleState.skipped
-                      ? '–'
-                      : '${widget.number}'),
-              style: t.mono(
-                TextStyle(
-                  fontSize: t.size.titleLg,
-                  fontWeight: t.weight.bold,
-                  color: ink,
-                  height: 1,
+            // "120s" in a circle sized for "12": the longer ones shrink.
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 7),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  widget.text ??
+                      (widget.state == SetCircleState.skipped
+                          ? '–'
+                          : '${widget.number}'),
+                  maxLines: 1,
+                  style: t.mono(
+                    TextStyle(
+                      fontSize: t.size.titleLg,
+                      fontWeight: t.weight.bold,
+                      color: ink,
+                      height: 1,
+                    ),
+                  ),
                 ),
               ),
             ),

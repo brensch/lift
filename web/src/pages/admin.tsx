@@ -19,6 +19,7 @@ import { CONTEXT, SERIES_1, SERIES_3 } from "@/components/charts/chart-utils";
 import { formatNumber, formatWhen } from "@/lib/format";
 import { Card, DataTable } from "@/components/admin/parts";
 import { Recoveries } from "@/components/admin/recoveries";
+import { AssistantFeedback } from "@/components/admin/assistant-feedback";
 import { Training } from "@/components/admin/training";
 
 const WINDOWS = [7, 30, 90, 365];
@@ -399,6 +400,7 @@ export function AdminPage() {
       </div>
 
       <Recoveries token={user.sessionToken} />
+      <AssistantFeedback token={user.sessionToken} />
 
       {error && <p className="text-sm text-danger m-0">{error}</p>}
       {!stats && !error && <p className="text-muted py-8 text-center">Loading…</p>}

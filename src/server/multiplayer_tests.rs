@@ -932,4 +932,127 @@ mod session_history_tests {
             .expect("alice sees bob");
         assert!(bob.joined_at > now_unix() - 60, "joined now");
     }
+
+    /// Who may suggest workouts: only a training partner is let in, a
+    /// suggestion needs the grant, and one sent lands in the owner's account
+    /// to answer, with who it's from.
+    #[tokio::test]
+    async fn a_partner_let_in_suggests_a_workout() {
+        let svc = setup().await;
+        let (alice_id, alice_tok) = user(&svc, "alice").await;
+        let (bob_id, bob_tok) = user(&svc, "bob").await;
+        let (carol_id, _) = user(&svc, "carol").await;
+        let alice_invite = svc.db.get_invite_token(&alice_id).await.unwrap().unwrap();
+        svc.join_via_invite(authed(
+            &bob_tok,
+            JoinViaInviteRequest {
+                invite_token: alice_invite,
+            },
+        ))
+        .await
+        .unwrap();
+
+        // Alice has workouts of her own to suggest.
+        let mut account = svc.db.read_account(&alice_id, Clone::clone).await.unwrap();
+        let mut call = schlift_core::api::Call::new(
+            &mut account,
+            crate::time::now_unix(),
+            Uuid::new_v4().to_string(),
+        );
+        call.complete_onboarding(CompleteOnboardingRequest {
+            unit: 2,
+            ..Default::default()
+        })
+        .unwrap();
+        let events = std::mem::take(&mut call.events);
+        svc.db.push_events(&alice_id, events).await.unwrap();
+        let workout = account.program.workouts[0].clone();
+        let suggest = |token: &str| {
+            authed(
+                token,
+                SuggestWorkoutRequest {
+                    user_id: bob_id.clone(),
+                    template_id: workout.id.clone(),
+                    note: "Try mine".into(),
+                },
+            )
+        };
+
+        let refused = svc.suggest_workout(suggest(&alice_tok)).await.unwrap_err();
+        assert_eq!(refused.code(), tonic::Code::PermissionDenied);
+        let stranger = svc
+            .set_can_suggest(authed(
+                &bob_tok,
+                SetCanSuggestRequest {
+                    user_id: carol_id,
+                    allowed: true,
+                },
+            ))
+            .await
+            .unwrap_err();
+        assert_eq!(stranger.code(), tonic::Code::FailedPrecondition);
+
+        svc.set_can_suggest(authed(
+            &bob_tok,
+            SetCanSuggestRequest {
+                user_id: alice_id.clone(),
+                allowed: true,
+            },
+        ))
+        .await
+        .unwrap();
+        svc.suggest_workout(suggest(&alice_tok)).await.unwrap();
+        let bob = svc.db.read_account(&bob_id, Clone::clone).await.unwrap();
+        assert_eq!(bob.suggestions.len(), 1);
+        let s = &bob.suggestions[0].suggested;
+        assert_eq!(
+            (s.from.as_str(), s.from_name.as_str(), s.title.as_str()),
+            (
+                format!("person:{alice_id}").as_str(),
+                "alice",
+                workout.name.as_str()
+            )
+        );
+        assert!(
+            bob.program.workouts.iter().all(|w| w.name != workout.name),
+            "nothing changes until Bob answers"
+        );
+
+        let partners = |token: &str| {
+            let svc = svc.clone();
+            let token = token.to_string();
+            async move {
+                svc.get_training_partners(authed(&token, GetTrainingPartnersRequest {}))
+                    .await
+                    .unwrap()
+                    .into_inner()
+                    .partners
+            }
+        };
+        assert!(partners(&bob_tok)
+            .await
+            .iter()
+            .any(|p| p.can_suggest_to_me && !p.lets_me_suggest));
+        assert!(partners(&alice_tok)
+            .await
+            .iter()
+            .any(|p| p.lets_me_suggest && !p.can_suggest_to_me));
+
+        svc.set_can_suggest(authed(
+            &bob_tok,
+            SetCanSuggestRequest {
+                user_id: alice_id,
+                allowed: false,
+            },
+        ))
+        .await
+        .unwrap();
+        assert_eq!(
+            svc.suggest_workout(suggest(&alice_tok))
+                .await
+                .unwrap_err()
+                .code(),
+            tonic::Code::PermissionDenied
+        );
+    }
 }

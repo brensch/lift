@@ -1992,6 +1992,190 @@ class ListRecoveriesResponse extends $pb.GeneratedMessage {
   $pb.PbList<RecoveryRequest> get recoveries => $_getList(0);
 }
 
+class ListAssistantFeedbackRequest extends $pb.GeneratedMessage {
+  factory ListAssistantFeedbackRequest() => create();
+
+  ListAssistantFeedbackRequest._();
+
+  factory ListAssistantFeedbackRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListAssistantFeedbackRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListAssistantFeedbackRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListAssistantFeedbackRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListAssistantFeedbackRequest copyWith(
+          void Function(ListAssistantFeedbackRequest) updates) =>
+      super.copyWith(
+              (message) => updates(message as ListAssistantFeedbackRequest))
+          as ListAssistantFeedbackRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListAssistantFeedbackRequest create() =>
+      ListAssistantFeedbackRequest._();
+  @$core.override
+  ListAssistantFeedbackRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ListAssistantFeedbackRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListAssistantFeedbackRequest>(create);
+  static ListAssistantFeedbackRequest? _defaultInstance;
+}
+
+class ListAssistantFeedbackResponse extends $pb.GeneratedMessage {
+  factory ListAssistantFeedbackResponse({
+    $core.Iterable<AssistantFeedback>? feedback,
+  }) {
+    final result = create();
+    if (feedback != null) result.feedback.addAll(feedback);
+    return result;
+  }
+
+  ListAssistantFeedbackResponse._();
+
+  factory ListAssistantFeedbackResponse.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ListAssistantFeedbackResponse.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ListAssistantFeedbackResponse',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..pPM<AssistantFeedback>(1, _omitFieldNames ? '' : 'feedback',
+        subBuilder: AssistantFeedback.create)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListAssistantFeedbackResponse clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ListAssistantFeedbackResponse copyWith(
+          void Function(ListAssistantFeedbackResponse) updates) =>
+      super.copyWith(
+              (message) => updates(message as ListAssistantFeedbackResponse))
+          as ListAssistantFeedbackResponse;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ListAssistantFeedbackResponse create() =>
+      ListAssistantFeedbackResponse._();
+  @$core.override
+  ListAssistantFeedbackResponse createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ListAssistantFeedbackResponse getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ListAssistantFeedbackResponse>(create);
+  static ListAssistantFeedbackResponse? _defaultInstance;
+
+  /// Newest first, at most 200. No user: it is about the tools.
+  @$pb.TagNumber(1)
+  $pb.PbList<AssistantFeedback> get feedback => $_getList(0);
+}
+
+class AssistantFeedback extends $pb.GeneratedMessage {
+  factory AssistantFeedback({
+    $core.String? clientName,
+    $core.String? tool,
+    $core.String? text,
+    $fixnum.Int64? createdAt,
+  }) {
+    final result = create();
+    if (clientName != null) result.clientName = clientName;
+    if (tool != null) result.tool = tool;
+    if (text != null) result.text = text;
+    if (createdAt != null) result.createdAt = createdAt;
+    return result;
+  }
+
+  AssistantFeedback._();
+
+  factory AssistantFeedback.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AssistantFeedback.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AssistantFeedback',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'clientName')
+    ..aOS(2, _omitFieldNames ? '' : 'tool')
+    ..aOS(3, _omitFieldNames ? '' : 'text')
+    ..aInt64(4, _omitFieldNames ? '' : 'createdAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AssistantFeedback clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AssistantFeedback copyWith(void Function(AssistantFeedback) updates) =>
+      super.copyWith((message) => updates(message as AssistantFeedback))
+          as AssistantFeedback;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AssistantFeedback create() => AssistantFeedback._();
+  @$core.override
+  AssistantFeedback createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AssistantFeedback getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AssistantFeedback>(create);
+  static AssistantFeedback? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get clientName => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set clientName($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasClientName() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearClientName() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get tool => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set tool($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTool() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTool() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get text => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set text($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasText() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearText() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get createdAt => $_getI64(3);
+  @$pb.TagNumber(4)
+  set createdAt($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasCreatedAt() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearCreatedAt() => $_clearField(4);
+}
+
 class GetRecoveryRequest extends $pb.GeneratedMessage {
   factory GetRecoveryRequest({
     $core.String? code,

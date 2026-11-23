@@ -131,6 +131,7 @@ mod tests {
             rotation: true,
             notes: String::new(),
             from_library: String::new(),
+            groups: Vec::new(),
         }
     }
 

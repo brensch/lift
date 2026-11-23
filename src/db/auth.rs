@@ -613,6 +613,10 @@ mod tests {
         };
         db.issue_assistant_code(&consent).await.unwrap();
         db.grant_assistant(&consent).await.unwrap();
+        db.record_assistant_feedback(u, "Claude", "", "Edits were easy.")
+            .await
+            .unwrap();
+        db.set_can_suggest(u, u, true).await.unwrap();
         for sql in [
             r#"INSERT INTO account_events (user_id, seq, id, event)
                VALUES (?, 1, 'e', '{"seq":1,"id":"e","at":1,"WorkoutDiscarded":{"workout_id":"w"}}')"#,

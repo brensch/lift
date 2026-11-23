@@ -47,11 +47,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// over it, for an end on the phone or the watch alike.
   void Function(String workoutId)? onWorkoutEnded;
 
-  /// Called once for each ramp set whose "how many more could you have
-  /// done?" opens: done with every rep, on the phone or the watch. The app
-  /// shell shows the question; dismissed, it stays unanswered.
-  void Function(String proposedSetId)? onRungQuestion;
-
   void setBodyWeightKg(double kg) => _bodyWeightKg = kg;
 
   String? _lastLoadError;
@@ -65,8 +60,19 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<ExerciseLog> _logs = [];
   WorkoutSummary? _summary;
   String _rungQuestion = '';
-  List<RungOutcome> _rungOutcomes = const [];
-  final Set<String> _askedRungs = {};
+  String _effortQuestion = '';
+  // The set just done: the banner keeps its circle until [_askedUntil], so
+  // a tap there takes a rep off it instead of starting the next set; each
+  // tap moves the time on. Then the banner goes on to the next set.
+  String _asked = '';
+  DateTime? _askedUntil;
+  Timer? _askedTimer;
+
+  /// How long the banner keeps a set just done, from the last tap on it.
+  static const oneLessWindow = Duration(seconds: 5);
+
+  /// The timed set whose end has been cued, so it rings once.
+  String? _timedSetCued;
   ProposedSet? _nextUp;
   WorkoutStateSnapshot? _snapshot;
   GetHomeResponse? _home;
@@ -175,7 +181,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _logs = List.of(response.exerciseLogs);
     _summary = response.hasSummary() ? response.summary : null;
     _rungQuestion = response.rungQuestionSetId;
-    _rungOutcomes = List.of(response.rungOutcomes);
+    _effortQuestion = response.effortQuestionSetId;
     _nextUp = response.hasNextUpSet() ? response.nextUpSet : null;
     _applyStateSnapshot(
       response.hasStateSnapshot() ? response.stateSnapshot : null,
@@ -282,11 +288,6 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
         _applyWorkoutResponse(response.workoutState);
       }
       notifyListeners();
-      // A change just opened a ramp set's question: ask it, once.
-      final asking = _rungQuestion;
-      if (asking.isNotEmpty && _askedRungs.add(asking)) {
-        onRungQuestion?.call(asking);
-      }
     } catch (e) {
       _handleError(e);
     }
@@ -310,6 +311,16 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     if (snapshot == null) {
       _wasResting = false;
       return;
+    }
+    // A timed set's seconds run out: the rest end's cue, once a set.
+    if (stateAt(snapshot, _nowSecs) == WorkoutState.WORKOUT_STATE_LIFTING &&
+        timedSetLeft(snapshot, _nowSecs) == 0 &&
+        _timedSetCued != snapshot.displaySet.id &&
+        !_sandbox &&
+        _onScreen) {
+      _timedSetCued = snapshot.displaySet.id;
+      _soundProvider?.playCurrentSound();
+      unawaited(NotificationService.playRestCompletionHaptic());
     }
     final isCurrentlyResting =
         stateAt(snapshot, _nowSecs) == WorkoutState.WORKOUT_STATE_RESTING;
@@ -435,7 +446,50 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   ValueListenable<bool?> get onboarded => _onboarded;
   final ValueNotifier<bool?> _onboarded = ValueNotifier(null);
 
+  /// Changes others suggested: waiting first, then the answered.
+  List<Suggestion> _suggestions = const [];
+  List<Suggestion> get suggestions => _suggestions;
+  List<Suggestion> get pendingSuggestions => [
+    for (final s in _suggestions)
+      if (s.status == SuggestionStatus.SUGGESTION_STATUS_UNSPECIFIED) s,
+  ];
+
+  Future<void> refreshSuggestions() async {
+    try {
+      _suggestions = (await _service.getSuggestions()).suggestions;
+      notifyListeners();
+    } catch (e) {
+      AppLogger.instance.warn('Workout', 'getSuggestions failed', {
+        'error': e.toString(),
+      });
+    }
+  }
+
+  /// Accept or decline a suggestion; an accept that no longer fits says
+  /// why (null when it was answered).
+  /// A suggestion laid out to decide on: null when it can't be read.
+  Future<ExplainSuggestionResponse?> explainSuggestion(String id) async {
+    try {
+      return await _service.explainSuggestion(id);
+    } catch (e) {
+      AppLogger.instance.warn('Workout', 'explainSuggestion failed', {
+        'error': '$e',
+      });
+      return null;
+    }
+  }
+
+  Future<String?> answerSuggestion(String id, bool accept) async {
+    final response = await _service.answerSuggestion(id, accept);
+    if (response.problem.isNotEmpty) return response.problem;
+    _setHome(await _service.getHome(budgetMinutes: _budgetMinutes));
+    notifyListeners();
+    return null;
+  }
+
   void _setHome(GetHomeResponse? home) {
+    // Suggestions arrive with everything else: look again when Home does.
+    if (!_sandbox) unawaited(refreshSuggestions());
     _home = home;
     _onboarded.value = home?.onboarded;
   }
@@ -504,14 +558,54 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   /// '' when none: the core decides (done in full, unanswered, the latest
   /// set, nothing lifted since).
   String get rungQuestionSetId => _rungQuestion;
+  String get effortQuestionSetId => _effortQuestion;
 
-  /// What each range answer to the open question leads to (the core
-  /// answers a copy): the next ramp set's weight, or the working sets'.
-  RungOutcome? rungOutcome(RepsLeft repsLeft) {
-    for (final o in _rungOutcomes) {
-      if (o.repsLeft == repsLeft) return o;
+  /// The set just done that asks how it went (a ramp set, or a lift's last
+  /// set with an effort target), or empty: the banner and the watch ask it.
+  String get questionSetId =>
+      _rungQuestion.isNotEmpty ? _rungQuestion : _effortQuestion;
+
+  /// The set the banner shows done: the open question's, or the set just
+  /// done until [askingUntil] (its reps tapped down there, a miss closing
+  /// any question), unless a set is started first.
+  String get askingSetId {
+    final open = questionSetId;
+    if (open.isNotEmpty) return open;
+    final w = _workout;
+    final until = _askedUntil;
+    if (_asked.isEmpty || w == null || until == null) return '';
+    if (w.liftingSetId.isNotEmpty || !DateTime.now().isBefore(until)) return '';
+    return _asked;
+  }
+
+  /// When the banner's circle stops waiting for another tap; null while
+  /// none is counting down.
+  DateTime? get askingUntil => askingSetId == _asked ? _askedUntil : null;
+
+  void _keepInBanner(String setId) {
+    _asked = setId;
+    _askedUntil = DateTime.now().add(oneLessWindow);
+    _askedTimer?.cancel();
+    _askedTimer = Timer(oneLessWindow, () {
+      _endAsking();
+      notifyListeners();
+    });
+  }
+
+  void _endAsking() {
+    _askedTimer?.cancel();
+    _askedTimer = null;
+    _asked = '';
+    _askedUntil = null;
+  }
+
+  /// The reps logged on the set the banner asks about.
+  int get askingReps {
+    final id = askingSetId;
+    for (final c in _completed.reversed) {
+      if (c.proposedSetId == id && c.endedAt != Int64.ZERO) return c.actualReps;
     }
-    return null;
+    return 0;
   }
 
   ExerciseLog? logFor(String exercise) {
@@ -626,8 +720,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       final active = await _service.getActiveWorkout();
       if (active != null) {
         _applyWorkoutResponse(await _service.getWorkout(active.id));
-        // A question open before this load was asked then.
-        if (_rungQuestion.isNotEmpty) _askedRungs.add(_rungQuestion);
+
         _mergeHeartRate(await _service.getWorkoutHeartRate(active.id));
         _startTimer();
       } else {
@@ -654,8 +747,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     _logs = [];
     _summary = null;
     _rungQuestion = '';
-    _rungOutcomes = const [];
-    _askedRungs.clear();
+    _effortQuestion = '';
+    _endAsking();
     _nextUp = null;
     _blocksCache.clear();
     _applyStateSnapshot(null);
@@ -825,6 +918,8 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
           ..actualWeight = actualWeight
           ..completedAt = Int64(completedAt ?? 0)),
     );
+    _keepInBanner(proposedSetId);
+    notifyListeners();
   }
 
   Future<void> deleteCompletedSet(String completedSetId) async {
@@ -856,32 +951,65 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     await deleteCompletedSet(completedSetId);
   }
 
-  /// Answer a ramp set's "how many more could you have done?": 0–1 ends
-  /// the ramp there, more climbs the next rung for it. The core ignores an
-  /// answer to a question no longer open.
-  Future<void> answerRung(String proposedSetId, RepsLeft repsLeft) async {
-    if (_workout == null) return;
+  /// As many as you can: each tap on a done set adds a rep (up to 99).
+  Future<void> addRepToDoneSet(String completedSetId) async {
+    final done = _doneById(completedSetId);
+    if (done == null || done.actualReps >= 99) return;
     await _mutate(
       WorkoutMutation()
-        ..answerRung = (AnswerRungRequest()
+        ..editCompletedSet = (EditCompletedSetRequest()
           ..workoutId = _workoutId
-          ..proposedSetId = proposedSetId
-          ..repsLeft = repsLeft),
+          ..completedSetId = completedSetId
+          ..actualReps = done.actualReps + 1
+          ..actualWeight = done.actualWeight),
     );
   }
 
-  /// Answer a ramp set's question with a specific jump instead: the next
-  /// ramp set is that set's weight plus [jumpLb] (pounds), snapped to what
-  /// loads, and the ramp goes on. The core ignores a jump out of range or
-  /// to a question no longer open.
-  Future<void> answerRungJump(String proposedSetId, double jumpLb) async {
-    if (_workout == null) return;
+  /// The answer to the question the banner and the watch ask after a set:
+  /// Easy (plenty left: a ramp jumps further), Hard (nearly all out: a ramp
+  /// is done) or one less (the set's circle: a rep off per tap, a miss, and
+  /// the core goes on from that). Anything but the set asked about is
+  /// ignored.
+  Future<void> answerQuick(String setId, QuickAnswer answer) async {
+    if (_workout == null || setId.isEmpty || setId != askingSetId) return;
+    // One less: a rep off the set, as a tap on its circle; the circle stays
+    // for the next tap.
+    if (answer == QuickAnswer.QUICK_ANSWER_ONE_LESS) {
+      CompletedSet? done;
+      for (final c in _completed) {
+        if (c.proposedSetId == setId && c.endedAt != Int64.ZERO) done = c;
+      }
+      final set = proposedSetById(setId);
+      if (done == null || set == null) return;
+      // As many as you can counts up; anything else down, to zero. The
+      // time moves on before the edit lands, so the circle never drops out
+      // between the miss closing a question and the edit.
+      if (set.amrap) {
+        _keepInBanner(setId);
+        await addRepToDoneSet(done.id);
+      } else if (done.actualReps > 0) {
+        _keepInBanner(setId);
+        await tapDoneSet(done.id);
+      }
+      return;
+    }
+    if (setId != questionSetId) return;
+    _endAsking();
+    final repsLeft = answer == QuickAnswer.QUICK_ANSWER_EASY
+        ? RepsLeft.REPS_LEFT_FIVE_PLUS
+        : RepsLeft.REPS_LEFT_ZERO_TO_ONE;
     await _mutate(
-      WorkoutMutation()
-        ..answerRung = (AnswerRungRequest()
-          ..workoutId = _workoutId
-          ..proposedSetId = proposedSetId
-          ..jumpLb = jumpLb),
+      setId == _rungQuestion
+          ? (WorkoutMutation()
+              ..answerRung = (AnswerRungRequest()
+                ..workoutId = _workoutId
+                ..proposedSetId = setId
+                ..repsLeft = repsLeft))
+          : (WorkoutMutation()
+              ..answerEffort = (AnswerEffortRequest()
+                ..workoutId = _workoutId
+                ..proposedSetId = setId
+                ..repsLeft = repsLeft)),
     );
   }
 
@@ -1289,6 +1417,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _stopTimer();
+    _askedTimer?.cancel();
     _clock.dispose();
     _onboarded.dispose();
     super.dispose();

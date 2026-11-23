@@ -491,32 +491,51 @@ straight after it (`would_append`):
   as best it can be: a set to failure of at least one rep,
   `shown_max(weight, max(reps, 1), 0)`.
 
-A rung done with every rep (not the sixth) asks "How many more could you
-have done?": `GetWorkoutResponse.rung_question_set_id` names it while the
-question is open (it is the latest done set, unanswered, nothing pending
-for its lift but the rung it appended, nothing being lifted). The phone
-shows a dialog with three answers (`RungQuestionDialog`, opened once per
-rung by `WorkoutProvider.onRungQuestion`, whether the set was done on the
-phone or the watch); the watch's weight row says "Open phone!" meanwhile.
-A tap records `AnswerRung` (kept on the done set as `reps_left`), which
-counts as reps in reserve: 0–1 as 0.5, 2–4 as 3, 5+ as 8.
+A rung done with every rep (not the sixth) asks how it went:
+`GetWorkoutResponse.rung_question_set_id` names it while the question is
+open (it is the latest done set, unanswered, nothing pending for its lift
+but the rung it appended, nothing being lifted). The phone asks in the
+banner, in place of weight × reps (`QuickQuestion`: Easy, Hard, and the
+set's own circle), and the watch shows the same as buttons (`WearQuestion`,
+answered with `AnswerQuestionIntent`); there is no dialog. The phone turns the word into
+the core's answer (`WorkoutProvider.answerQuick`):
 
-- 0–1 → the ramp ends there: the working sets from
-  `shown_max(weight, 5, 0.5)`, as a miss's, `CALIBRATION_SETTLED`;
-- 2–4 or 5+ → the pending rung is re-planned: the heaviest loadable weight
-  `w` with `w × (1 + 6/30) ≤ shown_max(weight, 5, reserve)` (a rep in
-  reserve on five), never under the usual rung, `CALIBRATION_STEP`;
-- a specific jump (the field under the three answers, in the user's
-  unit, sent as `AnswerRung.jump_lb` in pounds and kept on the done set as
-  `jump_lb`) → the pending rung is re-planned to the rung's weight plus
-  the jump, snapped to what the lift loads and at least one step up
-  (`planning::jumped_calibration_weight`), `CALIBRATION_STEP`; the ramp
-  goes on;
-- no answer (dismissed) → the usual rung stands.
+- Easy → `AnswerRung` 5+ (kept on the done set as `reps_left`, a reserve of
+  8): the pending rung is re-planned, the heaviest loadable weight `w` with
+  `w × (1 + 6/30) ≤ shown_max(weight, 5, reserve)` (a rep in reserve on
+  five), never under the usual rung, `CALIBRATION_STEP`;
+- Hard → `AnswerRung` 0–1 (a reserve of 0.5): the ramp ends there, the
+  working sets from `shown_max(weight, 5, 0.5)`, as a miss's,
+  `CALIBRATION_SETTLED`;
+- the circle (`QUICK_ANSWER_ONE_LESS`) → a rep off per tap, as a done
+  circle's tap: a miss, which settles or steps down as any miss does. The
+  miss closes the question, and the banner shows the set as any set just
+  done (below). It stops at zero;
+- no answer (the next set done) → the usual rung stands.
 
-An answer carries exactly one of `reps_left` and `jump_lb`; both, neither,
-or a jump not over 0 or over twice the rung (`max_jump_fraction`) is a
-no-op, and the phone's button is off for those.
+The same question follows a lift's last set with an effort target
+(`effort_question_set_id`, done in full): Easy and Hard record
+`EffortAnswered` 5+ and 0–1, the circle a rep off per tap. The core still reads
+2–4 and `AnswerRung.jump_lb` (a specific jump) from accounts that recorded
+them; the app no longer sends them.
+
+A scheme step's `on_miss` (`ProposedSet.on_miss`, from `PlannedSet`) acts
+when one of its sets is done short of its reps (not a warmup or a ramp
+set): the rest after it is `on_miss.rest_seconds` if given (never less
+than its usual rest), and the lift's
+sets still to do are marked `miss_from` it and lightened by `fraction`
+(the weight before kept in `weight_before_miss`, logged
+`WEIGHT_CHANGE_CAUSE_MISS`) or dropped (`stop`: cancelled). The set edited
+back to every rep, or undone, puts them back (any done since stay done).
+It's folded from the set facts alone (`reducer::apply_on_miss`), so the
+phone and the server agree. The line under the lift says what it did.
+
+Any set just done stays in the banner a moment (`WorkoutProvider.askingSetId`,
+`oneLessWindow`, five seconds): its circle, with a ring counting down, where
+a tap takes a rep off (adds one to as many as you can) instead of starting
+the next set, and each tap starts the ring again. When it runs out, or a set
+is started, the banner goes on to the next set. The exercise list's circles
+have no window: they already move on.
 
 An answer to any other set, or once the question is closed, is a no-op. A
 rung corrected to a miss drops its answer, jump included. The walk's ramp

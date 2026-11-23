@@ -64,6 +64,36 @@ message ProposedSet {
   // A warmup the person chose not to do ("skip all warmups"). It stays in
   // the plan and on screen, nothing waits on it, and it can still be done.
   bool skipped = 16;
+  // What kind of set it is within its lift (docs/plans/set-types.md): a
+  // plain working set, a top set, a back-off, a drop after the set before
+  // it, or a mini-set (rest-pause, myo-reps, clusters). Warmups and rungs
+  // keep their own flags and are WORKING here.
+  SetRole role = 18;
+  // As many as you can: target_reps is the minimum.
+  bool amrap = 19;
+  // An effort target: reps left in the tank after the set. Unset: none,
+  // and nothing is asked.
+  optional int32 target_rir = 20;
+  // What target_reps (and a completed set's actual_reps) counts.
+  Measure measure = 21;
+  // Reps (or seconds, or metres) on each side.
+  bool per_side = 22;
+  // A cue shown with the set ("3-1-1"); never timed.
+  string tempo = 23;
+  // The group (superset, circuit) its lift is in within this workout, or
+  // "": the group's sets alternate.
+  string group = 24;
+  // EMOM: the next set starts this long after this one started. 0: none.
+  int32 every_seconds = 25;
+  // Its weight as a share of the lift's working weight (a back-off, a
+  // drop, a pyramid step): a new working weight scales it. 0 reads as 1.
+  float fraction = 26;
+  // What missing it changes for the rest of its lift (PlannedSet.on_miss).
+  OnMiss on_miss = 27;
+  // The set whose miss lightened or dropped this one, and its weight
+  // before; a set put back to every rep restores it.
+  string miss_from = 28;
+  float weight_before_miss = 29;
   reserved 8, 10, 12, 13, 14;
   reserved "exercise_group_id", "is_amrap", "instruction", "progression_hint", "rest_after_success", "rest_after_failure";
   // Exercises were enum numbers before they were keys.
@@ -216,6 +246,56 @@ message PlanReason {
   int32 of = 19;
 }
 
+// A set's role within its lift (docs/plans/set-types.md).
+enum SetRole {
+  // A plain working set: every set recorded before roles, and a warmup or
+  // rung (which keep their own flags).
+  SET_ROLE_UNSPECIFIED = 0;
+  SET_ROLE_TOP = 1;
+  SET_ROLE_BACKOFF = 2;
+  // Straight after the set before it, lighter, no rest: taken to failure.
+  SET_ROLE_DROP = 3;
+  // A short set after a short rest: rest-pause, myo-reps, clusters.
+  SET_ROLE_MINI = 4;
+}
+
+// What a lift's number counts.
+enum Measure {
+  // Reps: every lift before measures.
+  MEASURE_UNSPECIFIED = 0;
+  MEASURE_SECONDS = 1;
+  MEASURE_METRES = 2;
+}
+
+// One set of a lift's laid-out shape, relative to its working weight: what
+// a program's scheme made of the rule's sets, reps and weight.
+message PlannedSet {
+  SetRole role = 1;
+  // The number for this set: reps, seconds or metres, by the measure.
+  int32 reps = 2;
+  // Of the working weight; a drop's is already multiplied through the sets
+  // before it. 0 reads as 1.
+  float fraction = 3;
+  bool amrap = 4;
+  optional int32 rir = 5;
+  int32 rest_seconds = 6;
+  int32 every_seconds = 7;
+  // What missing this set changes for the rest of its lift; unset: nothing.
+  OnMiss on_miss = 8;
+}
+
+// What a set missed (logged short of its target) changes for the rest of
+// its lift in that workout. A set put back to every rep takes it back.
+message OnMiss {
+  // The rest after the missed set; 0: its usual rest.
+  int32 rest_seconds = 1;
+  // The lift's sets still to do, at this share of their weight; 0: as they
+  // are.
+  float fraction = 2;
+  // The lift's sets still to do are dropped.
+  bool stop = 3;
+}
+
 // What one lift is given in a workout: everything its sets are laid out
 // from.
 message ExerciseDecision {
@@ -246,6 +326,17 @@ message ExerciseDecision {
   // `formula`).
   string progression = 15;
   string progression_kind = 16;
+  // The sets one by one, when the program's scheme isn't straight sets or
+  // the lift is in a group. Empty: `sets` identical sets of `reps` at
+  // `weight`, resting `rest_seconds`, as every decision before schemes.
+  repeated PlannedSet scheme_sets = 17;
+  Measure measure = 18;
+  bool per_side = 19;
+  string tempo = 20;
+  // Its group within the workout ("" for none): the group's sets alternate.
+  string group = 21;
+  // The scheme's name in the program, for reading the plan back.
+  string scheme = 22;
   // Exercises were enum numbers before they were keys.
   reserved 1;
 }
@@ -260,6 +351,9 @@ enum WeightChangeCause {
   WEIGHT_CHANGE_CAUSE_CALIBRATION_SETTLED = 3;
   // EditCompletedSet: the weight recorded on a done set fixed.
   WEIGHT_CHANGE_CAUSE_CORRECTION = 4;
+  // A set missed: the lift's sets still to do lighter (OnMiss.fraction),
+  // or back where they were once it's put back to every rep.
+  WEIGHT_CHANGE_CAUSE_MISS = 5;
 }
 
 // A weight changed during a workout, and why.
@@ -387,10 +481,6 @@ message GetWorkoutResponse {
   // lift, the rung it appended still to lift and nothing being lifted.
   // Empty when none. An AnswerRungRequest applies only to this set.
   string rung_question_set_id = 12;
-  // What each range answer to that question leads to, worked out by
-  // answering a copy: 0–1 settles the ramp (weight = the working sets'),
-  // 2–4 and 5+ the next ramp set's weight. Empty when no question is open.
-  repeated RungOutcome rung_outcomes = 13;
   // Undone warmups that are behind you (skipped, or a working set of their
   // exercise is done): shown out of the way, nothing waits on them.
   repeated string passed_warmup_ids = 10;
@@ -403,8 +493,15 @@ message GetWorkoutResponse {
   // The workout's lifts as the program it was planned under defines them:
   // what to call a lift, whoever's program it came from.
   repeated ExerciseInfo exercises = 15;
-  reserved 6, 8;
-  reserved "plan_change_stats", "user_messages";
+  // A set with an effort target, just done and unanswered, whose "how many
+  // more could you have done?" is open; empty when none. An
+  // AnswerEffortRequest applies only to this set. Dismissing it leaves the
+  // set unanswered.
+  string effort_question_set_id = 16;
+  // 13 was rung_outcomes: what each answer led to, for the dialog the
+  // banner's question replaced.
+  reserved 6, 8, 13;
+  reserved "plan_change_stats", "user_messages", "rung_outcomes";
 }
 
 // A set is pending, done or cancelled. The workout's state is derived from
@@ -536,14 +633,6 @@ message SkipWarmupsRequest {
   reserved 2;
 }
 
-// What one answer to a rung's question leads to (GetWorkoutResponse.rung_outcomes).
-message RungOutcome {
-  RepsLeft reps_left = 1;
-  float weight = 2; // lb
-  // The ramp ends: the weight is the working sets', not a next ramp set's.
-  bool settles = 3;
-}
-
 // The answer to "how many more could you have done?" on a calibration rung
 // done in full. 0–1 ends the ramp there: the working sets are laid out from
 // the max the rung shows with that reserve. 2–4 and 5+ re-plan the next
@@ -560,6 +649,14 @@ message AnswerRungRequest {
   string proposed_set_id = 2;
   RepsLeft reps_left = 3;
   float jump_lb = 4; // pounds, like every stored weight; 0 = not a jump
+}
+
+// The answer to a set's effort target: reps left in the tank, the same
+// three answers a rung asks. A set without a target refuses it.
+message AnswerEffortRequest {
+  string workout_id = 1;
+  string proposed_set_id = 2;
+  RepsLeft reps_left = 3;
 }
 
 // Begin a set: the workout is LIFTING it until its Done. Starting another
@@ -1018,6 +1115,7 @@ message WorkoutMutation {
     SkipWarmupsRequest skip_warmups = 25;
     SetWorkoutSessionRequest set_session = 26;
     AnswerRungRequest answer_rung = 27;
+    AnswerEffortRequest answer_effort = 28;
   }
   reserved 1, 2, 10, 12, 15, 16, 21, 22;
   reserved "event_id", "client_created_at", "skip_rest", "cancel_proposed_set", "rate_exercise";
@@ -1067,6 +1165,137 @@ message GetProgramResponse {
 }
 
 // One earlier program's document (from GetProgramResponse.history).
+// ── Suggestions: changes others suggest (docs/plans/set-types.md) ──
+
+enum SuggestionStatus {
+  // Waiting for the person.
+  SUGGESTION_STATUS_UNSPECIFIED = 0;
+  SUGGESTION_STATUS_ACCEPTED = 1;
+  SUGGESTION_STATUS_DECLINED = 2;
+}
+
+// What one change of a suggestion does, for the app to say in its words.
+enum ChangeVerb {
+  // Sets a number or a field.
+  CHANGE_VERB_UNSPECIFIED = 0;
+  CHANGE_VERB_ADD = 1;
+  CHANGE_VERB_CHANGE = 2;
+  CHANGE_VERB_REMOVE = 3;
+}
+
+enum ChangeSubject {
+  // One of the program's numbers.
+  CHANGE_SUBJECT_UNSPECIFIED = 0;
+  CHANGE_SUBJECT_WORKOUT = 1;
+  CHANGE_SUBJECT_EXERCISE = 2;
+  CHANGE_SUBJECT_SCHEME = 3;
+  CHANGE_SUBJECT_PROGRESSION = 4;
+  CHANGE_SUBJECT_CLASS = 5;
+}
+
+message SuggestedChange {
+  ChangeVerb verb = 1;
+  ChangeSubject subject = 2;
+  // The workout's or exercise's name, or the path for a number.
+  string name = 3;
+}
+
+message Suggestion {
+  string id = 1;
+  // `person:<user id>` or `mcp:<client>`, and what to call them.
+  string from = 2;
+  string from_name = 3;
+  // `workout` or `program`.
+  string kind = 4;
+  string title = 5;
+  string note = 6;
+  int64 suggested_at = 7; // unix seconds
+  SuggestionStatus status = 8;
+  int64 answered_at = 9;
+  repeated SuggestedChange changes = 10;
+  // Waiting, but it no longer applies to the program as it is now: why.
+  // Only declining is offered then.
+  string problem = 11;
+  // A workout suggestion: its lifts, for the plan preview.
+  repeated string exercises = 12;
+}
+
+// A suggestion laid out to decide on: what the week becomes, how each
+// lift's rule changes, and the other numbers it changes. Facts, not words: the app says them.
+message ExplainSuggestionRequest {
+  string suggestion_id = 1;
+}
+message ExplainSuggestionResponse {
+  Suggestion suggestion = 1;
+  // The rotation's workouts by name, now and with the change.
+  repeated string rotation_before = 2;
+  repeated string rotation_after = 3;
+  repeated WorkoutChange workouts = 4;
+  // Each lift the person trains whose rule or scheme changes.
+  repeated LiftRuleChange lifts = 5;
+  // Other numbers it changes, by path (classes.heavy.rest_seconds).
+  repeated NumberChange numbers = 7;
+  reserved 6;
+  reserved "forecasts";
+}
+
+message WorkoutChange {
+  ChangeVerb verb = 1;
+  string name = 2;
+  // Its lifts, by name, with the change.
+  repeated string exercises = 3;
+}
+
+// A progression as numbers, for the app to say in a sentence.
+message RuleSummary {
+  // estimated_max, fixed, linear, double, cycle or formula.
+  string kind = 1;
+  int32 sets = 2; // 0: the time budget's
+  int32 reps = 3;
+  int32 rep_low = 4;
+  int32 rep_high = 5;
+  float increment_lb = 6; // 0: the equipment's step
+  int32 deload_after_fails = 7;
+  float deload_factor = 8;
+  int32 rep_step = 9;
+  float weight_lb = 10;
+  int32 cycle_steps = 11;
+  // A formula's own words for itself.
+  string note = 12;
+  // The scheme that lays out its sets; "straight" for identical sets.
+  string scheme = 13;
+}
+
+message LiftRuleChange {
+  string exercise = 1;
+  string name = 2;
+  RuleSummary before = 3;
+  RuleSummary after = 4;
+}
+
+message NumberChange {
+  string path = 1;
+  double before = 2;
+  double after = 3;
+}
+
+message GetSuggestionsRequest {}
+message GetSuggestionsResponse {
+  // Waiting first (newest first), then the answered, newest first.
+  repeated Suggestion suggestions = 1;
+  int32 pending = 2;
+}
+
+// Accept (it becomes the program, set by the suggester) or decline.
+message AnswerSuggestionRequest {
+  string suggestion_id = 1;
+  bool accept = 2;
+}
+message AnswerSuggestionResponse {
+  // Accepting it didn't apply: why, and nothing was recorded.
+  string problem = 1;
+}
+
 message GetProgramVersionRequest {
   string id = 1;
 }

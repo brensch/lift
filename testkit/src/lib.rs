@@ -13,12 +13,12 @@ use rand::{Rng, SeedableRng};
 use schlift_core::pb::workout_mutation::Mutation;
 use schlift_core::pb::{
     user_setting, AddExercisesRequest, AddLibraryTemplatesRequest, AdjustExerciseWeightRequest,
-    AnswerRungRequest, AppendWorkoutHeartRateRequest, AppendWorkoutMutationsRequest,
-    AppendWorkoutMutationsResponse, ApplyLibraryPlanRequest, CompleteOnboardingRequest,
-    CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest, DeleteTemplateRequest,
-    DiscardWorkoutRequest, EditCompletedSetRequest, EndWorkoutRequest, ExerciseWeight,
-    GetHomeRequest, GetHomeResponse, GetProgramRequest, GetProgramResponse, GetWorkoutResponse,
-    ImportHistory, ImportedWorkout, PlateColor, PlateColorsConfig, ProposedSet,
+    AnswerEffortRequest, AnswerRungRequest, AppendWorkoutHeartRateRequest,
+    AppendWorkoutMutationsRequest, AppendWorkoutMutationsResponse, ApplyLibraryPlanRequest,
+    CompleteOnboardingRequest, CompleteSetRequest, CompletedSet, DeleteCompletedSetRequest,
+    DeleteTemplateRequest, DiscardWorkoutRequest, EditCompletedSetRequest, EndWorkoutRequest,
+    ExerciseWeight, GetHomeRequest, GetHomeResponse, GetProgramRequest, GetProgramResponse,
+    GetWorkoutResponse, ImportHistory, ImportedWorkout, PlateColor, PlateColorsConfig, ProposedSet,
     RemoveExerciseRequest, ReorderExercisesRequest, ReorderTemplatesRequest, SaveTemplateRequest,
     SetOverrideRequest, SetProgramRequest, SetWorkoutSessionRequest, SkipWarmupsRequest,
     StartSetRequest, StartWorkoutRequest, StartWorkoutResponse, UpdateSettingRequest, UserSetting,
@@ -46,6 +46,8 @@ pub struct Lifter {
 pub enum Move {
     /// The ramp asked how many more reps were left.
     AnswerRung(AnswerRungRequest),
+    /// A set with an effort target asked the same.
+    AnswerEffort(AnswerEffortRequest),
     /// The up-next set, started then done.
     Lift(StartSetRequest, CompleteSetRequest),
     /// Nothing left: end it.
@@ -67,6 +69,13 @@ impl Lifter {
                 proposed_set_id: state.rung_question_set_id.clone(),
                 reps_left: self.rng.gen_range(1..=3),
                 jump_lb: 0.0,
+            });
+        }
+        if !state.effort_question_set_id.is_empty() {
+            return Move::AnswerEffort(AnswerEffortRequest {
+                workout_id: workout_id.to_string(),
+                proposed_set_id: state.effort_question_set_id.clone(),
+                reps_left: self.rng.gen_range(1..=3),
             });
         }
         let Some(set) = &state.next_up_set else {
@@ -206,6 +215,9 @@ fn train(
         match lifter.next_move(id, &state) {
             Move::AnswerRung(answer) => {
                 state = mutate(store, Mutation::AnswerRung(answer), now)?;
+            }
+            Move::AnswerEffort(answer) => {
+                state = mutate(store, Mutation::AnswerEffort(answer), now)?;
             }
             Move::Lift(mut begin, mut done) => {
                 let rest = state
@@ -409,9 +421,24 @@ pub fn edits(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64> 
         "kind": "linear", "sets": 3, "reps": 5, "increment_lb": 0.0,
         "deload_after_fails": 3, "deload_factor": 0.9
     });
+    // Overhead press by a top set and back-offs that ask how hard they
+    // were, and the first workout's first two lifts as a superset.
+    program["schemes"]["top_backoff"]["steps"][1]["rir"] = 2.into();
     for e in program["exercises"].as_array_mut().into_iter().flatten() {
         if e["key"] == "squat" {
             e["progression"] = "lp".into();
+        }
+        if e["key"] == "overhead_press" {
+            e["scheme"] = "top_backoff".into();
+        }
+    }
+    if let Some(first) = program["workouts"].get_mut(0) {
+        let lifts: Vec<serde_json::Value> = first["exercises"]
+            .as_array()
+            .map(|a| a.iter().take(2).cloned().collect())
+            .unwrap_or_default();
+        if lifts.len() == 2 {
+            first["groups"] = serde_json::json!([{ "exercises": lifts, "rest_seconds": 90 }]);
         }
     }
     program["exercises"]

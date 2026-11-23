@@ -78,7 +78,18 @@ fn make_set(
         cancelled: false,
         calibration: false,
         skipped: false,
+        ..Default::default()
     }
+}
+
+/// What every set of a lift carries from its decision: what its number
+/// counts, sides, a tempo cue and its group.
+pub fn dress(mut set: ProposedSet, decision: &ExerciseDecision) -> ProposedSet {
+    set.measure = decision.measure;
+    set.per_side = decision.per_side;
+    set.tempo = decision.tempo.clone();
+    set.group = decision.group.clone();
+    set
 }
 
 /// The warmup ladder up to `working_weight`. The last warmup rolls
@@ -212,7 +223,7 @@ pub fn working_sets_after_calibration(
     unit: AppWeightUnit,
 ) -> Vec<ProposedSet> {
     let (weight, reps) = program.choose(&decision.exercise, max, None, Shape::of(decision), unit);
-    working_sets(workout_id, decision, weight, reps)
+    working_sets(program, workout_id, decision, weight, reps, unit)
 }
 
 /// The most working sets one decision lays out. The app decides at most 20
@@ -220,26 +231,84 @@ pub fn working_sets_after_calibration(
 /// asking for billions.
 const MOST_WORKING_SETS: i32 = 10_000;
 
-/// The decision's working sets at `weight` × `reps`. Ids are fresh;
-/// callers set them.
+/// The decision's working sets at `weight` × `reps`: its scheme's sets
+/// one by one where it has them (each at its share of `weight`, a set
+/// without its own number at `reps`), otherwise `sets` identical ones, as
+/// every decision before schemes. Ids are fresh; callers set them.
 fn working_sets(
+    program: &Program,
     workout_id: &str,
     decision: &ExerciseDecision,
     weight: f32,
     reps: i32,
+    unit: AppWeightUnit,
 ) -> Vec<ProposedSet> {
-    (0..decision.sets.clamp(1, MOST_WORKING_SETS))
-        .map(|_| {
-            make_set(
+    if decision.scheme_sets.is_empty() {
+        return (0..decision.sets.clamp(1, MOST_WORKING_SETS))
+            .map(|_| {
+                dress(
+                    make_set(
+                        workout_id,
+                        &decision.exercise,
+                        reps,
+                        weight,
+                        false,
+                        decision.rest_seconds,
+                    ),
+                    decision,
+                )
+            })
+            .collect();
+    }
+    decision
+        .scheme_sets
+        .iter()
+        .take(MOST_WORKING_SETS as usize)
+        .map(|planned| {
+            let fraction = share(planned.fraction);
+            let mut set = make_set(
                 workout_id,
                 &decision.exercise,
-                reps,
-                weight,
+                if planned.reps > 0 { planned.reps } else { reps },
+                scaled(program, &decision.exercise, weight, fraction, unit),
                 false,
-                decision.rest_seconds,
-            )
+                planned.rest_seconds,
+            );
+            set.role = planned.role;
+            set.amrap = planned.amrap;
+            set.target_rir = planned.rir;
+            set.every_seconds = planned.every_seconds;
+            set.fraction = fraction;
+            set.on_miss = planned.on_miss;
+            dress(set, decision)
         })
         .collect()
+}
+
+/// A recorded share of the working weight: 0 (a set from before shares)
+/// is the whole.
+pub fn share(fraction: f32) -> f32 {
+    if fraction > 0.0 {
+        fraction
+    } else {
+        1.0
+    }
+}
+
+/// `weight` × `fraction`, loadable: the whole weight is left as given (it
+/// was snapped when it was decided).
+pub fn scaled(
+    program: &Program,
+    exercise: &str,
+    weight: f32,
+    fraction: f32,
+    unit: AppWeightUnit,
+) -> f32 {
+    if fraction == 1.0 {
+        weight
+    } else {
+        program.snap_lb(exercise, weight * fraction, unit)
+    }
 }
 
 /// Splice `sets` in straight after the set `after_id`, ahead of whatever
@@ -267,11 +336,9 @@ fn block_sets(
     ids: &mut Ids,
 ) -> Vec<ProposedSet> {
     let mut sets = if decision.calibration {
-        vec![calibration_set(
-            program,
-            workout_id,
-            &decision.exercise,
-            decision.weight,
+        vec![dress(
+            calibration_set(program, workout_id, &decision.exercise, decision.weight),
+            decision,
         )]
     } else {
         let mut sets = if decision.warmups {
@@ -283,14 +350,19 @@ fn block_sets(
                 decision.rest_seconds,
                 unit,
             )
+            .into_iter()
+            .map(|set| dress(set, decision))
+            .collect()
         } else {
             Vec::new()
         };
         sets.extend(working_sets(
+            program,
             workout_id,
             decision,
             decision.weight,
             decision.reps,
+            unit,
         ));
         sets
     };
@@ -364,22 +436,32 @@ pub fn apply_adjust_exercise_weight(
     let done = done_set_ids(&workout_ref.completed_sets);
     let before = workout_ref.planned_weight(exercise);
 
-    // Working sets move in place — same count, same reps, same rest.
-    let mut rest = 0;
+    // Working sets move in place — same count, same reps, same rest — each
+    // to its share of the new weight (a back-off, a drop, a pyramid step).
+    let mut rest = None;
+    let mut dressed: Option<ProposedSet> = None;
     let mut from_set_id = String::new();
     for set in workout_ref
         .proposed_sets
         .iter_mut()
         .filter(|s| s.exercise == exercise && !s.warmup && !s.cancelled)
     {
-        rest = set.rest_seconds;
+        rest.get_or_insert(set.rest_seconds);
+        dressed.get_or_insert_with(|| set.clone());
         if !done.contains(&set.id) {
-            set.target_weight = req.working_weight;
+            set.target_weight = scaled(
+                &program,
+                exercise,
+                req.working_weight,
+                share(set.fraction),
+                unit,
+            );
             if from_set_id.is_empty() {
                 from_set_id = set.id.clone();
             }
         }
     }
+    let rest = rest.unwrap_or(0);
     workout_ref.log_change(
         exercise,
         WeightChange {
@@ -435,6 +517,13 @@ pub fn apply_adjust_exercise_weight(
         .collect();
     for set in &mut fresh_rungs {
         set.id = ids.new_id();
+        // The lift's own: what its number counts, sides, tempo, its group.
+        if let Some(like) = &dressed {
+            set.measure = like.measure;
+            set.per_side = like.per_side;
+            set.tempo = like.tempo.clone();
+            set.group = like.group.clone();
+        }
     }
 
     // Splice: the fresh rungs take the position of the first pending warmup;

@@ -48,10 +48,12 @@ use crate::exercise_progress::{session_outcomes, SessionOutcome, SetDone};
 use crate::history::{workout_time, WorkoutRecord};
 use crate::pb::{
     CompletedSet, ExerciseDecision, ExercisePlan, PlanChangeCause, PlanReason, PlanReasonKind,
-    ProposedSet, RepsLeft,
+    PlannedSet, ProposedSet, RepsLeft, SetRole,
 };
 use crate::program::formula::{Evaluator, Scope};
-use crate::program::{Calibration, Estimate, Formula, Muscle, Program, Progression};
+use crate::program::{
+    Calibration, Estimate, Formula, GroupDef, Muscle, Program, Progression, Role, Scheme,
+};
 use crate::volume::weekly_sets;
 use crate::weight_units::AppWeightUnit;
 
@@ -264,6 +266,12 @@ pub struct LastSession {
     pub best_reps: i32,
     /// Hit, Missed, StoppedEarly or Rushed.
     pub outcome: PlanChangeCause,
+    /// The reps done on its as-many-as-you-can set (the most, with several);
+    /// 0 when it had none.
+    pub amrap_reps: i32,
+    /// The reps left its working sets' effort answers counted, on average
+    /// (the program's calibration reserves); None when none was answered.
+    pub rir: Option<f32>,
 }
 
 /// Walk a lift's finished sessions (oldest first). The override takes its
@@ -274,9 +282,14 @@ pub fn walk(
     sessions: &[SessionOutcome],
     over: Option<&Override>,
 ) -> Walk {
+    // A lift counted in seconds or metres walks like a bodyweight one: its
+    // max is the most it showed of its number.
     let walker = Walker {
         program,
-        bodyweight: program.is_bodyweight(ex),
+        bodyweight: program.is_bodyweight(ex)
+            || program
+                .exercise(ex)
+                .is_some_and(|e| e.measure != crate::program::Measure::Reps),
     };
     let mut walk = Walk::default();
     let mut pending = over;
@@ -338,7 +351,13 @@ impl Walker<'_> {
                     e.shown_max(
                         set.weight,
                         set.reps.saturating_add(extra),
-                        if set.hit { e.reserve_when_hit } else { 0.0 },
+                        // A set with an effort answer counts the reserve it
+                        // said, as a rung's answer does; else the usual.
+                        match self.program.calibration.answered_reserve(set.reps_left) {
+                            Some(said) if set.hit => said,
+                            _ if set.hit => e.reserve_when_hit,
+                            _ => 0.0,
+                        },
                         i + 1,
                         self.bodyweight,
                     ),
@@ -455,6 +474,21 @@ impl Walker<'_> {
                     .max()
                     .unwrap_or(0),
                 outcome,
+                amrap_reps: session
+                    .sets
+                    .iter()
+                    .filter(|s| s.amrap)
+                    .map(|s| s.reps)
+                    .max()
+                    .unwrap_or(0),
+                rir: {
+                    let said: Vec<f32> = session
+                        .sets
+                        .iter()
+                        .filter_map(|s| self.program.calibration.answered_reserve(s.reps_left))
+                        .collect();
+                    (!said.is_empty()).then(|| said.iter().sum::<f32>() / said.len() as f32)
+                },
             });
     }
 }
@@ -597,6 +631,11 @@ impl<'a> LiftScope<'a> {
             ("last.reps", last.map_or(0.0, |l| l.reps as f64)),
             ("last.sets", last.map_or(0.0, |l| l.sets as f64)),
             ("last.best_reps", last.map_or(0.0, |l| l.best_reps as f64)),
+            ("last.amrap_reps", last.map_or(0.0, |l| l.amrap_reps as f64)),
+            (
+                "last.rir",
+                last.and_then(|l| l.rir).map_or(-1.0, |r| r as f64),
+            ),
             (
                 "last.hit",
                 flag(last.is_some_and(|l| l.outcome == PlanChangeCause::Hit)),
@@ -687,7 +726,17 @@ pub fn rule_sets(inputs: &LiftInputs) -> Option<i32> {
     if let Some(sets) = inputs.over.and_then(|o| o.sets) {
         return Some(sets);
     }
-    match inputs.program.progression_of(inputs.exercise) {
+    // A scheme of numbered sets only fixes them; one with a `rest` step
+    // takes the rule's or the budget's, at least its numbered ones.
+    if inputs.over.is_none() {
+        if let Some(scheme) = inputs.program.scheme_of(inputs.exercise) {
+            let (numbered, rest) = main_sets(scheme);
+            if !rest {
+                return Some(numbered.max(1));
+            }
+        }
+    }
+    match &*inputs.program.progression_of(inputs.exercise) {
         Progression::EstimatedMax => None,
         Progression::Fixed { sets, .. } => Some(*sets),
         Progression::Linear { sets, .. } | Progression::Double { sets, .. } => *sets,
@@ -734,7 +783,7 @@ pub fn plan_lift(inputs: &LiftInputs, sets: i32) -> ExerciseDecision {
     } = *inputs;
     let class = p.class_of(ex);
     let rule_name = p.progression_name(ex);
-    let rule = p.progression_of(ex);
+    let rule = &*p.progression_of(ex);
     let bodyweight = p.is_bodyweight(ex);
     let (rep_low, rep_high) = match rule {
         Progression::Fixed { reps, .. } | Progression::Linear { reps, .. } => (*reps, *reps),
@@ -901,6 +950,7 @@ pub fn plan_lift(inputs: &LiftInputs, sets: i32) -> ExerciseDecision {
             rep_low,
             rep_high,
             increment_lb,
+            rep_step,
             ..
         } => {
             let step = if *increment_lb > 0.0 {
@@ -915,9 +965,10 @@ pub fn plan_lift(inputs: &LiftInputs, sets: i32) -> ExerciseDecision {
                         PlanChangeCause::Hit if reps >= *rep_high && step > 0.0 => {
                             (p.snap_lb(ex, last.weight + step, unit), *rep_low)
                         }
-                        PlanChangeCause::Hit => {
-                            (p.snap_lb(ex, last.weight, unit), (reps + 1).min(*rep_high))
-                        }
+                        PlanChangeCause::Hit => (
+                            p.snap_lb(ex, last.weight, unit),
+                            (reps + (*rep_step).max(1)).min(*rep_high),
+                        ),
                         _ => (p.snap_lb(ex, last.weight, unit), reps),
                     };
                     if bodyweight {
@@ -1213,13 +1264,198 @@ pub struct Lift {
     pub fixed_sets: Option<i32>,
     /// Warmups, or a calibration ramp, before its working sets.
     pub lead_in: bool,
+    /// What its scheme adds beyond its main sets: drops and minis.
+    pub extra_seconds: f32,
+}
+
+/// A scheme's numbered main sets (working, top, back-off), and whether it
+/// has a `rest` step for the rule's or the budget's others.
+pub fn main_sets(scheme: &Scheme) -> (i32, bool) {
+    let mut numbered = 0;
+    let mut rest = false;
+    for step in scheme.steps.iter().filter(|s| s.role.is_main()) {
+        match &step.count {
+            crate::program::StepCount::Sets(n) => numbered += (*n).max(0),
+            crate::program::StepCount::Word(_) => rest = true,
+        }
+    }
+    (numbered, rest)
+}
+
+/// What a scheme's drops and minis add to a lift's time, as the budget
+/// counts it: a drop a whole set, a mini half, each with its own rest.
+fn scheme_extra_seconds(costs: &Costs, scheme: &Scheme) -> f32 {
+    scheme
+        .steps
+        .iter()
+        .filter(|s| !s.role.is_main())
+        .map(|s| {
+            let n = match &s.count {
+                crate::program::StepCount::Sets(n) => (*n).max(0) as f32,
+                crate::program::StepCount::Word(_) => 0.0,
+            };
+            let set = if s.role == Role::Mini { 0.5 } else { 1.0 };
+            n * (costs.set_seconds * set + s.rest_seconds.unwrap_or(0) as f32)
+        })
+        .sum()
+}
+
+/// The same for a decision already laid out.
+fn extra_seconds(costs: &Costs, planned: &[PlannedSet]) -> f32 {
+    planned
+        .iter()
+        .filter(|p| matches!(SetRole::try_from(p.role), Ok(SetRole::Drop | SetRole::Mini)))
+        .map(|p| {
+            let set = if p.role == SetRole::Mini as i32 {
+                0.5
+            } else {
+                1.0
+            };
+            costs.set_seconds * set + p.rest_seconds as f32
+        })
+        .sum()
+}
+
+/// A decision given its lift's shape: what its number counts, sides, a
+/// tempo cue, and, when its scheme isn't straight sets (and the weight
+/// wasn't set by hand, which is exactly that), its sets one by one. The
+/// rule's sets are the main sets: the scheme's numbered ones, and its
+/// `rest` step's share of the rest. Drops chain off the set before.
+pub fn shape_lift(inputs: &LiftInputs, d: &mut ExerciseDecision) {
+    let p = inputs.program;
+    let ex = inputs.exercise;
+    if let Some(def) = p.exercise(ex) {
+        d.measure = def.measure.to_proto() as i32;
+        d.per_side = def.per_side;
+        d.tempo = def.tempo.clone();
+    }
+    let Some(scheme) = p.scheme_of(ex).filter(|_| inputs.over.is_none()) else {
+        return;
+    };
+    d.scheme = p.scheme_name(ex).to_string();
+    let (numbered, has_rest) = main_sets(scheme);
+    let rest_count = if has_rest {
+        (d.sets - numbered).max(0)
+    } else {
+        0
+    };
+    let mut planned = Vec::new();
+    let mut last_fraction = 1.0;
+    for step in &scheme.steps {
+        let count = match &step.count {
+            crate::program::StepCount::Sets(n) => (*n).max(0),
+            crate::program::StepCount::Word(_) => rest_count,
+        };
+        for _ in 0..count {
+            let fraction = if step.role == Role::Drop {
+                last_fraction * step.fraction
+            } else {
+                step.fraction
+            };
+            last_fraction = fraction;
+            planned.push(PlannedSet {
+                role: step.role.to_proto() as i32,
+                reps: step.reps.unwrap_or(0),
+                fraction,
+                amrap: step.amrap,
+                rir: step.rir,
+                rest_seconds: step.rest_seconds.unwrap_or(if step.role == Role::Drop {
+                    0
+                } else {
+                    d.rest_seconds
+                }),
+                every_seconds: step.every_seconds.unwrap_or(0),
+                on_miss: step.on_miss.as_ref().map(|m| crate::pb::OnMiss {
+                    rest_seconds: m.rest_seconds.unwrap_or(0),
+                    fraction: m.fraction.unwrap_or(0.0),
+                    stop: m.stop,
+                }),
+            });
+        }
+    }
+    // The rest after each set is for what comes next: none before a drop,
+    // a mini's short pause before a mini, and after a lift's last drop or
+    // mini its usual rest.
+    let partial =
+        |p: &PlannedSet| matches!(SetRole::try_from(p.role), Ok(SetRole::Drop | SetRole::Mini));
+    for k in 0..planned.len() {
+        let next = planned.get(k + 1).cloned();
+        planned[k].rest_seconds = match next {
+            Some(n) if n.role == SetRole::Drop as i32 => 0,
+            Some(n) if n.role == SetRole::Mini as i32 => n.rest_seconds,
+            _ if partial(&planned[k]) => d.rest_seconds,
+            _ => planned[k].rest_seconds,
+        };
+    }
+    let mains = planned.iter().filter(|p| !partial(p)).count() as i32;
+    if mains == 0 || planned.is_empty() {
+        return; // a scheme with no main set lays out nothing: straight
+    }
+    d.sets = mains;
+    d.scheme_sets = planned;
+}
+
+/// A workout's groups put on its decisions: each group of two or more of
+/// its lifts gets an id, its lifts' sets one by one (straight ones too),
+/// and the rest that ends each lift's round shortened to the program's
+/// `transition_seconds`, except the group's last lift, whose round ends on
+/// the group's rest (or its own). Layout alternates the sets.
+pub fn group_lifts(program: &Program, decisions: &mut [ExerciseDecision], groups: &[GroupDef]) {
+    for (n, group) in groups.iter().enumerate() {
+        let members: Vec<usize> = decisions
+            .iter()
+            .enumerate()
+            .filter(|(_, d)| group.exercises.contains(&d.exercise) && d.group.is_empty())
+            .map(|(i, _)| i)
+            .collect();
+        if members.len() < 2 {
+            continue;
+        }
+        let id = format!("g{}", n + 1);
+        for (m, &i) in members.iter().enumerate() {
+            let d = &mut decisions[i];
+            d.group = id.clone();
+            if d.scheme_sets.is_empty() {
+                d.scheme_sets = (0..d.sets.max(1))
+                    .map(|_| PlannedSet {
+                        role: SetRole::Unspecified as i32,
+                        reps: 0,
+                        fraction: 1.0,
+                        rest_seconds: d.rest_seconds,
+                        ..Default::default()
+                    })
+                    .collect();
+            }
+            let last = m + 1 == members.len();
+            let round_rest = if last {
+                group.rest_seconds.unwrap_or(d.rest_seconds)
+            } else {
+                program.transition_seconds
+            };
+            // A round ends at a set whose next set starts a new round (a
+            // main set) or at the last set.
+            let len = d.scheme_sets.len();
+            for k in 0..len {
+                let next_is_main = d.scheme_sets.get(k + 1).is_none_or(|next| {
+                    !matches!(
+                        SetRole::try_from(next.role),
+                        Ok(SetRole::Drop | SetRole::Mini)
+                    )
+                });
+                if next_is_main {
+                    d.scheme_sets[k].rest_seconds = round_rest;
+                }
+            }
+        }
+    }
 }
 
 /// The seconds one lift takes with `sets`: its sets with a rest between
 /// each (none after the last: the move to the next lift is its own cost),
 /// its lead-in, and the move to it when it is not the first.
 pub fn lift_seconds(costs: &Costs, lift: &Lift, sets: i32, first: bool) -> f32 {
-    let mut seconds = sets as f32 * costs.per_set(&lift.class) - costs.rest(&lift.class);
+    let mut seconds =
+        sets as f32 * costs.per_set(&lift.class) - costs.rest(&lift.class) + lift.extra_seconds;
     if lift.lead_in {
         seconds += costs.warmup_seconds;
     }
@@ -1401,7 +1637,9 @@ impl<'a> Planner<'a> {
             .enumerate()
             .map(|(n, (ex, walk))| {
                 let i = first_new + n;
-                let mut d = plan_lift(&self.inputs(ex, walk), sets[i]);
+                let inputs = self.inputs(ex, walk);
+                let mut d = plan_lift(&inputs, sets[i]);
+                shape_lift(&inputs, &mut d);
                 d.budget_minutes = budget;
                 d.estimated_seconds = lift_seconds(&self.costs, &lifts[i], sets[i], i == 0) as i32;
                 if lifts[i].fixed_sets.is_none() {
@@ -1444,6 +1682,7 @@ impl<'a> Planner<'a> {
                 class: class(&d.exercise),
                 fixed_sets: Some(d.sets),
                 lead_in: d.warmups || d.calibration,
+                extra_seconds: extra_seconds(&self.costs, &d.scheme_sets),
             })
             .collect();
         for (ex, walk) in exercises.iter().zip(walks) {
@@ -1453,6 +1692,11 @@ impl<'a> Planner<'a> {
                 class: class(ex),
                 fixed_sets: rule_sets(&inputs),
                 lead_in: lead_in(&inputs),
+                extra_seconds: inputs
+                    .program
+                    .scheme_of(ex)
+                    .filter(|_| inputs.over.is_none())
+                    .map_or(0.0, |scheme| scheme_extra_seconds(&self.costs, scheme)),
             });
         }
         lifts

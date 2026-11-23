@@ -17,21 +17,73 @@ reverted.
 
 ## How to work
 
-1. Read the current program (`get_program`) and the person's history
-   (`get_history`, `get_profile`). Start from the current document. Change
-   what needs changing and keep the rest.
-2. Write the **whole** document. Every field is required, and a field the
-   program doesn't have is an error. This catches typos instead of quietly
-   dropping them.
-3. Check it (`validate_program`). Each problem names its path, like
-   `progressions.squat_lp.reps`.
-4. Run it (`simulate_program`). This shows what the draft would have
-   prescribed for their past workouts, and what it prescribes for the next
-   sessions under an assumption ("every rep hit", "the last set one rep
-   short"). Read the numbers. Do they progress the way you meant?
-5. Set it (`set_program`) with a one-line `note` saying why. The person
-   sees the note. To go back to an earlier program, open it
-   (`get_earlier_program`) and set it again with today's `workouts`.
+1. Look first. `get_profile` says where the person stands, `get_progress`
+   how each lift has moved (its estimated max and top set per session),
+   `get_history` every set they did, and `get_program` the current program. Built-in exercises
+   it leaves as they are aren't shown; `list_exercises` finds those (by
+   muscle, equipment or name), and `list_library` has ready-made workouts.
+2. Change the program with **edits**, not by rewriting it (below). Send
+   only what changes; everything else stays as it is.
+3. Run it: `simulate_program` with the same edits. It checks them (each
+   problem names its path, like `workouts[upper_a].exercises[2]`) and shows
+   what the draft would have prescribed for their past workouts, and what
+   it prescribes for the next sessions under an assumption ("every rep
+   hit", "the last set one rep short"). Read the numbers. Do they progress
+   the way you meant? `lifts` keeps the output to the lifts you are
+   checking, and `summary` gives one short line a session per lift.
+4. Set it: `set_program` with the same edits and a one-line `note` saying
+   why. The person sees the note, and the next workout plans from it. To
+   go back to an earlier program, open it (`get_earlier_program`) and set
+   it again with today's `workouts`.
+5. Say how it went: `send_feedback`, one line (at most 144 characters) on
+   what was easy, hard or missing in these tools.
+
+## Editing
+
+An edit is one small, named change. A list of them applies in order, all or
+none: if one can't apply, nothing changes and the error says which one and
+why.
+
+```json
+[
+  { "set": "name", "value": "Upper/Lower for size" },
+  { "set": "classes.heavy.rest_seconds", "value": 150 },
+  { "set": "workouts[upper_a]", "value": {
+      "name": "Upper A", "exercises": ["bench_press", "barbell_row", "lateral_raise"] } },
+  { "set": "workouts[a].rotation", "value": false },
+  { "remove": "workouts[b]" },
+  { "move": "workouts[upper_a]", "before": "workouts[a]" },
+  { "set": "progressions.squat_lp", "value": {
+      "kind": "linear", "reps": 5, "increment_lb": 5,
+      "deload_after_fails": 3, "deload_factor": 0.9 } },
+  { "set": "exercises[squat].progression", "value": "squat_lp" }
+]
+```
+
+- **Paths** are dot-separated from the top of the document. An exercise is
+  `exercises[<key>]` and a workout `workouts[<id>]`, by name, never by
+  position. Lists without names use a position: `time_off[0].days`,
+  `warmups.ladder[2].reps`. Map entries are fields: `classes.heavy`,
+  `progressions.squat_lp`, `recovery.hours.chest`.
+- **`set`** puts the value at the path, replacing what is there. To change
+  one field, point at that field (`workouts[a].rotation`), not the whole
+  item. Setting an exercise or workout that doesn't exist adds it at the
+  end; its key or id comes from the path. A new workout's `rotation`
+  defaults to true and its `notes` and `from_library` to "". A new
+  exercise's `short_name` defaults to its name (cut to 12), `progression`
+  to none and `description` to "".
+- **`remove`** takes out a workout, an exercise of the program's own, a
+  list item or a map entry. Built-in exercises stay: leave one out of the
+  workouts instead.
+- **`move`** reorders a workout or exercise: `"before"` names the item it
+  goes in front of, or `null` for the end.
+- `validate_program`, `simulate_program` and `set_program` all take the
+  same `edits`. Each says how many `applied`.
+
+A whole document still works for a full rewrite: send `program` instead of
+`edits`. Every field is required and a field the program doesn't have is
+an error, which catches typos instead of quietly dropping them. Built-in
+exercises it leaves out are added back.
 
 All weights are in **pounds**, whatever unit the person lifts in. The app
 converts for display, and every planned weight is snapped to what their
@@ -71,6 +123,9 @@ equipment can load in their unit. 20 kg is 44.0925 lb. A 2.5 kg step is
 ### `exercises`
 
 Every lift the program knows, in the order the app's picker shows them.
+The built-in ones (squat, bench press and about 75 more) are in every
+program; `get_program` shows only those a program adds or changes, and
+`list_exercises` finds the rest.
 Each one looks like this:
 
 ```json
@@ -100,6 +155,20 @@ Each one looks like this:
 - `description`: plain words on how to do it, up to 500 characters. The app
   shows it for lifts it has no picture of, which includes every lift you
   add.
+- `params` (optional): this lift's own values for numbers of the rule it
+  follows, so one rule serves lifts that differ in a number. See "One rule,
+  several lifts" under `progressions`.
+- `measure` (optional): what its number counts: `"reps"` (the default),
+  `"seconds"` (a plank, a hang) or `"metres"` (a carry, a sled push). Its
+  rule, scheme and history all count that: a `double` from 30 to 60 with
+  `rep_step` 5 climbs a hold five seconds a session. It walks like a
+  bodyweight lift: its max is the most it has shown.
+- `per_side` (optional): the number is for each side (single-leg,
+  single-arm work). The app says "each side".
+- `tempo` (optional): a short cue such as `"3-1-1"` or `"pause at the
+  bottom"`, at most 20 characters. Shown with its sets, never timed.
+- `scheme` (optional): a name in `schemes` that lays out its sets, over its
+  class's.
 
 To add a lift, add an entry with a new key. You cannot remove a lift the
 person has done, has a starting weight for, or has set by hand; validation
@@ -123,6 +192,19 @@ The workouts the person picks from, in their order:
   rested muscles are furthest behind on the week's volume.
 - `notes`: free text.
 - `from_library`: the library entry it was copied from, or `""`.
+- `groups` (optional): lifts whose sets alternate, a superset (two) or a
+  circuit or giant set (more):
+
+  ```json
+  "groups": [ { "exercises": ["bench_press", "barbell_row"], "rest_seconds": 90 } ]
+  ```
+
+  Each group's lifts are from this workout, 2 to 8 of them, and a lift is in
+  at most one. Their sets go round by round in the workout's order: each
+  lift's warmups first, then the first set of each, the second of each, and
+  so on (a set's drops and minis stay with it). Between lifts inside a
+  round the rest is the program's `transition_seconds`; after a round,
+  `rest_seconds`, or the last lift's own rest when it's `null`.
 
 The person can still start any workout, or a workout of any lifts, in the
 app. The app's template editor changes this list too.
@@ -141,6 +223,8 @@ Groups of lifts that share a rep range, rest and warmups:
 - `warmups`: whether the warmup ladder (`warmups`) leads into the working
   sets.
 - `progression`: the name in `progressions` that its lifts follow.
+- `scheme`: the name in `schemes` its lifts' sets are laid out by;
+  `"straight"` (identical sets) unless you change it.
 
 Names are lowercase with underscores. The built-in program has `heavy`
 (barbell compounds), `standard` (every other loaded lift) and `bodyweight`.
@@ -163,6 +247,23 @@ These apply to every kind:
   from it.
 - **Sets:** a progression that gives no `sets` (or `null`) leaves them to
   the time budget (see `sets`).
+- **One rule, several lifts:** an exercise's `params` set its own values
+  for numbers of the rule it follows, instead of a copy of the rule that
+  differs in one number. For a `formula` a name is one of its `let` names,
+  and the lift's number replaces that expression. For `fixed`, `linear`
+  and `double` it is one of the rule's fields (`sets`, `reps`, `rep_low`,
+  `rep_high`, `increment_lb`, `deload_after_fails`, `deload_factor`,
+  `weight_lb`). `estimated_max` and `cycle` have none. Bigger jumps for
+  legs, from one rule:
+
+  ```json
+  { "set": "progressions.reps_then_weight.let.jump_lb", "value": "5" },
+  { "set": "exercises[squat].params", "value": { "jump_lb": 10 } },
+  { "set": "exercises[deadlift].params", "value": { "jump_lb": 10 } }
+  ```
+
+  A name the rule doesn't have, or a value that puts the rule out of
+  range, is an error at the lift (`exercises[squat].params.jump_lb`).
 - **Reasons:** each plan tells the person why, in the app's words. It
   compares the plan with the last session (heavier, lighter, more reps,
   fewer, the same, and why), then the progression's own steps.
@@ -214,10 +315,11 @@ never change, or for a deload week.
 #### `double`
 
 ```json
-{ "kind": "double", "sets": null, "rep_low": 8, "rep_high": 12, "increment_lb": 0 }
+{ "kind": "double", "sets": null, "rep_low": 8, "rep_high": 12, "increment_lb": 0,
+  "rep_step": 1 }
 ```
 
-Reps climb by one each session with every rep hit, from `rep_low` to
+Reps climb by `rep_step` (default 1) each session with every rep hit, from `rep_low` to
 `rep_high`. Past the top, the weight goes up a step (`increment_lb`, where
 0 means the equipment's step) and reps go back to `rep_low`. A miss holds
 both. A bodyweight lift with `increment_lb` 0 stays at the top.
@@ -283,6 +385,8 @@ load).
 | `last.reps` | The reps that set was planned for |
 | `last.sets` | The working sets that session was planned for |
 | `last.best_reps` | The most reps done in one working set at that weight |
+| `last.amrap_reps` | The reps on its as-many-as-you-can set, 0 if it had none (see `schemes`) |
+| `last.rir` | The reps left its effort answers said, on average; -1 if none was asked |
 | `last.hit` | 1 when every working rep was hit |
 | `last.missed` | 1 when a rep was missed (not stopped early or rushed) |
 | `last.stopped_early` | 1 when working sets were left undone, or a miss was rushed |
@@ -301,6 +405,69 @@ load).
 
 For a periodised formula, use `sessions % n` to know where in a block the
 lift is.
+
+### `schemes`
+
+How a lift's sets are laid out. A progression decides a lift's working
+weight W, its reps R and how many main sets N it does; its scheme turns
+those into the sets one by one: top sets and back-offs, pyramids, AMRAP
+sets, drop sets, rest-pause and myo-reps, clusters, EMOM. A class names
+its scheme, and an exercise may name its own.
+
+```json
+"top_backoff": { "steps": [
+  { "role": "top", "count": 1 },
+  { "role": "backoff", "count": "rest", "fraction": 0.85, "reps": 8 } ] }
+```
+
+A scheme is a list of `steps`, each some sets of one role, in order:
+
+- `role`: `working`, `top` or `backoff` (the **main** sets: they count as
+  the lift's sets and say whether the session was hit), or `drop` or `mini`
+  (taken to failure by design: they don't judge the session or move the
+  max, and count `volume.partial_credit` of a set toward a muscle's week).
+  The first step is a main one.
+- `count`: a number of sets (0 to 20), or `"rest"`: N less the numbered
+  main sets, so the time budget or the rule still sets the volume. At most
+  one step takes the rest, and only a main one.
+- `reps` (optional): the number for each set (reps, seconds or metres, by
+  the lift's measure). Without it, the rule's R.
+- `fraction` (optional, default 1): of W. For a `drop`, of the set before
+  it, so two drops of 0.8 are 80% then 64%. Every weight is snapped to
+  what loads.
+- `amrap` (optional): as many as you can. R is the minimum; the set is hit
+  at R or more, and what was done feeds the rule (`last.amrap_reps`, and
+  the estimated max).
+- `rir` (optional): an effort target, 0 to 5 reps left in the tank, shown
+  with each of its sets. After the lift's last set with a target, done in
+  full, the app asks once how it went: Easy (read as 5+ left) or Hard (0–1
+  left), which tighten the estimated max and give `last.rir`; a rep tapped
+  off instead is a miss. Beginners judge this poorly, so ask for it where
+  it matters.
+- `rest_seconds` (optional): after each of its sets; for a `mini`, the
+  short pause before each one. Without it, the class's rest. A set before
+  a drop rests none, and a lift's last drop or mini rests the class's rest.
+- `every_seconds` (optional): EMOM. The next set starts this long after
+  this one started (10 to 600).
+- `on_miss` (optional): what missing one of its sets (logged short of its
+  reps) changes for the rest of the lift that workout. Any of:
+  - `rest_seconds`: the rest after the missed set (0 to 1800); never
+    less than its usual rest, so give more than the class's or the step's;
+  - `fraction`: the lift's sets still to do at this share of their weight
+    (under 1), snapped to what loads;
+  - `stop`: true drops the lift's sets still to do (not with `fraction`).
+
+  The set put back to every rep, or undone, takes it back. Without it a
+  miss changes nothing until the next session, where the rule reads it.
+  For example, back-offs that ease off after a miss:
+  `{"role": "backoff", "count": "rest", "reps": 8, "fraction": 0.85,
+  "on_miss": {"rest_seconds": 240, "fraction": 0.9}}`. A straight lift that
+  wants one gets a scheme of one working step with `"count": "rest"`.
+
+The built-in program defines `straight`, `top_backoff`, `plus_set` (5/3/1's
+last set), `pyramid`, `drop_finish`, `myo`, `cluster` and `emom`. Use them,
+or write your own. A lift whose weight the person set by hand does exactly
+that, straight sets, until the rule takes over again.
 
 ### `estimate`
 
@@ -382,7 +549,8 @@ settles the ramp), 2–4 counts `reserve_two_to_four`, and 5+ counts
 
 Hard sets per muscle over the last `window_days`, which Home shows against
 `target_low` to `target_high`. A working set counts 1 for its exercise's
-primary muscle and `secondary_credit` for each other. Rotation workouts
+primary muscle and `secondary_credit` for each other; a drop or mini set
+counts `partial_credit` of that (default 0.5). Rotation workouts
 within `tie_fraction` of the best score are tied, and the tie goes to the
 one done least recently.
 
@@ -402,6 +570,11 @@ workouts sharing more than `overlap_fraction` of the smaller one's lifts.
 ### `end_of_exercise_rest_seconds`
 
 The rest after a lift's last set, before moving on.
+
+### `transition_seconds`
+
+The rest between two lifts of a group (`workouts.groups`) inside a round,
+0 to 300 (default 15): the walk from one station to the next.
 
 ### `equipment`
 

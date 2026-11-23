@@ -129,6 +129,7 @@ class MainActivity : ComponentActivity() {
             WearApp(
                 onAction = { action -> sendAction(action) },
                 onTapSet = { setId -> sendTap(setId) },
+                onAnswer = { setId, answer -> sendAnswer(setId, answer) },
                 setWorkoutKeepScreenOn = { enabled -> setWorkoutKeepScreenOn(enabled) },
                 isAmbientMode = isAmbientMode,
                 ambientUpdates = ambientUpdates,
@@ -396,6 +397,26 @@ class MainActivity : ComponentActivity() {
         )
     }
 
+    /** An answer to the banner's question: easy, hard or fail. */
+    private fun sendAnswer(
+        setId: String,
+        answer: Wearable.QuickAnswer,
+    ) {
+        val workoutId = WearDataRepository.snapshot.value?.workoutId ?: return
+        send(
+            Wearable.WearIntent
+                .newBuilder()
+                .setAnswerQuestion(
+                    Wearable.AnswerQuestionIntent
+                        .newBuilder()
+                        .setWorkoutId(workoutId)
+                        .setSetId(setId)
+                        .setAnswer(answer)
+                        .build(),
+                ).build(),
+        )
+    }
+
     private fun sendAction(action: Wearable.WearAction) {
         val workoutId = WearDataRepository.snapshot.value?.workoutId ?: return
 
@@ -510,6 +531,7 @@ class MainActivity : ComponentActivity() {
 private fun WearApp(
     onAction: (Wearable.WearAction) -> Unit,
     onTapSet: (String) -> Unit,
+    onAnswer: (String, Wearable.QuickAnswer) -> Unit,
     setWorkoutKeepScreenOn: (Boolean) -> Unit,
     isAmbientMode: Boolean,
     ambientUpdates: Int,
@@ -584,6 +606,7 @@ private fun WearApp(
             isAmbientMode = isAmbientMode,
             onAction = onAction,
             onTapSet = onTapSet,
+            onAnswer = onAnswer,
         )
     }
 }
@@ -598,6 +621,7 @@ private fun WorkoutScreens(
     isAmbientMode: Boolean,
     onAction: (Wearable.WearAction) -> Unit,
     onTapSet: (String) -> Unit,
+    onAnswer: (String, Wearable.QuickAnswer) -> Unit,
 ) {
     val restTimer =
         remember(data.workoutId, data.restUntil, data.youCard.timerText, nowTick) {
@@ -659,6 +683,24 @@ private fun WorkoutScreens(
     val card = data.youCard
 
     fun action(type: Wearable.WearActionType): Wearable.WearAction? = data.actionsList.firstOrNull { it.type == type }
+
+    // A set just done that asks how it went: the banner's three answers,
+    // as buttons. Skip puts it away here; the next set closes it there.
+    var skipped by remember(data.workoutId) { mutableStateOf("") }
+    if (data.hasQuestion() && data.question.setId != skipped && !isAmbientMode) {
+        val question = data.question
+        QuestionScreen(
+            question = question,
+            enabled = !isActionPending,
+            onAnswer = { answer ->
+                pendingActionEmittedAt = data.emittedAt
+                pendingActionStartedAtMs = System.currentTimeMillis()
+                onAnswer(question.setId, answer)
+            },
+            onSkip = { skipped = question.setId },
+        )
+        return
+    }
 
     if (data.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) {
         DoneScreen(

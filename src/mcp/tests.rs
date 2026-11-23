@@ -1,4 +1,5 @@
 use super::*;
+use crate::db::MAX_FEEDBACK_CHARS;
 use axum::body::Body;
 use axum::http::Request;
 use http_body_util::BodyExt;
@@ -216,9 +217,16 @@ async fn an_assistant_connects_and_sets_a_program() {
             "get_earlier_program",
             "get_profile",
             "get_history",
+            "get_progress",
             "validate_program",
             "simulate_program",
-            "set_program"
+            "set_program",
+            "list_exercises",
+            "list_library",
+            "get_program_part",
+            "list_people",
+            "suggest_change",
+            "send_feedback"
         ]
     );
     let call = |name: &str, arguments: Value| {
@@ -331,4 +339,298 @@ async fn an_assistant_connects_and_sets_a_program() {
     )
     .await;
     assert_eq!(status, StatusCode::UNAUTHORIZED);
+}
+
+/// A tool called as the server calls it, for the person "u1" by Claude.
+async fn tool(mcp: &Mcp, name: &str, arguments: Value) -> Result<Value, String> {
+    match tools::call(mcp, "u1", "Claude", name, &arguments).await {
+        Ok(v) => Ok(v["structuredContent"].clone()),
+        Err(tools::Failure::Tool(m)) => Err(m),
+        Err(tools::Failure::Server(m)) => panic!("server failure: {m}"),
+        Err(tools::Failure::Unknown) => panic!("no tool {name}"),
+    }
+}
+
+/// The program as an assistant sees it leaves out the built-in exercises
+/// and says so; a change is a few edits, simulated and set the same way,
+/// and a bad one changes nothing and says which.
+#[tokio::test]
+async fn an_assistant_changes_the_program_by_edits() {
+    let mcp = mcp().await;
+    let got = tool(&mcp, "get_program", json!({})).await.unwrap();
+    assert_eq!(got["program"]["exercises"], json!([]));
+    assert!(got["exercises_note"].as_str().unwrap().contains("built-in"));
+
+    let edits = json!([
+        { "set": "name", "value": "Upper/Lower" },
+        { "set": "classes.heavy.rest_seconds", "value": 150 },
+        { "set": "workouts[upper]", "value": { "name": "Upper", "exercises": ["bench_press", "barbell_row"] } },
+        { "set": "workouts[lower]", "value": { "name": "Lower", "exercises": ["squat", "romanian_deadlift"] } }
+    ]);
+    let checked = tool(&mcp, "validate_program", json!({ "edits": edits }))
+        .await
+        .unwrap();
+    assert_eq!(
+        (checked["ok"].clone(), checked["applied"].clone()),
+        (json!(true), json!(4)),
+        "{checked}"
+    );
+    let run = tool(
+        &mcp,
+        "simulate_program",
+        json!({ "edits": edits, "sessions": 2 }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(run["workouts"].as_array().unwrap().len(), 2, "{run}");
+    let set = tool(
+        &mcp,
+        "set_program",
+        json!({ "edits": edits, "note": "Split it" }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(set["set"], true, "{set}");
+    let account = mcp.db.read_account("u1", Clone::clone).await.unwrap();
+    assert_eq!(account.program.name, "Upper/Lower");
+    assert_eq!(account.program.classes["heavy"].rest_seconds, 150);
+    let ids: Vec<&str> = account
+        .program
+        .workouts
+        .iter()
+        .map(|w| w.id.as_str())
+        .collect();
+    assert_eq!(ids, ["upper", "lower"]);
+    assert_eq!(
+        account.program.exercises.len(),
+        schlift_core::program::Program::builtin().exercises.len(),
+        "the recorded program is whole"
+    );
+
+    let bad = tool(
+        &mcp,
+        "set_program",
+        json!({ "edits": [{ "set": "name", "value": "x" }, { "remove": "workouts[nope]" }], "note": "x" }),
+    )
+    .await
+    .unwrap_err();
+    assert!(
+        bad.contains("\"failed_edit\": 1") && bad.contains("workouts[nope]"),
+        "{bad}"
+    );
+    let wrong = tool(
+        &mcp,
+        "simulate_program",
+        json!({ "edits": [{ "set": "workouts[upper].exercises", "value": ["bench_press", "nope"] }] }),
+    )
+    .await
+    .unwrap_err();
+    assert!(wrong.contains("workouts[upper].exercises[1]"), "{wrong}");
+    assert!(tool(
+        &mcp,
+        "set_program",
+        json!({ "edits": edits, "program": {}, "note": "x" })
+    )
+    .await
+    .unwrap_err()
+    .contains("not both"));
+
+    let part = tool(
+        &mcp,
+        "get_program_part",
+        json!({ "path": "workouts[lower].exercises" }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(part["value"], json!(["squat", "romanian_deadlift"]));
+}
+
+#[tokio::test]
+async fn helpers_find_exercises_and_the_library() {
+    let mcp = mcp().await;
+    let found = tool(
+        &mcp,
+        "list_exercises",
+        json!({ "muscle": "chest", "primary_only": true, "equipment": "barbell" }),
+    )
+    .await
+    .unwrap();
+    let keys: Vec<&str> = found["exercises"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|e| e["key"].as_str().unwrap())
+        .collect();
+    assert!(keys.contains(&"bench_press"), "{keys:?}");
+    assert!(found["exercises"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|e| e["muscles"][0] == "chest" && e["built_in"] == true));
+    let library = tool(&mcp, "list_library", json!({})).await.unwrap();
+    assert!(!library["workouts"].as_array().unwrap().is_empty());
+}
+
+/// Feedback is one short line, kept for the admin page with the assistant
+/// and tool but no user; past the day's cap it is thanked for and dropped.
+#[tokio::test]
+async fn feedback_is_kept_short_and_capped() {
+    let mcp = mcp().await;
+    tool(
+        &mcp,
+        "send_feedback",
+        json!({ "text": "Edits were easy.", "tool": "set_program" }),
+    )
+    .await
+    .unwrap();
+    let too_long = "x".repeat(MAX_FEEDBACK_CHARS + 1);
+    assert!(tool(&mcp, "send_feedback", json!({ "text": too_long }))
+        .await
+        .unwrap_err()
+        .contains("1 to 144"));
+    assert!(tool(&mcp, "send_feedback", json!({ "text": "  " }))
+        .await
+        .is_err());
+    let kept = mcp.db.assistant_feedback(10).await.unwrap();
+    assert_eq!(kept.len(), 1);
+    assert_eq!(
+        (
+            kept[0].client_name.as_str(),
+            kept[0].tool.as_str(),
+            kept[0].text.as_str()
+        ),
+        ("Claude", "set_program", "Edits were easy.")
+    );
+    for _ in 0..30 {
+        tool(&mcp, "send_feedback", json!({ "text": "again" }))
+            .await
+            .unwrap();
+    }
+    assert_eq!(mcp.db.assistant_feedback(100).await.unwrap().len(), 20);
+}
+
+/// One rule, two lifts: the squat's params give it a bigger step than the
+/// bench's, through the simulator's own planning; `lifts` and `summary`
+/// keep the output to what was asked.
+#[tokio::test]
+async fn params_tune_a_shared_rule_and_the_simulator_says_only_what_was_asked() {
+    let mcp = mcp().await;
+    let edits = json!([
+        { "set": "progressions.reps_then_weight", "value": {
+            "kind": "linear", "sets": 3, "reps": 5, "increment_lb": 5,
+            "deload_after_fails": 3, "deload_factor": 0.9 } },
+        { "set": "exercises[squat].progression", "value": "reps_then_weight" },
+        { "set": "exercises[squat].params", "value": { "increment_lb": 10 } },
+        { "set": "exercises[bench_press].progression", "value": "reps_then_weight" },
+        { "set": "workouts[a]", "value": { "name": "A", "exercises": ["squat", "bench_press", "barbell_row"] } }
+    ]);
+    let run = tool(
+        &mcp,
+        "simulate_program",
+        json!({ "edits": edits, "sessions": 4, "template_id": "a", "lifts": ["squat", "bench_press"], "summary": true }),
+    )
+    .await
+    .unwrap();
+    let lifts = run["lifts"].as_array().unwrap();
+    let keys: Vec<&str> = lifts
+        .iter()
+        .map(|l| l["exercise"].as_str().unwrap())
+        .collect();
+    assert_eq!(keys, ["squat", "bench_press"], "{run}");
+    let weights = |lift: &Value| -> Vec<f64> {
+        lift["sessions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|line| {
+                let line = line.as_str().unwrap();
+                let at = &line[line.find(" @ ").unwrap() + 3..];
+                at[..at.find(' ').unwrap_or(at.len())].parse().unwrap()
+            })
+            .collect()
+    };
+    let (squat, bench) = (weights(&lifts[0]), weights(&lifts[1]));
+    // After the first session (the calibration ramp), each hit adds the
+    // lift's own step.
+    assert_eq!(squat[3] - squat[2], 10.0, "{squat:?}");
+    assert_eq!(bench[3] - bench[2], 5.0, "{bench:?}");
+    assert!(lifts[0]["sessions"][0].as_str().unwrap().contains("hit"));
+
+    let bad = tool(
+        &mcp,
+        "validate_program",
+        json!({ "edits": [{ "set": "exercises[squat].params", "value": { "nope": 1 } }] }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(bad["ok"], false);
+    assert!(
+        bad["problems"]
+            .to_string()
+            .contains("exercises[squat].params.nope"),
+        "{bad}"
+    );
+}
+
+#[tokio::test]
+async fn progress_is_per_lift() {
+    let mcp = mcp().await;
+    let progress = tool(&mcp, "get_progress", json!({})).await.unwrap();
+    assert_eq!(
+        (progress["workouts"].clone(), progress["lifts"].clone()),
+        (json!(0), json!([]))
+    );
+}
+
+/// A friend who lets "u1" suggest: Claude for u1 reads their program by
+/// name and suggests a change, which waits in their account; someone who
+/// hasn't is refused, for reads and suggestions alike.
+#[tokio::test]
+async fn an_assistant_suggests_to_a_friend_who_allows_it() {
+    let mcp = mcp().await;
+    mcp.db.create_user_with_id("u2", "Sam").await.unwrap();
+    assert!(tool(&mcp, "get_program", json!({ "person": "Sam" }))
+        .await
+        .unwrap_err()
+        .contains("hasn't let"));
+    mcp.db.set_can_suggest("u2", "u1", true).await.unwrap();
+    let people = tool(&mcp, "list_people", json!({})).await.unwrap();
+    assert_eq!(people["people"][0]["name"], "Sam");
+    let theirs = tool(&mcp, "get_program", json!({ "person": "sam" }))
+        .await
+        .unwrap();
+    assert!(theirs["program"].is_object());
+    let edits = json!([{ "set": "workouts[for_sam]", "value": { "name": "For Sam", "exercises": ["squat", "bench_press"] } }]);
+    let run = tool(
+        &mcp,
+        "simulate_program",
+        json!({ "person": "Sam", "edits": edits, "sessions": 1, "template_id": "for_sam" }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(run["applied"], 1, "{run}");
+    let sent = tool(
+        &mcp,
+        "suggest_change",
+        json!({ "person": "Sam", "edits": edits, "note": "Two big lifts" }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(sent["suggested"], true);
+    let sam = mcp.db.read_account("u2", Clone::clone).await.unwrap();
+    assert_eq!(sam.suggestions.len(), 1);
+    let s = &sam.suggestions[0].suggested;
+    assert_eq!(
+        (s.kind.as_str(), s.from.as_str(), s.from_name.as_str()),
+        ("workout", "person:u1", "Lyss (via Claude)")
+    );
+    assert!(sam.program.workout("for_sam").is_none(), "Sam decides");
+    assert!(tool(
+        &mcp,
+        "set_program",
+        json!({ "person": "Sam", "edits": edits, "note": "x" })
+    )
+    .await
+    .unwrap_err()
+    .contains("suggest_change"));
 }

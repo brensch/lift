@@ -313,6 +313,18 @@ workout:
   warm_short: "Warm {count}"
   warmup_label: Warmup
   working_label: Working
+  # Set types (docs/plans/set-types.md). Placeholders: the owner writes these.
+  drop_label: Drop
+  mini_label: Mini
+  top_line: Top set
+  backoff_line: Back-off {n} of {m}
+  drop_line: Drop {n} of {m}
+  mini_line: Mini {n} of {m}
+  as_many_as_you_can: as many as you can
+  each_side: each side
+  tempo_line: "tempo {tempo}"
+  superset_label: Superset
+  circuit_label: Circuit
   # In the band of whoever's turn on the rack it is, on two lines.
   up_next: "Up\nnext"
   skip_warmups: Skip
@@ -325,32 +337,18 @@ workout:
   first_time_status: First time!
   # The watch's status while that first set waits: the answer is on the phone.
   watch_first_time_status: Open phone!
-  # Asked when a ramp set (the 5-rep sets that find a new lift's weight) is
-  # done with every rep. The answer picks the next set's weight, or ends the
-  # ramp. The answers are the buttons, on the phone and the watch.
-  # Placeholders.
-  rung_question: How many more could you have done?
-  # Under the set's circle at the top of the ramp question.
-  rung_circle_hint: Missed some? Tap the circle once for each rep you didn't get. Works the same on every set.
-  # After reps are taken off there: what that did. {n} reps missed,
-  # {weight} the next set's.
-  rung_missed_settled: "Missed {n}. Ramp done: working sets at {weight}."
-  rung_missed_too_heavy: "Too heavy. Next set {weight}."
-  rung_ok: OK
-  rung_question_hint: Be honest. The next set and your integrity depends on it.
-  rung_answer_zero_to_one: "0–1"
-  rung_answer_two_to_four: "2–4"
-  rung_answer_five_plus: "5+"
-  # Under each answer: where it takes you. {weight} with its unit, {jump}
-  # the difference from the set just done.
-  rung_outcome_next: "Next set {weight} (+{jump})"
-  rung_outcome_settle: "Done. Working sets at {weight}"
-  # Under the three answers, after a line with "or" on it: type how much to
-  # add for the next ramp set instead, in your unit, and apply it. The ramp
-  # goes on from there. Placeholders.
-  rung_or: or
-  rung_jump_label: Specific jump
-  rung_jump_apply: Add that
+  # Asked in the banner (and on the watch) after a ramp set done in full,
+  # or a lift's last set with an effort target. Placeholders.
+  # Under the lift, while a missed set has changed what comes next (the
+  # program's on_miss).
+  after_miss_lighter: "Lighter after a miss: {weight}"
+  after_miss_rest: Extra rest after a miss
+  after_miss_both: "Extra rest after a miss, then {weight}"
+  quick_question: How was that?
+  quick_easy: Easy
+  quick_hard: Hard
+  # The watch's way back to its face without answering.
+  quick_skip: Skip
   # Under the plates on the watch's plate screen: "45 · 25 each side".
   watch_each_side: each side
   # On the watch's set line when someone in the session lifts next, before
@@ -376,6 +374,8 @@ workout:
 # workout card, the template editor, the live workout when a lift comes up,
 # and the summary. {…} are substituted by the code. All placeholder copy.
 plan:
+  # A schemed lift's drops after its runs ("1×5 @ 200 lb, +2 drops"). Placeholder.
+  drops: "+{n} drops"
   # Home's time control: "− 60 min +".
   budget: "{min} min"
   # In place of the time control when a lift in the workout is new.
@@ -441,6 +441,9 @@ plan:
     calibration_step_down: "Too heavy: ramp down to {after}"
     calibration_settled: "Ramp done: {after}"
     correction: "Fixed a set: {before} → {after}"
+    # A set missed: the program lightens what's left; put back, it isn't.
+    miss: "Lighter after a miss: {after}"
+    miss_back: "Back to {after}"
   # The sheet in the template editor: the user's own numbers for a lift.
   override:
     body: Your weight and reps. I carry on from here.
@@ -1150,3 +1153,43 @@ app_icon:
   # already the phone's icon. Placeholders.
   use: Use this icon
   in_use: This is your icon
+
+# Changes others suggest (docs/plans/set-types.md). Placeholders: the owner
+# writes these.
+suggestions:
+  # Home's row and the Program screen's section: a change waiting on you.
+  heading: Pending suggestion
+  program_heading: Pending suggestions
+  chip: "{title} · {name}"
+  from: "From {name}"
+  # The popup: the whole change, then one answer.
+  accept: Use this program
+  decline: No thanks
+  week_heading: Your week
+  workout_added: "New: {name}"
+  workout_changed: "Changed: {name}"
+  workout_removed: "Gone: {name}"
+  lifts_heading: Weight progression method
+  rule_was: "Was: {rule}"
+  rule_new_lift: New to you
+  # A progression in a sentence. {step} is the jump, in your unit.
+  rule_estimated_max: Weight follows your estimated max
+  rule_fixed: "{sets}×{reps} at {weight}, every time"
+  rule_linear: "{reps} reps a set; hit them all and it adds {step}"
+  rule_double: "{low}–{high} reps; {high} on every set adds {step}"
+  rule_cycle: "Works through {n} steps, then starts over"
+  rule_formula: A custom formula
+  rule_step_default: the smallest jump
+  rule_deload: "{n} misses in a row takes it back to {pct}%"
+  rule_scheme: "Sets laid out as {scheme}"
+  also_heading: Also
+  number_line: "{before} → {after}"
+  no_longer_fits: "This doesn't fit your program any more: {problem}"
+  accepted: Using it
+  declined: Declined
+  # Multiplayer → a friend.
+  can_suggest: Can suggest workouts
+  can_suggest_body: They see your training and can send you workouts or changes. Nothing changes until you say yes.
+  suggest_workout: Suggest a workout
+  suggest_pick: Which of yours?
+  sent: "Sent to {name}"

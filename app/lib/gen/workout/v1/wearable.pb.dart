@@ -637,6 +637,8 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     $core.String? upNextText,
     WearAmbientCopy? ambientCopy,
     $core.String? upNextEmoji,
+    WearQuestion? question,
+    $core.int? liftingTargetSeconds,
   }) {
     final result = create();
     if (workoutId != null) result.workoutId = workoutId;
@@ -654,6 +656,9 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     if (upNextText != null) result.upNextText = upNextText;
     if (ambientCopy != null) result.ambientCopy = ambientCopy;
     if (upNextEmoji != null) result.upNextEmoji = upNextEmoji;
+    if (question != null) result.question = question;
+    if (liftingTargetSeconds != null)
+      result.liftingTargetSeconds = liftingTargetSeconds;
     return result;
   }
 
@@ -691,6 +696,9 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
     ..aOM<WearAmbientCopy>(21, _omitFieldNames ? '' : 'ambientCopy',
         subBuilder: WearAmbientCopy.create)
     ..aOS(22, _omitFieldNames ? '' : 'upNextEmoji')
+    ..aOM<WearQuestion>(23, _omitFieldNames ? '' : 'question',
+        subBuilder: WearQuestion.create)
+    ..aI(24, _omitFieldNames ? '' : 'liftingTargetSeconds')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -844,6 +852,184 @@ class WearWorkoutSnapshot extends $pb.GeneratedMessage {
   $core.bool hasUpNextEmoji() => $_has(14);
   @$pb.TagNumber(22)
   void clearUpNextEmoji() => $_clearField(22);
+
+  /// A set just done that asks how it went (a ramp set, or the last with
+  /// an effort target): the three answers in the phone's words. The watch
+  /// shows them as buttons and answers with AnswerQuestionIntent. Unset when
+  /// nothing is asked.
+  @$pb.TagNumber(23)
+  WearQuestion get question => $_getN(15);
+  @$pb.TagNumber(23)
+  set question(WearQuestion value) => $_setField(23, value);
+  @$pb.TagNumber(23)
+  $core.bool hasQuestion() => $_has(15);
+  @$pb.TagNumber(23)
+  void clearQuestion() => $_clearField(23);
+  @$pb.TagNumber(23)
+  WearQuestion ensureQuestion() => $_ensure(15);
+
+  /// Lifting a timed set: its seconds. The watch counts down from
+  /// lifting_started_at + this instead of up. 0 for any other set.
+  @$pb.TagNumber(24)
+  $core.int get liftingTargetSeconds => $_getIZ(16);
+  @$pb.TagNumber(24)
+  set liftingTargetSeconds($core.int value) => $_setSignedInt32(16, value);
+  @$pb.TagNumber(24)
+  $core.bool hasLiftingTargetSeconds() => $_has(16);
+  @$pb.TagNumber(24)
+  void clearLiftingTargetSeconds() => $_clearField(24);
+}
+
+class WearQuestion extends $pb.GeneratedMessage {
+  factory WearQuestion({
+    $core.String? setId,
+    $core.String? title,
+    $core.Iterable<WearAnswer>? answers,
+    $core.String? skipLabel,
+  }) {
+    final result = create();
+    if (setId != null) result.setId = setId;
+    if (title != null) result.title = title;
+    if (answers != null) result.answers.addAll(answers);
+    if (skipLabel != null) result.skipLabel = skipLabel;
+    return result;
+  }
+
+  WearQuestion._();
+
+  factory WearQuestion.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WearQuestion.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WearQuestion',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'setId')
+    ..aOS(2, _omitFieldNames ? '' : 'title')
+    ..pPM<WearAnswer>(3, _omitFieldNames ? '' : 'answers',
+        subBuilder: WearAnswer.create)
+    ..aOS(4, _omitFieldNames ? '' : 'skipLabel')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WearQuestion clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WearQuestion copyWith(void Function(WearQuestion) updates) =>
+      super.copyWith((message) => updates(message as WearQuestion))
+          as WearQuestion;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WearQuestion create() => WearQuestion._();
+  @$core.override
+  WearQuestion createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WearQuestion getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WearQuestion>(create);
+  static WearQuestion? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get setId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set setId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSetId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSetId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get title => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set title($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasTitle() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearTitle() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $pb.PbList<WearAnswer> get answers => $_getList(2);
+
+  /// Back to the face without answering (the phone just moves on).
+  @$pb.TagNumber(4)
+  $core.String get skipLabel => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set skipLabel($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasSkipLabel() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSkipLabel() => $_clearField(4);
+}
+
+class WearAnswer extends $pb.GeneratedMessage {
+  factory WearAnswer({
+    QuickAnswer? answer,
+    $core.String? label,
+  }) {
+    final result = create();
+    if (answer != null) result.answer = answer;
+    if (label != null) result.label = label;
+    return result;
+  }
+
+  WearAnswer._();
+
+  factory WearAnswer.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory WearAnswer.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'WearAnswer',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<QuickAnswer>(1, _omitFieldNames ? '' : 'answer',
+        enumValues: QuickAnswer.values)
+    ..aOS(2, _omitFieldNames ? '' : 'label')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WearAnswer clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  WearAnswer copyWith(void Function(WearAnswer) updates) =>
+      super.copyWith((message) => updates(message as WearAnswer)) as WearAnswer;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static WearAnswer create() => WearAnswer._();
+  @$core.override
+  WearAnswer createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static WearAnswer getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<WearAnswer>(create);
+  static WearAnswer? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  QuickAnswer get answer => $_getN(0);
+  @$pb.TagNumber(1)
+  set answer(QuickAnswer value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAnswer() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAnswer() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get label => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set label($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasLabel() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearLabel() => $_clearField(2);
 }
 
 class WearCompletionSummary extends $pb.GeneratedMessage {
@@ -1241,7 +1427,94 @@ class EndWorkoutIntent extends $pb.GeneratedMessage {
   void clearWorkoutId() => $_clearField(1);
 }
 
-enum WearIntent_Intent { completeSet, endWorkout, startSet, tapSet, notSet }
+/// An answer to the question on the watch.
+class AnswerQuestionIntent extends $pb.GeneratedMessage {
+  factory AnswerQuestionIntent({
+    $core.String? workoutId,
+    $core.String? setId,
+    QuickAnswer? answer,
+  }) {
+    final result = create();
+    if (workoutId != null) result.workoutId = workoutId;
+    if (setId != null) result.setId = setId;
+    if (answer != null) result.answer = answer;
+    return result;
+  }
+
+  AnswerQuestionIntent._();
+
+  factory AnswerQuestionIntent.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AnswerQuestionIntent.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AnswerQuestionIntent',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workoutId')
+    ..aOS(2, _omitFieldNames ? '' : 'setId')
+    ..aE<QuickAnswer>(3, _omitFieldNames ? '' : 'answer',
+        enumValues: QuickAnswer.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnswerQuestionIntent clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnswerQuestionIntent copyWith(void Function(AnswerQuestionIntent) updates) =>
+      super.copyWith((message) => updates(message as AnswerQuestionIntent))
+          as AnswerQuestionIntent;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AnswerQuestionIntent create() => AnswerQuestionIntent._();
+  @$core.override
+  AnswerQuestionIntent createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AnswerQuestionIntent getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AnswerQuestionIntent>(create);
+  static AnswerQuestionIntent? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workoutId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workoutId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkoutId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkoutId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get setId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set setId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSetId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSetId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  QuickAnswer get answer => $_getN(2);
+  @$pb.TagNumber(3)
+  set answer(QuickAnswer value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasAnswer() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAnswer() => $_clearField(3);
+}
+
+enum WearIntent_Intent {
+  completeSet,
+  endWorkout,
+  startSet,
+  tapSet,
+  answerQuestion,
+  notSet
+}
 
 class WearIntent extends $pb.GeneratedMessage {
   factory WearIntent({
@@ -1250,6 +1523,7 @@ class WearIntent extends $pb.GeneratedMessage {
     EndWorkoutIntent? endWorkout,
     StartSetIntent? startSet,
     TapSetIntent? tapSet,
+    AnswerQuestionIntent? answerQuestion,
   }) {
     final result = create();
     if (intentId != null) result.intentId = intentId;
@@ -1257,6 +1531,7 @@ class WearIntent extends $pb.GeneratedMessage {
     if (endWorkout != null) result.endWorkout = endWorkout;
     if (startSet != null) result.startSet = startSet;
     if (tapSet != null) result.tapSet = tapSet;
+    if (answerQuestion != null) result.answerQuestion = answerQuestion;
     return result;
   }
 
@@ -1275,13 +1550,14 @@ class WearIntent extends $pb.GeneratedMessage {
     13: WearIntent_Intent.endWorkout,
     17: WearIntent_Intent.startSet,
     19: WearIntent_Intent.tapSet,
+    20: WearIntent_Intent.answerQuestion,
     0: WearIntent_Intent.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'WearIntent',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [11, 13, 17, 19])
+    ..oo(0, [11, 13, 17, 19, 20])
     ..aOS(1, _omitFieldNames ? '' : 'intentId')
     ..aOM<CompleteSetIntent>(11, _omitFieldNames ? '' : 'completeSet',
         subBuilder: CompleteSetIntent.create)
@@ -1291,6 +1567,8 @@ class WearIntent extends $pb.GeneratedMessage {
         subBuilder: StartSetIntent.create)
     ..aOM<TapSetIntent>(19, _omitFieldNames ? '' : 'tapSet',
         subBuilder: TapSetIntent.create)
+    ..aOM<AnswerQuestionIntent>(20, _omitFieldNames ? '' : 'answerQuestion',
+        subBuilder: AnswerQuestionIntent.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1315,11 +1593,13 @@ class WearIntent extends $pb.GeneratedMessage {
   @$pb.TagNumber(13)
   @$pb.TagNumber(17)
   @$pb.TagNumber(19)
+  @$pb.TagNumber(20)
   WearIntent_Intent whichIntent() => _WearIntent_IntentByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(11)
   @$pb.TagNumber(13)
   @$pb.TagNumber(17)
   @$pb.TagNumber(19)
+  @$pb.TagNumber(20)
   void clearIntent() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(1)
@@ -1374,6 +1654,17 @@ class WearIntent extends $pb.GeneratedMessage {
   void clearTapSet() => $_clearField(19);
   @$pb.TagNumber(19)
   TapSetIntent ensureTapSet() => $_ensure(4);
+
+  @$pb.TagNumber(20)
+  AnswerQuestionIntent get answerQuestion => $_getN(5);
+  @$pb.TagNumber(20)
+  set answerQuestion(AnswerQuestionIntent value) => $_setField(20, value);
+  @$pb.TagNumber(20)
+  $core.bool hasAnswerQuestion() => $_has(5);
+  @$pb.TagNumber(20)
+  void clearAnswerQuestion() => $_clearField(20);
+  @$pb.TagNumber(20)
+  AnswerQuestionIntent ensureAnswerQuestion() => $_ensure(5);
 }
 
 class HeartRateSample extends $pb.GeneratedMessage {
