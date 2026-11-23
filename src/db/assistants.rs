@@ -20,6 +20,20 @@ pub const REFRESH_SECONDS: i64 = 60 * 24 * 3600;
 /// The most clients one registration source can leave lying about: past
 /// this, the oldest never used are dropped.
 pub const MAX_CLIENTS: i64 = 10_000;
+/// The most feedback one person's assistants leave in a day; past this it is
+/// thanked for and dropped.
+pub const MAX_FEEDBACK_PER_DAY: i64 = 20;
+/// The longest feedback: one short line.
+pub const MAX_FEEDBACK_CHARS: usize = 144;
+
+/// One piece of an assistant's feedback, as the admin page reads it.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Feedback {
+    pub client_name: String,
+    pub tool: String,
+    pub text: String,
+    pub created_at: i64,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Client {
@@ -298,6 +312,62 @@ impl ServerDb {
             .execute(&self.write_pool)
             .await?;
         Ok(done.rows_affected() > 0)
+    }
+
+    /// Feedback an assistant sent (`send_feedback`), kept unless the person's
+    /// assistants already sent [`MAX_FEEDBACK_PER_DAY`] in the last day.
+    /// Whether it was kept.
+    pub async fn record_assistant_feedback(
+        &self,
+        user_id: &str,
+        client_name: &str,
+        tool: &str,
+        text: &str,
+    ) -> DbResult<bool> {
+        let now = now_unix();
+        let recent: i64 = sqlx::query_scalar(
+            "SELECT COUNT(*) FROM assistant_feedback WHERE user_id = ? AND created_at > ?",
+        )
+        .bind(user_id)
+        .bind(now - 86_400)
+        .fetch_one(&self.read_pool)
+        .await?;
+        if recent >= MAX_FEEDBACK_PER_DAY {
+            return Ok(false);
+        }
+        sqlx::query(
+            "INSERT INTO assistant_feedback (user_id, client_name, tool, text, created_at)
+             VALUES (?, ?, ?, ?, ?)",
+        )
+        .bind(user_id)
+        .bind(client_name)
+        .bind(tool)
+        .bind(text)
+        .bind(now)
+        .execute(&self.write_pool)
+        .await?;
+        Ok(true)
+    }
+
+    /// The newest feedback first, at most `limit`: for the admin page, so no
+    /// user, only which assistant and tool.
+    pub async fn assistant_feedback(&self, limit: i64) -> DbResult<Vec<Feedback>> {
+        let rows: Vec<(String, String, String, i64)> = sqlx::query_as(
+            "SELECT client_name, tool, text, created_at FROM assistant_feedback
+             ORDER BY created_at DESC, id DESC LIMIT ?",
+        )
+        .bind(limit)
+        .fetch_all(&self.read_pool)
+        .await?;
+        Ok(rows
+            .into_iter()
+            .map(|(client_name, tool, text, created_at)| Feedback {
+                client_name,
+                tool,
+                text,
+                created_at,
+            })
+            .collect())
     }
 }
 

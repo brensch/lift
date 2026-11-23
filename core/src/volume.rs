@@ -25,7 +25,7 @@ use crate::recovery::MuscleRecovery;
 /// Weighted hard sets per muscle in the program's window. Counts
 /// completed, non-warmup, non-cancelled sets from every workout in the
 /// window — the in-progress one included, so the display moves while you
-/// train. Calibration rungs count as warmups.
+/// train. Calibration rungs count as warmups; drops and minis part of a set.
 pub fn weekly_sets(
     program: &Program,
     history: &[WorkoutRecord],
@@ -50,8 +50,14 @@ pub fn weekly_sets(
             if !proposed.is_working() || proposed.cancelled {
                 continue;
             }
+            // A drop or a mini counts part of a set (`volume.partial_credit`).
+            let share = if proposed.is_partial() {
+                program.volume.partial_credit
+            } else {
+                1.0
+            };
             for (muscle, credit) in program.credit(&proposed.exercise) {
-                *sets.entry(muscle).or_insert(0.0) += credit;
+                *sets.entry(muscle).or_insert(0.0) += credit * share;
             }
         }
     }
@@ -325,6 +331,7 @@ mod tests {
             rotation: true,
             notes: String::new(),
             from_library: String::new(),
+            groups: Vec::new(),
         }
     }
 

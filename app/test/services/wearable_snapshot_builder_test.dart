@@ -4,7 +4,6 @@ library;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schlift/gen/copy.dart';
 import 'package:schlift/gen/workout/v1/wearable.pb.dart';
-import 'package:schlift/gen/workout/v1/workout.pb.dart';
 import 'package:schlift/providers/multiplayer_provider.dart';
 import 'package:schlift/services/grpc_client.dart';
 import 'package:schlift/services/multiplayer_service.dart';
@@ -62,15 +61,15 @@ void main() {
     expect(lifting.repsText, '${first.targetReps}');
   });
 
-  test('a ramp set done in full: "Open phone!" for the weight, until '
-      'answered', () async {
+  test('a ramp set done in full: the usual card, and the banner\'s '
+      'question as buttons, until answered', () async {
     await h.start(['deadlift']);
     final first = h.provider.doneTargetSet!;
-    WearStatusCard card() => WearableSnapshotBuilder.build(
+    WearWorkoutSnapshot snapshot() => WearableSnapshotBuilder.build(
       workoutProvider: h.provider,
       multiplayerProvider: multiplayer,
       myUserId: 'me',
-    )!.youCard;
+    )!;
 
     await h.provider.startSet(first.id);
     await h.provider.completeSet(
@@ -78,17 +77,19 @@ void main() {
       first.targetReps,
       first.targetWeight,
     );
-    final asking = card();
-    expect(h.provider.rungQuestionSetId, first.id);
-    expect(asking.firstTime, isTrue, reason: 'no tap touches a set');
-    expect(asking.firstTimeText, copy.workout.watchFirstTimeStatus);
-    expect(asking.stateLabel, copy.workout.resting);
+    final asking = snapshot();
+    expect(h.provider.questionSetId, first.id);
+    expect(asking.youCard.firstTime, isFalse, reason: 'the watch answers it');
+    expect(asking.question.setId, first.id);
+    expect(asking.question.answers.map((a) => a.answer), [
+      QuickAnswer.QUICK_ANSWER_EASY,
+      QuickAnswer.QUICK_ANSWER_HARD,
+      QuickAnswer.QUICK_ANSWER_ONE_LESS,
+    ]);
+    expect(asking.question.answers.last.label, '${first.targetReps}');
 
-    await h.provider.answerRung(first.id, RepsLeft.REPS_LEFT_FIVE_PLUS);
-    final answered = card();
-    expect(answered.firstTime, isFalse);
-    expect(answered.firstTimeText, isEmpty);
-    expect(answered.weightText, isNotEmpty);
+    await h.provider.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_EASY);
+    expect(snapshot().hasQuestion(), isFalse);
   });
 
   test('a missed ramp set or the next set started: the usual card', () async {

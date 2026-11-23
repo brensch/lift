@@ -169,7 +169,7 @@ fn lifted(record: &WorkoutRecord, exercise: &str) -> (f32, i32, bool) {
     for set in record
         .proposed_sets
         .iter()
-        .filter(|s| s.exercise == exercise && s.is_working() && !s.cancelled)
+        .filter(|s| s.exercise == exercise && s.is_main() && !s.cancelled)
     {
         match record
             .completed_sets
@@ -265,10 +265,12 @@ fn forward(
             else {
                 break;
             };
+            // The last main set: a short one judges the session, a drop
+            // after it doesn't.
             let last_of_lift = !record.proposed_sets.iter().any(|s| {
                 s.id != set.id
                     && s.exercise == set.exercise
-                    && s.is_working()
+                    && s.is_main()
                     && !s.cancelled
                     && !record
                         .completed_sets
@@ -283,7 +285,8 @@ fn forward(
                 } else {
                     set.target_reps
                 }
-            } else if set.warmup {
+            } else if set.warmup || set.is_partial() {
+                // Drops and minis go as far as they go: their target.
                 set.target_reps
             } else {
                 let short = match effort {
@@ -294,6 +297,9 @@ fn forward(
                 };
                 if short {
                     set.target_reps - 1
+                } else if set.amrap {
+                    // As many as you can: a hit one goes a couple past it.
+                    set.target_reps + 2
                 } else {
                     set.target_reps
                 }

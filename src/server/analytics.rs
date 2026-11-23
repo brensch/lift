@@ -370,6 +370,28 @@ impl AdminService for ServerAdminService {
         Ok(Response::new(ListRecoveriesResponse { recoveries }))
     }
 
+    async fn list_assistant_feedback(
+        &self,
+        request: Request<ListAssistantFeedbackRequest>,
+    ) -> Result<Response<ListAssistantFeedbackResponse>, Status> {
+        let admin_id = authed_admin_id(&request, &self.db).await?;
+        info!(rpc = "ListAssistantFeedback", %admin_id, "request");
+        let feedback = self
+            .db
+            .assistant_feedback(200)
+            .await
+            .map_err(internal_error)?
+            .into_iter()
+            .map(|f| AssistantFeedback {
+                client_name: f.client_name,
+                tool: f.tool,
+                text: f.text,
+                created_at: f.created_at,
+            })
+            .collect();
+        Ok(Response::new(ListAssistantFeedbackResponse { feedback }))
+    }
+
     /// The waiting request a code belongs to, with the account it asks
     /// for laid out: what its owner would know and a stranger would not,
     /// for the admin to ask about before approving.

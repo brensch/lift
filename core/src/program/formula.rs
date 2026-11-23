@@ -35,6 +35,14 @@ pub const VARIABLES: &[(&str, &str)] = &[
         "last.best_reps",
         "The most reps done in one working set at the last session's heaviest weight",
     ),
+    (
+        "last.amrap_reps",
+        "The reps done on the last session's as-many-as-you-can set; 0 when it had none",
+    ),
+    (
+        "last.rir",
+        "The reps left the last session's effort answers said, on average; -1 when none was asked",
+    ),
     ("last.hit", "1 when every working rep was hit last session"),
     (
         "last.missed",

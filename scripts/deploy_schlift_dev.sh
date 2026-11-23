@@ -137,16 +137,13 @@ if [[ "${healthcheck_ok}" -ne 1 ]]; then
 	exit 1
 fi
 
-# --- Caddy: install the dual-host Caddyfile and reload gracefully -------------
-# The prod block is byte-identical to what's already live, so this only adds the
-# dev.schlift.com vhost. `reload` keeps prod connections up (no restart blip).
-if command -v caddy >/dev/null 2>&1; then
-	install -m 0644 "${REPO_ROOT}/deploy/Caddyfile" /etc/caddy/Caddyfile
-	caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
-	systemctl reload caddy
-	echo "reloaded caddy with dev.schlift.com vhost"
-else
-	echo "WARNING: caddy not found; dev.schlift.com will not be reachable" >&2
+# --- Caddy ---------------------------------------------------------------------
+# The Caddyfile (dev.schlift.com's vhost included) comes with the production
+# build, which validates and reloads it when it changed. A dev deploy leaves it
+# alone: it once installed one from the puller's folder, which never had one, so
+# every dev deploy failed here after the new build was already live.
+if ! systemctl is-active --quiet caddy; then
+	echo "WARNING: caddy is not running; dev.schlift.com is not reachable" >&2
 fi
 
 echo "deployed dev backend ${RELEASE_ID} on :${HEALTHCHECK_PORT}"

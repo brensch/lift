@@ -44,6 +44,22 @@ extension PhoneConnector {
         sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)
     }
 
+    /// An answer to the banner's question: easy, hard or fail. Gated like the other taps.
+    func sendAnswer(setID: String, answer: Workout_V1_QuickAnswer) {
+        guard !isActionPending else { return }
+        guard let workoutId = snapshot?.workoutID, !workoutId.isEmpty else { return }
+        var reply = Workout_V1_AnswerQuestionIntent()
+        reply.workoutID = workoutId
+        reply.setID = setID
+        reply.answer = answer
+        var intent = Workout_V1_WearIntent()
+        intent.intentID = UUID().uuidString
+        intent.intent = .answerQuestion(reply)
+        guard let data = try? intent.serializedData() else { return }
+        beginPendingAction()
+        sendToPhone(path: WatchPaths.wearToPhoneIntent, data: data)
+    }
+
     /// Sets the intent's payload from the action the phone sent. False for an action
     /// type the watch does not know how to send.
     private func fill(

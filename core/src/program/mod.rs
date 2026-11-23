@@ -17,6 +17,7 @@
 //! [GUIDE] (`programs/GUIDE.md`) describes the document for whoever writes
 //! one; [validate] checks a draft and names the path of each problem.
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::ops::Deref;
@@ -27,6 +28,7 @@ use serde::{Deserialize, Serialize};
 use crate::pb::{EquipmentKind, MuscleGroup};
 use crate::weight_units::AppWeightUnit;
 
+pub mod edit;
 pub mod formula;
 mod loading;
 mod validate;
@@ -56,6 +58,10 @@ pub struct Program {
     pub classes: BTreeMap<String, Class>,
     /// By name; a class or an exercise names the one it follows.
     pub progressions: BTreeMap<String, Progression>,
+    /// By name; a class or an exercise names the one its sets are laid out
+    /// by. `straight` needn't be written.
+    #[serde(default)]
+    pub schemes: BTreeMap<String, Scheme>,
     pub estimate: Estimate,
     /// The max cut for time away. The largest `days` reached applies.
     pub time_off: Vec<TimeOff>,
@@ -68,7 +74,14 @@ pub struct Program {
     pub rotation_check: RotationCheck,
     /// The rest after an exercise's last set: the next thing is another lift.
     pub end_of_exercise_rest_seconds: i64,
+    /// The rest between two lifts of a group within a round.
+    #[serde(default = "transition")]
+    pub transition_seconds: i32,
     pub equipment: Equipment,
+}
+
+fn transition() -> i32 {
+    15
 }
 
 /// One exercise: what it is, how it loads and what it trains.
@@ -88,6 +101,153 @@ pub struct ExerciseDef {
     pub progression: Option<String>,
     /// A plain description, for a lift the app has no picture of.
     pub description: String,
+    /// This lift's own values for numbers of the rule it follows (see
+    /// [`tune`]): one rule for several lifts that differ in a number, like
+    /// a bigger step for legs. None in a program from before it existed.
+    #[serde(default)]
+    pub params: BTreeMap<String, f64>,
+    /// What its number counts: reps, or seconds (a plank), or metres (a
+    /// carry). Reps in a program from before it existed.
+    #[serde(default)]
+    pub measure: Measure,
+    /// The number is for each side.
+    #[serde(default)]
+    pub per_side: bool,
+    /// A cue shown with its sets ("3-1-1"), or "".
+    #[serde(default)]
+    pub tempo: String,
+    /// Its own scheme, over its class's.
+    #[serde(default)]
+    pub scheme: Option<String>,
+}
+
+/// What a lift's number counts.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum Measure {
+    #[default]
+    Reps,
+    Seconds,
+    Metres,
+}
+
+impl Measure {
+    pub fn to_proto(self) -> crate::pb::Measure {
+        match self {
+            Measure::Reps => crate::pb::Measure::Unspecified,
+            Measure::Seconds => crate::pb::Measure::Seconds,
+            Measure::Metres => crate::pb::Measure::Metres,
+        }
+    }
+}
+
+/// How a lift's sets are laid out from what its rule decides (sets, reps,
+/// weight): a few steps, each some sets of one role. See the guide's
+/// `schemes`.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct Scheme {
+    pub steps: Vec<Step>,
+}
+
+/// One step of a scheme.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct Step {
+    pub role: Role,
+    /// A number of sets, or `"rest"`: the rule's sets less the numbered
+    /// main steps'.
+    pub count: StepCount,
+    /// The number for each set; none: the rule's.
+    #[serde(default)]
+    pub reps: Option<i32>,
+    /// Of the working weight; for a drop, of the set before it.
+    #[serde(default = "one")]
+    pub fraction: f32,
+    #[serde(default)]
+    pub amrap: bool,
+    /// Reps left in the tank to aim for: the set asks after it.
+    #[serde(default)]
+    pub rir: Option<i32>,
+    /// After each set; none: the class's rest (a drop's: none).
+    #[serde(default)]
+    pub rest_seconds: Option<i32>,
+    /// EMOM: the next set starts this long after this one started.
+    #[serde(default)]
+    pub every_seconds: Option<i32>,
+    /// What missing one of its sets changes for the rest of the lift.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub on_miss: Option<OnMiss>,
+}
+
+/// What a set missed (logged short of its target) changes for the rest of
+/// its lift that workout; put back to every rep, it's taken back.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+pub struct OnMiss {
+    /// The rest after the missed set, over the step's.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub rest_seconds: Option<i32>,
+    /// The lift's sets still to do, at this share of their weight.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub fraction: Option<f32>,
+    /// The lift's sets still to do are dropped.
+    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
+    pub stop: bool,
+}
+
+fn one() -> f32 {
+    1.0
+}
+
+/// A set's role in its lift.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum Role {
+    Working,
+    Top,
+    Backoff,
+    Drop,
+    Mini,
+}
+
+impl Role {
+    /// Working, top and back-off sets: what the rule's sets count, and what
+    /// says whether the session was hit.
+    pub fn is_main(self) -> bool {
+        matches!(self, Role::Working | Role::Top | Role::Backoff)
+    }
+
+    pub fn to_proto(self) -> crate::pb::SetRole {
+        match self {
+            Role::Working => crate::pb::SetRole::Unspecified,
+            Role::Top => crate::pb::SetRole::Top,
+            Role::Backoff => crate::pb::SetRole::Backoff,
+            Role::Drop => crate::pb::SetRole::Drop,
+            Role::Mini => crate::pb::SetRole::Mini,
+        }
+    }
+}
+
+/// A step's count: a number, or the word `rest`.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(untagged)]
+pub enum StepCount {
+    Sets(i32),
+    Word(String),
+}
+
+impl StepCount {
+    pub fn is_rest(&self) -> bool {
+        matches!(self, StepCount::Word(w) if w == "rest")
+    }
+}
+
+/// A group of a workout's lifts whose sets alternate: a superset (two) or
+/// a circuit (more).
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub struct GroupDef {
+    pub exercises: Vec<String>,
+    /// After a round; none: the last lift's own rest.
+    #[serde(default)]
+    pub rest_seconds: Option<i32>,
 }
 
 /// One of the program's workouts: an ordered list of exercises.
@@ -102,6 +262,10 @@ pub struct WorkoutDef {
     pub notes: String,
     /// The library entry it was copied from, or empty.
     pub from_library: String,
+    /// Lifts whose sets alternate (supersets, circuits). None in a program
+    /// from before it existed.
+    #[serde(default)]
+    pub groups: Vec<GroupDef>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -111,6 +275,21 @@ pub struct Class {
     pub rest_seconds: i32,
     pub warmups: bool,
     pub progression: String,
+    /// The name of its lifts' scheme; `straight` in a program from before
+    /// schemes.
+    #[serde(default = "straight")]
+    pub scheme: String,
+}
+
+fn one_step() -> i32 {
+    1
+}
+
+/// The scheme every lift had before schemes: the rule's sets, identical.
+pub const STRAIGHT: &str = "straight";
+
+fn straight() -> String {
+    STRAIGHT.to_string()
 }
 
 /// How a lift moves from one session to the next. See the guide.
@@ -145,6 +324,9 @@ pub enum Progression {
         rep_low: i32,
         rep_high: i32,
         increment_lb: f32,
+        /// How many reps (or seconds, or metres) a session climbs by.
+        #[serde(default = "one_step")]
+        rep_step: i32,
     },
     /// One step a session, round and round: sets × reps at a fraction of
     /// the estimated max.
@@ -175,6 +357,100 @@ pub struct Formula {
     pub rest_seconds: Option<String>,
     /// Shown beside the plan.
     pub note: String,
+}
+
+/// The numbers of a rule a lift's `params` may set: a formula's `let`
+/// names, or these fields of the other kinds that have them. The ones
+/// that count are whole numbers.
+const TUNABLE: [&str; 9] = [
+    "sets",
+    "rep_step",
+    "reps",
+    "rep_low",
+    "rep_high",
+    "deload_after_fails",
+    "increment_lb",
+    "deload_factor",
+    "weight_lb",
+];
+const WHOLE: [&str; 6] = [
+    "sets",
+    "reps",
+    "rep_low",
+    "rep_high",
+    "deload_after_fails",
+    "rep_step",
+];
+
+/// `rule` with a lift's own values for its numbers: for a formula, each
+/// name replaces the `let` of that name; for fixed, linear and double, the
+/// field. An error names the param and why it doesn't fit.
+pub fn tune(
+    rule: &Progression,
+    params: &BTreeMap<String, f64>,
+) -> Result<Progression, (String, String)> {
+    for (name, value) in params {
+        if !value.is_finite() {
+            return Err((name.clone(), "a number".into()));
+        }
+    }
+    match rule {
+        Progression::EstimatedMax | Progression::Cycle { .. } => match params.keys().next() {
+            Some(name) => Err((
+                name.clone(),
+                format!("a {} rule has no numbers a lift can set", rule.kind()),
+            )),
+            None => Ok(rule.clone()),
+        },
+        Progression::Formula(f) => {
+            let mut f = f.clone();
+            for (name, value) in params {
+                let Some(expr) = f.lets.get_mut(name) else {
+                    let lets: Vec<&str> = f.lets.keys().map(String::as_str).collect();
+                    return Err((
+                        name.clone(),
+                        format!("the formula has no `let` named {name:?} (it has {lets:?})"),
+                    ));
+                };
+                *expr = if value.fract() == 0.0 && value.abs() < 1e15 {
+                    format!("{}", *value as i64)
+                } else {
+                    format!("{value}")
+                };
+            }
+            Ok(Progression::Formula(f))
+        }
+        _ => {
+            let mut doc = serde_json::to_value(rule).expect("a rule serialises");
+            let fields = doc.as_object_mut().expect("a rule is an object");
+            for (name, value) in params {
+                if !TUNABLE.contains(&name.as_str()) || !fields.contains_key(name) {
+                    let has: Vec<&str> = fields
+                        .keys()
+                        .filter(|k| TUNABLE.contains(&k.as_str()))
+                        .map(String::as_str)
+                        .collect();
+                    return Err((
+                        name.clone(),
+                        format!("a {} rule has no {name:?} (it has {has:?})", rule.kind()),
+                    ));
+                }
+                let number = if WHOLE.contains(&name.as_str()) {
+                    if value.fract() != 0.0 {
+                        return Err((name.clone(), "a whole number".into()));
+                    }
+                    serde_json::Value::from(*value as i64)
+                } else {
+                    serde_json::Value::from(*value)
+                };
+                fields.insert(name.clone(), number);
+            }
+            serde_json::from_value(doc).map_err(|e| {
+                let name = params.keys().next().cloned().unwrap_or_default();
+                (name, e.to_string())
+            })
+        }
+    }
 }
 
 impl Progression {
@@ -280,6 +556,13 @@ pub struct Volume {
     pub secondary_credit: f32,
     /// A template within this fraction of the best score is tied with it.
     pub tie_fraction: f32,
+    /// What a drop or mini set counts toward a muscle's week, of a set.
+    #[serde(default = "half")]
+    pub partial_credit: f32,
+}
+
+fn half() -> f32 {
+    0.5
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -472,6 +755,11 @@ fn unknown_exercise() -> &'static ExerciseDef {
         class: String::new(),
         progression: None,
         description: String::new(),
+        params: BTreeMap::new(),
+        measure: Measure::Reps,
+        per_side: false,
+        tempo: String::new(),
+        scheme: None,
     })
 }
 
@@ -508,12 +796,22 @@ impl Program {
     /// and any it adds on no progression of their own (what reset leaves).
     pub fn uses_builtin_rules(&self) -> bool {
         let builtin = Program::builtin();
+        // Schemes count by what's used, not what's written: a scheme no
+        // class names plans nothing, and `straight` is identical sets
+        // whether written out or not.
         let rules = |p: &Program| Program {
             workouts: Vec::new(),
             exercises: Vec::new(),
+            schemes: BTreeMap::new(),
             ..p.clone()
         };
+        let used =
+            |p: &Program, name: &str| (name != STRAIGHT).then(|| p.schemes.get(name).cloned());
         rules(self) == rules(&builtin)
+            && self
+                .classes
+                .values()
+                .all(|c| used(self, &c.scheme) == used(&builtin, &c.scheme))
             && builtin
                 .exercises
                 .iter()
@@ -559,13 +857,40 @@ impl Program {
             .unwrap_or(&self.class_of(key).progression)
     }
 
-    /// The progression an exercise follows. One the program doesn't define
-    /// (validation refuses that) reads as the estimated max.
-    pub fn progression_of(&self, key: &str) -> &Progression {
+    /// The progression an exercise follows, with the exercise's own
+    /// `params` in it ([`tune`]). One the program doesn't define, or
+    /// params that don't fit it (validation refuses both), read as the
+    /// rule as written or the estimated max.
+    pub fn progression_of(&self, key: &str) -> Cow<'_, Progression> {
         const ESTIMATED_MAX: Progression = Progression::EstimatedMax;
-        self.progressions
+        let rule = self
+            .progressions
             .get(self.progression_name(key))
-            .unwrap_or(&ESTIMATED_MAX)
+            .unwrap_or(&ESTIMATED_MAX);
+        match self.exercise(key).map(|e| &e.params) {
+            Some(params) if !params.is_empty() => {
+                tune(rule, params).map_or(Cow::Borrowed(rule), Cow::Owned)
+            }
+            _ => Cow::Borrowed(rule),
+        }
+    }
+
+    /// The name of the scheme an exercise's sets are laid out by: its own,
+    /// or its class's.
+    pub fn scheme_name(&self, key: &str) -> &str {
+        self.exercise(key)
+            .and_then(|e| e.scheme.as_deref())
+            .unwrap_or(&self.class_of(key).scheme)
+    }
+
+    /// The scheme an exercise's sets are laid out by. `straight` (identical
+    /// sets, written out or not), or one the program doesn't define
+    /// (validation refuses that), is None: the rule's sets as they are.
+    pub fn scheme_of(&self, key: &str) -> Option<&Scheme> {
+        match self.scheme_name(key) {
+            STRAIGHT => None,
+            name => self.schemes.get(name),
+        }
     }
 
     /// The hours a muscle takes to recover.

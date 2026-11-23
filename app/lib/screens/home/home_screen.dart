@@ -29,6 +29,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../services/wearable_bridge_service.dart';
 import '../../theme/theme_spec.dart';
+import '../../widgets/suggestion_screen.dart';
 import '../../widgets/menu_button.dart';
 import '../../widgets/multiplayer_button.dart';
 import '../../widgets/wordmark.dart';
@@ -202,6 +203,35 @@ class _HomeScreenState extends State<HomeScreen> {
             TutorialTarget(
               id: 'home_templates',
               child: _TemplateChips(
+                suggested: [
+                  for (final suggestion
+                      in context.watch<WorkoutProvider>().pendingSuggestions)
+                    _ChipShell(
+                      selected: false,
+                      onTap: () => openSuggestion(context, suggestion),
+                      children: [
+                        Icon(
+                          AppIcons.multiplayer,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 4),
+                        Flexible(
+                          child: Text(
+                            copy.suggestions.chip
+                                .replaceAll('{title}', suggestion.title)
+                                .replaceAll('{name}', suggestion.fromName),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: context.tokens.size.body,
+                              fontWeight: context.tokens.weight.heavy,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                ],
                 rotation: [
                   for (final template in templates)
                     if (template.inRotation) chip(template),
@@ -311,10 +341,15 @@ class _TemplateChips extends StatelessWidget {
   final List<Widget> reserves;
   final List<Widget> actions;
 
+  /// What others suggested, waiting: a section of its own above the
+  /// rotation, only while there's any.
+  final List<Widget> suggested;
+
   const _TemplateChips({
     required this.rotation,
     required this.reserves,
     required this.actions,
+    this.suggested = const [],
   });
 
   @override
@@ -326,6 +361,8 @@ class _TemplateChips extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (suggested.isNotEmpty)
+          FlatSection(label: copy.suggestions.heading, child: wrap(suggested)),
         FlatSection(
           label: l.rotationHeading,
           child: rotation.isEmpty
@@ -754,31 +791,16 @@ class _VolumeRow extends StatelessWidget {
         const SizedBox(width: 8),
         SizedBox(
           width: 44,
-          child: Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: sets % 1 == 0
-                      ? sets.toStringAsFixed(0)
-                      : sets.toStringAsFixed(1),
-                  // In the target range the number goes green.
-                  style: TextStyle(
-                    color: inBand
-                        ? context.tokens.ready
-                        : over
-                        ? cs.onSurface
-                        : cs.onSurface.withValues(alpha: 0.55),
-                  ),
-                ),
-                if (over)
-                  TextSpan(
-                    text: '▲',
-                    style: TextStyle(color: context.tokens.overdue),
-                  ),
-              ],
-            ),
+          child: Text(
+            sets % 1 == 0 ? sets.toStringAsFixed(0) : sets.toStringAsFixed(1),
             textAlign: TextAlign.right,
             style: TextStyle(
+              // In the target range the number goes green.
+              color: inBand
+                  ? context.tokens.ready
+                  : over
+                  ? cs.onSurface
+                  : cs.onSurface.withValues(alpha: 0.55),
               fontSize: context.tokens.size.bodyLg,
               fontWeight: context.tokens.weight.heavy,
               fontFeatures: [FontFeature.tabularFigures()],

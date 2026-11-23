@@ -86,6 +86,7 @@ fn set(weight: f32, reps: i32, hit: bool) -> SetDone {
         target: if hit { reps } else { reps + 1 },
         hit,
         reps_left: 0,
+        amrap: false,
     }
 }
 
@@ -629,6 +630,7 @@ fn lift(ex: &str) -> Lift {
         class: builtin().exercise(ex).unwrap().class.clone(),
         fixed_sets: None,
         lead_in: false,
+        extra_seconds: 0.0,
     }
 }
 
@@ -921,6 +923,7 @@ fn double_climbs_reps_then_weight() {
             rep_low: 8,
             rep_high: 12,
             increment_lb: 0.0,
+            rep_step: 1,
         },
     );
     let d = plan_by(

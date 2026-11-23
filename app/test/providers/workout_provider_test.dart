@@ -5,8 +5,8 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:schlift/gen/workout/v1/wearable.pb.dart' show QuickAnswer;
 import 'package:schlift/gen/workout/v1/workout.pb.dart';
-import 'package:schlift/providers/workout_provider.dart';
 
 import '../support/provider_harness.dart';
 
@@ -212,69 +212,100 @@ void main() {
     expect(h.provider.home, isNotNull, reason: 'home has something to show');
   });
 
-  test('a ramp set done in full asks once; the answer is sent', () async {
-    // Never done: a ramp. Squat and the raise have history, so no ramp.
-    const deadlift = 'deadlift';
-    final asked = <String>[];
-    h.provider.onRungQuestion = asked.add;
-    await h.start([raise, deadlift]);
+  test(
+    'a ramp set done in full asks how it went; the answer is sent',
+    () async {
+      // Never done: a ramp. Squat and the raise have history, so no ramp.
+      const deadlift = 'deadlift';
+      await h.start([raise, deadlift]);
+      final p = h.provider;
+
+      // A working set never asks.
+      final working = h.working(raise).first;
+      await p.completeSet(working.id, 10, 20);
+      expect(p.questionSetId, isEmpty);
+
+      ProposedSet rung() =>
+          p.proposedSets.firstWhere((s) => s.calibration && !p.isSetDone(s.id));
+      final first = rung();
+      await p.completeSet(first.id, first.targetReps, first.targetWeight);
+      expect(p.questionSetId, first.id, reason: 'every rep: asked');
+
+      // A change that leaves it open leaves it open.
+      await p.skipWarmups(deadlift);
+      expect(p.questionSetId, first.id);
+
+      // Hard: the ramp ends there and the question is gone.
+      await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_HARD);
+      expect(p.questionSetId, isEmpty);
+      expect(
+        p.completedSets.firstWhere((c) => c.proposedSetId == first.id).repsLeft,
+        RepsLeft.REPS_LEFT_ZERO_TO_ONE,
+      );
+      expect(
+        p.proposedSets.where((s) => s.exercise == deadlift && s.calibration),
+        hasLength(1),
+        reason: 'no rung after it',
+      );
+      expect(h.working(deadlift), isNotEmpty, reason: 'the working sets');
+    },
+  );
+
+  test('one less takes a rep off per tap; the circle stays until the '
+      'next set starts', () async {
+    await h.start(['deadlift']);
     final p = h.provider;
-
-    // A working set never asks.
-    final working = h.working(raise).first;
-    await p.completeSet(working.id, 10, 20);
-    expect(asked, isEmpty);
-    expect(p.rungQuestionSetId, isEmpty);
-
-    // A ramp set short of its reps is a miss: no question.
-    ProposedSet rung() =>
-        p.proposedSets.firstWhere((s) => s.calibration && !p.isSetDone(s.id));
-    final first = rung();
+    final first = p.doneTargetSet!;
     await p.completeSet(first.id, first.targetReps, first.targetWeight);
-    expect(asked, [first.id], reason: 'every rep: asked');
-    expect(p.rungQuestionSetId, first.id);
+    int reps() => p.completedSets
+        .firstWhere((c) => c.proposedSetId == first.id)
+        .actualReps;
 
-    // A change that leaves it open does not ask again.
-    await p.skipWarmups(deadlift);
-    expect(asked, [first.id]);
+    await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_ONE_LESS);
+    expect(reps(), first.targetReps - 1);
+    expect(p.questionSetId, isEmpty, reason: 'a miss asks nothing');
+    expect(p.askingSetId, first.id, reason: 'its circle stays');
+    final window = p.askingUntil!;
+    expect(window.isAfter(DateTime.now()), isTrue, reason: 'counting down');
+    expect(p.askingReps, first.targetReps - 1);
 
-    // 0–1: the ramp ends there and the question is gone.
-    await p.answerRung(first.id, RepsLeft.REPS_LEFT_ZERO_TO_ONE);
-    expect(p.rungQuestionSetId, isEmpty);
+    await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_ONE_LESS);
+    expect(reps(), first.targetReps - 2);
     expect(
-      p.completedSets.firstWhere((c) => c.proposedSetId == first.id).repsLeft,
-      RepsLeft.REPS_LEFT_ZERO_TO_ONE,
+      p.askingUntil!.isBefore(window),
+      isFalse,
+      reason: 'each tap starts the window again',
     );
-    expect(
-      p.proposedSets.where((s) => s.exercise == deadlift && s.calibration),
-      hasLength(1),
-      reason: 'no rung after it',
-    );
-    expect(h.working(deadlift), isNotEmpty, reason: 'the working sets');
+    // Easy and Hard are for the open question only.
+    await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_EASY);
+    expect(reps(), first.targetReps - 2);
+
+    await p.startSet(p.doneTargetSet!.id);
+    expect(p.askingSetId, isEmpty, reason: 'the next set started');
   });
 
-  test('a question open before a reload is not asked again', () async {
-    const deadlift = 'deadlift';
-    await h.start([deadlift]);
-    final first = h.provider.doneTargetSet!;
-    expect(first.calibration, isTrue);
-    await h.provider.completeSet(
-      first.id,
-      first.targetReps,
-      first.targetWeight,
-    );
-    expect(h.provider.rungQuestionSetId, first.id);
+  test('any set done stays in the banner a moment, its reps to tap down; '
+      'starting the next set moves on', () async {
+    await h.start([raise]);
+    final p = h.provider;
+    final working = h.working(raise).first;
+    await p.completeSet(working.id, 10, 20);
+    expect(p.questionSetId, isEmpty, reason: 'nothing to ask');
+    expect(p.askingSetId, working.id);
+    expect(p.askingUntil, isNotNull);
+    await p.answerQuick(working.id, QuickAnswer.QUICK_ANSWER_ONE_LESS);
+    expect(p.askingReps, 9);
+    await p.startSet(p.doneTargetSet!.id);
+    expect(p.askingSetId, isEmpty);
+  });
 
-    // The app restarts with the question still open.
-    final again = WorkoutProvider(h.service, h.settings, sandbox: true);
-    addTearDown(again.dispose);
-    final asked = <String>[];
-    again.onRungQuestion = asked.add;
-    await again.loadActiveWorkout('test');
-    expect(again.rungQuestionSetId, first.id);
-    // A change that leaves it open: still not asked.
-    await again.skipWarmups(deadlift);
-    expect(asked, isEmpty);
+  test('easy or hard puts the question away', () async {
+    await h.start(['deadlift']);
+    final p = h.provider;
+    final first = p.doneTargetSet!;
+    await p.completeSet(first.id, first.targetReps, first.targetWeight);
+    await p.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_EASY);
+    expect(p.askingSetId, isEmpty);
   });
 
   test('a session is recorded once while the first is in flight', () async {
@@ -291,8 +322,6 @@ void main() {
   });
 
   test('a missed ramp set never asks', () async {
-    final asked = <String>[];
-    h.provider.onRungQuestion = asked.add;
     await h.start(['deadlift']);
     final first = h.provider.doneTargetSet!;
     expect(first.calibration, isTrue);
@@ -301,7 +330,6 @@ void main() {
       first.targetReps - 1,
       first.targetWeight,
     );
-    expect(asked, isEmpty);
-    expect(h.provider.rungQuestionSetId, isEmpty);
+    expect(h.provider.questionSetId, isEmpty);
   });
 }

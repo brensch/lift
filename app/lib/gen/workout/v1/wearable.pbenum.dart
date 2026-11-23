@@ -99,5 +99,38 @@ class WearCircleState extends $pb.ProtobufEnum {
   const WearCircleState._(super.value, super.name);
 }
 
+/// How a set went: what the banner and the watch ask.
+class QuickAnswer extends $pb.ProtobufEnum {
+  static const QuickAnswer QUICK_ANSWER_UNSPECIFIED =
+      QuickAnswer._(0, _omitEnumNames ? '' : 'QUICK_ANSWER_UNSPECIFIED');
+
+  /// Plenty left: a ramp jumps further; an effort target had room.
+  static const QuickAnswer QUICK_ANSWER_EASY =
+      QuickAnswer._(1, _omitEnumNames ? '' : 'QUICK_ANSWER_EASY');
+
+  /// Nearly all out: a ramp is done; an effort target was about right.
+  static const QuickAnswer QUICK_ANSWER_HARD =
+      QuickAnswer._(2, _omitEnumNames ? '' : 'QUICK_ANSWER_HARD');
+
+  /// A rep off the set, a tap on its circle: its label is the reps logged,
+  /// and it stays to be tapped again.
+  static const QuickAnswer QUICK_ANSWER_ONE_LESS =
+      QuickAnswer._(3, _omitEnumNames ? '' : 'QUICK_ANSWER_ONE_LESS');
+
+  static const $core.List<QuickAnswer> values = <QuickAnswer>[
+    QUICK_ANSWER_UNSPECIFIED,
+    QUICK_ANSWER_EASY,
+    QUICK_ANSWER_HARD,
+    QUICK_ANSWER_ONE_LESS,
+  ];
+
+  static final $core.List<QuickAnswer?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
+  static QuickAnswer? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const QuickAnswer._(super.value, super.name);
+}
+
 const $core.bool _omitEnumNames =
     $core.bool.fromEnvironment('protobuf.omit_enum_names');

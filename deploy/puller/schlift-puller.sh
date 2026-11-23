@@ -30,7 +30,10 @@ log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
 	echo "run as root" >&2
 	exit 1
 }
-mkdir -p "${STATE}"
+# work/ holds downloads and preflight copies. It must exist before the first
+# `mktemp -d` below: without it every run died there, before the deployment was
+# marked done, and the box retried the same deployment every 20 s for ever.
+mkdir -p "${STATE}" "${HERE}/work"
 exec 9>"${STATE}/lock"
 flock -n 9 || exit 0 # a deploy is already running
 
@@ -99,17 +102,26 @@ PY
 	# The build sits in a root-only download folder; the preflight runs it as opc.
 	install -m 0755 "${bin}" "${dir}/schlift"
 	bin="${dir}/schlift"
+	# The live env file, with its PORT and DATA_DIR replaced by the spare port and
+	# the copy. Passing them with -E is not enough: systemd lets EnvironmentFile
+	# override Environment, so the dev env's PORT=50052 put the preflight on the
+	# live dev port, where it failed to bind.
+	local envfile="${dir}/preflight.env"
+	{
+		grep -vE '^[[:space:]]*(export[[:space:]]+)?(PORT|DATA_DIR)=' "${root}/shared/schlift.env" 2>/dev/null || true
+		printf 'PORT=%s\nDATA_DIR=%s\n' "${port}" "${dir}/data"
+	} >"${envfile}"
+	chmod 600 "${envfile}"
 	chown -R opc:opc "${dir}"
-	# A transient unit with the live unit's user and EnvironmentFile: systemd reads the
-	# env file exactly as it does for the real service.
+	# A transient unit with the live unit's user: systemd reads the env file exactly
+	# as it does for the real service.
 	local unit ok=0
 	unit="schlift-preflight-${port}"
 	systemctl stop "${unit}" 2>/dev/null || true
 	systemctl reset-failed "${unit}" 2>/dev/null || true
 	systemd-run --quiet --collect --unit="${unit}" \
 		-p User=opc -p Group=opc -p WorkingDirectory="${dir}" \
-		-p EnvironmentFile=-"${root}/shared/schlift.env" \
-		-E PORT="${port}" -E DATA_DIR="${dir}/data" "${bin}"
+		-p EnvironmentFile="${envfile}" "${bin}"
 	local inv
 	inv="$(systemctl show -p InvocationID --value "${unit}")"
 	for _ in $(seq 1 120); do
@@ -151,7 +163,7 @@ deploy_one() { # deploy_one ENV DEPLOYMENT_JSON WORKDIR
 	fetch_artifacts "${run}" "${work}" "${artifacts[@]}"
 	case "${env}" in
 	production)
-		local a="${work}/backend-linux-amd64"
+		local a="${work}/backend-linux-arm64"
 		[[ -f "${a}/schlift.sha256" ]] && (cd "${a}" && sha256sum -c --quiet schlift.sha256)
 		chmod 755 "${a}/schlift"
 		preflight "${a}/schlift" /opt/schlift 50061
@@ -160,7 +172,7 @@ deploy_one() { # deploy_one ENV DEPLOYMENT_JSON WORKDIR
 			"${HERE}/scripts/deploy_schlift_release.sh"
 		;;
 	dev)
-		local a="${work}/dev-backend-linux-amd64"
+		local a="${work}/dev-backend-linux-arm64"
 		[[ -f "${a}/schlift.sha256" ]] && (cd "${a}" && sha256sum -c --quiet schlift.sha256)
 		chmod 755 "${a}/schlift"
 		preflight "${a}/schlift" /opt/schlift-dev 50062

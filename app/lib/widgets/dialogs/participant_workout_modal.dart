@@ -134,7 +134,7 @@ class _ParticipantWorkoutSheet extends StatelessWidget {
                       shrinkWrap: true,
                       padding: EdgeInsets.zero,
                       children: [
-                        for (final block in blocks)
+                        for (final section in sectionsOf(blocks))
                           DecoratedBox(
                             // Over the section, not behind it: the one in
                             // focus fills itself with the panel colour, which
@@ -146,10 +146,12 @@ class _ParticipantWorkoutSheet extends StatelessWidget {
                               ),
                             ),
                             child: ExerciseSection(
-                              block: block,
+                              blocks: section,
                               workout: workout,
-                              focused: block.exercise == nextExercise,
-                              finished: finished(block),
+                              focused: section.any(
+                                (b) => b.exercise == nextExercise,
+                              ),
+                              finished: section.every(finished),
                             ),
                           ),
                       ],

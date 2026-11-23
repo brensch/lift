@@ -16,16 +16,19 @@
 # incremental build and install. Ctrl+C, or q (which ends the app), stops it
 # all.
 DEV_BACKEND_LOG = .tmp/dev-backend.log
+DEV_WEB_LOG = .tmp/dev-web.log
 DEBUG_APP_ID = com.brensch.schlift.debug
 dev:
 	@mkdir -p .tmp
 	@echo "Backend log: $(DEV_BACKEND_LOG)"
+	@echo "Website: $(DEV_WEB_ORIGIN) (log $(DEV_WEB_LOG)); MCP: $(DEV_WEB_ORIGIN)/api/mcp"
 	@bash -c '\
 		$(PICK_PHONE) \
 		trap "STOP=1" INT; \
 		cleanup() { kill $$(jobs -p) 2>/dev/null; $(STOP_DEV_BACKEND); }; \
 		trap cleanup EXIT; \
 		$(MAKE) run-backend > "$(DEV_BACKEND_LOG)" 2>&1 & \
+		$(MAKE) run-frontend > "$(DEV_WEB_LOG)" 2>&1 & \
 		$(MAKE) hot-reload-on-save & \
 		$(MAKE) run-android PHONE_SERIAL="$$SERIAL"; \
 		app_alive() { for i in 1 2 3; do [ -n "$$(timeout 10 $(ADB) -s "$$SERIAL" shell pidof $(DEBUG_APP_ID) 2>/dev/null)" ] && return 0; done; return 1; }; \
@@ -34,8 +37,9 @@ dev:
 			$(MAKE) run-android PHONE_SERIAL="$$SERIAL" || break; \
 		done; \
 	'
-# Killing make does not reach the cargo watch and server under it.
-STOP_DEV_BACKEND = pkill -f "[c]argo-watch watch $(firstword $(BACKEND_WATCH))"; $(STOP_LOCAL_BACKENDS)
+# Killing make does not reach the cargo watch and server under it, nor vite.
+STOP_DEV_BACKEND = pkill -f "[c]argo-watch watch $(firstword $(BACKEND_WATCH))"; $(STOP_LOCAL_BACKENDS); \
+	pkill -f "[w]eb/node_modules/.bin/vite" || true
 
 # The Dart tests, against the real core: the host build of app/native first.
 # The `dst` ones need a zone with daylight saving, so run on their own in one.
@@ -49,8 +53,10 @@ run-web-dev:
 	@echo "Starting backend and frontend... Press Ctrl+C to stop."
 	@bash -c 'trap "kill 0" SIGINT SIGTERM EXIT; $(MAKE) run-backend & $(MAKE) run-frontend & wait'
 
+# --strictPort: the MCP's address is this port (DEV_WEB_ORIGIN), so vite must
+# fail rather than move to the next free one.
 run-frontend:
-	cd web && npm run dev
+	cd web && npm run dev -- --strictPort --port 5173
 
 run-app:
 	@$(MAKE) stop-app || true
@@ -83,6 +89,13 @@ FLUTTER_RUN_ARGS ?=
 # in the file is still a flutter process and not a recycled one.
 SIGNAL_FLUTTER = PID=$$(cat "$(FLUTTER_PID_FILE)" 2>/dev/null); \
 	[ -n "$$PID" ] && grep -q flutter_tools "/proc/$$PID/cmdline" 2>/dev/null && kill -$(1) "$$PID"
+#
+# Without a debug APK, flutter run finds the launch activity in the source
+# manifest, where it only looks at <activity>: the launcher is an
+# <activity-alias> (the app icon picker), so on a fresh checkout it stops with
+# "No application found". From a built APK it reads aliases too, so build one
+# first when there is none.
+DEBUG_APK = app/build/app/outputs/flutter-apk/app-debug.apk
 run-android:
 	@bash -ec '\
 		$(EXPORT_JAVA_HOME_FROM_JAVAC) \
@@ -90,6 +103,7 @@ run-android:
 		$(ADB) -s "$$SERIAL" reverse tcp:50051 tcp:50051 || true; \
 		mkdir -p "$(dir $(FLUTTER_PID_FILE))"; \
 		rm -f "$(FLUTTER_PID_FILE)"; \
+		if [ ! -f "$(DEBUG_APK)" ]; then echo "No debug APK yet; building one first."; (cd app && $(FLUTTER) build apk --debug); fi; \
 		cd app && $(FLUTTER) run -d "$$SERIAL" --pid-file "$(FLUTTER_PID_FILE)" $(FLUTTER_RUN_ARGS); \
 	'
 

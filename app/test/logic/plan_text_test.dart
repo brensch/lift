@@ -17,6 +17,47 @@ void main() {
     );
   });
 
+  test('a schemed lift reads by its runs, a timed one in seconds', () {
+    PlannedSet set(
+      SetRole role, {
+      int reps = 0,
+      double f = 1,
+      bool amrap = false,
+    }) => PlannedSet(role: role, reps: reps, fraction: f, amrap: amrap);
+    final topBackoff = ExerciseDecision(
+      sets: 3,
+      reps: 5,
+      weight: 200,
+      schemeSets: [
+        set(SetRole.SET_ROLE_TOP),
+        set(SetRole.SET_ROLE_BACKOFF, reps: 8, f: 0.85),
+        set(SetRole.SET_ROLE_BACKOFF, reps: 8, f: 0.85),
+        set(SetRole.SET_ROLE_DROP, f: 0.68),
+      ],
+    );
+    expect(
+      planLine(topBackoff, lb),
+      '1×5 @ 200 lb, 2×8 @ 85%, ${copy.plan.drops.replaceAll('{n}', '1')}',
+    );
+    final plus = ExerciseDecision(
+      sets: 3,
+      reps: 5,
+      weight: 100,
+      schemeSets: [
+        set(SetRole.SET_ROLE_UNSPECIFIED, f: 0.9),
+        set(SetRole.SET_ROLE_UNSPECIFIED, f: 0.9),
+        set(SetRole.SET_ROLE_UNSPECIFIED, amrap: true),
+      ],
+    );
+    expect(planLine(plus, lb), '2×5 @ 90%, 1×5+ @ 100 lb');
+    final hold = ExerciseDecision(
+      sets: 3,
+      reps: 30,
+      measure: Measure.MEASURE_SECONDS,
+    );
+    expect(planLine(hold, lb), '3×30s');
+  });
+
   test(
     'with no last time, the short reason is the last step that moved the max',
     () {

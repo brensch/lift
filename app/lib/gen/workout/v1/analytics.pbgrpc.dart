@@ -139,6 +139,15 @@ class AdminServiceClient extends $grpc.Client {
     return $createUnaryCall(_$decideRecovery, request, options: options);
   }
 
+  /// Admin only. What assistants said about the MCP tools (send_feedback),
+  /// newest first.
+  $grpc.ResponseFuture<$0.ListAssistantFeedbackResponse> listAssistantFeedback(
+    $0.ListAssistantFeedbackRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$listAssistantFeedback, request, options: options);
+  }
+
   // method descriptors
 
   static final _$getAdminStatus =
@@ -171,6 +180,11 @@ class AdminServiceClient extends $grpc.Client {
           '/workout.v1.AdminService/DecideRecovery',
           ($0.DecideRecoveryRequest value) => value.writeToBuffer(),
           $0.DecideRecoveryResponse.fromBuffer);
+  static final _$listAssistantFeedback = $grpc.ClientMethod<
+          $0.ListAssistantFeedbackRequest, $0.ListAssistantFeedbackResponse>(
+      '/workout.v1.AdminService/ListAssistantFeedback',
+      ($0.ListAssistantFeedbackRequest value) => value.writeToBuffer(),
+      $0.ListAssistantFeedbackResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.AdminService')
@@ -230,6 +244,15 @@ abstract class AdminServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.DecideRecoveryRequest.fromBuffer(value),
         ($0.DecideRecoveryResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.ListAssistantFeedbackRequest,
+            $0.ListAssistantFeedbackResponse>(
+        'ListAssistantFeedback',
+        listAssistantFeedback_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.ListAssistantFeedbackRequest.fromBuffer(value),
+        ($0.ListAssistantFeedbackResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.GetAdminStatusResponse> getAdminStatus_Pre(
@@ -283,4 +306,13 @@ abstract class AdminServiceBase extends $grpc.Service {
 
   $async.Future<$0.DecideRecoveryResponse> decideRecovery(
       $grpc.ServiceCall call, $0.DecideRecoveryRequest request);
+
+  $async.Future<$0.ListAssistantFeedbackResponse> listAssistantFeedback_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.ListAssistantFeedbackRequest> $request) async {
+    return listAssistantFeedback($call, await $request);
+  }
+
+  $async.Future<$0.ListAssistantFeedbackResponse> listAssistantFeedback(
+      $grpc.ServiceCall call, $0.ListAssistantFeedbackRequest request);
 }

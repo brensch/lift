@@ -141,6 +141,27 @@ class WorkoutServiceWrapper {
   Future<GetProgramResponse> getProgram() =>
       _call('GetProgram', GetProgramRequest(), GetProgramResponse.fromBuffer);
 
+  /// Changes others suggested: waiting first, then the answered.
+  Future<ExplainSuggestionResponse> explainSuggestion(String id) => _call(
+    'ExplainSuggestion',
+    ExplainSuggestionRequest(suggestionId: id),
+    ExplainSuggestionResponse.fromBuffer,
+  );
+
+  Future<GetSuggestionsResponse> getSuggestions() => _call(
+    'GetSuggestions',
+    GetSuggestionsRequest(),
+    GetSuggestionsResponse.fromBuffer,
+  );
+
+  /// Accept (it becomes the program) or decline a suggestion.
+  Future<AnswerSuggestionResponse> answerSuggestion(String id, bool accept) =>
+      _call(
+        'AnswerSuggestion',
+        AnswerSuggestionRequest(suggestionId: id, accept: accept),
+        AnswerSuggestionResponse.fromBuffer,
+      );
+
   /// One earlier program, its document included.
   Future<GetProgramVersionResponse> getProgramVersion(String id) => _call(
     'GetProgramVersion',

@@ -80,8 +80,7 @@ class WearableSnapshotBuilder {
       // Until it is started: the phone asks for the weight, or tests you.
       // Or a ramp set just done in full: the phone asks how many more you
       // could have done (only ever open with nothing being lifted).
-      final firstTime =
-          w.isFirstTime(set) || workoutProvider.rungQuestionSetId.isNotEmpty;
+      final firstTime = w.isFirstTime(set);
       final barbell =
           workoutProvider.equipmentOf(set.exercise) ==
           EquipmentKind.EQUIPMENT_KIND_BARBELL;
@@ -100,7 +99,7 @@ class WearableSnapshotBuilder {
         yappingLabel: copy.workout.yapping,
         weightText: firstTime ? '' : formatWeight(weight, unit),
         unitText: weightUnitSuffix(unit),
-        repsText: firstTime ? '' : '${set.targetReps}',
+        repsText: firstTime ? '' : repsLabel(set, set.targetReps),
         firstTime: firstTime,
         // In place of weight × reps: the answer is on the phone.
         firstTimeText: firstTime ? copy.workout.watchFirstTimeStatus : '',
@@ -177,6 +176,32 @@ class WearableSnapshotBuilder {
     if (target != null) {
       snapshot.circles.addAll(_circles(workoutProvider, w, target));
     }
+    // A timed set being lifted counts down on the watch as on the phone.
+    if (lifting &&
+        stateSnapshot != null &&
+        stateSnapshot.hasDisplaySet() &&
+        stateSnapshot.displaySet.measure == Measure.MEASURE_SECONDS) {
+      snapshot.liftingTargetSeconds = stateSnapshot.displaySet.targetReps;
+    }
+    // A set just done that asks how it went: the banner's answers, and its
+    // reps to tap down.
+    final asking = workoutProvider.questionSetId;
+    if (asking.isNotEmpty && !isEnded) {
+      final q = copy.workout;
+      snapshot.question = WearQuestion(
+        setId: asking,
+        title: q.quickQuestion,
+        answers: [
+          WearAnswer(answer: QuickAnswer.QUICK_ANSWER_EASY, label: q.quickEasy),
+          WearAnswer(answer: QuickAnswer.QUICK_ANSWER_HARD, label: q.quickHard),
+          WearAnswer(
+            answer: QuickAnswer.QUICK_ANSWER_ONE_LESS,
+            label: '${workoutProvider.askingReps}',
+          ),
+        ],
+        skipLabel: q.quickSkip,
+      );
+    }
     if (completedSets.isNotEmpty && !isEnded) {
       snapshot.lastSetEndedAt = completedSets
           .map((c) => c.endedAt)
@@ -239,12 +264,12 @@ class WearableSnapshotBuilder {
 
   static String _circleText(SectionWorkout w, ProposedSet set) {
     final done = w.doneFor(set.id);
-    if (done != null) return '${done.actualReps}';
+    if (done != null) return repsLabel(set, done.actualReps, done: true);
     if (LiveSetCircle.setCircleState(w, set) == SetCircleState.skipped) {
       return '–';
     }
     if (w.isFirstTime(set)) return '?';
-    return '${set.targetReps}';
+    return repsLabel(set, set.targetReps);
   }
 
   static WearCircleState _wearState(SetCircleState state) => switch (state) {

@@ -15,6 +15,53 @@ import 'dart:convert' as $convert;
 import 'dart:core' as $core;
 import 'dart:typed_data' as $typed_data;
 
+@$core.Deprecated('Use setCanSuggestRequestDescriptor instead')
+const SetCanSuggestRequest$json = {
+  '1': 'SetCanSuggestRequest',
+  '2': [
+    {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
+    {'1': 'allowed', '3': 2, '4': 1, '5': 8, '10': 'allowed'},
+  ],
+};
+
+/// Descriptor for `SetCanSuggestRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setCanSuggestRequestDescriptor = $convert.base64Decode(
+    'ChRTZXRDYW5TdWdnZXN0UmVxdWVzdBIXCgd1c2VyX2lkGAEgASgJUgZ1c2VySWQSGAoHYWxsb3'
+    'dlZBgCIAEoCFIHYWxsb3dlZA==');
+
+@$core.Deprecated('Use setCanSuggestResponseDescriptor instead')
+const SetCanSuggestResponse$json = {
+  '1': 'SetCanSuggestResponse',
+};
+
+/// Descriptor for `SetCanSuggestResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List setCanSuggestResponseDescriptor =
+    $convert.base64Decode('ChVTZXRDYW5TdWdnZXN0UmVzcG9uc2U=');
+
+@$core.Deprecated('Use suggestWorkoutRequestDescriptor instead')
+const SuggestWorkoutRequest$json = {
+  '1': 'SuggestWorkoutRequest',
+  '2': [
+    {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
+    {'1': 'template_id', '3': 2, '4': 1, '5': 9, '10': 'templateId'},
+    {'1': 'note', '3': 3, '4': 1, '5': 9, '10': 'note'},
+  ],
+};
+
+/// Descriptor for `SuggestWorkoutRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List suggestWorkoutRequestDescriptor = $convert.base64Decode(
+    'ChVTdWdnZXN0V29ya291dFJlcXVlc3QSFwoHdXNlcl9pZBgBIAEoCVIGdXNlcklkEh8KC3RlbX'
+    'BsYXRlX2lkGAIgASgJUgp0ZW1wbGF0ZUlkEhIKBG5vdGUYAyABKAlSBG5vdGU=');
+
+@$core.Deprecated('Use suggestWorkoutResponseDescriptor instead')
+const SuggestWorkoutResponse$json = {
+  '1': 'SuggestWorkoutResponse',
+};
+
+/// Descriptor for `SuggestWorkoutResponse`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List suggestWorkoutResponseDescriptor =
+    $convert.base64Decode('ChZTdWdnZXN0V29ya291dFJlc3BvbnNl');
+
 @$core.Deprecated('Use joinViaInviteRequestDescriptor instead')
 const JoinViaInviteRequest$json = {
   '1': 'JoinViaInviteRequest',
@@ -299,6 +346,8 @@ const TrainingPartner$json = {
       '10': 'sessionsTogether'
     },
     {'1': 'last_trained_at', '3': 3, '4': 1, '5': 3, '10': 'lastTrainedAt'},
+    {'1': 'can_suggest_to_me', '3': 4, '4': 1, '5': 8, '10': 'canSuggestToMe'},
+    {'1': 'lets_me_suggest', '3': 5, '4': 1, '5': 8, '10': 'letsMeSuggest'},
   ],
 };
 
@@ -306,7 +355,9 @@ const TrainingPartner$json = {
 final $typed_data.Uint8List trainingPartnerDescriptor = $convert.base64Decode(
     'Cg9UcmFpbmluZ1BhcnRuZXISJAoEdXNlchgBIAEoCzIQLndvcmtvdXQudjEuVXNlclIEdXNlch'
     'IrChFzZXNzaW9uc190b2dldGhlchgCIAEoBVIQc2Vzc2lvbnNUb2dldGhlchImCg9sYXN0X3Ry'
-    'YWluZWRfYXQYAyABKANSDWxhc3RUcmFpbmVkQXQ=');
+    'YWluZWRfYXQYAyABKANSDWxhc3RUcmFpbmVkQXQSKQoRY2FuX3N1Z2dlc3RfdG9fbWUYBCABKA'
+    'hSDmNhblN1Z2dlc3RUb01lEiYKD2xldHNfbWVfc3VnZ2VzdBgFIAEoCFINbGV0c01lU3VnZ2Vz'
+    'dA==');
 
 @$core.Deprecated('Use getTrainingPartnersRequestDescriptor instead')
 const GetTrainingPartnersRequest$json = {

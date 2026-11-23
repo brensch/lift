@@ -98,8 +98,15 @@ endef
 DEBUG_APK_KEY_HASH = $(shell keytool -exportcert -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | openssl dgst -sha256 -binary | base64 | tr '+/' '-_' | tr -d '=')
 DEBUG_CERT_SHA256 = $(shell keytool -list -v -keystore $(DEBUG_KEYSTORE) -alias $(DEBUG_ALIAS) -storepass $(DEBUG_STOREPASS) 2>/dev/null | grep SHA256 | head -1 | sed 's/.*SHA256: //')
 RELEASE_APK_ORIGINS = android:apk-key-hash:Hwxr_adafRh6rlMbMzDNEX8x9QWOBakh_yOw6HTCIew,android:apk-key-hash:_AqWk4iSMELh5t8IwmPW1iGNdIAfVV3D6wThyTRJGgk
+# PUBLIC_ORIGIN is where an MCP client reaches this backend: the website's dev
+# server (`make run-frontend`, which `make dev` starts), because the MCP's
+# sign-in is its /connect page and the dev server passes /api on to the
+# backend. Without it the MCP took WEBAUTHN_RP_ORIGIN and sent the client to
+# sign in at the real dev.schlift.com.
+DEV_WEB_ORIGIN = http://localhost:5173
 BACKEND_DEV_ENV = \
 	RUST_LOG=info \
+	PUBLIC_ORIGIN=$(DEV_WEB_ORIGIN) \
 	WEBAUTHN_RP_ID=dev.schlift.com \
 	WEBAUTHN_RP_ORIGIN=https://dev.schlift.com \
 	WEBAUTHN_ANDROID_ORIGINS=android:apk-key-hash:$(DEBUG_APK_KEY_HASH),$(RELEASE_APK_ORIGINS) \

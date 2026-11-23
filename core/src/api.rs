@@ -14,18 +14,17 @@ use prost::Message;
 
 use crate::account::{Account, CoreError, ProgramVersion};
 use crate::events::*;
-use crate::history::{done_set_ids, WorkoutRecord};
+use crate::history::WorkoutRecord;
 use crate::ids::derived_id;
 use crate::pb::*;
 use crate::plan::Planner;
-use crate::program::{self, Problem, Program, ProgramRef, WorkoutDef, GUIDE};
+use crate::program::{self, GroupDef, Problem, Program, ProgramRef, WorkoutDef, GUIDE};
 use crate::progress::{compute_exercise_progress, compute_workout_summary, name_lifts};
 use crate::recovery::per_muscle_recovery;
 use crate::rotation::rotation_check;
 use crate::volume::{muscle_volume, suggest_template};
 use crate::workout::{
-    apply_answer_rung_to_active, get_workout_response_from_active, rung_append_lifted,
-    start_workout_response_from_active,
+    get_workout_response_from_active, rung_append_lifted, start_workout_response_from_active,
 };
 
 /// One call into the account: the time it's made, and the id the first
@@ -151,8 +150,13 @@ impl<'a> Call<'a> {
             self.now
         };
         let exercises = known_exercises(&self.account.program, &req.exercises);
-        let decisions =
+        let mut decisions =
             Planner::new(self.account, started_at).workout(&exercises, &[], req.budget_minutes);
+        // A saved workout's supersets and circuits, among the lifts it starts
+        // with.
+        if let Some(template) = self.account.program.workout(&req.template_id) {
+            crate::plan::group_lifts(&self.account.program, &mut decisions, &template.groups);
+        }
         check_decisions(&decisions)?;
         if req.name.is_empty() {
             req.name = "Workout".to_string();
@@ -352,6 +356,78 @@ impl<'a> Call<'a> {
         Ok(())
     }
 
+    /// A change someone else suggests, recorded for the person to answer.
+    /// Refused, with its problems, when the edits don't apply to the
+    /// program as it is or make one with an error: nobody is asked about a
+    /// change that can't be made. Returns the suggestion's id.
+    pub fn suggest_program(&mut self, suggested: ProgramSuggested) -> Result<String, CoreError> {
+        let problems = suggestion_problems(self.account, &suggested.edits);
+        if let Some(problem) = problems {
+            return Err(CoreError::InvalidArgument(problem));
+        }
+        let ProgramSuggested {
+            note,
+            title,
+            from_name,
+            ..
+        } = &suggested;
+        let suggested = ProgramSuggested {
+            note: note.chars().take(MAX_NOTE_CHARS).collect(),
+            title: title.chars().take(60).collect(),
+            from_name: from_name.chars().take(60).collect(),
+            ..suggested.clone()
+        };
+        self.record(Fact::ProgramSuggested(suggested))
+    }
+
+    /// Accept a suggestion (its edits applied to today's program, set by
+    /// the suggester with their note) or decline it. An accept that no
+    /// longer applies records nothing and says why.
+    pub fn answer_suggestion(
+        &mut self,
+        req: AnswerSuggestionRequest,
+    ) -> Result<AnswerSuggestionResponse, CoreError> {
+        let suggestion = self
+            .account
+            .suggestions
+            .iter()
+            .find(|s| s.id == req.suggestion_id && s.answer.is_none())
+            .cloned()
+            .ok_or_else(|| CoreError::NotFound("No waiting suggestion with that id".into()))?;
+        if req.accept {
+            let doc = program::edit::apply(&self.account.program, &suggestion.suggested.edits)
+                .map_err(|e| CoreError::InvalidArgument(format!("{}: {}", e.path, e.message)));
+            let program = match doc.map(|d| program::validate(&d.to_string())) {
+                Ok((Some(program), problems)) if !problems.iter().any(|p| p.error) => program,
+                Ok((_, problems)) => {
+                    return Ok(AnswerSuggestionResponse {
+                        problem: first_error(&problems),
+                    })
+                }
+                Err(e) => {
+                    return Ok(AnswerSuggestionResponse {
+                        problem: e.to_string(),
+                    })
+                }
+            };
+            let problems = self.record_program(
+                program,
+                &author_of(&suggestion.suggested),
+                &suggestion.suggested.note,
+            )?;
+            if problems.iter().any(|p| p.error) {
+                return Ok(AnswerSuggestionResponse {
+                    problem: first_error(&problems),
+                });
+            }
+        }
+        self.record(Fact::SuggestionAnswered(SuggestionAnswered {
+            suggestion_id: suggestion.id,
+            accepted: req.accept,
+        }))?;
+        Ok(AnswerSuggestionResponse::default())
+    }
+
     pub fn set_program(&mut self, req: SetProgramRequest) -> Result<SetProgramResponse, CoreError> {
         let (program, mut problems) = program::validate(&req.program_json);
         let author = if req.author.is_empty() {
@@ -448,6 +524,25 @@ impl<'a> Call<'a> {
             ));
         }
         let existing = self.account.program.workout(&template.id);
+        // The app's editor doesn't edit groups: it keeps them, without
+        // lifts it took out (a group of one is no group).
+        let groups = existing
+            .map(|w| {
+                w.groups
+                    .iter()
+                    .map(|g| GroupDef {
+                        exercises: g
+                            .exercises
+                            .iter()
+                            .filter(|k| exercises.contains(k))
+                            .cloned()
+                            .collect(),
+                        rest_seconds: g.rest_seconds,
+                    })
+                    .filter(|g| g.exercises.len() >= 2)
+                    .collect()
+            })
+            .unwrap_or_default();
         let workout = WorkoutDef {
             id: if template.id.is_empty() {
                 derived_id(&self.next_event_id(), 0)
@@ -459,6 +554,7 @@ impl<'a> Call<'a> {
             rotation: template.in_rotation,
             notes: template.notes.clone(),
             from_library: existing.map(|w| w.from_library.clone()).unwrap_or_default(),
+            groups,
         };
         let id = workout.id.clone();
         if existing != Some(&workout) {
@@ -725,6 +821,11 @@ fn workout_fact(mutation: workout_mutation::Mutation, now: i64) -> Fact {
             reps_left: r.reps_left,
             jump_lb: r.jump_lb,
         }),
+        M::AnswerEffort(r) => Fact::EffortAnswered(EffortAnswered {
+            workout_id: r.workout_id,
+            proposed_set_id: r.proposed_set_id,
+            reps_left: r.reps_left,
+        }),
         M::SkipWarmups(r) => Fact::WarmupsSkipped(WarmupsSkipped {
             workout_id: r.workout_id,
             exercise: r.exercise,
@@ -825,7 +926,6 @@ impl<'a> View<'a> {
     pub fn workout_response(&self, id: &str) -> Result<GetWorkoutResponse, CoreError> {
         let record = self.workout(id)?;
         let mut response = get_workout_response_from_active(record, self.now);
-        response.rung_outcomes = self.rung_outcomes(record, &response.rung_question_set_id);
 
         // Cancelled rows mark a lift stopped early for the plan; the app
         // never shows them.
@@ -847,45 +947,6 @@ impl<'a> View<'a> {
             }
         }
         Ok(response)
-    }
-
-    /// What each range answer to the open rung question leads to: the
-    /// answer applied to a copy of the workout, and the lift's next set
-    /// read off it (a ramp set, or the working sets the ramp settles on).
-    fn rung_outcomes(&self, record: &WorkoutRecord, set_id: &str) -> Vec<RungOutcome> {
-        let Some(exercise) = record
-            .proposed_sets
-            .iter()
-            .find(|s| s.id == set_id)
-            .map(|s| s.exercise.clone())
-        else {
-            return Vec::new();
-        };
-        [RepsLeft::ZeroToOne, RepsLeft::TwoToFour, RepsLeft::FivePlus]
-            .into_iter()
-            .filter_map(|reps_left| {
-                let mut answered = record.without_heart_rate();
-                let req = RungAnswered {
-                    workout_id: record.workout.id.clone(),
-                    proposed_set_id: set_id.to_string(),
-                    reps_left: reps_left as i32,
-                    jump_lb: 0.0,
-                };
-                apply_answer_rung_to_active(&mut answered, &req, record.unit, self.now);
-                let done = done_set_ids(&answered.completed_sets);
-                let next = answered.proposed_sets.iter().find(|s| {
-                    s.exercise == exercise
-                        && !s.cancelled
-                        && !s.warmup
-                        && !done.contains(s.id.as_str())
-                })?;
-                Some(RungOutcome {
-                    reps_left: reps_left as i32,
-                    weight: next.target_weight,
-                    settles: !next.calibration,
-                })
-            })
-            .collect()
     }
 
     pub fn get_workout(&self, req: GetWorkoutRequest) -> Result<GetWorkoutResponse, CoreError> {
@@ -1224,6 +1285,153 @@ impl<'a> View<'a> {
         Ok(crate::simulate::simulate(self.account, self.now, &req))
     }
 
+    /// One suggestion laid out to decide on (`ExplainSuggestionResponse`):
+    /// the week before and after, each trained lift's rule where it
+    /// changes, and the other numbers it changes. A suggestion that no longer applies has
+    /// only itself, with its problem.
+    pub fn explain_suggestion(
+        &self,
+        req: ExplainSuggestionRequest,
+    ) -> Result<ExplainSuggestionResponse, CoreError> {
+        let suggestion = self
+            .get_suggestions()
+            .suggestions
+            .into_iter()
+            .find(|s| s.id == req.suggestion_id)
+            .ok_or_else(|| CoreError::NotFound("No such suggestion".into()))?;
+        let edits = self
+            .account
+            .suggestions
+            .iter()
+            .find(|s| s.id == req.suggestion_id)
+            .map(|s| s.suggested.edits.clone())
+            .unwrap_or_default();
+        let now_program = &self.account.program;
+        let draft = program::edit::apply(now_program, &edits)
+            .ok()
+            .and_then(|doc| program::validate(&doc.to_string()).0);
+        let Some(draft) = draft.filter(|_| suggestion.problem.is_empty()) else {
+            return Ok(ExplainSuggestionResponse {
+                suggestion: Some(suggestion),
+                ..Default::default()
+            });
+        };
+        let rotation = |p: &Program| -> Vec<String> {
+            p.workouts
+                .iter()
+                .filter(|w| w.rotation)
+                .map(|w| w.name.clone())
+                .collect()
+        };
+        let lift_names = |p: &Program, keys: &[String]| -> Vec<String> {
+            keys.iter()
+                .map(|k| p.exercise(k).map_or_else(|| k.clone(), |e| e.name.clone()))
+                .collect()
+        };
+        // Workouts added, changed (lifts, groups or rotation) or removed.
+        let mut workouts = Vec::new();
+        for w in &draft.workouts {
+            match now_program.workout(&w.id) {
+                None => workouts.push(WorkoutChange {
+                    verb: ChangeVerb::Add as i32,
+                    name: w.name.clone(),
+                    exercises: lift_names(&draft, &w.exercises),
+                }),
+                Some(was) if was != w => workouts.push(WorkoutChange {
+                    verb: ChangeVerb::Change as i32,
+                    name: w.name.clone(),
+                    exercises: lift_names(&draft, &w.exercises),
+                }),
+                Some(_) => {}
+            }
+        }
+        for w in &now_program.workouts {
+            if draft.workout(&w.id).is_none() {
+                workouts.push(WorkoutChange {
+                    verb: ChangeVerb::Remove as i32,
+                    name: w.name.clone(),
+                    exercises: Vec::new(),
+                });
+            }
+        }
+        // The lifts trained, with the change and without: their rules.
+        let mut keys: Vec<String> = Vec::new();
+        for w in draft.workouts.iter().chain(&now_program.workouts) {
+            for k in &w.exercises {
+                if !keys.contains(k) {
+                    keys.push(k.clone());
+                }
+            }
+        }
+        let lifts: Vec<LiftRuleChange> = keys
+            .iter()
+            .filter(|k| draft.knows(k))
+            .filter_map(|k| {
+                let before = rule_summary(now_program, k);
+                let after = rule_summary(&draft, k);
+                (before != after).then(|| LiftRuleChange {
+                    exercise: k.clone(),
+                    name: draft
+                        .exercise(k)
+                        .map(|e| e.name.clone())
+                        .unwrap_or_default(),
+                    before: now_program.knows(k).then_some(before),
+                    after: Some(after),
+                })
+            })
+            .collect();
+        Ok(ExplainSuggestionResponse {
+            suggestion: Some(suggestion),
+            rotation_before: rotation(now_program),
+            rotation_after: rotation(&draft),
+            workouts,
+            lifts,
+            numbers: number_changes(now_program, &draft),
+        })
+    }
+
+    /// Every suggestion: waiting first, newest first, then the answered.
+    pub fn get_suggestions(&self) -> GetSuggestionsResponse {
+        let mut waiting = Vec::new();
+        let mut answered = Vec::new();
+        for s in self.account.suggestions.iter().rev() {
+            let (status, answered_at) = match s.answer {
+                None => (SuggestionStatus::Unspecified, 0),
+                Some((true, at)) => (SuggestionStatus::Accepted, at),
+                Some((false, at)) => (SuggestionStatus::Declined, at),
+            };
+            let suggestion = Suggestion {
+                id: s.id.clone(),
+                from: s.suggested.from.clone(),
+                from_name: s.suggested.from_name.clone(),
+                kind: s.suggested.kind.clone(),
+                title: s.suggested.title.clone(),
+                note: s.suggested.note.clone(),
+                suggested_at: s.at,
+                status: status as i32,
+                answered_at,
+                changes: describe_changes(&self.account.program, &s.suggested.edits),
+                problem: if s.answer.is_none() {
+                    suggestion_problems(self.account, &s.suggested.edits).unwrap_or_default()
+                } else {
+                    String::new()
+                },
+                exercises: suggested_workout(&s.suggested.edits),
+            };
+            if s.answer.is_none() {
+                waiting.push(suggestion);
+            } else {
+                answered.push(suggestion);
+            }
+        }
+        let pending = waiting.len() as i32;
+        waiting.extend(answered);
+        GetSuggestionsResponse {
+            suggestions: waiting,
+            pending,
+        }
+    }
+
     /// The program's exercises as every screen shows them, and the plates.
     pub fn list_exercises(&self) -> ListExercisesResponse {
         let program = self.program();
@@ -1309,6 +1517,7 @@ fn library_copy(entry: &LibraryTemplate, rotation: bool, event_id: &str, n: usiz
         rotation,
         notes: String::new(),
         from_library: entry.id.clone(),
+        groups: Vec::new(),
     }
 }
 
@@ -1431,6 +1640,7 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "ImportHistory" => import_history,
             "SetProgram" => set_program,
             "ResetProgram" => reset_program,
+            "AnswerSuggestion" => answer_suggestion,
         }
         reads {
             "GetWorkout" => get_workout,
@@ -1442,6 +1652,7 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "GetProgramVersion" => get_program_version,
             "ValidateProgram" => validate_program,
             "SimulateProgram" => simulate_program,
+            "ExplainSuggestion" => explain_suggestion,
         }
         plain {
             "GetActiveWorkout" => get_active_workout,
@@ -1451,6 +1662,262 @@ pub fn call(call: &mut Call, method: &str, request: &[u8]) -> Result<Vec<u8>, Co
             "GetSettings" => get_settings,
             "GetProgram" => get_program,
             "ListExercises" => list_exercises,
+            "GetSuggestions" => get_suggestions,
         }
     })
+}
+
+/// Why `edits` can't be made to the account's program as it is now (they
+/// don't apply, or the program they'd make has an error), or None.
+fn suggestion_problems(account: &Account, edits: &[serde_json::Value]) -> Option<String> {
+    let doc = match program::edit::apply(&account.program, edits) {
+        Ok(doc) => doc,
+        Err(e) => return Some(format!("{}: {}", e.path, e.message)),
+    };
+    let (program, mut problems) = program::validate(&doc.to_string());
+    if let Some(program) = &program {
+        problems.extend(program::validate_for_account(
+            program,
+            &account.exercises_used(),
+        ));
+    }
+    problems
+        .iter()
+        .any(|p| p.error)
+        .then(|| first_error(&problems))
+}
+
+fn first_error(problems: &[Problem]) -> String {
+    problems
+        .iter()
+        .find(|p| p.error)
+        .map(|p| format!("{}: {}", p.path, p.message))
+        .unwrap_or_default()
+}
+
+/// Who a program from a suggestion is by, as the history says it: a
+/// person by name, an assistant as `mcp:<client>`.
+fn author_of(s: &ProgramSuggested) -> String {
+    if s.from.starts_with("person:") {
+        format!("person:{}", s.from_name)
+    } else {
+        s.from.clone()
+    }
+}
+
+/// What each edit does, for the app to say: adds or changes a workout (by
+/// name), an exercise, a scheme, a progression or a class; anything else
+/// sets one of the program's numbers (by path).
+fn describe_changes(program: &Program, edits: &[serde_json::Value]) -> Vec<SuggestedChange> {
+    let mut out: Vec<SuggestedChange> = Vec::new();
+    for edit in edits {
+        let (verb, path) = match (edit.get("set"), edit.get("remove"), edit.get("move")) {
+            (Some(p), _, _) => ("set", p.as_str().unwrap_or_default()),
+            (_, Some(p), _) => ("remove", p.as_str().unwrap_or_default()),
+            (_, _, Some(p)) => ("move", p.as_str().unwrap_or_default()),
+            _ => continue,
+        };
+        let named = |list: &str| -> Option<String> {
+            let rest = path.strip_prefix(list)?.strip_prefix('[')?;
+            let (name, tail) = rest.split_once(']')?;
+            tail.is_empty().then(|| name.to_string())
+        };
+        let entry = |map: &str| -> Option<String> {
+            let rest = path.strip_prefix(map)?.strip_prefix('.')?;
+            (!rest.contains('.') && !rest.contains('[')).then(|| rest.to_string())
+        };
+        let value_name = edit
+            .get("value")
+            .and_then(|v| v.get("name"))
+            .and_then(serde_json::Value::as_str)
+            .map(str::to_string);
+        let (subject, name, exists) = if let Some(id) = named("workouts") {
+            let existing = program.workout(&id).map(|w| w.name.clone());
+            (
+                ChangeSubject::Workout,
+                value_name.or(existing.clone()).unwrap_or(id),
+                existing.is_some(),
+            )
+        } else if let Some(key) = named("exercises") {
+            let existing = program.exercise(&key).map(|e| e.name.clone());
+            (
+                ChangeSubject::Exercise,
+                value_name.or(existing.clone()).unwrap_or(key),
+                existing.is_some(),
+            )
+        } else if let Some(name) = entry("schemes") {
+            let exists = program.schemes.contains_key(&name);
+            (ChangeSubject::Scheme, name, exists)
+        } else if let Some(name) = entry("progressions") {
+            let exists = program.progressions.contains_key(&name);
+            (ChangeSubject::Progression, name, exists)
+        } else if let Some(name) = entry("classes") {
+            let exists = program.classes.contains_key(&name);
+            (ChangeSubject::Class, name, exists)
+        } else {
+            // A field inside something: say what it's in, once.
+            let head = path.split(['.', '[']).next().unwrap_or_default();
+            let inner = |list: &str, subject: ChangeSubject| {
+                let rest = path.strip_prefix(list)?.strip_prefix('[')?;
+                let (key, _) = rest.split_once(']')?;
+                Some((subject, key.to_string()))
+            };
+            let (subject, key) = inner("workouts", ChangeSubject::Workout)
+                .map(|(s, id)| (s, program.workout(&id).map_or(id, |w| w.name.clone())))
+                .or_else(|| {
+                    inner("exercises", ChangeSubject::Exercise)
+                        .map(|(s, k)| (s, program.exercise(&k).map_or(k, |e| e.name.clone())))
+                })
+                .unwrap_or((ChangeSubject::Unspecified, head.to_string()));
+            (subject, key, true)
+        };
+        let verb = match verb {
+            "remove" if path.contains('.') && subject == ChangeSubject::Unspecified => {
+                ChangeVerb::Unspecified
+            }
+            "remove" => ChangeVerb::Remove,
+            _ if !exists => ChangeVerb::Add,
+            _ if subject == ChangeSubject::Unspecified => ChangeVerb::Unspecified,
+            _ => ChangeVerb::Change,
+        };
+        let change = SuggestedChange {
+            verb: verb as i32,
+            subject: subject as i32,
+            name,
+        };
+        if !out.contains(&change) {
+            out.push(change);
+        }
+    }
+    out
+}
+
+/// A workout suggestion's lifts: the exercises of the workout it sets.
+fn suggested_workout(edits: &[serde_json::Value]) -> Vec<String> {
+    edits
+        .iter()
+        .filter(|e| {
+            e.get("set")
+                .and_then(serde_json::Value::as_str)
+                .is_some_and(|p| p.starts_with("workouts[") && p.ends_with(']'))
+        })
+        .find_map(|e| e.get("value")?.get("exercises")?.as_array().cloned())
+        .map(|a| {
+            a.iter()
+                .filter_map(|x| x.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// A lift's rule as numbers: its progression (its own `params` in it) and
+/// the scheme that lays out its sets.
+fn rule_summary(p: &Program, key: &str) -> RuleSummary {
+    use crate::program::Progression as P;
+    let mut r = RuleSummary {
+        scheme: p.scheme_name(key).to_string(),
+        ..Default::default()
+    };
+    let rule = p.progression_of(key);
+    r.kind = rule.kind().to_string();
+    match &*rule {
+        P::EstimatedMax => {}
+        P::Fixed {
+            sets,
+            reps,
+            weight_lb,
+        } => {
+            r.sets = *sets;
+            r.reps = *reps;
+            r.weight_lb = *weight_lb;
+        }
+        P::Linear {
+            sets,
+            reps,
+            increment_lb,
+            deload_after_fails,
+            deload_factor,
+        } => {
+            r.sets = sets.unwrap_or(0);
+            r.reps = *reps;
+            r.increment_lb = *increment_lb;
+            r.deload_after_fails = *deload_after_fails;
+            r.deload_factor = *deload_factor;
+        }
+        P::Double {
+            sets,
+            rep_low,
+            rep_high,
+            increment_lb,
+            rep_step,
+        } => {
+            r.sets = sets.unwrap_or(0);
+            r.rep_low = *rep_low;
+            r.rep_high = *rep_high;
+            r.increment_lb = *increment_lb;
+            r.rep_step = *rep_step;
+        }
+        P::Cycle { steps } => r.cycle_steps = steps.len() as i32,
+        P::Formula(f) => r.note = f.note.clone(),
+    }
+    r
+}
+
+/// The numbers two programs differ in, outside what is said elsewhere
+/// (exercises, workouts, progressions, schemes, the name and notes): each
+/// by its path. At most 20.
+fn number_changes(before: &Program, after: &Program) -> Vec<NumberChange> {
+    fn walk(path: &str, a: &serde_json::Value, b: &serde_json::Value, out: &mut Vec<NumberChange>) {
+        use serde_json::Value as V;
+        match (a, b) {
+            (V::Object(x), V::Object(y)) => {
+                for (k, bv) in y {
+                    let at = if path.is_empty() {
+                        k.clone()
+                    } else {
+                        format!("{path}.{k}")
+                    };
+                    if let Some(av) = x.get(k) {
+                        walk(&at, av, bv, out);
+                    }
+                }
+            }
+            (V::Array(x), V::Array(y)) if x.len() == y.len() => {
+                for (i, (av, bv)) in x.iter().zip(y).enumerate() {
+                    walk(&format!("{path}[{i}]"), av, bv, out);
+                }
+            }
+            (V::Number(x), V::Number(y)) if x != y => out.push(NumberChange {
+                path: path.to_string(),
+                before: x.as_f64().unwrap_or(0.0),
+                after: y.as_f64().unwrap_or(0.0),
+            }),
+            (V::Bool(x), V::Bool(y)) if x != y => out.push(NumberChange {
+                path: path.to_string(),
+                before: f64::from(u8::from(*x)),
+                after: f64::from(u8::from(*y)),
+            }),
+            _ => {}
+        }
+    }
+    let strip = |p: &Program| {
+        let mut v = serde_json::to_value(p).expect("a program serialises");
+        if let serde_json::Value::Object(map) = &mut v {
+            for k in [
+                "exercises",
+                "workouts",
+                "progressions",
+                "schemes",
+                "name",
+                "notes",
+            ] {
+                map.remove(k);
+            }
+        }
+        v
+    };
+    let mut out = Vec::new();
+    walk("", &strip(before), &strip(after), &mut out);
+    out.truncate(20);
+    out
 }

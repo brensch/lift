@@ -1,16 +1,10 @@
 import { authClient } from "./grpc";
 import type { User } from "./auth-context";
 
+// The username rule is the server's (username_problem in src/server/auth.rs):
+// a refused name comes back as its error.
 export async function performDevLogin(username: string): Promise<User> {
-  const normalized = username.trim();
-  if (!normalized) {
-    throw new Error("Username is required.");
-  }
-  if (/\s/.test(normalized)) {
-    throw new Error("Username cannot contain spaces.");
-  }
-
-  const response = await authClient.testLogin({ username: normalized });
+  const response = await authClient.testLogin({ username: username.trim() });
   return {
     userId: response.userId,
     username: response.username,

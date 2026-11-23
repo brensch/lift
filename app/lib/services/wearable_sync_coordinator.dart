@@ -175,6 +175,13 @@ class WearableSyncCoordinator {
             set,
           );
         }
+      } else if (intent.hasAnswerQuestion() &&
+          intent.answerQuestion.workoutId == workoutId) {
+        // The banner's question answered on the watch.
+        await _workoutProvider.answerQuick(
+          intent.answerQuestion.setId,
+          intent.answerQuestion.answer,
+        );
       } else if (intent.hasEndWorkout() &&
           intent.endWorkout.workoutId == workoutId) {
         await _workoutProvider.endWorkout();

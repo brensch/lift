@@ -49,7 +49,15 @@ export function LoginPage() {
       await devLogin(devUsername);
       navigate("/dashboard");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Dev login failed");
+      // The server's own sentence (its username rule included), without the
+      // status code in front of it.
+      setError(
+        err instanceof ConnectError
+          ? err.rawMessage
+          : err instanceof Error
+            ? err.message
+            : "Dev login failed",
+      );
     } finally {
       setLoading(false);
     }
