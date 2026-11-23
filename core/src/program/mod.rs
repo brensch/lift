@@ -17,6 +17,7 @@
 //! [GUIDE] (`programs/GUIDE.md`) describes the document for whoever writes
 //! one; [validate] checks a draft and names the path of each problem.
 
+use std::borrow::Cow;
 use std::collections::BTreeMap;
 use std::fmt;
 use std::ops::Deref;
@@ -89,6 +90,11 @@ pub struct ExerciseDef {
     pub progression: Option<String>,
     /// A plain description, for a lift the app has no picture of.
     pub description: String,
+    /// This lift's own values for numbers of the rule it follows (see
+    /// [`tune`]): one rule for several lifts that differ in a number, like
+    /// a bigger step for legs. None in a program from before it existed.
+    #[serde(default)]
+    pub params: BTreeMap<String, f64>,
 }
 
 /// One of the program's workouts: an ordered list of exercises.
@@ -176,6 +182,92 @@ pub struct Formula {
     pub rest_seconds: Option<String>,
     /// Shown beside the plan.
     pub note: String,
+}
+
+/// The numbers of a rule a lift's `params` may set: a formula's `let`
+/// names, or these fields of the other kinds that have them. The ones
+/// that count are whole numbers.
+const TUNABLE: [&str; 8] = [
+    "sets",
+    "reps",
+    "rep_low",
+    "rep_high",
+    "deload_after_fails",
+    "increment_lb",
+    "deload_factor",
+    "weight_lb",
+];
+const WHOLE: [&str; 5] = ["sets", "reps", "rep_low", "rep_high", "deload_after_fails"];
+
+/// `rule` with a lift's own values for its numbers: for a formula, each
+/// name replaces the `let` of that name; for fixed, linear and double, the
+/// field. An error names the param and why it doesn't fit.
+pub fn tune(
+    rule: &Progression,
+    params: &BTreeMap<String, f64>,
+) -> Result<Progression, (String, String)> {
+    for (name, value) in params {
+        if !value.is_finite() {
+            return Err((name.clone(), "a number".into()));
+        }
+    }
+    match rule {
+        Progression::EstimatedMax | Progression::Cycle { .. } => match params.keys().next() {
+            Some(name) => Err((
+                name.clone(),
+                format!("a {} rule has no numbers a lift can set", rule.kind()),
+            )),
+            None => Ok(rule.clone()),
+        },
+        Progression::Formula(f) => {
+            let mut f = f.clone();
+            for (name, value) in params {
+                let Some(expr) = f.lets.get_mut(name) else {
+                    let lets: Vec<&str> = f.lets.keys().map(String::as_str).collect();
+                    return Err((
+                        name.clone(),
+                        format!("the formula has no `let` named {name:?} (it has {lets:?})"),
+                    ));
+                };
+                *expr = if value.fract() == 0.0 && value.abs() < 1e15 {
+                    format!("{}", *value as i64)
+                } else {
+                    format!("{value}")
+                };
+            }
+            Ok(Progression::Formula(f))
+        }
+        _ => {
+            let mut doc = serde_json::to_value(rule).expect("a rule serialises");
+            let fields = doc.as_object_mut().expect("a rule is an object");
+            for (name, value) in params {
+                if !TUNABLE.contains(&name.as_str()) || !fields.contains_key(name) {
+                    let has: Vec<&str> = fields
+                        .keys()
+                        .filter(|k| TUNABLE.contains(&k.as_str()))
+                        .map(String::as_str)
+                        .collect();
+                    return Err((
+                        name.clone(),
+                        format!("a {} rule has no {name:?} (it has {has:?})", rule.kind()),
+                    ));
+                }
+                let number = if WHOLE.contains(&name.as_str()) {
+                    if value.fract() != 0.0 {
+                        return Err((name.clone(), "a whole number".into()));
+                    }
+                    serde_json::Value::from(*value as i64)
+                } else {
+                    serde_json::Value::from(*value)
+                };
+                fields.insert(name.clone(), number);
+            }
+            serde_json::from_value(doc).map_err(|e| {
+                let name = params.keys().next().cloned().unwrap_or_default();
+                (name, e.to_string())
+            })
+        }
+    }
 }
 
 impl Progression {
@@ -473,6 +565,7 @@ fn unknown_exercise() -> &'static ExerciseDef {
         class: String::new(),
         progression: None,
         description: String::new(),
+        params: BTreeMap::new(),
     })
 }
 
@@ -560,13 +653,22 @@ impl Program {
             .unwrap_or(&self.class_of(key).progression)
     }
 
-    /// The progression an exercise follows. One the program doesn't define
-    /// (validation refuses that) reads as the estimated max.
-    pub fn progression_of(&self, key: &str) -> &Progression {
+    /// The progression an exercise follows, with the exercise's own
+    /// `params` in it ([`tune`]). One the program doesn't define, or
+    /// params that don't fit it (validation refuses both), read as the
+    /// rule as written or the estimated max.
+    pub fn progression_of(&self, key: &str) -> Cow<'_, Progression> {
         const ESTIMATED_MAX: Progression = Progression::EstimatedMax;
-        self.progressions
+        let rule = self
+            .progressions
             .get(self.progression_name(key))
-            .unwrap_or(&ESTIMATED_MAX)
+            .unwrap_or(&ESTIMATED_MAX);
+        match self.exercise(key).map(|e| &e.params) {
+            Some(params) if !params.is_empty() => {
+                tune(rule, params).map_or(Cow::Borrowed(rule), Cow::Owned)
+            }
+            _ => Cow::Borrowed(rule),
+        }
     }
 
     /// The hours a muscle takes to recover.

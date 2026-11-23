@@ -147,6 +147,49 @@ instructions change to: read the guide, look with `get_profile` and
 `get_program`, change it with **edits**, `simulate_program` with the same
 edits, `set_program` with the same edits and a note, then `send_feedback`.
 
+## Tuning a shared rule per exercise
+
+From the second session's review: to give leg lifts bigger jumps than
+upper-body lifts, Claude had to copy a whole formula into a second
+progression that differed in one number. Two copies drift.
+
+An exercise can set its own values for the numbers of the rule it follows:
+
+```json
+{ "key": "squat", "progression": "reps_then_weight", "params": { "jump_lb": 10 } }
+```
+
+- `params` maps a name to a number. For a `formula`, a name is one of its
+  `let` names, and the exercise's number replaces that expression. For
+  `fixed`, `linear` and `double` it is one of the rule's own numbers
+  (`increment_lb`, `reps`, `sets`, `deload_after_fails`, `deload_factor`,
+  `rep_low`, `rep_high`, `weight_lb`). `estimated_max` and `cycle` have
+  none.
+- The rule is the class's or the exercise's own, as now; `params` applies
+  to whichever it follows.
+- It applies in one place, the lookup of a lift's rule
+  (`Program::progression_of`), so the planner, the simulator and the
+  validator all see the tuned rule and nothing else changes.
+- Checked like the rule itself, at the exercise's path: a name the rule
+  doesn't have, or a tuned rule out of range, is an error at
+  `exercises[squat].params.jump_lb`.
+- Stored programs without `params` read as before (it defaults to none).
+  An app older than this ignores it and plans with the rule's own numbers,
+  so it ships with the app version that knows it.
+
+## Smaller simulator output, and progress over time
+
+- `simulate_program` takes `lifts` (exercise keys): only those lifts appear
+  in its workouts. With `summary: true` it gives, per lift, one short line
+  a session (`2026-11-25 3×8 @ 135 lb · hit`) instead of every field, and
+  the start and end of the run. The same review printed every lift of 11
+  workouts to read two.
+- `get_progress`: each lift's sessions, oldest first: date, top working
+  set, sets, volume and the estimated max after it, from the same numbers
+  the app's progress screen draws. Filter by `exercise` and `since_days`.
+  Asked for in the first session's feedback ("a per-lift est-max trend
+  series would save hand-tracking").
+
 ## Feedback
 
 ```json

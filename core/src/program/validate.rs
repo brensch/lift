@@ -286,6 +286,25 @@ fn check_exercises(p: &Program, c: &mut Checker) {
                 );
             }
         }
+        check_params(p, e, &at, c);
+    }
+}
+
+/// A lift's `params` name numbers its rule has, and the rule they make is
+/// as sound as any written out.
+fn check_params(p: &Program, e: &ExerciseDef, at: &str, c: &mut Checker) {
+    if e.params.is_empty() {
+        return;
+    }
+    if e.params.len() > 20 {
+        c.err(format!("{at}.params"), "at most 20");
+    }
+    let Some(rule) = p.progressions.get(p.progression_name(&e.key)) else {
+        return; // named above
+    };
+    match tune(rule, &e.params) {
+        Err((name, message)) => c.err(format!("{at}.params.{name}"), message),
+        Ok(tuned) => check_progression(&format!("{at}.params"), &tuned, c),
     }
 }
 
@@ -347,70 +366,76 @@ fn check_progressions(p: &Program, c: &mut Checker) {
         if !valid_key(name) {
             c.err(&at, "a name is lowercase letters, digits and underscores");
         }
-        let sets = |c: &mut Checker, sets: i32| c.int(&format!("{at}.sets"), sets.into(), 1, 20);
-        let reps = |c: &mut Checker, path: &str, reps: i32| {
-            c.int(&format!("{at}.{path}"), reps.into(), 1, 100)
-        };
-        match rule {
-            Progression::EstimatedMax => {}
-            Progression::Fixed {
-                sets: s,
-                reps: r,
-                weight_lb,
-            } => {
-                sets(c, *s);
-                reps(c, "reps", *r);
-                c.num(&format!("{at}.weight_lb"), *weight_lb, 0.0, 2000.0);
-            }
-            Progression::Linear {
-                sets: s,
-                reps: r,
-                increment_lb,
-                deload_after_fails,
-                deload_factor,
-            } => {
-                if let Some(s) = s {
-                    sets(c, *s);
-                }
-                reps(c, "reps", *r);
-                c.num(&format!("{at}.increment_lb"), *increment_lb, 0.0, 100.0);
-                c.int(
-                    &format!("{at}.deload_after_fails"),
-                    (*deload_after_fails).into(),
-                    0,
-                    20,
-                );
-                c.above(&format!("{at}.deload_factor"), *deload_factor, 0.0, 1.0);
-            }
-            Progression::Double {
-                sets: s,
-                rep_low,
-                rep_high,
-                increment_lb,
-            } => {
-                if let Some(s) = s {
-                    sets(c, *s);
-                }
-                reps(c, "rep_low", *rep_low);
-                reps(c, "rep_high", *rep_high);
-                if rep_high < rep_low {
-                    c.err(format!("{at}.rep_high"), "under rep_low");
-                }
-                c.num(&format!("{at}.increment_lb"), *increment_lb, 0.0, 100.0);
-            }
-            Progression::Cycle { steps } => {
-                if steps.is_empty() || steps.len() > 52 {
-                    c.err(format!("{at}.steps"), "1 to 52 steps");
-                }
-                for (i, step) in steps.iter().enumerate() {
-                    let s = format!("{at}.steps[{i}]");
-                    c.int(&format!("{s}.sets"), step.sets.into(), 1, 20);
-                    c.int(&format!("{s}.reps"), step.reps.into(), 1, 100);
-                    c.above(&format!("{s}.fraction"), step.fraction, 0.0, 1.5);
-                }
-            }
-            Progression::Formula(f) => check_formula(&at, f, c),
+        check_progression(&at, rule, c);
+    }
+}
+
+/// One rule's numbers in range and its formula sound, named from `at`: a
+/// rule in `progressions`, or one as a lift's `params` tune it.
+fn check_progression(at: &str, rule: &Progression, c: &mut Checker) {
+    let sets = |c: &mut Checker, sets: i32| c.int(&format!("{at}.sets"), sets.into(), 1, 20);
+    let reps = |c: &mut Checker, path: &str, reps: i32| {
+        c.int(&format!("{at}.{path}"), reps.into(), 1, 100)
+    };
+    match rule {
+        Progression::EstimatedMax => {}
+        Progression::Fixed {
+            sets: s,
+            reps: r,
+            weight_lb,
+        } => {
+            sets(c, *s);
+            reps(c, "reps", *r);
+            c.num(&format!("{at}.weight_lb"), *weight_lb, 0.0, 2000.0);
         }
+        Progression::Linear {
+            sets: s,
+            reps: r,
+            increment_lb,
+            deload_after_fails,
+            deload_factor,
+        } => {
+            if let Some(s) = s {
+                sets(c, *s);
+            }
+            reps(c, "reps", *r);
+            c.num(&format!("{at}.increment_lb"), *increment_lb, 0.0, 100.0);
+            c.int(
+                &format!("{at}.deload_after_fails"),
+                (*deload_after_fails).into(),
+                0,
+                20,
+            );
+            c.above(&format!("{at}.deload_factor"), *deload_factor, 0.0, 1.0);
+        }
+        Progression::Double {
+            sets: s,
+            rep_low,
+            rep_high,
+            increment_lb,
+        } => {
+            if let Some(s) = s {
+                sets(c, *s);
+            }
+            reps(c, "rep_low", *rep_low);
+            reps(c, "rep_high", *rep_high);
+            if rep_high < rep_low {
+                c.err(format!("{at}.rep_high"), "under rep_low");
+            }
+            c.num(&format!("{at}.increment_lb"), *increment_lb, 0.0, 100.0);
+        }
+        Progression::Cycle { steps } => {
+            if steps.is_empty() || steps.len() > 52 {
+                c.err(format!("{at}.steps"), "1 to 52 steps");
+            }
+            for (i, step) in steps.iter().enumerate() {
+                let s = format!("{at}.steps[{i}]");
+                c.int(&format!("{s}.sets"), step.sets.into(), 1, 20);
+                c.int(&format!("{s}.reps"), step.reps.into(), 1, 100);
+                c.above(&format!("{s}.fraction"), step.fraction, 0.0, 1.5);
+            }
+        }
+        Progression::Formula(f) => check_formula(at, f, c),
     }
 }
 

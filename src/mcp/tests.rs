@@ -217,6 +217,7 @@ async fn an_assistant_connects_and_sets_a_program() {
             "get_earlier_program",
             "get_profile",
             "get_history",
+            "get_progress",
             "validate_program",
             "simulate_program",
             "set_program",
@@ -504,4 +505,77 @@ async fn feedback_is_kept_short_and_capped() {
             .unwrap();
     }
     assert_eq!(mcp.db.assistant_feedback(100).await.unwrap().len(), 20);
+}
+
+/// One rule, two lifts: the squat's params give it a bigger step than the
+/// bench's, through the simulator's own planning; `lifts` and `summary`
+/// keep the output to what was asked.
+#[tokio::test]
+async fn params_tune_a_shared_rule_and_the_simulator_says_only_what_was_asked() {
+    let mcp = mcp().await;
+    let edits = json!([
+        { "set": "progressions.reps_then_weight", "value": {
+            "kind": "linear", "sets": 3, "reps": 5, "increment_lb": 5,
+            "deload_after_fails": 3, "deload_factor": 0.9 } },
+        { "set": "exercises[squat].progression", "value": "reps_then_weight" },
+        { "set": "exercises[squat].params", "value": { "increment_lb": 10 } },
+        { "set": "exercises[bench_press].progression", "value": "reps_then_weight" },
+        { "set": "workouts[a]", "value": { "name": "A", "exercises": ["squat", "bench_press", "barbell_row"] } }
+    ]);
+    let run = tool(
+        &mcp,
+        "simulate_program",
+        json!({ "edits": edits, "sessions": 4, "template_id": "a", "lifts": ["squat", "bench_press"], "summary": true }),
+    )
+    .await
+    .unwrap();
+    let lifts = run["lifts"].as_array().unwrap();
+    let keys: Vec<&str> = lifts
+        .iter()
+        .map(|l| l["exercise"].as_str().unwrap())
+        .collect();
+    assert_eq!(keys, ["squat", "bench_press"], "{run}");
+    let weights = |lift: &Value| -> Vec<f64> {
+        lift["sessions"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|line| {
+                let line = line.as_str().unwrap();
+                let at = &line[line.find(" @ ").unwrap() + 3..];
+                at[..at.find(' ').unwrap_or(at.len())].parse().unwrap()
+            })
+            .collect()
+    };
+    let (squat, bench) = (weights(&lifts[0]), weights(&lifts[1]));
+    // After the first session (the calibration ramp), each hit adds the
+    // lift's own step.
+    assert_eq!(squat[3] - squat[2], 10.0, "{squat:?}");
+    assert_eq!(bench[3] - bench[2], 5.0, "{bench:?}");
+    assert!(lifts[0]["sessions"][0].as_str().unwrap().contains("hit"));
+
+    let bad = tool(
+        &mcp,
+        "validate_program",
+        json!({ "edits": [{ "set": "exercises[squat].params", "value": { "nope": 1 } }] }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(bad["ok"], false);
+    assert!(
+        bad["problems"]
+            .to_string()
+            .contains("exercises[squat].params.nope"),
+        "{bad}"
+    );
+}
+
+#[tokio::test]
+async fn progress_is_per_lift() {
+    let mcp = mcp().await;
+    let progress = tool(&mcp, "get_progress", json!({})).await.unwrap();
+    assert_eq!(
+        (progress["workouts"].clone(), progress["lifts"].clone()),
+        (json!(0), json!([]))
+    );
 }

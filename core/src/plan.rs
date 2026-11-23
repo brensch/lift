@@ -687,7 +687,7 @@ pub fn rule_sets(inputs: &LiftInputs) -> Option<i32> {
     if let Some(sets) = inputs.over.and_then(|o| o.sets) {
         return Some(sets);
     }
-    match inputs.program.progression_of(inputs.exercise) {
+    match &*inputs.program.progression_of(inputs.exercise) {
         Progression::EstimatedMax => None,
         Progression::Fixed { sets, .. } => Some(*sets),
         Progression::Linear { sets, .. } | Progression::Double { sets, .. } => *sets,
@@ -734,7 +734,7 @@ pub fn plan_lift(inputs: &LiftInputs, sets: i32) -> ExerciseDecision {
     } = *inputs;
     let class = p.class_of(ex);
     let rule_name = p.progression_name(ex);
-    let rule = p.progression_of(ex);
+    let rule = &*p.progression_of(ex);
     let bodyweight = p.is_bodyweight(ex);
     let (rep_low, rep_high) = match rule {
         Progression::Fixed { reps, .. } | Progression::Linear { reps, .. } => (*reps, *reps),

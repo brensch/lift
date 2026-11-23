@@ -17,8 +17,9 @@ reverted.
 
 ## How to work
 
-1. Look first. `get_profile` says where the person stands, `get_history`
-   what they did, and `get_program` the current program. Built-in exercises
+1. Look first. `get_profile` says where the person stands, `get_progress`
+   how each lift has moved (its estimated max and top set per session),
+   `get_history` every set they did, and `get_program` the current program. Built-in exercises
    it leaves as they are aren't shown; `list_exercises` finds those (by
    muscle, equipment or name), and `list_library` has ready-made workouts.
 2. Change the program with **edits**, not by rewriting it (below). Send
@@ -28,7 +29,8 @@ reverted.
    what the draft would have prescribed for their past workouts, and what
    it prescribes for the next sessions under an assumption ("every rep
    hit", "the last set one rep short"). Read the numbers. Do they progress
-   the way you meant?
+   the way you meant? `lifts` keeps the output to the lifts you are
+   checking, and `summary` gives one short line a session per lift.
 4. Set it: `set_program` with the same edits and a one-line `note` saying
    why. The person sees the note, and the next workout plans from it. To
    go back to an earlier program, open it (`get_earlier_program`) and set
@@ -153,6 +155,9 @@ Each one looks like this:
 - `description`: plain words on how to do it, up to 500 characters. The app
   shows it for lifts it has no picture of, which includes every lift you
   add.
+- `params` (optional): this lift's own values for numbers of the rule it
+  follows, so one rule serves lifts that differ in a number. See "One rule,
+  several lifts" under `progressions`.
 
 To add a lift, add an entry with a new key. You cannot remove a lift the
 person has done, has a starting weight for, or has set by hand; validation
@@ -216,6 +221,23 @@ These apply to every kind:
   from it.
 - **Sets:** a progression that gives no `sets` (or `null`) leaves them to
   the time budget (see `sets`).
+- **One rule, several lifts:** an exercise's `params` set its own values
+  for numbers of the rule it follows, instead of a copy of the rule that
+  differs in one number. For a `formula` a name is one of its `let` names,
+  and the lift's number replaces that expression. For `fixed`, `linear`
+  and `double` it is one of the rule's fields (`sets`, `reps`, `rep_low`,
+  `rep_high`, `increment_lb`, `deload_after_fails`, `deload_factor`,
+  `weight_lb`). `estimated_max` and `cycle` have none. Bigger jumps for
+  legs, from one rule:
+
+  ```json
+  { "set": "progressions.reps_then_weight.let.jump_lb", "value": "5" },
+  { "set": "exercises[squat].params", "value": { "jump_lb": 10 } },
+  { "set": "exercises[deadlift].params", "value": { "jump_lb": 10 } }
+  ```
+
+  A name the rule doesn't have, or a value that puts the rule out of
+  range, is an error at the lift (`exercises[squat].params.jump_lb`).
 - **Reasons:** each plan tells the person why, in the app's words. It
   compares the plan with the last session (heavier, lighter, more reps,
   fewer, the same, and why), then the progression's own steps.

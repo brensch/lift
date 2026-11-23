@@ -3626,6 +3626,7 @@ mod programs {
             class: "heavy".into(),
             progression: Some("lp".into()),
             description: "The bar in the crooks of the elbows.".into(),
+            params: Default::default(),
         }
     }
 
