@@ -312,6 +312,9 @@ impl Account {
             Fact::RungAnswered(answered) => {
                 reducer::apply_answer_rung_to_active(&mut record, answered, unit, at)
             }
+            Fact::EffortAnswered(answered) => {
+                reducer::apply_answer_effort_to_active(&mut record, answered)
+            }
             Fact::SetUndone(undone) => {
                 reducer::apply_delete_completed_set_to_active(&mut record, undone)
             }

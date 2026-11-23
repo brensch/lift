@@ -163,6 +163,7 @@ pub enum Fact {
     SetEdited(SetEdited),
     SetUndone(SetUndone),
     RungAnswered(RungAnswered),
+    EffortAnswered(EffortAnswered),
     WarmupsSkipped(WarmupsSkipped),
     ExercisesAdded(ExercisesAdded),
     ExerciseAdjusted(ExerciseAdjusted),
@@ -193,6 +194,7 @@ impl Fact {
         "SetEdited",
         "SetUndone",
         "RungAnswered",
+        "EffortAnswered",
         "WarmupsSkipped",
         "ExercisesAdded",
         "ExerciseAdjusted",
@@ -219,6 +221,7 @@ impl Fact {
             Fact::SetEdited(f) => &f.workout_id,
             Fact::SetUndone(f) => &f.workout_id,
             Fact::RungAnswered(f) => &f.workout_id,
+            Fact::EffortAnswered(f) => &f.workout_id,
             Fact::WarmupsSkipped(f) => &f.workout_id,
             Fact::ExercisesAdded(f) => &f.workout_id,
             Fact::ExerciseAdjusted(f) => &f.workout_id,
@@ -309,6 +312,16 @@ pub struct RungAnswered {
     pub proposed_set_id: String,
     pub reps_left: i32,
     pub jump_lb: f32,
+}
+
+/// The answer to a set's effort target: reps left in the tank
+/// (`crate::pb::RepsLeft`), recorded on the done set.
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]
+#[serde(default)]
+pub struct EffortAnswered {
+    pub workout_id: String,
+    pub proposed_set_id: String,
+    pub reps_left: i32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Default)]

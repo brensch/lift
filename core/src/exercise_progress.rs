@@ -24,9 +24,12 @@ pub struct SetDone {
     pub target: i32,
     /// Every target rep done.
     pub hit: bool,
-    /// A calibration rung's answer to "how many more could you have
-    /// done?" (`RepsLeft`); unspecified when unanswered or not a rung.
+    /// The answer to "how many more could you have done?" (`RepsLeft`), a
+    /// rung's or an effort target's; unspecified when unanswered or not
+    /// asked.
     pub reps_left: i32,
+    /// As many as you can: `target` was the minimum.
+    pub amrap: bool,
 }
 
 /// One session of one lift.
@@ -87,7 +90,9 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<String, SessionOutcom
         let Some(proposed) = proposed_by_id.get(completed.proposed_set_id.as_str()) else {
             continue;
         };
-        if proposed.warmup || proposed.cancelled {
+        // Drops and minis go to failure by design: they don't judge the
+        // session or move the max.
+        if proposed.warmup || proposed.cancelled || proposed.is_partial() {
             continue;
         }
         let set = SetDone {
@@ -97,6 +102,7 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<String, SessionOutcom
             target: proposed.target_reps,
             hit: proposed.target_reps > 0 && completed.actual_reps >= proposed.target_reps,
             reps_left: completed.reps_left,
+            amrap: proposed.amrap,
         };
         let outcome = out
             .entry(proposed.exercise.clone())
@@ -123,7 +129,7 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<String, SessionOutcom
     for set in record
         .proposed_sets
         .iter()
-        .filter(|s| s.is_working() && !s.cancelled)
+        .filter(|s| s.is_main() && !s.cancelled)
     {
         if let Some(outcome) = out.get_mut(set.exercise.as_str()) {
             outcome.planned_sets += 1;
@@ -143,7 +149,7 @@ pub fn session_outcomes(record: &WorkoutRecord) -> HashMap<String, SessionOutcom
     for set in record
         .proposed_sets
         .iter()
-        .filter(|s| s.is_working() && !done_ids.contains(s.id.as_str()))
+        .filter(|s| s.is_main() && !done_ids.contains(s.id.as_str()))
     {
         if let Some(outcome) = out.get_mut(set.exercise.as_str()) {
             outcome.stopped_early = true;

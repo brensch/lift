@@ -64,6 +64,30 @@ message ProposedSet {
   // A warmup the person chose not to do ("skip all warmups"). It stays in
   // the plan and on screen, nothing waits on it, and it can still be done.
   bool skipped = 16;
+  // What kind of set it is within its lift (docs/plans/set-types.md): a
+  // plain working set, a top set, a back-off, a drop after the set before
+  // it, or a mini-set (rest-pause, myo-reps, clusters). Warmups and rungs
+  // keep their own flags and are WORKING here.
+  SetRole role = 18;
+  // As many as you can: target_reps is the minimum.
+  bool amrap = 19;
+  // An effort target: reps left in the tank after the set. Unset: none,
+  // and nothing is asked.
+  optional int32 target_rir = 20;
+  // What target_reps (and a completed set's actual_reps) counts.
+  Measure measure = 21;
+  // Reps (or seconds, or metres) on each side.
+  bool per_side = 22;
+  // A cue shown with the set ("3-1-1"); never timed.
+  string tempo = 23;
+  // The group (superset, circuit) its lift is in within this workout, or
+  // "": the group's sets alternate.
+  string group = 24;
+  // EMOM: the next set starts this long after this one started. 0: none.
+  int32 every_seconds = 25;
+  // Its weight as a share of the lift's working weight (a back-off, a
+  // drop, a pyramid step): a new working weight scales it. 0 reads as 1.
+  float fraction = 26;
   reserved 8, 10, 12, 13, 14;
   reserved "exercise_group_id", "is_amrap", "instruction", "progression_hint", "rest_after_success", "rest_after_failure";
   // Exercises were enum numbers before they were keys.
@@ -216,6 +240,42 @@ message PlanReason {
   int32 of = 19;
 }
 
+// A set's role within its lift (docs/plans/set-types.md).
+enum SetRole {
+  // A plain working set: every set recorded before roles, and a warmup or
+  // rung (which keep their own flags).
+  SET_ROLE_UNSPECIFIED = 0;
+  SET_ROLE_TOP = 1;
+  SET_ROLE_BACKOFF = 2;
+  // Straight after the set before it, lighter, no rest: taken to failure.
+  SET_ROLE_DROP = 3;
+  // A short set after a short rest: rest-pause, myo-reps, clusters.
+  SET_ROLE_MINI = 4;
+}
+
+// What a lift's number counts.
+enum Measure {
+  // Reps: every lift before measures.
+  MEASURE_UNSPECIFIED = 0;
+  MEASURE_SECONDS = 1;
+  MEASURE_METRES = 2;
+}
+
+// One set of a lift's laid-out shape, relative to its working weight: what
+// a program's scheme made of the rule's sets, reps and weight.
+message PlannedSet {
+  SetRole role = 1;
+  // The number for this set: reps, seconds or metres, by the measure.
+  int32 reps = 2;
+  // Of the working weight; a drop's is already multiplied through the sets
+  // before it. 0 reads as 1.
+  float fraction = 3;
+  bool amrap = 4;
+  optional int32 rir = 5;
+  int32 rest_seconds = 6;
+  int32 every_seconds = 7;
+}
+
 // What one lift is given in a workout: everything its sets are laid out
 // from.
 message ExerciseDecision {
@@ -246,6 +306,17 @@ message ExerciseDecision {
   // `formula`).
   string progression = 15;
   string progression_kind = 16;
+  // The sets one by one, when the program's scheme isn't straight sets or
+  // the lift is in a group. Empty: `sets` identical sets of `reps` at
+  // `weight`, resting `rest_seconds`, as every decision before schemes.
+  repeated PlannedSet scheme_sets = 17;
+  Measure measure = 18;
+  bool per_side = 19;
+  string tempo = 20;
+  // Its group within the workout ("" for none): the group's sets alternate.
+  string group = 21;
+  // The scheme's name in the program, for reading the plan back.
+  string scheme = 22;
   // Exercises were enum numbers before they were keys.
   reserved 1;
 }
@@ -403,6 +474,11 @@ message GetWorkoutResponse {
   // The workout's lifts as the program it was planned under defines them:
   // what to call a lift, whoever's program it came from.
   repeated ExerciseInfo exercises = 15;
+  // A set with an effort target, just done and unanswered, whose "how many
+  // more could you have done?" is open; empty when none. An
+  // AnswerEffortRequest applies only to this set. Dismissing it leaves the
+  // set unanswered.
+  string effort_question_set_id = 16;
   reserved 6, 8;
   reserved "plan_change_stats", "user_messages";
 }
@@ -560,6 +636,14 @@ message AnswerRungRequest {
   string proposed_set_id = 2;
   RepsLeft reps_left = 3;
   float jump_lb = 4; // pounds, like every stored weight; 0 = not a jump
+}
+
+// The answer to a set's effort target: reps left in the tank, the same
+// three answers a rung asks. A set without a target refuses it.
+message AnswerEffortRequest {
+  string workout_id = 1;
+  string proposed_set_id = 2;
+  RepsLeft reps_left = 3;
 }
 
 // Begin a set: the workout is LIFTING it until its Done. Starting another
@@ -1018,6 +1102,7 @@ message WorkoutMutation {
     SkipWarmupsRequest skip_warmups = 25;
     SetWorkoutSessionRequest set_session = 26;
     AnswerRungRequest answer_rung = 27;
+    AnswerEffortRequest answer_effort = 28;
   }
   reserved 1, 2, 10, 12, 15, 16, 21, 22;
   reserved "event_id", "client_created_at", "skip_rest", "cancel_proposed_set", "rate_exercise";

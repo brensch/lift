@@ -350,6 +350,7 @@ impl Templates {
                     } else {
                         t.origin_library_id.clone()
                     },
+                    groups: Vec::new(),
                 })
             })
             .collect()

@@ -18,7 +18,7 @@ use crate::history::{done_set_ids, WorkoutRecord};
 use crate::ids::derived_id;
 use crate::pb::*;
 use crate::plan::Planner;
-use crate::program::{self, Problem, Program, ProgramRef, WorkoutDef, GUIDE};
+use crate::program::{self, GroupDef, Problem, Program, ProgramRef, WorkoutDef, GUIDE};
 use crate::progress::{compute_exercise_progress, compute_workout_summary, name_lifts};
 use crate::recovery::per_muscle_recovery;
 use crate::rotation::rotation_check;
@@ -151,8 +151,13 @@ impl<'a> Call<'a> {
             self.now
         };
         let exercises = known_exercises(&self.account.program, &req.exercises);
-        let decisions =
+        let mut decisions =
             Planner::new(self.account, started_at).workout(&exercises, &[], req.budget_minutes);
+        // A saved workout's supersets and circuits, among the lifts it starts
+        // with.
+        if let Some(template) = self.account.program.workout(&req.template_id) {
+            crate::plan::group_lifts(&self.account.program, &mut decisions, &template.groups);
+        }
         check_decisions(&decisions)?;
         if req.name.is_empty() {
             req.name = "Workout".to_string();
@@ -448,6 +453,25 @@ impl<'a> Call<'a> {
             ));
         }
         let existing = self.account.program.workout(&template.id);
+        // The app's editor doesn't edit groups: it keeps them, without
+        // lifts it took out (a group of one is no group).
+        let groups = existing
+            .map(|w| {
+                w.groups
+                    .iter()
+                    .map(|g| GroupDef {
+                        exercises: g
+                            .exercises
+                            .iter()
+                            .filter(|k| exercises.contains(k))
+                            .cloned()
+                            .collect(),
+                        rest_seconds: g.rest_seconds,
+                    })
+                    .filter(|g| g.exercises.len() >= 2)
+                    .collect()
+            })
+            .unwrap_or_default();
         let workout = WorkoutDef {
             id: if template.id.is_empty() {
                 derived_id(&self.next_event_id(), 0)
@@ -459,6 +483,7 @@ impl<'a> Call<'a> {
             rotation: template.in_rotation,
             notes: template.notes.clone(),
             from_library: existing.map(|w| w.from_library.clone()).unwrap_or_default(),
+            groups,
         };
         let id = workout.id.clone();
         if existing != Some(&workout) {
@@ -724,6 +749,11 @@ fn workout_fact(mutation: workout_mutation::Mutation, now: i64) -> Fact {
             proposed_set_id: r.proposed_set_id,
             reps_left: r.reps_left,
             jump_lb: r.jump_lb,
+        }),
+        M::AnswerEffort(r) => Fact::EffortAnswered(EffortAnswered {
+            workout_id: r.workout_id,
+            proposed_set_id: r.proposed_set_id,
+            reps_left: r.reps_left,
         }),
         M::SkipWarmups(r) => Fact::WarmupsSkipped(WarmupsSkipped {
             workout_id: r.workout_id,
@@ -1309,6 +1339,7 @@ fn library_copy(entry: &LibraryTemplate, rotation: bool, event_id: &str, n: usiz
         rotation,
         notes: String::new(),
         from_library: entry.id.clone(),
+        groups: Vec::new(),
     }
 }
 

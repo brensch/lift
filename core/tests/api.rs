@@ -3627,6 +3627,10 @@ mod programs {
             progression: Some("lp".into()),
             description: "The bar in the crooks of the elbows.".into(),
             params: Default::default(),
+            measure: Default::default(),
+            per_side: false,
+            tempo: String::new(),
+            scheme: None,
         }
     }
 
@@ -3745,6 +3749,7 @@ mod programs {
             rotation: true,
             notes: String::new(),
             from_library: String::new(),
+            groups: Vec::new(),
         });
         assert_eq!(
             errors(&set(&mut app, &p, "mcp:test").problems),
@@ -4046,5 +4051,388 @@ mod programs {
         );
         // Nothing of either is recorded.
         assert_eq!(Account::fold(&app.log), app.account);
+    }
+}
+
+/// Every set type end to end (docs/plans/set-types.md): a program's scheme
+/// lays out the sets, a workout's groups alternate them, and what's done
+/// feeds back as each kind should.
+mod set_types {
+    use super::*;
+    use schlift_core::program::{GroupDef, Measure, Program, WorkoutDef};
+
+    fn current(app: &App) -> Program {
+        (*app.account.program).clone()
+    }
+
+    fn set_program(app: &mut App, program: &Program) {
+        let set = app
+            .call()
+            .set_program(SetProgramRequest {
+                program_json: program.to_json(),
+                note: "set types".into(),
+                author: "test".into(),
+            })
+            .unwrap();
+        let errors: Vec<_> = set.problems.iter().filter(|p| p.error).collect();
+        assert!(errors.is_empty(), "{errors:?}");
+    }
+
+    /// An onboarded account whose `lifts` each have a finished session, so
+    /// they're planned from a max rather than ramped.
+    fn trained(lifts: &[(&str, f32)]) -> App {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        for (lift, weight) in lifts {
+            import_session(&mut app, lift, *weight, 5, &[5, 5, 5], NOW - 2 * DAY);
+        }
+        app
+    }
+
+    fn scheme_on(app: &mut App, lift: &str, scheme: &str) {
+        let mut p = current(app);
+        for e in p.exercises.iter_mut().filter(|e| e.key == lift) {
+            e.scheme = Some(scheme.into());
+        }
+        set_program(app, &p);
+    }
+
+    fn role(s: &ProposedSet) -> SetRole {
+        SetRole::try_from(s.role).unwrap()
+    }
+
+    #[test]
+    fn a_top_set_then_back_offs_at_their_share() {
+        let mut app = trained(&[("squat", 200.0)]);
+        scheme_on(&mut app, "squat", "top_backoff");
+        let started = start(&mut app, &["squat"]);
+        let sets = working(&started.proposed_sets, "squat");
+        let d = decision(&started, "squat");
+        assert_eq!(d.scheme, "top_backoff");
+        assert_eq!(d.sets as usize, sets.len(), "every set is a main set");
+        assert_eq!(role(&sets[0]), SetRole::Top);
+        let top = sets[0].target_weight;
+        assert_eq!(top, d.weight);
+        for back in &sets[1..] {
+            assert_eq!(role(back), SetRole::Backoff);
+            assert_eq!(back.target_reps, 8);
+            assert!((back.fraction - 0.85).abs() < 1e-6);
+            assert!(
+                back.target_weight < top && back.target_weight % 5.0 == 0.0,
+                "{back:?}"
+            );
+        }
+    }
+
+    /// Drops chain off the set before them with no rest between; minis
+    /// follow a short pause; after the last, the lift's usual rest.
+    #[test]
+    fn drops_chain_and_minis_pause() {
+        let mut app = trained(&[("bench_press", 150.0), ("lateral_raise", 20.0)]);
+        scheme_on(&mut app, "bench_press", "drop_finish");
+        scheme_on(&mut app, "lateral_raise", "myo");
+        let started = start(&mut app, &["bench_press", "lateral_raise"]);
+        let bench = working(&started.proposed_sets, "bench_press");
+        let drops: Vec<_> = bench.iter().filter(|s| role(s) == SetRole::Drop).collect();
+        assert_eq!(drops.len(), 2);
+        let last_main = bench
+            .iter()
+            .rev()
+            .find(|s| role(s) == SetRole::Unspecified)
+            .unwrap();
+        assert_eq!(last_main.rest_seconds, 0, "straight into the drop");
+        assert!((drops[0].fraction - 0.8).abs() < 1e-6 && (drops[1].fraction - 0.64).abs() < 1e-6);
+        assert!(drops[0].target_weight < last_main.target_weight);
+        assert!(drops[1].target_weight < drops[0].target_weight);
+        let class_rest = decision(&started, "bench_press").rest_seconds;
+        assert_eq!(drops[1].rest_seconds, class_rest);
+
+        let raise = working(&started.proposed_sets, "lateral_raise");
+        assert_eq!(role(&raise[0]), SetRole::Unspecified);
+        assert_eq!(
+            raise[0].rest_seconds, 15,
+            "a short pause before the first mini"
+        );
+        let minis: Vec<_> = raise.iter().filter(|s| role(s) == SetRole::Mini).collect();
+        assert_eq!(minis.len(), 4);
+        assert!(minis.iter().all(|m| m.target_reps == 4));
+    }
+
+    /// A superset alternates its two lifts round by round, rests the short
+    /// transition between them and its own rest after a round, and isn't
+    /// over until both are.
+    #[test]
+    fn a_superset_alternates() {
+        let mut app = trained(&[("bench_press", 150.0), ("barbell_row", 135.0)]);
+        let mut p = current(&app);
+        p.workouts.push(WorkoutDef {
+            id: "ss".into(),
+            name: "Superset".into(),
+            exercises: vec!["bench_press".into(), "barbell_row".into()],
+            rotation: true,
+            notes: String::new(),
+            from_library: String::new(),
+            groups: vec![GroupDef {
+                exercises: vec!["bench_press".into(), "barbell_row".into()],
+                rest_seconds: Some(90),
+            }],
+        });
+        set_program(&mut app, &p);
+        let started = app
+            .call()
+            .start_workout(StartWorkoutRequest {
+                template_id: "ss".into(),
+                ..Default::default()
+            })
+            .unwrap();
+        let order: Vec<&ProposedSet> = started
+            .proposed_sets
+            .iter()
+            .filter(|s| !s.warmup && !s.calibration)
+            .collect();
+        let lifts: Vec<&str> = order.iter().map(|s| s.exercise.as_str()).collect();
+        assert!(lifts.len() >= 4, "{lifts:?}");
+        for (i, lift) in lifts.iter().enumerate() {
+            assert_eq!(
+                *lift,
+                if i % 2 == 0 {
+                    "bench_press"
+                } else {
+                    "barbell_row"
+                },
+                "{lifts:?}"
+            );
+        }
+        assert!(order.iter().all(|s| s.group == "g1"));
+        assert!(order
+            .iter()
+            .filter(|s| s.exercise == "bench_press")
+            .all(|s| s.rest_seconds == 15));
+        assert!(order
+            .iter()
+            .filter(|s| s.exercise == "barbell_row")
+            .all(|s| s.rest_seconds == 90));
+        // Warmups lead, ahead of the first round.
+        let first_working = started
+            .proposed_sets
+            .iter()
+            .position(|s| !s.warmup)
+            .unwrap();
+        assert!(started.proposed_sets[..first_working]
+            .iter()
+            .all(|s| s.warmup));
+
+        // Bench's last set with a row still to go rests the transition, not
+        // the end-of-lift rest.
+        let mut t = NOW;
+        let n = order.len();
+        let mut done = Vec::new();
+        for set in &order[..n - 2] {
+            done.push(complete_set(set, set.target_reps, set.target_weight, t));
+            t += 60;
+        }
+        let bench_last = order[n - 2];
+        done.push(complete_set(
+            bench_last,
+            bench_last.target_reps,
+            bench_last.target_weight,
+            t,
+        ));
+        batch(&mut app, done);
+        let record = app.account.workout(&started.id).unwrap();
+        let last = record
+            .completed_sets
+            .iter()
+            .find(|c| c.proposed_set_id == bench_last.id)
+            .unwrap();
+        assert_eq!(last.rest_until, t + 15);
+    }
+
+    /// EMOM: each set starts its interval after the last one started.
+    #[test]
+    fn emom_rests_until_the_next_start() {
+        let mut app = trained(&[("squat", 200.0)]);
+        scheme_on(&mut app, "squat", "emom");
+        let started = start(&mut app, &["squat"]);
+        let sets = working(&started.proposed_sets, "squat");
+        assert!(sets.iter().all(|s| s.every_seconds == 60));
+        batch(
+            &mut app,
+            vec![mutation(Mutation::StartSet(StartSetRequest {
+                workout_id: started.id.clone(),
+                proposed_set_id: sets[0].id.clone(),
+                started_at: NOW,
+            }))],
+        );
+        batch(
+            &mut app,
+            vec![complete_set(
+                &sets[0],
+                sets[0].target_reps,
+                sets[0].target_weight,
+                NOW + 20,
+            )],
+        );
+        let record = app.account.workout(&started.id).unwrap();
+        assert_eq!(record.completed_sets[0].rest_until, NOW + 60);
+    }
+
+    /// A set with an effort target asks after it; the answer is kept; doing
+    /// the next set closes the question; a set without one never asks.
+    #[test]
+    fn an_effort_target_asks_once() {
+        let mut app = trained(&[("squat", 200.0)]);
+        let mut p = current(&app);
+        p.schemes.get_mut("top_backoff").unwrap().steps[1].rir = Some(2);
+        for e in p.exercises.iter_mut().filter(|e| e.key == "squat") {
+            e.scheme = Some("top_backoff".into());
+        }
+        set_program(&mut app, &p);
+        let started = start(&mut app, &["squat"]);
+        let sets = working(&started.proposed_sets, "squat");
+        assert_eq!(sets[0].target_rir, None);
+        assert_eq!(sets[1].target_rir, Some(2));
+        let response = batch(
+            &mut app,
+            vec![complete_set(&sets[0], 5, sets[0].target_weight, NOW)],
+        );
+        let open = response
+            .workout_state
+            .as_ref()
+            .map(|w| w.effort_question_set_id.clone());
+        assert_eq!(open.as_deref(), Some(""), "the top set has no target");
+        let response = batch(
+            &mut app,
+            vec![complete_set(&sets[1], 8, sets[1].target_weight, NOW + 200)],
+        );
+        assert_eq!(
+            response
+                .workout_state
+                .as_ref()
+                .map(|w| w.effort_question_set_id.clone()),
+            Some(sets[1].id.clone())
+        );
+        let answer = |id: &str| {
+            mutation(Mutation::AnswerEffort(AnswerEffortRequest {
+                workout_id: started.id.clone(),
+                proposed_set_id: id.to_string(),
+                reps_left: RepsLeft::TwoToFour as i32,
+            }))
+        };
+        batch(&mut app, vec![answer(&sets[0].id)]);
+        let record = app.account.workout(&started.id).unwrap();
+        assert!(
+            record.completed_sets.iter().all(|c| c.reps_left == 0),
+            "not its question"
+        );
+        let response = batch(&mut app, vec![answer(&sets[1].id)]);
+        assert_eq!(
+            response
+                .workout_state
+                .as_ref()
+                .map(|w| w.effort_question_set_id.as_str()),
+            Some("")
+        );
+        let record = app.account.workout(&started.id).unwrap();
+        let kept = record
+            .completed_sets
+            .iter()
+            .find(|c| c.proposed_set_id == sets[1].id)
+            .unwrap();
+        assert_eq!(kept.reps_left, RepsLeft::TwoToFour as i32);
+    }
+
+    /// A new working weight moves each set to its own share of it.
+    #[test]
+    fn a_new_weight_keeps_each_share() {
+        let mut app = trained(&[("squat", 200.0)]);
+        scheme_on(&mut app, "squat", "top_backoff");
+        let started = start(&mut app, &["squat"]);
+        batch(
+            &mut app,
+            vec![mutation(Mutation::AdjustExerciseWeight(
+                AdjustExerciseWeightRequest {
+                    workout_id: started.id.clone(),
+                    exercise: "squat".into(),
+                    working_weight: 300.0,
+                    ..Default::default()
+                },
+            ))],
+        );
+        let record = app.account.workout(&started.id).unwrap();
+        let sets = working(&record.proposed_sets, "squat");
+        assert_eq!(sets[0].target_weight, 300.0);
+        assert!(
+            sets[1..].iter().all(|s| s.target_weight == 255.0),
+            "{sets:?}"
+        );
+    }
+
+    /// A lift counted in seconds, on each side, with a tempo: every set
+    /// says so.
+    #[test]
+    fn a_timed_lift_says_what_it_counts() {
+        let mut app = trained(&[]);
+        let mut p = current(&app);
+        for e in p.exercises.iter_mut().filter(|e| e.key == "plank") {
+            e.measure = Measure::Seconds;
+            e.per_side = true;
+            e.tempo = "hold".into();
+        }
+        set_program(&mut app, &p);
+        let started = start(&mut app, &["plank"]);
+        let d = decision(&started, "plank");
+        assert_eq!(d.measure, schlift_core::pb::Measure::Seconds as i32);
+        for set in started
+            .proposed_sets
+            .iter()
+            .filter(|s| s.exercise == "plank")
+        {
+            assert_eq!(set.measure, schlift_core::pb::Measure::Seconds as i32);
+            assert!(set.per_side && set.tempo == "hold");
+        }
+    }
+
+    /// Drops don't judge the session: a drop with one rep still leaves a
+    /// session where every main set was hit, and they count half a set
+    /// toward the week.
+    #[test]
+    fn drops_count_half_and_judge_nothing() {
+        let mut app = trained(&[("bench_press", 150.0)]);
+        scheme_on(&mut app, "bench_press", "drop_finish");
+        let before = home(&mut app)
+            .volume
+            .iter()
+            .find(|v| v.muscle == MuscleGroup::Chest as i32)
+            .map_or(0.0, |v| v.completed_sets_7d);
+        let started = start(&mut app, &["bench_press"]);
+        let mains = working(&started.proposed_sets, "bench_press")
+            .iter()
+            .filter(|s| role(s) == SetRole::Unspecified)
+            .count() as f32;
+        finish(
+            &mut app,
+            &started,
+            |s| {
+                if role(s) == SetRole::Drop {
+                    1
+                } else {
+                    s.target_reps
+                }
+            },
+            NOW,
+        );
+        let after = home(&mut app)
+            .volume
+            .iter()
+            .find(|v| v.muscle == MuscleGroup::Chest as i32)
+            .map_or(0.0, |v| v.completed_sets_7d);
+        assert!(
+            (after - before - (mains + 2.0 * 0.5)).abs() < 1e-3,
+            "{before} → {after}"
+        );
+        let record = app.account.workout(&started.id).unwrap();
+        let outcome = &schlift_core::exercise_progress::session_outcomes(record)["bench_press"];
+        assert!(outcome.all_hit(), "{outcome:?}");
     }
 }

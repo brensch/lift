@@ -304,6 +304,15 @@ class ProposedSet extends $pb.GeneratedMessage {
     $core.bool? calibration,
     $core.bool? skipped,
     $core.String? exercise,
+    SetRole? role,
+    $core.bool? amrap,
+    $core.int? targetRir,
+    Measure? measure,
+    $core.bool? perSide,
+    $core.String? tempo,
+    $core.String? group,
+    $core.int? everySeconds,
+    $core.double? fraction,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -317,6 +326,15 @@ class ProposedSet extends $pb.GeneratedMessage {
     if (calibration != null) result.calibration = calibration;
     if (skipped != null) result.skipped = skipped;
     if (exercise != null) result.exercise = exercise;
+    if (role != null) result.role = role;
+    if (amrap != null) result.amrap = amrap;
+    if (targetRir != null) result.targetRir = targetRir;
+    if (measure != null) result.measure = measure;
+    if (perSide != null) result.perSide = perSide;
+    if (tempo != null) result.tempo = tempo;
+    if (group != null) result.group = group;
+    if (everySeconds != null) result.everySeconds = everySeconds;
+    if (fraction != null) result.fraction = fraction;
     return result;
   }
 
@@ -345,6 +363,16 @@ class ProposedSet extends $pb.GeneratedMessage {
     ..aOB(15, _omitFieldNames ? '' : 'calibration')
     ..aOB(16, _omitFieldNames ? '' : 'skipped')
     ..aOS(17, _omitFieldNames ? '' : 'exercise')
+    ..aE<SetRole>(18, _omitFieldNames ? '' : 'role', enumValues: SetRole.values)
+    ..aOB(19, _omitFieldNames ? '' : 'amrap')
+    ..aI(20, _omitFieldNames ? '' : 'targetRir')
+    ..aE<Measure>(21, _omitFieldNames ? '' : 'measure',
+        enumValues: Measure.values)
+    ..aOB(22, _omitFieldNames ? '' : 'perSide')
+    ..aOS(23, _omitFieldNames ? '' : 'tempo')
+    ..aOS(24, _omitFieldNames ? '' : 'group')
+    ..aI(25, _omitFieldNames ? '' : 'everySeconds')
+    ..aD(26, _omitFieldNames ? '' : 'fraction', fieldType: $pb.PbFieldType.OF)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -471,6 +499,102 @@ class ProposedSet extends $pb.GeneratedMessage {
   $core.bool hasExercise() => $_has(10);
   @$pb.TagNumber(17)
   void clearExercise() => $_clearField(17);
+
+  /// What kind of set it is within its lift (docs/plans/set-types.md): a
+  /// plain working set, a top set, a back-off, a drop after the set before
+  /// it, or a mini-set (rest-pause, myo-reps, clusters). Warmups and rungs
+  /// keep their own flags and are WORKING here.
+  @$pb.TagNumber(18)
+  SetRole get role => $_getN(11);
+  @$pb.TagNumber(18)
+  set role(SetRole value) => $_setField(18, value);
+  @$pb.TagNumber(18)
+  $core.bool hasRole() => $_has(11);
+  @$pb.TagNumber(18)
+  void clearRole() => $_clearField(18);
+
+  /// As many as you can: target_reps is the minimum.
+  @$pb.TagNumber(19)
+  $core.bool get amrap => $_getBF(12);
+  @$pb.TagNumber(19)
+  set amrap($core.bool value) => $_setBool(12, value);
+  @$pb.TagNumber(19)
+  $core.bool hasAmrap() => $_has(12);
+  @$pb.TagNumber(19)
+  void clearAmrap() => $_clearField(19);
+
+  /// An effort target: reps left in the tank after the set. Unset: none,
+  /// and nothing is asked.
+  @$pb.TagNumber(20)
+  $core.int get targetRir => $_getIZ(13);
+  @$pb.TagNumber(20)
+  set targetRir($core.int value) => $_setSignedInt32(13, value);
+  @$pb.TagNumber(20)
+  $core.bool hasTargetRir() => $_has(13);
+  @$pb.TagNumber(20)
+  void clearTargetRir() => $_clearField(20);
+
+  /// What target_reps (and a completed set's actual_reps) counts.
+  @$pb.TagNumber(21)
+  Measure get measure => $_getN(14);
+  @$pb.TagNumber(21)
+  set measure(Measure value) => $_setField(21, value);
+  @$pb.TagNumber(21)
+  $core.bool hasMeasure() => $_has(14);
+  @$pb.TagNumber(21)
+  void clearMeasure() => $_clearField(21);
+
+  /// Reps (or seconds, or metres) on each side.
+  @$pb.TagNumber(22)
+  $core.bool get perSide => $_getBF(15);
+  @$pb.TagNumber(22)
+  set perSide($core.bool value) => $_setBool(15, value);
+  @$pb.TagNumber(22)
+  $core.bool hasPerSide() => $_has(15);
+  @$pb.TagNumber(22)
+  void clearPerSide() => $_clearField(22);
+
+  /// A cue shown with the set ("3-1-1"); never timed.
+  @$pb.TagNumber(23)
+  $core.String get tempo => $_getSZ(16);
+  @$pb.TagNumber(23)
+  set tempo($core.String value) => $_setString(16, value);
+  @$pb.TagNumber(23)
+  $core.bool hasTempo() => $_has(16);
+  @$pb.TagNumber(23)
+  void clearTempo() => $_clearField(23);
+
+  /// The group (superset, circuit) its lift is in within this workout, or
+  /// "": the group's sets alternate.
+  @$pb.TagNumber(24)
+  $core.String get group => $_getSZ(17);
+  @$pb.TagNumber(24)
+  set group($core.String value) => $_setString(17, value);
+  @$pb.TagNumber(24)
+  $core.bool hasGroup() => $_has(17);
+  @$pb.TagNumber(24)
+  void clearGroup() => $_clearField(24);
+
+  /// EMOM: the next set starts this long after this one started. 0: none.
+  @$pb.TagNumber(25)
+  $core.int get everySeconds => $_getIZ(18);
+  @$pb.TagNumber(25)
+  set everySeconds($core.int value) => $_setSignedInt32(18, value);
+  @$pb.TagNumber(25)
+  $core.bool hasEverySeconds() => $_has(18);
+  @$pb.TagNumber(25)
+  void clearEverySeconds() => $_clearField(25);
+
+  /// Its weight as a share of the lift's working weight (a back-off, a
+  /// drop, a pyramid step): a new working weight scales it. 0 reads as 1.
+  @$pb.TagNumber(26)
+  $core.double get fraction => $_getN(19);
+  @$pb.TagNumber(26)
+  set fraction($core.double value) => $_setFloat(19, value);
+  @$pb.TagNumber(26)
+  $core.bool hasFraction() => $_has(19);
+  @$pb.TagNumber(26)
+  void clearFraction() => $_clearField(26);
 }
 
 class CompletedSet extends $pb.GeneratedMessage {
@@ -934,6 +1058,136 @@ class PlanReason extends $pb.GeneratedMessage {
   void clearOf() => $_clearField(19);
 }
 
+/// One set of a lift's laid-out shape, relative to its working weight: what
+/// a program's scheme made of the rule's sets, reps and weight.
+class PlannedSet extends $pb.GeneratedMessage {
+  factory PlannedSet({
+    SetRole? role,
+    $core.int? reps,
+    $core.double? fraction,
+    $core.bool? amrap,
+    $core.int? rir,
+    $core.int? restSeconds,
+    $core.int? everySeconds,
+  }) {
+    final result = create();
+    if (role != null) result.role = role;
+    if (reps != null) result.reps = reps;
+    if (fraction != null) result.fraction = fraction;
+    if (amrap != null) result.amrap = amrap;
+    if (rir != null) result.rir = rir;
+    if (restSeconds != null) result.restSeconds = restSeconds;
+    if (everySeconds != null) result.everySeconds = everySeconds;
+    return result;
+  }
+
+  PlannedSet._();
+
+  factory PlannedSet.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PlannedSet.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PlannedSet',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aE<SetRole>(1, _omitFieldNames ? '' : 'role', enumValues: SetRole.values)
+    ..aI(2, _omitFieldNames ? '' : 'reps')
+    ..aD(3, _omitFieldNames ? '' : 'fraction', fieldType: $pb.PbFieldType.OF)
+    ..aOB(4, _omitFieldNames ? '' : 'amrap')
+    ..aI(5, _omitFieldNames ? '' : 'rir')
+    ..aI(6, _omitFieldNames ? '' : 'restSeconds')
+    ..aI(7, _omitFieldNames ? '' : 'everySeconds')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PlannedSet clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PlannedSet copyWith(void Function(PlannedSet) updates) =>
+      super.copyWith((message) => updates(message as PlannedSet)) as PlannedSet;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PlannedSet create() => PlannedSet._();
+  @$core.override
+  PlannedSet createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PlannedSet getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PlannedSet>(create);
+  static PlannedSet? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  SetRole get role => $_getN(0);
+  @$pb.TagNumber(1)
+  set role(SetRole value) => $_setField(1, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRole() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRole() => $_clearField(1);
+
+  /// The number for this set: reps, seconds or metres, by the measure.
+  @$pb.TagNumber(2)
+  $core.int get reps => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set reps($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasReps() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearReps() => $_clearField(2);
+
+  /// Of the working weight; a drop's is already multiplied through the sets
+  /// before it. 0 reads as 1.
+  @$pb.TagNumber(3)
+  $core.double get fraction => $_getN(2);
+  @$pb.TagNumber(3)
+  set fraction($core.double value) => $_setFloat(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasFraction() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearFraction() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.bool get amrap => $_getBF(3);
+  @$pb.TagNumber(4)
+  set amrap($core.bool value) => $_setBool(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasAmrap() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAmrap() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.int get rir => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set rir($core.int value) => $_setSignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasRir() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearRir() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.int get restSeconds => $_getIZ(5);
+  @$pb.TagNumber(6)
+  set restSeconds($core.int value) => $_setSignedInt32(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasRestSeconds() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearRestSeconds() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.int get everySeconds => $_getIZ(6);
+  @$pb.TagNumber(7)
+  set everySeconds($core.int value) => $_setSignedInt32(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasEverySeconds() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearEverySeconds() => $_clearField(7);
+}
+
 /// What one lift is given in a workout: everything its sets are laid out
 /// from.
 class ExerciseDecision extends $pb.GeneratedMessage {
@@ -953,6 +1207,12 @@ class ExerciseDecision extends $pb.GeneratedMessage {
     $core.String? exercise,
     $core.String? progression,
     $core.String? progressionKind,
+    $core.Iterable<PlannedSet>? schemeSets,
+    Measure? measure,
+    $core.bool? perSide,
+    $core.String? tempo,
+    $core.String? group,
+    $core.String? scheme,
   }) {
     final result = create();
     if (sets != null) result.sets = sets;
@@ -970,6 +1230,12 @@ class ExerciseDecision extends $pb.GeneratedMessage {
     if (exercise != null) result.exercise = exercise;
     if (progression != null) result.progression = progression;
     if (progressionKind != null) result.progressionKind = progressionKind;
+    if (schemeSets != null) result.schemeSets.addAll(schemeSets);
+    if (measure != null) result.measure = measure;
+    if (perSide != null) result.perSide = perSide;
+    if (tempo != null) result.tempo = tempo;
+    if (group != null) result.group = group;
+    if (scheme != null) result.scheme = scheme;
     return result;
   }
 
@@ -1002,6 +1268,14 @@ class ExerciseDecision extends $pb.GeneratedMessage {
     ..aOS(14, _omitFieldNames ? '' : 'exercise')
     ..aOS(15, _omitFieldNames ? '' : 'progression')
     ..aOS(16, _omitFieldNames ? '' : 'progressionKind')
+    ..pPM<PlannedSet>(17, _omitFieldNames ? '' : 'schemeSets',
+        subBuilder: PlannedSet.create)
+    ..aE<Measure>(18, _omitFieldNames ? '' : 'measure',
+        enumValues: Measure.values)
+    ..aOB(19, _omitFieldNames ? '' : 'perSide')
+    ..aOS(20, _omitFieldNames ? '' : 'tempo')
+    ..aOS(21, _omitFieldNames ? '' : 'group')
+    ..aOS(22, _omitFieldNames ? '' : 'scheme')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -1163,6 +1437,59 @@ class ExerciseDecision extends $pb.GeneratedMessage {
   $core.bool hasProgressionKind() => $_has(14);
   @$pb.TagNumber(16)
   void clearProgressionKind() => $_clearField(16);
+
+  /// The sets one by one, when the program's scheme isn't straight sets or
+  /// the lift is in a group. Empty: `sets` identical sets of `reps` at
+  /// `weight`, resting `rest_seconds`, as every decision before schemes.
+  @$pb.TagNumber(17)
+  $pb.PbList<PlannedSet> get schemeSets => $_getList(15);
+
+  @$pb.TagNumber(18)
+  Measure get measure => $_getN(16);
+  @$pb.TagNumber(18)
+  set measure(Measure value) => $_setField(18, value);
+  @$pb.TagNumber(18)
+  $core.bool hasMeasure() => $_has(16);
+  @$pb.TagNumber(18)
+  void clearMeasure() => $_clearField(18);
+
+  @$pb.TagNumber(19)
+  $core.bool get perSide => $_getBF(17);
+  @$pb.TagNumber(19)
+  set perSide($core.bool value) => $_setBool(17, value);
+  @$pb.TagNumber(19)
+  $core.bool hasPerSide() => $_has(17);
+  @$pb.TagNumber(19)
+  void clearPerSide() => $_clearField(19);
+
+  @$pb.TagNumber(20)
+  $core.String get tempo => $_getSZ(18);
+  @$pb.TagNumber(20)
+  set tempo($core.String value) => $_setString(18, value);
+  @$pb.TagNumber(20)
+  $core.bool hasTempo() => $_has(18);
+  @$pb.TagNumber(20)
+  void clearTempo() => $_clearField(20);
+
+  /// Its group within the workout ("" for none): the group's sets alternate.
+  @$pb.TagNumber(21)
+  $core.String get group => $_getSZ(19);
+  @$pb.TagNumber(21)
+  set group($core.String value) => $_setString(19, value);
+  @$pb.TagNumber(21)
+  $core.bool hasGroup() => $_has(19);
+  @$pb.TagNumber(21)
+  void clearGroup() => $_clearField(21);
+
+  /// The scheme's name in the program, for reading the plan back.
+  @$pb.TagNumber(22)
+  $core.String get scheme => $_getSZ(20);
+  @$pb.TagNumber(22)
+  set scheme($core.String value) => $_setString(20, value);
+  @$pb.TagNumber(22)
+  $core.bool hasScheme() => $_has(20);
+  @$pb.TagNumber(22)
+  void clearScheme() => $_clearField(22);
 }
 
 /// A weight changed during a workout, and why.
@@ -2017,6 +2344,7 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     $core.Iterable<RungOutcome>? rungOutcomes,
     $core.Iterable<$core.String>? firstTimeSetIds,
     $core.Iterable<ExerciseInfo>? exercises,
+    $core.String? effortQuestionSetId,
   }) {
     final result = create();
     if (workout != null) result.workout = workout;
@@ -2031,6 +2359,8 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     if (rungOutcomes != null) result.rungOutcomes.addAll(rungOutcomes);
     if (firstTimeSetIds != null) result.firstTimeSetIds.addAll(firstTimeSetIds);
     if (exercises != null) result.exercises.addAll(exercises);
+    if (effortQuestionSetId != null)
+      result.effortQuestionSetId = effortQuestionSetId;
     return result;
   }
 
@@ -2068,6 +2398,7 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
     ..pPS(14, _omitFieldNames ? '' : 'firstTimeSetIds')
     ..pPM<ExerciseInfo>(15, _omitFieldNames ? '' : 'exercises',
         subBuilder: ExerciseInfo.create)
+    ..aOS(16, _omitFieldNames ? '' : 'effortQuestionSetId')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -2177,6 +2508,19 @@ class GetWorkoutResponse extends $pb.GeneratedMessage {
   /// what to call a lift, whoever's program it came from.
   @$pb.TagNumber(15)
   $pb.PbList<ExerciseInfo> get exercises => $_getList(11);
+
+  /// A set with an effort target, just done and unanswered, whose "how many
+  /// more could you have done?" is open; empty when none. An
+  /// AnswerEffortRequest applies only to this set. Dismissing it leaves the
+  /// set unanswered.
+  @$pb.TagNumber(16)
+  $core.String get effortQuestionSetId => $_getSZ(12);
+  @$pb.TagNumber(16)
+  set effortQuestionSetId($core.String value) => $_setString(12, value);
+  @$pb.TagNumber(16)
+  $core.bool hasEffortQuestionSetId() => $_has(12);
+  @$pb.TagNumber(16)
+  void clearEffortQuestionSetId() => $_clearField(16);
 }
 
 class WorkoutStateSnapshot extends $pb.GeneratedMessage {
@@ -3352,6 +3696,87 @@ class AnswerRungRequest extends $pb.GeneratedMessage {
   $core.bool hasJumpLb() => $_has(3);
   @$pb.TagNumber(4)
   void clearJumpLb() => $_clearField(4);
+}
+
+/// The answer to a set's effort target: reps left in the tank, the same
+/// three answers a rung asks. A set without a target refuses it.
+class AnswerEffortRequest extends $pb.GeneratedMessage {
+  factory AnswerEffortRequest({
+    $core.String? workoutId,
+    $core.String? proposedSetId,
+    RepsLeft? repsLeft,
+  }) {
+    final result = create();
+    if (workoutId != null) result.workoutId = workoutId;
+    if (proposedSetId != null) result.proposedSetId = proposedSetId;
+    if (repsLeft != null) result.repsLeft = repsLeft;
+    return result;
+  }
+
+  AnswerEffortRequest._();
+
+  factory AnswerEffortRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AnswerEffortRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AnswerEffortRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'workoutId')
+    ..aOS(2, _omitFieldNames ? '' : 'proposedSetId')
+    ..aE<RepsLeft>(3, _omitFieldNames ? '' : 'repsLeft',
+        enumValues: RepsLeft.values)
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnswerEffortRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AnswerEffortRequest copyWith(void Function(AnswerEffortRequest) updates) =>
+      super.copyWith((message) => updates(message as AnswerEffortRequest))
+          as AnswerEffortRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AnswerEffortRequest create() => AnswerEffortRequest._();
+  @$core.override
+  AnswerEffortRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AnswerEffortRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AnswerEffortRequest>(create);
+  static AnswerEffortRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get workoutId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set workoutId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasWorkoutId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearWorkoutId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get proposedSetId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set proposedSetId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasProposedSetId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearProposedSetId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  RepsLeft get repsLeft => $_getN(2);
+  @$pb.TagNumber(3)
+  set repsLeft(RepsLeft value) => $_setField(3, value);
+  @$pb.TagNumber(3)
+  $core.bool hasRepsLeft() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearRepsLeft() => $_clearField(3);
 }
 
 /// Begin a set: the workout is LIFTING it until its Done. Starting another
@@ -7037,6 +7462,7 @@ enum WorkoutMutation_Mutation {
   skipWarmups,
   setSession,
   answerRung,
+  answerEffort,
   notSet
 }
 
@@ -7054,6 +7480,7 @@ class WorkoutMutation extends $pb.GeneratedMessage {
     SkipWarmupsRequest? skipWarmups,
     SetWorkoutSessionRequest? setSession,
     AnswerRungRequest? answerRung,
+    AnswerEffortRequest? answerEffort,
   }) {
     final result = create();
     if (completeSet != null) result.completeSet = completeSet;
@@ -7070,6 +7497,7 @@ class WorkoutMutation extends $pb.GeneratedMessage {
     if (skipWarmups != null) result.skipWarmups = skipWarmups;
     if (setSession != null) result.setSession = setSession;
     if (answerRung != null) result.answerRung = answerRung;
+    if (answerEffort != null) result.answerEffort = answerEffort;
     return result;
   }
 
@@ -7096,13 +7524,14 @@ class WorkoutMutation extends $pb.GeneratedMessage {
     25: WorkoutMutation_Mutation.skipWarmups,
     26: WorkoutMutation_Mutation.setSession,
     27: WorkoutMutation_Mutation.answerRung,
+    28: WorkoutMutation_Mutation.answerEffort,
     0: WorkoutMutation_Mutation.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'WorkoutMutation',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [11, 13, 14, 17, 18, 19, 20, 23, 24, 25, 26, 27])
+    ..oo(0, [11, 13, 14, 17, 18, 19, 20, 23, 24, 25, 26, 27, 28])
     ..aOM<CompleteSetRequest>(11, _omitFieldNames ? '' : 'completeSet',
         subBuilder: CompleteSetRequest.create)
     ..aOM<DeleteCompletedSetRequest>(
@@ -7131,6 +7560,8 @@ class WorkoutMutation extends $pb.GeneratedMessage {
         subBuilder: SetWorkoutSessionRequest.create)
     ..aOM<AnswerRungRequest>(27, _omitFieldNames ? '' : 'answerRung',
         subBuilder: AnswerRungRequest.create)
+    ..aOM<AnswerEffortRequest>(28, _omitFieldNames ? '' : 'answerEffort',
+        subBuilder: AnswerEffortRequest.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -7164,6 +7595,7 @@ class WorkoutMutation extends $pb.GeneratedMessage {
   @$pb.TagNumber(25)
   @$pb.TagNumber(26)
   @$pb.TagNumber(27)
+  @$pb.TagNumber(28)
   WorkoutMutation_Mutation whichMutation() =>
       _WorkoutMutation_MutationByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(11)
@@ -7178,6 +7610,7 @@ class WorkoutMutation extends $pb.GeneratedMessage {
   @$pb.TagNumber(25)
   @$pb.TagNumber(26)
   @$pb.TagNumber(27)
+  @$pb.TagNumber(28)
   void clearMutation() => $_clearField($_whichOneof(0));
 
   @$pb.TagNumber(11)
@@ -7313,6 +7746,17 @@ class WorkoutMutation extends $pb.GeneratedMessage {
   void clearAnswerRung() => $_clearField(27);
   @$pb.TagNumber(27)
   AnswerRungRequest ensureAnswerRung() => $_ensure(11);
+
+  @$pb.TagNumber(28)
+  AnswerEffortRequest get answerEffort => $_getN(12);
+  @$pb.TagNumber(28)
+  set answerEffort(AnswerEffortRequest value) => $_setField(28, value);
+  @$pb.TagNumber(28)
+  $core.bool hasAnswerEffort() => $_has(12);
+  @$pb.TagNumber(28)
+  void clearAnswerEffort() => $_clearField(28);
+  @$pb.TagNumber(28)
+  AnswerEffortRequest ensureAnswerEffort() => $_ensure(12);
 }
 
 class AppendWorkoutMutationsRequest extends $pb.GeneratedMessage {
