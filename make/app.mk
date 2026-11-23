@@ -16,16 +16,19 @@
 # incremental build and install. Ctrl+C, or q (which ends the app), stops it
 # all.
 DEV_BACKEND_LOG = .tmp/dev-backend.log
+DEV_WEB_LOG = .tmp/dev-web.log
 DEBUG_APP_ID = com.brensch.schlift.debug
 dev:
 	@mkdir -p .tmp
 	@echo "Backend log: $(DEV_BACKEND_LOG)"
+	@echo "Website: $(DEV_WEB_ORIGIN) (log $(DEV_WEB_LOG)); MCP: $(DEV_WEB_ORIGIN)/api/mcp"
 	@bash -c '\
 		$(PICK_PHONE) \
 		trap "STOP=1" INT; \
 		cleanup() { kill $$(jobs -p) 2>/dev/null; $(STOP_DEV_BACKEND); }; \
 		trap cleanup EXIT; \
 		$(MAKE) run-backend > "$(DEV_BACKEND_LOG)" 2>&1 & \
+		$(MAKE) run-frontend > "$(DEV_WEB_LOG)" 2>&1 & \
 		$(MAKE) hot-reload-on-save & \
 		$(MAKE) run-android PHONE_SERIAL="$$SERIAL"; \
 		app_alive() { for i in 1 2 3; do [ -n "$$(timeout 10 $(ADB) -s "$$SERIAL" shell pidof $(DEBUG_APP_ID) 2>/dev/null)" ] && return 0; done; return 1; }; \
@@ -34,8 +37,9 @@ dev:
 			$(MAKE) run-android PHONE_SERIAL="$$SERIAL" || break; \
 		done; \
 	'
-# Killing make does not reach the cargo watch and server under it.
-STOP_DEV_BACKEND = pkill -f "[c]argo-watch watch $(firstword $(BACKEND_WATCH))"; $(STOP_LOCAL_BACKENDS)
+# Killing make does not reach the cargo watch and server under it, nor vite.
+STOP_DEV_BACKEND = pkill -f "[c]argo-watch watch $(firstword $(BACKEND_WATCH))"; $(STOP_LOCAL_BACKENDS); \
+	pkill -f "[w]eb/node_modules/.bin/vite" || true
 
 # The Dart tests, against the real core: the host build of app/native first.
 # The `dst` ones need a zone with daylight saving, so run on their own in one.
@@ -49,8 +53,10 @@ run-web-dev:
 	@echo "Starting backend and frontend... Press Ctrl+C to stop."
 	@bash -c 'trap "kill 0" SIGINT SIGTERM EXIT; $(MAKE) run-backend & $(MAKE) run-frontend & wait'
 
+# --strictPort: the MCP's address is this port (DEV_WEB_ORIGIN), so vite must
+# fail rather than move to the next free one.
 run-frontend:
-	cd web && npm run dev
+	cd web && npm run dev -- --strictPort --port 5173
 
 run-app:
 	@$(MAKE) stop-app || true
