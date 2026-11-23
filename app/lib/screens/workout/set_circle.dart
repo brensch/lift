@@ -66,6 +66,11 @@ class SetCircle extends StatefulWidget {
   /// enough to hit mid-set, small enough that two exercises fit a phone.
   static const double diameter = 54;
 
+  /// The outline's width, drawn inside the edge (the up-next ring is
+  /// [outlineNext]).
+  static const double outline = 1.5;
+  static const double outlineNext = 2;
+
   @override
   State<SetCircle> createState() => _SetCircleState();
 }
@@ -157,7 +162,9 @@ class _SetCircleState extends State<SetCircle>
               shape: shape.copyWith(
                 side: BorderSide(
                   color: quiet ? ring.withValues(alpha: 0.6) : ring,
-                  width: widget.state == SetCircleState.next ? 2 : 1.5,
+                  width: widget.state == SetCircleState.next
+                      ? SetCircle.outlineNext
+                      : SetCircle.outline,
                 ),
               ),
             ),

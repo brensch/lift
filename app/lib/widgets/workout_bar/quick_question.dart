@@ -124,7 +124,8 @@ class _Countdown extends StatelessWidget {
               duration: Duration(milliseconds: left),
               builder: (context, value, _) => CircularProgressIndicator(
                 value: value,
-                strokeWidth: 4,
+                // The circles' own outline: as thick, just as far in.
+                strokeWidth: SetCircle.outline,
                 color: Theme.of(context).colorScheme.primary,
                 backgroundColor: Colors.transparent,
               ),
