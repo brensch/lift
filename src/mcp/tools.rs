@@ -22,11 +22,12 @@ pub const INSTRUCTIONS: &str = "Schlift records a person's strength training. \
 Their program — one JSON document — decides every workout the app plans: the \
 exercises, the workouts, how each lift progresses, and every number the planner \
 uses. Read the guide (read_guide) first: its Editing section is how to change a \
-program. Look with get_profile, get_program and get_history (list_exercises and \
-list_library find exercises and ready-made workouts). Change it with `edits` — \
+program. Look with get_profile, get_progress, get_program and get_history \
+(list_exercises and list_library find exercises and ready-made workouts). Change it with `edits` — \
 small named changes like {\"set\": \"classes.heavy.rest_seconds\", \"value\": 150} — \
-not by rewriting the document: simulate_program with the edits to see what it \
-prescribes, then set_program with the same edits and a one-line note to the person. \
+not by rewriting the document; when lifts differ only in a number, give one rule \
+and set each lift's `params`. simulate_program with the edits (lifts and summary \
+keep the output short) to see what it prescribes, then set_program with the same edits and a one-line note to the person. \
 Weights are always pounds. When you are done, send_feedback: one line on what was \
 easy or hard about these tools.";
 
@@ -108,6 +109,16 @@ pub fn list() -> Vec<Value> {
             "annotations": { "readOnlyHint": true },
         }),
         json!({
+            "name": "get_progress",
+            "title": "Get progress over time",
+            "description": "Each lift's finished sessions, oldest first: date, top working set, sets, volume and the estimated max after it (a rep max for bodyweight lifts). The numbers the app's progress screen draws.",
+            "inputSchema": schema(json!({
+                "exercise": { "type": "string", "description": "Only this exercise key" },
+                "since_days": { "type": "integer", "minimum": 1, "description": "Only the last this many days" }
+            }), &[]),
+            "annotations": { "readOnlyHint": true },
+        }),
+        json!({
             "name": "validate_program",
             "title": "Check a draft program",
             "description": "Every problem with a draft (edits to the current program, or a whole document), each with its path (workouts[upper_a].exercises[2]). A draft with an error can't be set; warnings are advice. simulate_program and set_program check too, so this is only needed on its own.",
@@ -128,7 +139,9 @@ pub fn list() -> Vec<Value> {
                 "template_id": { "type": "string", "description": "Do this workout every time; otherwise the rotation's suggestion" },
                 "exercises": { "type": "array", "items": { "type": "string" }, "description": "Instead of a workout, these exercise keys in this order every time. With no workout to pick, the lifts of their last workout are used" },
                 "budget_minutes": { "type": "integer", "minimum": 5, "maximum": 300 },
-                "history": { "type": "integer", "minimum": 0, "maximum": 60, "description": "Past workouts to plan again (default 6)" }
+                "history": { "type": "integer", "minimum": 0, "maximum": 60, "description": "Past workouts to plan again (default 6)" },
+                "lifts": { "type": "array", "items": { "type": "string" }, "description": "Show only these exercise keys (the workouts still run whole)" },
+                "summary": { "type": "boolean", "description": "Per lift, one short line a session (plan, what was planned then, what was done) instead of every field" }
             }), &[]),
             "annotations": { "readOnlyHint": true },
         }),
@@ -420,16 +433,7 @@ pub async fn call(
                     .to_string(),
                 budget_minutes: int(arguments, "budget_minutes", 0, 0, 300),
                 history: int(arguments, "history", 6, 0, 60),
-                exercises: arguments
-                    .get("exercises")
-                    .and_then(Value::as_array)
-                    .map(|a| {
-                        a.iter()
-                            .filter_map(Value::as_str)
-                            .map(str::to_string)
-                            .collect()
-                    })
-                    .unwrap_or_default(),
+                exercises: strings(arguments, "exercises").unwrap_or_default(),
             };
             let args = arguments.clone();
             let (run, applied) = mcp
@@ -449,6 +453,19 @@ pub async fn call(
                     .unwrap_or_default(),
                 ));
             }
+            let only: Option<Vec<String>> = strings(arguments, "lifts");
+            let shown = |key: &str| only.as_ref().is_none_or(|o| o.iter().any(|k| k == key));
+            if arguments
+                .get("summary")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+            {
+                return Ok(text(&json!({
+                    "applied": applied,
+                    "lifts": summary(&run.workouts, &shown),
+                    "problems": problems(&run.problems),
+                })));
+            }
             let workouts: Vec<Value> = run
                 .workouts
                 .iter()
@@ -457,7 +474,7 @@ pub async fn call(
                         "date": date(w.at),
                         "past": w.past,
                         "workout": w.name,
-                        "lifts": w.lifts.iter().map(|l| json!({
+                        "lifts": w.lifts.iter().filter(|l| shown(&l.exercise)).map(|l| json!({
                             "exercise": l.exercise,
                             "plan": l.decision.as_ref().map(plan),
                             "planned_then": l.recorded.as_ref().map(|d| json!({ "sets": d.sets, "reps": d.reps, "weight_lb": round(d.weight) })),
@@ -509,6 +526,24 @@ pub async fn call(
                 "program": { "id": summary.id, "name": summary.name, "note": summary.note },
                 "problems": problems(&response.problems),
             })))
+        }
+        "get_progress" => {
+            let exercise = arguments
+                .get("exercise")
+                .and_then(Value::as_str)
+                .map(str::to_string);
+            let since = arguments
+                .get("since_days")
+                .and_then(Value::as_i64)
+                .map(|d| now - d.clamp(1, 3650) * 86_400)
+                .unwrap_or(0);
+            let progress = mcp
+                .db
+                .read_account(user_id, move |a| {
+                    progress(a, now, exercise.as_deref(), since)
+                })
+                .await?;
+            Ok(text(&progress))
         }
         "list_exercises" => {
             let args = arguments.clone();
@@ -606,6 +641,7 @@ fn exercises(program: &Program, arguments: &Value) -> Value {
                 "muscles": v["muscles"],
                 "class": e.class,
                 "progression": e.progression,
+                "params": e.params,
                 "built_in": builtin.contains(&e.key),
                 "in_workouts": program.workouts.iter().filter(|w| w.exercises.contains(&e.key)).map(|w| w.id.clone()).collect::<Vec<_>>(),
             })
@@ -731,4 +767,107 @@ fn history(account: &Account, exercise: Option<&str>, since: Option<i64>, limit:
         })
         .collect();
     json!({ "weights_are": "pounds", "workouts": workouts })
+}
+
+/// A list of strings argument, or None when it isn't given.
+fn strings(arguments: &Value, name: &str) -> Option<Vec<String>> {
+    arguments.get(name).and_then(Value::as_array).map(|a| {
+        a.iter()
+            .filter_map(Value::as_str)
+            .map(str::to_string)
+            .collect()
+    })
+}
+
+/// `3×8 @ 135`: sets, reps and weight in a few characters.
+fn scheme(sets: i32, reps: i32, weight: f32) -> String {
+    format!("{sets}×{reps} @ {}", round(weight))
+}
+
+/// A simulation per lift: one line a session and where it starts and ends,
+/// for `simulate_program`'s `summary`.
+fn summary(
+    workouts: &[schlift_core::pb::SimulatedWorkout],
+    shown: &dyn Fn(&str) -> bool,
+) -> Vec<Value> {
+    let mut lifts: Vec<(String, Vec<String>, Vec<String>)> = Vec::new();
+    for w in workouts {
+        for l in w.lifts.iter().filter(|l| shown(&l.exercise)) {
+            let Some(d) = l.decision.as_ref() else {
+                continue;
+            };
+            let planned = scheme(d.sets, d.reps, d.weight);
+            let mut line = format!(
+                "{} {}{planned}",
+                date(w.at),
+                if w.past { "(past) " } else { "" }
+            );
+            if let Some(then) = l.recorded.as_ref() {
+                let then = scheme(then.sets, then.reps, then.weight);
+                if then != planned {
+                    line.push_str(&format!(" · was {then}"));
+                }
+            }
+            line.push_str(&format!(
+                " · did {} @ {} {}",
+                l.done_reps,
+                round(l.done_weight),
+                if l.hit { "hit" } else { "short" }
+            ));
+            match lifts.iter_mut().find(|(k, _, _)| *k == l.exercise) {
+                Some((_, lines, plans)) => {
+                    lines.push(line);
+                    plans.push(planned);
+                }
+                None => lifts.push((l.exercise.clone(), vec![line], vec![planned])),
+            }
+        }
+    }
+    lifts
+        .into_iter()
+        .map(|(exercise, sessions, plans)| {
+            json!({
+                "exercise": exercise,
+                "from": plans.first(),
+                "to": plans.last(),
+                "sessions": sessions,
+            })
+        })
+        .collect()
+}
+
+/// Each lift's sessions over time, for `get_progress`.
+fn progress(account: &Account, now: i64, exercise: Option<&str>, since: i64) -> Value {
+    let all = View::new(account, now).get_exercise_progress();
+    let lifts: Vec<Value> = all
+        .exercises
+        .iter()
+        .filter(|e| exercise.is_none_or(|k| k == e.exercise))
+        .filter_map(|e| {
+            let points: Vec<Value> = e
+                .points
+                .iter()
+                .filter(|p| p.date >= since)
+                .map(|p| {
+                    json!({
+                        "date": date(p.date),
+                        "top_set": format!("{} × {}", p.top_reps, round(p.top_weight)),
+                        "sets": p.sets,
+                        "volume_lb": round(p.volume),
+                        "estimated_max": round(p.estimated_max),
+                    })
+                })
+                .collect();
+            (!points.is_empty()).then(|| {
+                json!({
+                    "exercise": e.exercise,
+                    "name": e.name,
+                    "bodyweight": e.bodyweight,
+                    "max_is": if e.bodyweight { "reps" } else { "pounds" },
+                    "sessions": points,
+                })
+            })
+        })
+        .collect();
+    json!({ "workouts": all.workout_count, "lifts": lifts })
 }

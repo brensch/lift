@@ -384,3 +384,126 @@ mod edits {
         assert!(edit::part(&program(), "classes.nope").is_err());
     }
 }
+
+/// One rule, several lifts: a lift's `params` set its own values for the
+/// rule's numbers, and are checked against the rule it follows.
+mod params {
+    use super::*;
+    use serde_json::json;
+
+    fn with(edits: serde_json::Value) -> serde_json::Value {
+        let mut v = default_json();
+        v["progressions"]["steps"] = json!({
+            "kind": "formula", "let": { "jump_lb": "5" }, "sets": "3", "reps": "8",
+            "weight": "if(has_last and last.hit, last.weight + jump_lb, if(has_last, last.weight, start))",
+            "rest_seconds": null, "note": "A step a session." });
+        v["progressions"]["lp"] = json!({
+            "kind": "linear", "sets": 3, "reps": 5, "increment_lb": 5,
+            "deload_after_fails": 3, "deload_factor": 0.9 });
+        for (key, value) in edits.as_object().unwrap() {
+            let e = v["exercises"]
+                .as_array_mut()
+                .unwrap()
+                .iter_mut()
+                .find(|e| e["key"] == key.as_str())
+                .unwrap();
+            for (field, x) in value.as_object().unwrap() {
+                e[field] = x.clone();
+            }
+        }
+        v
+    }
+
+    #[test]
+    fn a_lift_tunes_the_rule_it_follows() {
+        let v = with(json!({
+            "squat": { "progression": "steps", "params": { "jump_lb": 10 } },
+            "bench_press": { "progression": "steps" },
+            "deadlift": { "progression": "lp", "params": { "increment_lb": 10, "reps": 3 } }
+        }));
+        let (program, problems) = validate(&v.to_string());
+        assert_eq!(errors(&problems), Vec::<String>::new());
+        let p = program.unwrap();
+        let Progression::Formula(squat) = &*p.progression_of("squat") else {
+            panic!()
+        };
+        let Progression::Formula(bench) = &*p.progression_of("bench_press") else {
+            panic!()
+        };
+        assert_eq!(
+            (
+                squat.lets["jump_lb"].as_str(),
+                bench.lets["jump_lb"].as_str()
+            ),
+            ("10", "5")
+        );
+        assert!(matches!(
+            &*p.progression_of("deadlift"),
+            Progression::Linear { increment_lb, reps: 3, .. } if *increment_lb == 10.0
+        ));
+        // The shared rule itself is untouched.
+        assert!(matches!(
+            &p.progressions["lp"],
+            Progression::Linear { reps: 5, .. }
+        ));
+    }
+
+    #[test]
+    fn params_that_dont_fit_are_named() {
+        let cases = [
+            (
+                json!({ "squat": { "progression": "steps", "params": { "jmp": 10 } } }),
+                "exercises[squat].params.jmp",
+                "no `let` named",
+            ),
+            (
+                json!({ "squat": { "progression": "lp", "params": { "reps": 2.5 } } }),
+                "exercises[squat].params.reps",
+                "whole number",
+            ),
+            (
+                json!({ "squat": { "progression": "lp", "params": { "increment_lb": 500 } } }),
+                "exercises[squat].params.increment_lb",
+                "outside",
+            ),
+            (
+                json!({ "squat": { "progression": "lp", "params": { "note": 1 } } }),
+                "exercises[squat].params.note",
+                "has no",
+            ),
+            (
+                json!({ "squat": { "params": { "jump_lb": 1 } } }),
+                "exercises[squat].params.jump_lb",
+                "no numbers",
+            ),
+        ];
+        for (edit, path, says) in cases {
+            let errs = errors(&problems_of(&with(edit)));
+            assert!(
+                errs.iter().any(|e| e.starts_with(path) && e.contains(says)),
+                "{path}: {errs:?}"
+            );
+        }
+    }
+
+    /// A formula a lift tunes is tried on the sample histories like any
+    /// other: a step that makes it give nonsense is caught.
+    #[test]
+    fn a_tuned_formula_is_tried_on_the_samples() {
+        let v =
+            with(json!({ "squat": { "progression": "steps", "params": { "jump_lb": -5000 } } }));
+        let errs = errors(&problems_of(&v));
+        assert!(
+            errs.iter()
+                .any(|e| e.starts_with("exercises[squat].params")),
+            "{errs:?}"
+        );
+    }
+
+    /// A program from before params reads as it did.
+    #[test]
+    fn stored_programs_without_params_read() {
+        let p = Program::parse(DEFAULT_JSON).unwrap();
+        assert!(p.exercises.iter().all(|e| e.params.is_empty()));
+    }
+}

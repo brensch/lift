@@ -6,3 +6,4 @@
 - An assistant can try a program on any lifts you name, even before you've saved a workout.
 - The developer sign-in turns down the same usernames that making an account does.
 - An assistant changes your program with small edits instead of rewriting it, so it's much faster, and it can look up exercises and ready-made workouts.
+- An assistant can give a lift its own numbers inside a shared progression (say, bigger jumps for legs), and can see how each lift has progressed over time.
