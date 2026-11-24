@@ -64,19 +64,24 @@ ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. Th
   `reserved` line.
 - **Storage follows authority.** What the phone makes (training, templates,
   settings) is only ever account events; the server places and stores them
-  and never copies them into tables. What the server owns (users,
-  passkeys, logins, who trained together, telemetry) is plain columns, no
-  proto blobs. What only matters while the server runs (join requests,
-  which stream watches whom) is in memory. The server holds no folded
-  account in memory and computes no live state: partners' status is folded
-  on each phone from the workout events the server routes to it. The one
-  exception is `account_snapshots`: an account folded as of some event, so a
-  read folds only what came after. It is never the truth: it is stamped
-  with the core that folded it, thrown away when that changes or a
-  migration runs, and must equal the whole fold
-  (`testkit/tests/snapshot.rs`). Never write one with a push, never read
-  anything from it that the events don't also say, and a new `Account`
-  field goes in `core/src/snapshot.rs` (it won't compile until it does).
+  (the event files, `src/db/ledger/`) and never copies them into tables.
+  What the server owns (users, passkeys, logins, who trained together,
+  telemetry) is plain columns, no proto blobs. What only matters while the
+  server runs (join requests, which stream watches whom, the events a
+  phone sent that aren't written yet) is in memory; the phone holds those
+  events until they come back placed, so a restart loses nothing. The
+  server holds no folded account in memory and computes no live state:
+  partners' status is folded on each phone from the workout events the
+  server routes to it. The one exception is `account_snapshots`: each
+  account folded as of its last written event, written in the same
+  transaction as that event's place in the files, so an account's head is
+  its snapshot's seq. It must equal the whole fold of the files
+  (`testkit/tests/snapshot.rs`) and is stamped with the core that folded
+  it; by other rules it is folded again from the files when next used.
+  Never delete snapshots (a migration step marks them stale): a phone
+  opening on an account without one would be sent it empty. A new
+  `Account` field goes in `core/src/snapshot.rs` (it won't compile until
+  it does).
 - **Server schema changes are a new step in `src/db/migrate.rs`**: an
   `if version < N` block at the end of `migrate`, run once at startup and
   tracked by `PRAGMA user_version`. Never edit a step that has shipped.

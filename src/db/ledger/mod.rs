@@ -340,6 +340,15 @@ impl Ledger {
         log.last_id = last_id.unwrap_or_default();
         log.snapshot_ours = ours.unwrap_or(true);
         log.active = active.unwrap_or_default();
+        if seq.is_none() {
+            // No snapshot, but events written (one lost, or never made):
+            // the head is the files', and the account is folded from them.
+            let head = self.head_in_files(user_id).await?;
+            if head > 0 {
+                log.head = head;
+                log.snapshot_ours = false;
+            }
+        }
         Ok(())
     }
 
@@ -881,7 +890,10 @@ impl Ledger {
             .fetch_optional(&self.read_pool)
             .await?;
             match saved {
-                None => return Ok((Account::fold_without_heart_rate([]), 0)),
+                None if self.head_in_files(user_id).await? == 0 => {
+                    return Ok((Account::fold_without_heart_rate([]), 0))
+                }
+                None => tracing::warn!(%user_id, "no snapshot; folding from the files"),
                 Some((seq, state)) => {
                     if let Ok((account, _)) =
                         tokio::task::spawn_blocking(move || schlift_core::snapshot::restore(&state))

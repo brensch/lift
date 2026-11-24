@@ -499,3 +499,31 @@ async fn a_file_no_index_names_is_set_aside_at_start() {
         events.len()
     );
 }
+
+/// An account whose snapshot row is gone (lost, or from a build that
+/// deleted them) still has its head and its account, from the files: a
+/// phone that opens is never sent it empty.
+#[tokio::test]
+async fn an_account_without_its_snapshot_is_folded_from_the_files() {
+    let dir = dir();
+    let db = open(&dir, holding()).await;
+    let mut phone = Phone::new();
+    let events = phone.workout(now_unix() - 3600, 2, true);
+    db.buffer_events("u", events.clone(), true).await.unwrap();
+    written(&db, events.len() as i64).await;
+    drop(db);
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}/server.sqlite", dir.display()))
+        .await
+        .unwrap();
+    sqlx::query("DELETE FROM account_snapshots")
+        .execute(&pool)
+        .await
+        .unwrap();
+    pool.close().await;
+    let db = open(&dir, holding()).await;
+    assert_eq!(db.head("u").await.unwrap(), events.len() as i64);
+    let (snapshot, seq, _) = db.snapshot_now("u").await.unwrap();
+    assert_eq!(seq, events.len() as i64);
+    let (account, _) = schlift_core::snapshot::restore(&snapshot).unwrap();
+    assert_eq!(account, Account::fold_without_heart_rate(&events));
+}

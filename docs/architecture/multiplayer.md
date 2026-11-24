@@ -36,7 +36,7 @@ Everything else is derived, and none of it on the server:
 ```mermaid
 graph TD
     sm["session_members<br/><b>who, on the server</b>"]
-    ev["each member's account_events"]
+    ev["each member's events, as they send them"]
     sm -.->|"roster, down the Sync stream"| ph["each phone"]
     ev -.->|"their workout's events, routed"| ph
     ph -.->|"folds each partner<br/>(memory only)"| ps["partners' status"]
@@ -131,8 +131,8 @@ There is no polling. Each phone holds one `SyncService.Sync` stream open (see
 - **Each partner's workout in the session, as events** (`PartnerEvents`).
   When a partner first appears — on connect, or when they join — and again
   when their `workout_id` is first set, that workout so far (`workout_events`:
-  back from their newest event to its `WorkoutStarted`, from
-  `account_events`), marked `whole`; empty before they have one. Then each
+  back from their newest event to its `WorkoutStarted`, from what the
+  ledger holds of it, kept for partners while it is on show), marked `whole`; empty before they have one. Then each
   event of it as they record it: the stream watches every partner's account
   (`ServerDb::watch(Topic::User)`) and forwards only what concerns that one
   workout, so a member who ended still sends what comes late of it, and

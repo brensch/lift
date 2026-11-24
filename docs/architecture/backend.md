@@ -80,7 +80,8 @@ graph TD
 | `server/assistant.rs` | `AssistantService`: the website's `/connect` consent (`DescribeConnect`, `AnswerConnect`) and the app's connected assistants (`ListAssistants`, `RevokeAssistant`) |
 | `mcp/mod.rs` | The MCP endpoint (`/api/mcp`) and the OAuth endpoints it signs in with |
 | `mcp/tools.rs` | The assistant's tools, through the core's `View` and `Call` |
-| `db/accounts.rs` | `account_events`: placing pushes, reading history, folding on request |
+| `db/accounts.rs` | Accounts through the ledger: holding pushes, writes no phone holds, reads folded on request |
+| `db/ledger/` | The ledger: events held until written, batch files, snapshots, compaction |
 | `db/changes.rs` | Changes told to the streams they concern, by user or session |
 | `db/session.rs` | `session_members`, invite tokens, join requests (in memory) |
 | `db/assistants.rs` | `assistant_clients`, `assistant_codes`, `assistant_grants`, `assistant_tokens` |
@@ -94,31 +95,22 @@ The rules — the program, the plan, the reducer, volume, summaries — are in
 
 ## The event store
 
-`account_events(user_id, seq, id, event)` is every account's history, in the
-server's order, and the only place the server keeps anything the core
-folds. `event` is the whole event as JSON (`core/src/events.rs`); `id` is
-copied out, unique per account, so a resent event is found. Nothing about a
-workout, set, template or setting is copied into a table: the server answers
-by folding the history when asked. Nothing of an account is kept in memory.
-`ServerDb::push_events` (`src/db/accounts.rs`) places what a device sends,
-folding nothing, in one transaction on the one write connection — so pushes
-are placed one at a time, each after the last:
+The ledger (`src/db/ledger/`) keeps every account's history and its
+snapshot; see [local-first.md](local-first.md#on-the-server) for how. In
+short: a device's events are held in memory until the account is written
+(its workout ends), then placed, written with every other account due in
+one batch (one events Parquet file, one heart-rate file, the snapshots and
+the index in one SQLite transaction), and told to the account's streams
+placed (`Change::Account`), which is their ack. Before that the Sync handler
+refuses a push holding an event that won't read back or whose plans or
+program no app makes (`Event::plans_are_sane`), and skips events already
+held or written, by id. Nothing about a workout, set, template or setting
+is copied into a table.
 
-1. Skips events it already holds, by id (a device resends until it hears
-   back). Before that the Sync handler refuses a push holding an event that
-   won't read back or whose plans or program no app makes
-   (`Event::plans_are_sane`: a `ProgramSet` must check out with no error,
-   since every device folds it).
-2. Reads the head and gives the rest the next seqs, in the order sent.
-3. Inserts them. One racing the account's deletion fails on the foreign key.
-4. Tells that account's streams the placed events (`Change::Account`): to
-   the pushing device its events come back placed; its other devices fold
-   them in; its session partners' streams forward the workout ones.
-
-Reads (`read_account`, `read_api`: the website's) fold the account from its
-history, without heart rate (`Account::fold_without_heart_rate`), answer,
-and keep nothing. Partners' live status is never computed here: each phone
-folds it (see [multiplayer.md](multiplayer.md)).
+Reads (`read_account`, `read_api`: the website's and the assistants') fold
+the snapshot and the events held, without heart rate, answer, and keep
+nothing. Partners' live status is never computed here: each phone folds it
+(see [multiplayer.md](multiplayer.md)).
 
 ## Database access model
 
@@ -153,8 +145,9 @@ single-instance.
 
 ### Storage follows authority
 
-What the phone (or an assistant, through the core) makes is account events: `account_events.event` is the
-event as JSON, stored as placed and never interpreted by SQL. What
+What the phone (or an assistant, through the core) makes is account events: each
+is the event as JSON in the ledger's files, stored as placed and never
+interpreted by SQL. What
 the server owns (users, passkeys, logins, who trained together, telemetry)
 is plain columns, with no proto blobs, and every `user_id` references
 `users(id) ON DELETE CASCADE`. What only matters while the server runs
