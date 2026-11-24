@@ -1,0 +1,78 @@
+syntax = "proto3";
+package workout.v1;
+
+import "workout/v1/settings.proto";
+import "workout/v1/workout.proto";
+
+// ─── An account, folded ──────────────────────────────────────────────────────
+//
+// What `schlift_core::snapshot` writes down: an account folded as of some
+// event, without heart rate, so it can be picked up again instead of folding
+// its history. The server keeps one per account and sends it to a device
+// that needs the account whole (a new phone, one far behind, one on other
+// rules); the phone keeps its own. Never the truth, only a shortcut to it:
+// the events are, and a snapshot folded by other rules (`fold`) is not used.
+// Not stored in events, so fields may change with the rules that write them.
+
+message AccountSnapshot {
+  // The rules that folded it: schlift_core::FOLD.
+  string fold = 1;
+  // The last event folded into it.
+  int64 seq = 2;
+  // Each program the account holds, once, as its JSON document: the
+  // workouts and versions below name them by their place here.
+  repeated string programs = 3;
+  repeated UserSetting settings = 4;
+  repeated SnapshotProgramVersion versions = 5;
+  uint32 program = 6;
+  // In lift order.
+  repeated SnapshotStartingWeight starting_weights = 7;
+  repeated SnapshotOverride overrides = 8;
+  repeated SnapshotWorkout workouts = 9;
+  repeated SnapshotSuggestion suggestions = 10;
+  string active_workout_id = 11;
+  bool onboarded = 12;
+  bool without_heart_rate = 13;
+}
+
+message SnapshotProgramVersion {
+  string id = 1;
+  int64 at = 2;
+  string author = 3;
+  string note = 4;
+  uint32 program = 5;
+}
+
+message SnapshotStartingWeight {
+  string lift = 1;
+  float weight = 2;
+}
+
+message SnapshotOverride {
+  string lift = 1;
+  int64 at = 2;
+  float weight = 3;
+  int32 reps = 4;
+  bool has_sets = 5;
+  int32 sets = 6;
+}
+
+message SnapshotWorkout {
+  Workout workout = 1;
+  repeated ProposedSet proposed_sets = 2;
+  repeated CompletedSet completed_sets = 3;
+  repeated ExerciseLog exercise_logs = 4;
+  bool kg = 5;
+  uint32 program = 6;
+  repeated WorkoutHeartRatePoint heart_rate = 7;
+}
+
+message SnapshotSuggestion {
+  string id = 1;
+  int64 at = 2;
+  // The ProgramSuggested fact, as JSON.
+  string suggested = 3;
+  bool answered = 4;
+  bool accepted = 5;
+  int64 answered_at = 6;
+}

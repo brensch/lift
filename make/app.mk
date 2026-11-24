@@ -108,7 +108,7 @@ run-android:
 	'
 
 run-android-prod:
-	$(MAKE) run-android FLUTTER_RUN_ARGS="--dart-define=SERVER_HOST=schlift.com --dart-define=SERVER_PORT=443"
+	$(MAKE) run-android FLUTTER_RUN_ARGS="--dart-define=SERVER_HOST=schlift.com --dart-define=SERVER_PORT=8443"
 
 run-android-clean:
 	@bash -ec '\
@@ -292,6 +292,6 @@ deploy-android-dev:
 			--build-name="$${NAME:-0.0.0}" --build-number="$$CODE" \
 			--dart-define=GIT_HASH=$$(git rev-parse --short HEAD) \
 			--dart-define=SERVER_HOST=$(DEV_SERVER_HOST) \
-			--dart-define=SERVER_PORT=443); \
+			--dart-define=SERVER_PORT=8444); \
 		$(ADB) -s "$$SERIAL" install -r app/build/app/outputs/flutter-apk/app-release.apk; \
 	'

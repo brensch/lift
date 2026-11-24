@@ -37,12 +37,15 @@ void main() {
       await s.startWorkoutFromHome();
       await s.shot('Workout — first set ready');
 
-      // A peer on the SAME account (TestLogin is deterministic by username) reads
-      // the backend as the UI drives it.
-      final peer = await s.api.login(username);
-      if (!await peer.adoptActiveWorkout()) {
-        throw StateError('backend has no active workout after START');
+      // A peer on the SAME account (TestLogin is deterministic by username)
+      // reads what the backend holds of it once it has ended: until then
+      // the server holds its events unwritten.
+      final workoutId = s.workout.workout?.id;
+      if (workoutId == null) {
+        throw StateError('no workout under way after START');
       }
+      final peer = await s.api.login(username);
+      peer.adoptWorkout(workoutId);
 
       // Drive the whole workout: each set on its circle, each rung answered
       // 0–1 (liftSet's default). The loop is
@@ -79,22 +82,17 @@ void main() {
       }
       await s.shot('All done');
 
-      // Backend truth: every proposed set completed exactly once. Poll briefly
-      // so the final set's async flush has landed before we read.
-      var proposed = 0;
-      var completedRows = 0;
-      var distinctDone = 0;
-      var neverStarted = 0;
-      for (var i = 0; i < 10; i++) {
-        final d = await peer.workoutDetail();
-        proposed = d!.proposedSets.where((p) => !p.cancelled).length;
-        final done = d.completedSets.where((c) => c.endedAt != 0).toList();
-        completedRows = done.length;
-        neverStarted = done.where((c) => c.startedAt == 0).length;
-        distinctDone = done.map((c) => c.proposedSetId).toSet().length;
-        if (distinctDone >= proposed) break;
-        await s.settle(seconds: 1);
-      }
+      // End the workout from the bar and land on the summary.
+      await s.endWorkoutAndWaitForSummary();
+      await s.shot('Summary after finishing the workout');
+
+      // Backend truth: every proposed set completed exactly once.
+      final d = await peer.endedWorkoutDetail();
+      final proposed = d.proposedSets.where((p) => !p.cancelled).length;
+      final done = d.completedSets.where((c) => c.endedAt != 0).toList();
+      final completedRows = done.length;
+      final neverStarted = done.where((c) => c.startedAt == 0).length;
+      final distinctDone = done.map((c) => c.proposedSetId).toSet().length;
       if (distinctDone != proposed) {
         throw StateError(
           'not every set completed on the backend: '
@@ -127,10 +125,6 @@ void main() {
             'per set, each with its start.',
         kind: 'assert',
       );
-
-      // End the workout from the bar and land on the summary.
-      await s.endWorkoutAndWaitForSummary();
-      await s.shot('Summary after finishing the workout');
     });
   });
 }

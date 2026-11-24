@@ -17,11 +17,15 @@ graph LR
 
 | Where | Table | |
 |---|---|---|
-| Phone | `events(seq PK, id UNIQUE, event)` | The history the server has placed, in its order |
+| Phone | `base(id = 1, seq, fold, state)` | The account as placed up to `seq`, written down (`schlift_core::snapshot`) |
+| Phone | `placed(seq PK, id UNIQUE, event)` | Events the server placed after the base, in its order; folded into it every `FOLD_PLACED_AT` |
 | Phone | `pending(n PK, id UNIQUE, event)` | Events recorded here that the server hasn't placed yet, oldest first |
-| Phone | `meta(key PK, value)` | Whose account (user id, name) |
+| Phone | `meta(key PK, value)` | Whose account (user id, name), the last placed event's id |
 | Phone | `heart_rate(workout_id, sampled_at, bpm)` | Heart rate of a workout under way, never synced: recorded as one `HeartRateRecorded` when it ends |
-| Server | `account_events(user_id, seq, id, event)`, PK `(user_id, seq)`, `UNIQUE (user_id, id)` | Every account's history, as placed |
+| Server | `events/date=…/hour=…/*.parquet`: `user_id, seq, id, at, kind, workout_id, heart_rate, event` | Every account's history, as placed, in the ledger's batch files (merged by hour and day) |
+| Server | `event_files(file, user_id, min_seq, max_seq, events)` | Which files hold each account's events |
+| Server | `account_snapshots(user_id PK, seq, fold, state, recent_ids, active_workout)` | Each account folded as of its last written event: its head |
+| Server | `heart_rate/…/*.parquet` and `heart_rate_files(user_id, workout_id, file)` | Each finished workout's heart rate, typed, found by workout |
 
 `event` is an `Event` as JSON (`core/src/events.rs`): `seq`, `id`, `at` and
 one fact — `WorkoutStarted` (with each lift's decision), `SetStarted`,
@@ -56,9 +60,12 @@ it was laid out from and every weight change since), and the active
 workout's id. Each `WorkoutRecord` also holds the program its sets were
 laid out by (from the start's recorded `rules`). Nothing else is kept: each lift's estimated max is walked
 from the workouts whenever a plan is made (`core/src/plan.rs`). The
-account is never stored whole; the phone holds it in memory while the
-account is open, and the server folds it from its history only when the
-website asks, keeping nothing.
+account is never the stored truth; the phone holds it in memory while the
+account is open, and the server folds it when the website or an assistant
+asks, from its snapshot (`account_snapshots`, see
+[local-first.md](local-first.md#on-the-server)) and the events it holds
+not yet written. A snapshot can always be folded again from the event
+files.
 
 ## Exported tables
 
@@ -136,8 +143,9 @@ had: id, when, author, note, `current`, and the document as JSON),
 `workout_templates` (the current program's workouts in order, with
 `in_rotation` and `from_library`) and `exercises` (the current program's
 exercises: key, names, equipment, muscles, class, progression). The
-phone's live file holds only `meta`, `events`, `pending` and `heart_rate`;
-the server's holds only `account_events` for the account.
+phone's live file holds only `meta`, `base`, `placed`, `pending` and
+`heart_rate`; the server holds the account's events in its files, their
+index, and its snapshot.
 
 - **`end_time = 0` means in progress.** There is no status column;
   zero-as-null is the convention.
@@ -234,7 +242,9 @@ erDiagram
     users ||--o{ passkeys : "registers"
     users ||--o{ logins : "holds"
     users ||--o{ passkey_recoveries : "is asked for"
-    users ||--o{ account_events : "logs"
+    users ||--o{ event_files : "logs"
+    users ||--|| account_snapshots : "is folded as"
+    users ||--o{ heart_rate_files : "records"
     users ||--o{ session_members : "trains in"
     users ||--o{ page_views : "visits"
     users ||--o{ assistant_grants : "allows"
@@ -276,11 +286,25 @@ erDiagram
         TEXT status "pending / approved / denied"
         INTEGER decided_at
     }
-    account_events {
+    event_files {
         TEXT user_id PK, FK
-        INTEGER seq PK
-        TEXT id "unique per user"
-        TEXT event "Event as JSON"
+        TEXT file PK "Parquet, under events/"
+        INTEGER min_seq
+        INTEGER max_seq
+        INTEGER events
+    }
+    account_snapshots {
+        TEXT user_id PK, FK
+        INTEGER seq "its head"
+        TEXT fold "the rules it was folded by"
+        BLOB state "schlift_core::snapshot"
+        TEXT recent_ids "its latest event ids"
+        TEXT active_workout
+    }
+    heart_rate_files {
+        TEXT user_id PK, FK
+        TEXT workout_id PK
+        TEXT file "Parquet, under heart_rate/"
     }
     session_members {
         TEXT session_id PK
@@ -332,7 +356,7 @@ erDiagram
 | `users` | One row per user: profile, the invite token, and `admin_since` (set by `schlift admin add`). `username` is unique ignoring case. See [analytics.md](analytics.md#admins-and-the-stats-page) |
 | `passkeys`, `logins` | See [auth.md](auth.md). A login is stored as its token's SHA-256, never the token |
 | `passkey_recoveries` | Passkeys made for accounts whose owner lost theirs, held until an admin approves the code. Waiting ones lapse after 7 days; decided ones are kept 30. See [auth.md](auth.md#getting-back-in-without-a-passkey) |
-| `account_events` | Every account's log. See [above](#the-event-log) |
+| `event_files`, `account_snapshots`, `heart_rate_files` | Where each account's events and heart rate are, and the account folded as of its last. See [above](#the-event-log) and [local-first.md](local-first.md#on-the-server) |
 | `session_members` | Every `(session, user)` that joined. The current session is the row with `left_at = 0`, at most one per user (a partial unique index). See [multiplayer.md](multiplayer.md) |
 | `page_views` | One row per screen visit, keyed `(user_id, app_session_id, seq)` so a retried upload is ignored. See [analytics.md](analytics.md) |
 | `assistant_clients`, `assistant_codes`, `assistant_grants`, `assistant_tokens` | Assistants connected over MCP (`src/db/assistants.rs`, schema step 7): the OAuth clients that registered, the one-use codes a consent issued (bound to the PKCE challenge, 10 minutes), the grants a person made, and each grant's access (1 hour) and refresh (60 days, replaced on each use) tokens. Codes and tokens are stored as their SHA-256. See [backend.md](backend.md#mcp-assistants) |

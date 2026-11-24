@@ -136,6 +136,7 @@ fn workouts(args: &Args) -> Result<Vec<ImportHistory>, String> {
         .workouts
         .into_iter()
         .filter(|r| r.workout.end_time > 0)
+        .map(std::sync::Arc::unwrap_or_clone)
         .map(|r| ImportedWorkout {
             workout: Some(r.workout),
             proposed_sets: r.proposed_sets,

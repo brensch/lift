@@ -72,7 +72,7 @@ mod store {
         let mut phone = Phone::new();
         let (started, events) = phone.start_squats(1_000);
         let pushed = db.push_events("u1", events).await.unwrap();
-        assert_eq!(pushed.stored.iter().map(|e| e.seq).collect::<Vec<_>>(), [1]);
+        assert_eq!(pushed.iter().map(|e| e.seq).collect::<Vec<_>>(), [1]);
 
         let server = db.read_account("u1", Clone::clone).await.unwrap();
         let without_heart_rate = Account {
@@ -101,20 +101,13 @@ mod store {
             })
             .unwrap()
         });
-        assert_eq!(
-            db.push_events("u1", first.clone())
-                .await
-                .unwrap()
-                .stored
-                .len(),
-            1
-        );
+        assert_eq!(db.push_events("u1", first.clone()).await.unwrap().len(), 1);
         // The whole outbox again, twice: what's held is skipped.
         let all: Vec<Event> = first.into_iter().chain(second).collect();
         let pushed = db.push_events("u1", all.clone()).await.unwrap();
-        assert_eq!(pushed.stored.iter().map(|e| e.seq).collect::<Vec<_>>(), [2]);
+        assert_eq!(pushed.iter().map(|e| e.seq).collect::<Vec<_>>(), [2]);
         let again = db.push_events("u1", all).await.unwrap();
-        assert!(again.stored.is_empty());
+        assert!(again.is_empty());
         let ids: Vec<&str> = phone.log.iter().map(|e| e.id.as_str()).collect();
         let server = held(&db).await;
         assert_eq!(
@@ -190,7 +183,7 @@ mod store {
         for expected in [events.len(), 0] {
             let started = std::time::Instant::now();
             let pushed = db.push_events("u1", events.clone()).await.unwrap();
-            assert_eq!(pushed.stored.len(), expected);
+            assert_eq!(pushed.len(), expected);
             let took = started.elapsed();
             assert!(took < Duration::from_secs(30), "a push took {took:?}");
         }
@@ -242,6 +235,11 @@ mod stream {
     struct Link {
         up: mpsc::Sender<SyncRequest>,
         down: tonic::Streaming<SyncResponse>,
+        /// What came down that a wait passed over, in order: the next wait
+        /// looks there first. Changes may come in any order (a session
+        /// moves when a push arrives, its events are acked when stored),
+        /// as a phone takes them.
+        skipped: std::collections::VecDeque<sync_response::Kind>,
     }
 
     impl Link {
@@ -258,7 +256,32 @@ mod stream {
                 .await
                 .unwrap()
                 .into_inner();
-            Self { up, down }
+            Self {
+                up,
+                down,
+                skipped: Default::default(),
+            }
+        }
+
+        /// A device opening as the app does: where it is, its rules, and the
+        /// ids of what it has waiting.
+        async fn open_with(channel: Channel, token: &str, open: SyncOpen) -> Self {
+            let (up, rx) = mpsc::channel(8);
+            up.send(SyncRequest {
+                kind: Some(sync_request::Kind::Open(open)),
+            })
+            .await
+            .unwrap();
+            let down = SyncServiceClient::new(channel)
+                .sync(authed(token, ReceiverStream::new(rx)))
+                .await
+                .unwrap()
+                .into_inner();
+            Self {
+                up,
+                down,
+                skipped: Default::default(),
+            }
         }
 
         async fn open(channel: Channel, token: &str) -> Self {
@@ -276,12 +299,26 @@ mod stream {
 
         /// The next message that matches, within a few seconds.
         async fn next<T>(&mut self, mut pick: impl FnMut(sync_response::Kind) -> Option<T>) -> T {
+            for n in 0..self.skipped.len() {
+                if let Some(found) = pick(self.skipped[n].clone()) {
+                    self.skipped.remove(n);
+                    return found;
+                }
+            }
+            let (down, skipped) = (&mut self.down, &mut self.skipped);
             tokio::time::timeout(Duration::from_secs(5), async {
                 loop {
-                    let message = self.down.message().await.unwrap().expect("stream open");
-                    if let Some(found) = pick(message.kind.unwrap()) {
+                    let kind = down
+                        .message()
+                        .await
+                        .unwrap()
+                        .expect("stream open")
+                        .kind
+                        .unwrap();
+                    if let Some(found) = pick(kind.clone()) {
                         return found;
                     }
+                    skipped.push_back(kind);
                 }
             })
             .await
@@ -1125,5 +1162,164 @@ mod stream {
             .await
             .unwrap_err();
         assert_eq!(status.code(), tonic::Code::Unauthenticated);
+    }
+
+    /// Opening with `open`: a device that folds by the server's rules and is
+    /// new or far behind gets its account whole; one on other rules, or just
+    /// behind, gets the events.
+    mod open {
+        use super::*;
+
+        /// A history of `workouts` short workouts, as one phone records them.
+        fn history(workouts: usize) -> (Phone, Vec<Event>) {
+            let mut phone = Phone::new();
+            let mut all = Vec::new();
+            for n in 0..workouts {
+                let at = 1_700_000_000 + n as i64 * 86_400;
+                let (started, events) = phone.start_squats(at);
+                all.extend(events);
+                let (_, ended) = phone.write(at + 600, |call| {
+                    call.end_workout(EndWorkoutRequest {
+                        workout_id: started.id.clone(),
+                        ended_at: at + 600,
+                    })
+                    .unwrap()
+                });
+                all.extend(ended);
+            }
+            (phone, all)
+        }
+
+        #[tokio::test]
+        async fn a_new_device_on_the_same_rules_gets_its_account_whole() {
+            let db = db().await;
+            let token = db.create_auth_session("u1").await.unwrap();
+            let (phone, events) = history(300);
+            let (placed, waiting) = events.split_at(events.len() - 4);
+            db.push_events("u1", placed.to_vec()).await.unwrap();
+            let channel = serve(db.clone()).await;
+            // It recorded the last four (two placed already, unheard; two not).
+            let mut pending_ids: Vec<String> = placed[placed.len() - 2..]
+                .iter()
+                .map(|e| e.id.clone())
+                .collect();
+            pending_ids.extend(waiting.iter().map(|e| e.id.clone()));
+            let mut link = Link::open_with(
+                channel,
+                &token,
+                SyncOpen {
+                    after_seq: 0,
+                    fold: schlift_core::FOLD.to_string(),
+                    pending_ids: pending_ids.clone(),
+                    last_id: String::new(),
+                },
+            )
+            .await;
+            let state = link
+                .next(|kind| match kind {
+                    sync_response::Kind::Account(a) => Some(a),
+                    _ => None,
+                })
+                .await;
+            assert_eq!(state.seq, placed.len() as i64);
+            assert_eq!(
+                state.placed_ids,
+                pending_ids[..2].to_vec(),
+                "the two it holds"
+            );
+            let (account, seq) = schlift_core::snapshot::restore(&state.snapshot).unwrap();
+            assert_eq!(seq, state.seq);
+            assert!(account == Account::fold_without_heart_rate(placed));
+            // Where it is now: nothing before it is sent again.
+            // Its waiting ones go up and come back placed after the snapshot.
+            link.push(events[events.len() - 4..].to_vec()).await;
+            let back = link.events_through(events.len() as i64 - 2).await;
+            assert_eq!(
+                back.iter().map(|e| e.id.clone()).collect::<Vec<_>>(),
+                waiting.iter().map(|e| e.id.clone()).collect::<Vec<_>>(),
+                "only the two not placed, once"
+            );
+            drop(phone);
+        }
+
+        /// A server restored from an older backup that has placed others'
+        /// events since: the device's last event isn't its at that seq, so
+        /// it gets this server's account whole rather than events onto a
+        /// history that parted.
+        #[tokio::test]
+        async fn a_device_whose_history_parted_gets_the_account_whole() {
+            let db = db().await;
+            let token = db.create_auth_session("u1").await.unwrap();
+            let (_, events) = history(20);
+            db.push_events("u1", events.clone()).await.unwrap();
+            let channel = serve(db.clone()).await;
+            let mut link = Link::open_with(
+                channel,
+                &token,
+                SyncOpen {
+                    after_seq: 10,
+                    fold: schlift_core::FOLD.to_string(),
+                    pending_ids: Vec::new(),
+                    last_id: "an event this server never placed there".to_string(),
+                },
+            )
+            .await;
+            let state = link
+                .next(|kind| match kind {
+                    sync_response::Kind::Account(a) => Some(a),
+                    _ => None,
+                })
+                .await;
+            assert_eq!(state.seq, events.len() as i64);
+            assert_eq!(state.last_id, events.last().unwrap().id);
+        }
+
+        /// One version: an app folding by other rules is told to update.
+        /// One just behind (another device wrote since) gets the account
+        /// whole: no events are read from the files.
+        #[tokio::test]
+        async fn other_rules_update_and_one_behind_gets_the_account_whole() {
+            let db = db().await;
+            let token = db.create_auth_session("u1").await.unwrap();
+            let (_, events) = history(300);
+            db.push_events("u1", events.clone()).await.unwrap();
+            let channel = serve(db.clone()).await;
+            let mut old = Link::open_with(
+                channel.clone(),
+                &token,
+                SyncOpen {
+                    after_seq: 0,
+                    fold: "an older core".to_string(),
+                    ..Default::default()
+                },
+            )
+            .await;
+            let status = tokio::time::timeout(Duration::from_secs(5), old.down.message())
+                .await
+                .unwrap()
+                .unwrap_err();
+            assert_eq!(status.code(), tonic::Code::FailedPrecondition);
+            assert_eq!(status.message(), "app_update_required");
+            let behind = events.len() as i64 - 10;
+            let mut link = Link::open_with(
+                channel,
+                &token,
+                SyncOpen {
+                    after_seq: behind,
+                    fold: schlift_core::FOLD.to_string(),
+                    pending_ids: Vec::new(),
+                    last_id: events[behind as usize - 1].id.clone(),
+                },
+            )
+            .await;
+            let state = link
+                .next(|kind| match kind {
+                    sync_response::Kind::Account(a) => Some(a),
+                    _ => None,
+                })
+                .await;
+            assert_eq!(state.seq, events.len() as i64);
+            assert_eq!(state.last_id, events.last().unwrap().id);
+        }
     }
 }

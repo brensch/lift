@@ -10,6 +10,10 @@ use schlift::workout::v1::{
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static ALLOCATOR: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 mod auth;
 mod db;
 #[cfg(feature = "test-auth")]
@@ -17,6 +21,7 @@ mod demo_seed;
 mod mcp;
 mod server;
 mod time;
+mod tls;
 
 use auth::AuthState;
 use db::ServerDb;
@@ -174,7 +179,19 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         shutdown_signal().await;
         let _ = stopping.send(true);
     });
+    // The apps' own listener (src/tls.rs), when TLS_PORT is set. Not bound
+    // (the port taken, no certificate) stops the server here.
+    if let Some(config) = tls::Config::from_env()? {
+        let listener = tls::bind(config).await?;
+        let (app, stop) = (app.clone(), stop.clone());
+        tokio::spawn(async move {
+            if let Err(error) = tls::serve(listener, app, stop).await {
+                eprintln!("TLS listener stopped: {error}");
+            }
+        });
+    }
     let mut drain_stop = stop.clone();
+    let flush_db = server_db.clone();
     let server = axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
@@ -193,6 +210,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         } => {
             println!("Shutdown: open streams cut after {SHUTDOWN_DRAIN:?}");
         }
+    }
+    // What is due a write (workouts ended, writes waited on) is written
+    // before exiting; workouts under way are left to the phones holding
+    // them, which send them again when they reconnect: a busy server would
+    // otherwise take minutes to stop.
+    if let Err(error) = flush_db.shut_down().await {
+        eprintln!("Shutdown: writing what was due failed: {error}");
     }
 
     Ok(())

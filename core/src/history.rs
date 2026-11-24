@@ -30,6 +30,14 @@ pub struct WorkoutRecord {
     pub program: ProgramRef,
 }
 
+/// A record, or one shared (`Account::workouts`): what the history's
+/// readers take.
+impl AsRef<WorkoutRecord> for WorkoutRecord {
+    fn as_ref(&self) -> &WorkoutRecord {
+        self
+    }
+}
+
 impl WorkoutRecord {
     pub fn new(
         workout: Workout,

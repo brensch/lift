@@ -4,6 +4,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:schlift/gen/workout/v1/workout.pb.dart';
 
 import 'support/scenario.dart';
 
@@ -56,9 +57,15 @@ void main() {
           reason: 'the app user should still be in their own workout',
         );
 
-        // Backend: both workouts share the session id (the tightened link).
-        await me.adoptActiveWorkout();
-        final myWorkout = await me.workoutDetail();
+        // The app user's workout records the session (the tightened link):
+        // as the app holds it, since the server holds a workout's events
+        // until it ends.
+        GetWorkoutResponse? myWorkout;
+        for (var i = 0; i < 10; i++) {
+          myWorkout = await s.appWorkoutDetail();
+          if (myWorkout?.workout.sessionId.isNotEmpty ?? false) break;
+          await s.settle(seconds: 1);
+        }
         s.note(
           'App user workout session',
           detail: 'session=${myWorkout?.workout.sessionId ?? "?"}',

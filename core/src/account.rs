@@ -3,6 +3,7 @@
 //! phone (to show a write now) and on the server (to keep its copy).
 
 use std::collections::{BTreeMap, BTreeSet, HashSet};
+use std::sync::Arc;
 
 use crate::events::{
     Event, Fact, HistoryImported, OverrideSet, ProgramEdited, ProgramSet, ProgramSuggested,
@@ -83,7 +84,7 @@ pub struct Account {
     /// Per exercise: the user's latest override.
     pub overrides: BTreeMap<String, Override>,
     /// In the order they were started.
-    pub workouts: Vec<WorkoutRecord>,
+    pub workouts: Vec<Arc<WorkoutRecord>>,
     /// Changes others suggested, oldest first, answered or not.
     pub suggestions: Vec<Suggestion>,
     /// The workout under way, or empty.
@@ -247,13 +248,19 @@ impl Account {
     }
 
     pub fn workout(&self, id: &str) -> Option<&WorkoutRecord> {
-        self.workouts.iter().find(|r| r.workout.id == id)
+        self.workouts
+            .iter()
+            .find(|r| r.workout.id == id)
+            .map(|r| &**r)
     }
 
     fn workout_mut(&mut self, id: &str) -> Result<&mut WorkoutRecord, CoreError> {
+        // Shared with the accounts this one was cloned from (the phone's
+        // placed and shown): copied only once it changes.
         self.workouts
             .iter_mut()
             .find(|r| r.workout.id == id)
+            .map(Arc::make_mut)
             .ok_or_else(|| CoreError::NotFound("Workout not found".into()))
     }
 
@@ -307,7 +314,7 @@ impl Account {
             .unwrap_or_else(Program::builtin);
         require_decisions(&record, &req.exercises, &req.decisions)?;
         reducer::apply_add_exercises(&mut record, &req.decisions, unit, ids)?;
-        self.workouts.push(record);
+        self.workouts.push(Arc::new(record));
         self.active_workout_id = workout_id.to_string();
         Ok(())
     }
@@ -394,14 +401,15 @@ impl Account {
                 }
                 record.workout.end_time = moved.ended_at;
                 let end_ms = moved.ended_at * 1000;
-                self.workouts[index]
+                Arc::make_mut(&mut self.workouts[index])
                     .heart_rate
                     .retain(|s| s.sampled_at <= end_ms);
             }
             _ => return Err(invalid("not a fact about a workout")),
         }
-        record.heart_rate = std::mem::take(&mut self.workouts[index].heart_rate);
-        self.workouts[index] = record;
+        record.heart_rate =
+            std::mem::take(&mut Arc::make_mut(&mut self.workouts[index]).heart_rate);
+        self.workouts[index] = Arc::new(record);
         Ok(())
     }
 
@@ -519,7 +527,7 @@ impl Account {
             if !held.insert(workout.id.clone()) {
                 continue;
             }
-            self.workouts.push(WorkoutRecord {
+            self.workouts.push(Arc::new(WorkoutRecord {
                 workout,
                 proposed_sets: imported.proposed_sets.clone(),
                 completed_sets: imported.completed_sets.clone(),
@@ -531,7 +539,7 @@ impl Account {
                 exercise_logs: imported.exercise_logs.clone(),
                 unit: self.unit(),
                 program: self.program.clone(),
-            });
+            }));
         }
         self.workouts.sort_by_key(|r| r.workout.start_time);
         for w in &req.starting_weights {

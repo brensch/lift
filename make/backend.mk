@@ -51,7 +51,7 @@ agent-backend-start:
 		fi; \
 		if (exec 3<>/dev/tcp/127.0.0.1/50051) 2>/dev/null; then echo "port 50051 is in use (make dev?): stop it first"; exit 1; fi; \
 		echo "Starting backend on localhost:50051"; \
-		DATA_DIR="$(AGENT_BACKEND_DATA_DIR)" $(BACKEND_DEV_ENV) \
+		DATA_DIR="$(AGENT_BACKEND_DATA_DIR)" LEDGER_QUIET_MS=1000 $(BACKEND_DEV_ENV) \
 		cargo run --bin schlift --features test-auth > "$(AGENT_BACKEND_LOG)" 2>&1 & \
 		pid=$$!; \
 		echo $$pid > "$(AGENT_TMP_DIR)/backend.pid"; \

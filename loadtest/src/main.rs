@@ -5,15 +5,14 @@
 //! numbers are compared with a baseline. See docs/testing/load.md.
 
 mod client;
-mod metrics;
 mod server;
 
 use clap::Parser;
 use client::{Client, Outcome, Role};
-use metrics::{Metrics, OpSummary};
 use schlift::workout::v1::sync_service_client::SyncServiceClient;
 use schlift::workout::v1::{sync_request, sync_response, SyncRequest};
 use schlift_core::events::Event;
+use schlift_load::metrics::{Metrics, OpSummary};
 use serde::{Deserialize, Serialize};
 use server::{Server, Usage};
 use std::collections::BTreeMap;
@@ -37,6 +36,17 @@ struct Args {
     /// Connections to the server, overriding the profile.
     #[arg(long)]
     connections: Option<usize>,
+    /// Seconds between sets, overriding the profile (a real rest is a
+    /// couple of minutes; the profiles compress it).
+    #[arg(long)]
+    set_every: Option<f64>,
+    /// Clients signing up at once. A server allows 20 passkey ceremonies
+    /// in flight per address, and behind Caddy every client is this one.
+    #[arg(long, default_value_t = 64)]
+    setup_at_once: usize,
+    /// Seconds over which the clients start, overriding the profile.
+    #[arg(long)]
+    ramp: Option<f64>,
     /// Test a server that is already running instead of starting one.
     #[arg(long)]
     server: Option<String>,
@@ -169,6 +179,12 @@ async fn main() {
     if let Some(seconds) = args.seconds {
         profile.hold = Duration::from_secs(seconds);
     }
+    if let Some(every) = args.set_every {
+        profile.set_every = Duration::from_secs_f64(every);
+    }
+    if let Some(ramp) = args.ramp {
+        profile.ramp = Duration::from_secs_f64(ramp);
+    }
     if let Some(connections) = args.connections {
         profile.connections = connections;
     }
@@ -202,8 +218,7 @@ async fn run(args: &Args, profile: Profile) -> Result<bool, String> {
     let mut channels = Vec::new();
     for _ in 0..profile.connections.max(1) {
         channels.push(
-            Channel::from_shared(url.clone())
-                .map_err(|e| e.to_string())?
+            schlift_load::endpoint(&url)?
                 .connect()
                 .await
                 .map_err(|e| format!("connecting to {url}: {e}"))?,
@@ -220,7 +235,7 @@ async fn run(args: &Args, profile: Profile) -> Result<bool, String> {
     // Set up: every account signs up, restores its history and connects
     // before anything is measured as load, a few dozen at a time.
     let mut client_errors: BTreeMap<String, usize> = BTreeMap::new();
-    let gate = Arc::new(tokio::sync::Semaphore::new(64));
+    let gate = Arc::new(tokio::sync::Semaphore::new(args.setup_at_once));
     let mut preparing = tokio::task::JoinSet::new();
     for n in 0..profile.clients {
         // Watchers are spread through the run, not bunched at one end.
@@ -302,7 +317,7 @@ async fn run(args: &Args, profile: Profile) -> Result<bool, String> {
     let usage = server.as_ref().map(Server::usage);
 
     let (matching, differing) = verify(&channels[0], &outcomes).await;
-    let events: usize = outcomes.iter().map(|o| o.events.len()).sum();
+    let events: usize = outcomes.iter().map(|o| o.seq.max(0) as usize).sum();
     let report = Report {
         profile: args.profile.clone(),
         settings: profile,
@@ -353,13 +368,28 @@ async fn verify(channel: &Channel, outcomes: &[Outcome]) -> (usize, Vec<String>)
     let mut matching = 0;
     let mut differing = Vec::new();
     for outcome in outcomes {
+        // Exact: every event the server holds, folded from the start, is
+        // the account the client holds placed.
         match server_log(channel, &outcome.token).await {
-            Ok(events) if events == outcome.events => matching += 1,
+            Ok(events)
+                if events.len() as i64 == outcome.seq
+                    && schlift_core::account::Account::fold_without_heart_rate(&events)
+                        == outcome.account =>
+            {
+                matching += 1
+            }
             Ok(events) => differing.push(format!(
-                "{}: server holds {} events, client {}",
+                "{}: server holds {} events, client {} (accounts {})",
                 outcome.username,
                 events.len(),
-                outcome.events.len()
+                outcome.seq,
+                if schlift_core::account::Account::fold_without_heart_rate(&events)
+                    == outcome.account
+                {
+                    "agree"
+                } else {
+                    "differ"
+                }
             )),
             Err(error) => differing.push(format!("{}: {error}", outcome.username)),
         }
@@ -432,7 +462,12 @@ fn regressions(baseline: &Report, report: &Report) -> Vec<String> {
         let Some(now) = report.ops.get(op) else {
             continue;
         };
-        if before.count < 20 || before.p95_ms == 0.0 {
+        // An ack comes with the server's next flush, and a restore waits
+        // for its own: they time the flush interval, not the server.
+        if before.count < 20
+            || before.p95_ms == 0.0
+            || matches!(op.as_str(), "sync.push_acked" | "sync.restore")
+        {
             continue;
         }
         let limit = before.p95_ms * 1.5 + 5.0;

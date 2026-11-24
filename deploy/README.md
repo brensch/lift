@@ -80,6 +80,35 @@ brensch.com, snek, ppp and the Battlesnake scraper.
 
 Do not expose `50051` publicly. Let Caddy proxy `schlift.com` to `127.0.0.1:50051`.
 
+## The apps' own TLS listener
+
+Phones connect to the backend directly over TLS: `schlift.com:8443` (dev:
+`dev.schlift.com:8444`), set by `TLS_PORT`, `TLS_CERT` and `TLS_KEY` in the
+env file (`src/tls.rs`). Behind Caddy each phone's Sync stream cost Caddy
+about 85 KB and more CPU than the backend spent on it. Caddy keeps the
+website (its gRPC-Web calls still go through Caddy), the assistants'
+`/api/*`, and getting and renewing the certificates. Native gRPC that still
+reaches Caddy on 443 is an app from before this, and is answered "update
+required" (the `update_required` snippet in the `Caddyfile`).
+
+- The certificate is Caddy's: `schlift-tls-sync.path` copies it to
+  `shared/tls/` (owned by the service user) whenever Caddy renews it, and the
+  backend picks the new one up within ten minutes. Installed by
+  `scripts/install_schlift_service.sh`.
+- Ports 8443 and 8444 must be open in the box's firewall (iptables) and in
+  the Oracle Cloud security list.
+- Order the first rollout so phones always have a way in:
+  1. Open the ports, install the sync units and the env lines, deploy the
+     backend. It listens on both; Caddy still sends native gRPC on 443 to
+     it, where older apps carry on as before (they open with `after_seq`,
+     which the server still serves from the event files).
+  2. Release the app that dials the listener, and wait until the stores
+     give it.
+  3. Raise `MIN_APP_VERSION` to it in the env file and switch the `@grpc`
+     handlers in the `Caddyfile` to `import update_required`: from then a
+     native call on 443 is an app to update, answered by Caddy without
+     reaching the backend.
+
 ## Downtime model
 
 Users should not see a deploy:

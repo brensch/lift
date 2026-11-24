@@ -18,7 +18,7 @@ graph LR
   N -->|pending| S[AccountSync: Sync stream]
   S <-->|its events up, everyone's placed events + session down| SV[server: Sync]
   SV --> C2[core: same crate]
-  SV --> DB[(account_events)]
+  SV --> DB[(ledger: event files + snapshots)]
   SV --> W[web: read-only RPCs]
 ```
 
@@ -139,22 +139,27 @@ history and forward N sessions; nothing is recorded) and `ListExercises`
 - `app/native` is the core's host shim, built into the app by cargokit
   (`app/rust_builder`) and bridged by flutter_rust_bridge (generated Dart in
   `app/lib/gen/native`, regenerate with `flutter_rust_bridge_codegen
-  generate` in `app/`). Its `Store` keeps the account in memory and the file
-  on disk: `events` (the history the server has placed, by seq),
-  `pending` (this device's events it hasn't placed yet, in the order they
-  were recorded) and `meta` (whose account). The template library is built
-  into the core (`templates/library.yaml`); nothing of it is synced or
-  stored. The account is the history folded, with what's pending on top. A
-  write is in the file before the app is answered.
+  generate` in `app/`). Its `Store` (`app/native/src/store.rs`) keeps the
+  account in memory and the file on disk: `base` (the account as placed up
+  to a seq, written down with `schlift_core::snapshot`), `placed` (events
+  the server placed after the base, folded into it every
+  `FOLD_PLACED_AT` and deleted), `pending` (this device's events not placed
+  yet, in the order recorded) and `meta` (whose account, the id of the last
+  placed event). The account shown is the base, the placed and the pending
+  folded on. The template library is built into the core
+  (`templates/library.yaml`); nothing of it is synced or stored. A write is
+  in the file before the app is answered.
+- The account's past workouts are shared (`Arc`) between the placed account
+  and the one shown, so refolding after a write copies only what changed.
 - Heart rate is gathered in the file's own `heart_rate` table while a
   workout runs, and recorded once it ends: one `HeartRateRecorded` with
-  every reading, compact (the first time, the gaps, the bpms). It is most of
-  what an account holds, so a workout is one such event, not hundreds.
+  every reading, packed by the core (gaps and bpm deltas as varints,
+  zstd). The server's account (and so a base the server sent) leaves heart
+  rate out; a finished workout's chart the phone has none for comes from
+  `WorkoutService.GetWorkoutHeartRate`.
 - A file from an earlier format (`PRAGMA user_version` below the store's
-  `FORMAT`, now 2: programs, exercises as keys) has its events dropped on
-  opening, placed and pending alike, and any old `library` table with
-  them: the server sends its migrated copy again.
-- The account is the user's: Settings → Export writes the log with the
+  `FORMAT`) is moved forward on opening (see `Store::open`).
+- The account is the user's: Settings → Export writes the file with the
   readable tables of `core/src/projection.rs` beside it (every workout, set
   and lift's decision as plain tables). Only an export has those tables.
 - The account files (`accounts/<user>.sqlite` in the app's support
@@ -171,75 +176,81 @@ history and forward N sessions; nothing is recorded) and `ListExercises`
 ## Sync
 
 `AccountSync` (`app/lib/services/account_sync.dart`) holds one bidirectional
-stream open while the app can (`SyncService.Sync`). The server decides the
+stream open while the app can (`SyncService.Sync`), straight to the server's
+own TLS listener (`schlift.com:8443`, `src/tls.rs`). The server decides the
 order of an account's events; the phone records without waiting for it.
 
-- **Open:** the phone says a seq one before the last it holds
-  (`after_seq`, from `Store::opens_after`) and the server sends every
-  event after it, in chunks of 500, then its head. So the first event down
-  is one the phone holds, and its id shows the two histories agree up to
-  there. A phone that holds everything still hears the head, so it knows
-  it has caught up. A fresh install opens for use only once it has.
-- **Up:** the pending events — packed as zstd JSON (`core/src/sync.rs`),
-  sent after each write and once the stream's first events are taken.
-- **Server:** each pushed event it doesn't already hold (by id: a resend
-  is skipped) is given the next seq and stored, and sent down every
-  stream of that account, the pusher's included.
-- **Down:** those events, from whichever device, in the server's order; the
-  head, answering a heartbeat; whole each time, on connect and on every
-  change, who is in the caller's session and the requests to join them;
-  and each session partner's workout as events, folded on this phone
+- **Open:** `SyncOpen` says where the phone is: the last seq it holds, the
+  id of the event there, the rules it folds by (`schlift_core::FOLD`) and
+  the ids of its pending events. Other rules than the server's: told
+  `app_update_required` (one version at a time). The same last event:
+  nothing to send but the head. Anything else (new, behind, or a history
+  that parted from the server's): the account whole (`AccountState`: the
+  snapshot, its seq and last id, and which of the phone's pending the
+  server has written already, which leave `pending`). Nothing is read from
+  the event files to answer an open.
+- **Up:** the pending events, packed as zstd JSON (`core/src/sync.rs`),
+  after each write and on every new stream.
+- **Server:** each pushed event it doesn't hold (by id, against what it
+  holds and, on a stream's first push, what it wrote while the phone was
+  away) is held in memory and sent at once, unplaced, to the account's
+  session partners (`Change::Live`). The account is written when its
+  workout ends, with the next batch (every 2 s); a workout abandoned is
+  written after 30 min without an event, and a write outside a workout
+  once quiet for 90 s. Then its devices hear the events placed: that is
+  the ack. A write no phone holds (an assistant's, a friend's suggestion)
+  is written at once.
+- **Down:** placed events, from whichever device, in the server's order;
+  the head, answering a heartbeat; the account whole when the phone fell
+  behind; whole each time, on connect and on every change, who is in the
+  caller's session and the requests to join them; and each session
+  partner's workout as events, folded on this phone
   ([multiplayer.md](multiplayer.md)).
-- **Phone:** `Store::receive` takes the events in order. Its own leave
-  `pending`; when another device's arrive, the account is refolded, theirs
-  then whatever is still pending on top. Two phones on one account both
-  keep everything, in the order the server gave it. If the server holds
-  less than the phone (restored from an older backup), what it lacks goes
-  back to `pending`, ahead of what was waiting, and is placed again. The
-  server tells such a phone its head and ends the stream without reading
-  it (an older app pushes on opening, before it hears); the phone dials
-  again from before the head, and pushes only once the events it took
-  agree. A restored server may also hold other events where the phone's
-  were (another device's, placed after the restore): the ids differ where
-  the phone holds the same seq. The phone's events from the first that
-  differs go back to `pending` the same way, and the server's are taken
-  in their place; differing at the first event a stream sent, the phone
-  can't tell where they meet, so it dials again from twice as far back,
-  until it can.
-- **Import:** an export only adds. Where the export's placed events carry
-  on from the phone's (a new phone holds none, or the export holds the
-  phone's last event at the same seq), `Store::import` takes the ones
-  after as placed, in their places, so a new phone sends up only what the
-  export had pending; the id check when the stream opens tells whether
-  the server holds them there. Otherwise it queues each event in the file
-  that the phone holds neither placed nor pending (by id), and the server
-  skips any it holds. Either way nothing is removed and the same file
-  twice adds nothing. Heart rate gathered for a workout under way comes
-  along too.
+- **Phone:** `Store::receive` takes placed events in order and its own
+  leave `pending`; `Store::receive_account` takes the account whole as its
+  base and keeps what is still pending on top. A phone shows itself
+  unsynced only for events waiting over two minutes outside a workout
+  under way.
+- **Import:** an export only adds. A phone holding nothing placed takes the
+  export's base and placed as they are; otherwise each event the phone
+  holds neither placed nor pending goes to `pending`, and the server skips
+  any it has written. A damaged file is refused whole.
 
-The stream is only the fast path. A pending event is resent after any
-reconnect until it comes back placed, and every down message is either
-events after the last the phone holds or whole, so a dropped one is healed
-by the next. The phone heartbeats every 5 s and redials (fresh channel,
-backoff to 10 s) when nothing has come back for 15 s — a half-open link on
-bad wifi is found in seconds. The phone also sends HTTP/2 keepalive pings.
+The stream is only the fast path. A pending event is resent on every new
+stream until it comes back placed. The phone heartbeats every 30 s and
+redials when nothing has come back for 75 s; HTTP/2 keepalive pings every
+60 s keep NATs from idling the link out.
 
 ## On the server
 
-- `account_events` is the history, `(user_id, seq, id, event)` with the
-  event as JSON, and the only place the server keeps the account: it
-  places and appends what is pushed, folding nothing (`src/db/accounts.rs`).
-  A pushed event is checked first (`Event::plans_are_sane`): a
+The ledger (`src/db/ledger/`) keeps the accounts:
+
+- **In memory, per account in use:** only the events a phone sent that
+  aren't written yet, its head and last id, and the workout under way. No
+  folded account. Past a memory budget (`LEDGER_MEMORY_MB`) the workouts
+  held longest are written early.
+- **Written together, every couple of seconds:** the events of every
+  account due a write go into one Parquet file (`events/date=…/hour=…/`,
+  sorted by account and seq, with `kind` and `workout_id` columns), their
+  heart rate into one typed file (`heart_rate/…`: user, workout, times,
+  bpm), and each account's new snapshot (`account_snapshots`: the old one
+  with the events folded on) into SQLite, with the files' index
+  (`event_files`, `heart_rate_files`), in one transaction. A file the index
+  doesn't name is a write that never committed, set aside at start.
+- **Reads** (the website's `WorkoutService` and `SettingsService`, an
+  assistant's MCP tools, the admin page) restore the snapshot, fold the
+  events held on top, answer with the core's `View` (the same code as the
+  phone) and drop it: a set done a moment ago is in the answer.
+  `set_program` writes through the core's `Call` like a phone.
+- **The event files** are read only to fold an account again after a
+  release changes the rules (its snapshot is by other ones), for apps from
+  before snapshots catching up, and by compaction, which merges a closed
+  hour's batch files into one and a closed day's into one
+  (`src/db/ledger/compact.rs`). The layout is Hive's, so DuckDB reads it
+  as it is: `read_parquet('events/**/*.parquet', hive_partitioning=true)`.
+- A pushed event is checked first (`Event::plans_are_sane`): a
   `ProgramSet` must hold a program with no errors, since every device
   folds it.
-  No workout, set or template is copied into a table, and nothing of an
-  account is held in memory.
-- The workout reads the web makes (`WorkoutService`, `SettingsService`) are
-  answered by the core's `View` over the account folded from its history
-  then — the same code as the phone. An assistant's MCP tools read the
-  same way, and `set_program` writes through the core's `Call` and places
-  the `ProgramSet` like a pushed event, so the person's phones hear it
-  over Sync ([backend.md](backend.md#mcp-assistants)).
 - Changes are told only to the streams they concern (`src/db/changes.rs`):
   an account's new events, membership and join requests to that user's
   streams, a session's to its members' — however many are connected, a

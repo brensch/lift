@@ -31,7 +31,11 @@ const EVENTS_PER_MESSAGE: i64 = 500;
 /// login is still good: an expired login sends nothing more after this.
 /// (Signing out and deleting the account are told at once, as
 /// `Change::SignedOut`.) Short in tests, so expiry can be seen.
-const RECHECK_SIGNED_IN: Duration = Duration::from_secs(if cfg!(test) { 1 } else { 60 });
+/// Besides at its login's expiry, a stream checks it is still signed in at
+/// least this often: signing out and deletion are told to it at once, so
+/// this only bounds how long anything else that ends a login goes unseen.
+/// Every open app's stream does it, so not often. Short in tests.
+const RECHECK_SIGNED_IN: Duration = Duration::from_secs(if cfg!(test) { 1 } else { 1800 });
 
 // What one event in a push may hold (the batch's size and event count are
 // limited as it is decoded, in schlift_core::sync). Far above anything a
@@ -66,7 +70,7 @@ fn check_push(events: &[Event]) -> ServerResult<()> {
         }
         match &event.fact {
             Fact::HeartRateRecorded(recorded)
-                if recorded.bpm.len() > MAX_HEART_RATE_SAMPLES_PER_EVENT =>
+                if recorded.len() > MAX_HEART_RATE_SAMPLES_PER_EVENT =>
             {
                 return too_big(
                     "heart-rate samples in one event",
@@ -115,7 +119,9 @@ impl SyncService for ServerSyncService {
         info!(rpc = "Sync", %user_id, "open");
         // Watching before the first send, so nothing between is missed.
         let changes = self.db.watch(Topic::User(user_id.clone()));
-        let (tx, rx) = mpsc::channel(16);
+        // Boxed: the channel's slots are allocated up front, 32 of them,
+        // and a response is 176 bytes; a million idle streams hold the slots.
+        let (tx, rx) = mpsc::channel::<Box<SyncResult>>(16);
         let db = self.db.clone();
         tokio::spawn(async move {
             let mut stream = Stream {
@@ -130,13 +136,35 @@ impl SyncService for ServerSyncService {
                 last_session: None,
                 last_requests: None,
                 checked: Instant::now(),
+                valid_until: i64::MAX,
+                caught_up: Default::default(),
+                legacy: false,
+                pushed: false,
             };
             if let Err(error) = stream.run(inbound, changes).await {
-                let _ = stream.tx.send(Err(error.into())).await;
+                let _ = stream.tx.send(Box::new(Err(error.into()))).await;
             }
             info!(rpc = "Sync", user_id = %stream.user_id, "closed");
         });
-        Ok(Response::new(Box::pin(ReceiverStream::new(rx))))
+        Ok(Response::new(Box::pin(Unboxed(ReceiverStream::new(rx)))))
+    }
+}
+
+/// A stream's responses, out of the boxes they were queued in.
+struct Unboxed(ReceiverStream<Box<SyncResult>>);
+
+impl futures_util::Stream for Unboxed {
+    type Item = SyncResult;
+
+    fn poll_next(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<SyncResult>> {
+        match futures_util::StreamExt::poll_next_unpin(&mut self.0, cx) {
+            std::task::Poll::Ready(Some(queued)) => std::task::Poll::Ready(Some(*queued)),
+            std::task::Poll::Ready(None) => std::task::Poll::Ready(None),
+            std::task::Poll::Pending => std::task::Poll::Pending,
+        }
     }
 }
 
@@ -144,11 +172,11 @@ struct Stream {
     db: ServerDb,
     user_id: String,
     /// The session the stream was opened with: signing out, expiry or
-    /// deleting the account ends it, and the stream with it: checked before
-    /// anything is stored, as soon as a sign-out or deletion is told, and
-    /// otherwise at most `RECHECK_SIGNED_IN` before anything is sent.
+    /// deleting the account ends it, and the stream with it: checked as
+    /// soon as a sign-out or deletion is told, and otherwise at most
+    /// `RECHECK_SIGNED_IN` before anything is taken or sent.
     token: String,
-    tx: mpsc::Sender<SyncResult>,
+    tx: mpsc::Sender<Box<SyncResult>>,
     /// The session the user's pointer named when the session was last sent,
     /// and its changes: the only session whose changes concern this stream.
     session: Option<(String, broadcast::Receiver<Change>)>,
@@ -165,6 +193,20 @@ struct Stream {
     last_requests: Option<GetJoinRequestsResponse>,
     /// When the login was last found good.
     checked: Instant,
+    /// When its login expires (Unix seconds), as last checked.
+    valid_until: i64,
+    /// The ids of the events this stream sent the device as it caught up:
+    /// placed already, so the device's push of one (it lost the ack, and
+    /// pushed before it heard them all) is turned away here, however far
+    /// back the ledger's own check reaches.
+    caught_up: std::collections::HashSet<String>,
+    /// Opened by an app from before snapshots (`after_seq`): it catches up
+    /// on events from the files, as it always did.
+    legacy: bool,
+    /// The device has pushed on this stream, or opened current: what it
+    /// pushes from here needs no check against what was written while it
+    /// was away.
+    pushed: bool,
 }
 
 /// The phone hung up.
@@ -185,31 +227,71 @@ impl Stream {
         mut changes: broadcast::Receiver<Change>,
     ) -> ServerResult<()> {
         // The device says what it holds; it gets the rest.
-        self.sent = match inbound.message().await {
+        let (open, legacy) = match inbound.message().await {
             Ok(Some(SyncRequest {
                 kind: Some(sync_request::Kind::AfterSeq(after_seq)),
-            })) => after_seq.max(0),
+            })) => (
+                SyncOpen {
+                    after_seq,
+                    ..Default::default()
+                },
+                true,
+            ),
+            Ok(Some(SyncRequest {
+                kind: Some(sync_request::Kind::Open(open)),
+            })) => (open, false),
             Ok(Some(_)) => {
-                return Err(Status::invalid_argument("the stream opens with after_seq").into())
+                return Err(Status::invalid_argument("the stream opens with open").into())
             }
             Ok(None) | Err(_) => return Ok(()),
         };
-        // It holds more than this server (restored from an older backup):
-        // told the head, it queues what the server lacks ahead of what it
-        // has waiting. What it pushed on opening, before it heard, would be
-        // placed ahead of those older events, so the stream ends unread and
-        // the device dials again from the head.
-        let head = self.db.head(&self.user_id).await.map_err(internal_error)?;
-        if self.sent > head {
-            let message = schlift::workout::v1::Events {
-                packed: Vec::new(),
-                head,
-            };
-            let _ = self.send(sync_response::Kind::Events(message)).await;
-            return Ok(());
+        self.legacy = legacy;
+        // One version: an app folding by other rules updates.
+        if !legacy && open.fold != schlift_core::FOLD {
+            return Err(Status::failed_precondition("app_update_required").into());
         }
-        if self.send_events(true).await?.is_err() {
-            return Ok(());
+        self.sent = open.after_seq.max(0);
+        let (head, last_id) = self
+            .db
+            .last_written(&self.user_id)
+            .await
+            .map_err(internal_error)?;
+        if legacy {
+            // An app from before snapshots: the events it lacks, from the
+            // files, as it always had them.
+            if self.sent > head {
+                let message = schlift::workout::v1::Events {
+                    packed: Vec::new(),
+                    head,
+                };
+                let _ = self.send(sync_response::Kind::Events(message)).await;
+                return Ok(());
+            }
+            if self.send_events(true).await?.is_err() {
+                return Ok(());
+            }
+        } else {
+            // Where it is: current (the same last event), or not, when it
+            // gets the account whole and which of its pending the account
+            // holds already. Nothing is read from the event files.
+            let current = self.sent == head
+                && (head == 0 || open.last_id.is_empty() || open.last_id == last_id);
+            // A device current at the open holds the head: nothing it has
+            // pending can have been written (that would be past its head),
+            // so its first push isn't checked against what was.
+            self.pushed = current;
+            let sent = if current {
+                let message = schlift::workout::v1::Events {
+                    packed: Vec::new(),
+                    head,
+                };
+                self.send(sync_response::Kind::Events(message)).await
+            } else {
+                self.send_account(&open.pending_ids).await?
+            };
+            if sent.is_err() {
+                return Ok(());
+            }
         }
         if self.send_session().await?.is_err() || self.send_requests().await?.is_err() {
             return Ok(());
@@ -242,7 +324,7 @@ impl Stream {
             // more: not the account's other devices' events, nor a
             // partner's. (Signing out is heard at once, as a change, unless
             // the stream fell behind and missed it.)
-            let stale = self.checked.elapsed() > RECHECK_SIGNED_IN;
+            let stale = self.signed_in_stale();
             if matches!(woke, Woke::Mine(Err(_))) || (stale && !matches!(woke, Woke::Up(_))) {
                 self.ensure_signed_in().await?;
             }
@@ -252,6 +334,13 @@ impl Stream {
                 Woke::Up(Ok(None) | Err(_)) => return Ok(()),
                 Woke::Mine(Ok(change)) => self.changed(&change).await?,
                 // Missed some: send everything again.
+                Woke::Mine(Err(_)) if !self.legacy => match self.send_account(&[]).await? {
+                    Ok(()) => match self.send_session().await? {
+                        Ok(()) => self.send_requests().await?,
+                        closed => closed,
+                    },
+                    closed => closed,
+                },
                 Woke::Mine(Err(_)) => match self.send_events(false).await? {
                     Ok(()) => match self.send_session().await? {
                         Ok(()) => self.send_requests().await?,
@@ -267,7 +356,9 @@ impl Stream {
                     }
                     self.send_session().await?
                 }
-                Woke::Partner(partner, Ok(Change::Account(events))) => {
+                // A partner's events as they push them, before they're
+                // stored; stored, they were sent already.
+                Woke::Partner(partner, Ok(Change::Live(events))) => {
                     self.send_partner(&partner, &events, false).await
                 }
                 Woke::Partner(_, Ok(_)) => Ok(()),
@@ -284,37 +375,91 @@ impl Stream {
         }
     }
 
+    /// The account whole, as written, and which of the device's `pending`
+    /// events it holds already; events placed after it follow.
+    async fn send_account(&mut self, pending: &[String]) -> ServerResult<Result<(), Closed>> {
+        let (snapshot, seq, last_id) = self
+            .db
+            .snapshot_now(&self.user_id)
+            .await
+            .map_err(internal_error)?;
+        let placed_ids = self
+            .db
+            .written_among(&self.user_id, pending)
+            .await
+            .map_err(internal_error)?;
+        self.sent = seq;
+        let message = AccountState {
+            snapshot,
+            seq,
+            placed_ids,
+            last_id,
+        };
+        Ok(self.send(sync_response::Kind::Account(message)).await)
+    }
+
     async fn send(&self, kind: sync_response::Kind) -> Result<(), Closed> {
         self.tx
-            .send(Ok(SyncResponse { kind: Some(kind) }))
+            .send(Box::new(Ok(SyncResponse { kind: Some(kind) })))
             .await
             .map_err(|_| Closed)
+    }
+
+    /// Due a check that its login is still good: past its expiry, or not
+    /// checked for `RECHECK_SIGNED_IN`.
+    fn signed_in_stale(&self) -> bool {
+        self.checked.elapsed() > RECHECK_SIGNED_IN || now_unix() >= self.valid_until
     }
 
     /// Ends the stream once its session is signed out, expired or deleted.
     async fn ensure_signed_in(&mut self) -> ServerResult<()> {
         let signed_in = self
             .db
-            .validate_auth_session(&self.token)
+            .validate_auth_session_until(&self.token)
             .await
             .map_err(internal_error)?;
-        if signed_in.as_ref() != Some(&self.user_id) {
-            return Err(Status::unauthenticated("Invalid session token").into());
+        match signed_in {
+            Some((user_id, until)) if user_id == self.user_id => {
+                self.checked = Instant::now();
+                self.valid_until = until;
+                Ok(())
+            }
+            _ => Err(Status::unauthenticated("Invalid session token").into()),
         }
-        self.checked = Instant::now();
-        Ok(())
     }
 
     /// The device's own events (placed, stored, and sent back down with
     /// everyone else's) or a heartbeat (answered with the head).
     async fn receive(&mut self, up: SyncRequest) -> ServerResult<Result<(), Closed>> {
-        self.ensure_signed_in().await?;
+        if self.signed_in_stale() {
+            self.ensure_signed_in().await?;
+        }
         match up.kind {
             Some(sync_request::Kind::Events(packed)) => {
-                let events = unpack_push(&packed).map_err(core_status)?;
+                let mut events = unpack_push(&packed).map_err(core_status)?;
                 check_push(&events)?;
+                events.retain(|e| !self.caught_up.contains(&e.id));
+                // A stream's first push may resend what was written while
+                // the device was away (it lost the ack): told, it lets them
+                // go (the account whole, naming them).
+                let first = !std::mem::replace(&mut self.pushed, true);
+                let ids: Vec<String> = events.iter().map(|e| e.id.clone()).collect();
+                if first && !self.legacy {
+                    let written = self
+                        .db
+                        .written_among(&self.user_id, &ids)
+                        .await
+                        .map_err(internal_error)?;
+                    if !written.is_empty() {
+                        events.retain(|e| !written.contains(&e.id));
+                        if let Err(closed) = self.send_account(&written).await? {
+                            return Ok(Err(closed));
+                        }
+                    }
+                }
+                // Held: partners have them now, this device once written.
                 self.db
-                    .push_events(&self.user_id, events)
+                    .buffer_events(&self.user_id, events, first && self.legacy)
                     .await
                     .map_err(internal_error)?;
                 Ok(Ok(()))
@@ -323,8 +468,8 @@ impl Stream {
                 let head = self.db.head(&self.user_id).await.map_err(internal_error)?;
                 Ok(self.send(sync_response::Kind::Head(head)).await)
             }
-            Some(sync_request::Kind::AfterSeq(_)) => {
-                Err(Status::invalid_argument("after_seq opens the stream, once").into())
+            Some(sync_request::Kind::AfterSeq(_) | sync_request::Kind::Open(_)) => {
+                Err(Status::invalid_argument("a stream is opened once").into())
             }
         }
     }
@@ -350,6 +495,7 @@ impl Stream {
                 break;
             };
             let full = events.len() as i64 == EVENTS_PER_MESSAGE;
+            self.caught_up.extend(events.iter().map(|e| e.id.clone()));
             let message = schlift::workout::v1::Events {
                 packed: pack(&events),
                 head: head.max(last),
@@ -383,7 +529,12 @@ impl Stream {
             return Ok(Ok(()));
         }
         if first.seq != self.sent + 1 {
-            return self.send_events(false).await;
+            // Missed some: an app from before snapshots reads them from the
+            // files; any other gets the account whole.
+            if self.legacy {
+                return self.send_events(false).await;
+            }
+            return self.send_account(&[]).await;
         }
         let message = schlift::workout::v1::Events {
             packed: pack(events),
@@ -440,6 +591,8 @@ impl Stream {
     async fn changed(&mut self, change: &Change) -> ServerResult<Result<(), Closed>> {
         match change {
             Change::Account(events) => self.send_new(events).await,
+            // Not yet placed: for partners; this device hears them placed.
+            Change::Live(_) => Ok(Ok(())),
             Change::JoinRequests => self.send_requests().await,
             Change::Membership | Change::Session => self.send_session().await,
             Change::SignedOut => self.ensure_signed_in().await.map(Ok),

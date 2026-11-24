@@ -58,8 +58,10 @@ import 'widgets/session_expired_banner.dart';
 
 // Configure server address. Debug builds default to localhost, but can be
 // overridden with --dart-define=SERVER_HOST=... and --dart-define=SERVER_PORT=...
+// A release talks to the server's own TLS listener (8443; 8444 for the dev
+// backend), not through Caddy on 443, which serves the website.
 const _defaultServerHost = kReleaseMode ? 'schlift.com' : 'localhost';
-const _defaultServerPort = kReleaseMode ? '443' : '50051';
+const _defaultServerPort = kReleaseMode ? '8443' : '50051';
 const serverHost = String.fromEnvironment(
   'SERVER_HOST',
   defaultValue: _defaultServerHost,
@@ -195,13 +197,19 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
       MultiplayerServiceWrapper(_grpcClient),
       feed: _accountSync,
     );
-    // A workout remembers the session it's trained in, joined mid-way or not.
-    _accountSync.addListener(() {
+    // A workout remembers the session it's trained in, joined mid-way or
+    // not: when the session changes, and when a workout starts in one (the
+    // server holds a workout's events until it ends, so nothing comes back
+    // from the stream to say so).
+    void recordSession() {
       final sessionId = _accountSync.session.sessionId;
       if (sessionId.isNotEmpty) {
         unawaited(_workoutProvider.recordSession(sessionId));
       }
-    });
+    }
+
+    _accountSync.addListener(recordSession);
+    _workoutProvider.addListener(recordSession);
     _wearableBridgeService = createWearableBridgeService();
     _wearableSyncCoordinator = WearableSyncCoordinator(
       workoutProvider: _workoutProvider,

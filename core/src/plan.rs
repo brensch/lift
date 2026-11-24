@@ -1158,7 +1158,7 @@ impl Costs {
 
     /// Learned from the set timestamps of the workouts started in the
     /// program's learning window before `now`.
-    pub fn learned(program: &Program, workouts: &[WorkoutRecord], now: i64) -> Self {
+    pub fn learned(program: &Program, workouts: &[impl AsRef<WorkoutRecord>], now: i64) -> Self {
         let c = &program.costs;
         let window = c.learn_window_days * DAY;
         let mut lifting = Vec::new();
@@ -1167,6 +1167,7 @@ impl Costs {
         let mut between = Vec::new();
         for record in workouts
             .iter()
+            .map(AsRef::as_ref)
             .filter(|r| r.workout.start_time >= now - window && r.workout.start_time <= now)
         {
             let by_id: HashMap<&str, &ProposedSet> = record
@@ -1548,6 +1549,7 @@ impl<'a> Planner<'a> {
         let mut finished: Vec<&WorkoutRecord> = account
             .workouts
             .iter()
+            .map(|r| &**r)
             .filter(|r| r.workout.end_time > 0)
             .collect();
         finished.sort_by_key(|r| (workout_time(r), r.workout.start_time));

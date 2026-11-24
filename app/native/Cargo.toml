@@ -19,3 +19,7 @@ uuid = { version = "1.11.0", features = ["v4"] }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
+
+[dev-dependencies]
+# Tests forge a snapshot by other rules (store.rs).
+zstd = "0.13"

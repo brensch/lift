@@ -218,6 +218,8 @@ impl ServerDb {
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
+        // Its events stay in the files, under an id nothing points to now.
+        self.ledger.forget(user_id);
         self.forget_join_requests(user_id);
         if let Some(session) = session {
             self.session_changed(&session);
@@ -252,6 +254,19 @@ impl ServerDb {
     /// stays signed in: its expiry slides to `LOGIN_SECONDS` from now
     /// (written once it is more than a day old).
     pub async fn validate_auth_session(&self, token: &str) -> DbResult<Option<String>> {
+        Ok(self
+            .validate_auth_session_until(token)
+            .await?
+            .map(|(user_id, _)| user_id))
+    }
+
+    /// The same, with when the login expires (after any slide): a stream
+    /// checks it again then, not before (signing out, and deleting the
+    /// account, are told to it at once).
+    pub async fn validate_auth_session_until(
+        &self,
+        token: &str,
+    ) -> DbResult<Option<(String, i64)>> {
         let now = now_unix();
         let hash = token_hash(token);
         let row: Option<(String, i64)> = sqlx::query_as(
@@ -271,8 +286,9 @@ impl ServerDb {
                 .bind(now)
                 .execute(&self.write_pool)
                 .await?;
+            return Ok(Some((user_id, now + LOGIN_SECONDS)));
         }
-        Ok(Some(user_id))
+        Ok(Some((user_id, expires_at)))
     }
 
     /// When one of the user's logins was last used, to within a day (a
@@ -617,11 +633,16 @@ mod tests {
             .await
             .unwrap();
         db.set_can_suggest(u, u, true).await.unwrap();
+        // An event, stored: its file indexed under the account.
+        let event: schlift_core::events::Event = serde_json::from_str(
+            r#"{"seq":0,"id":"e","at":1,"WorkoutDiscarded":{"workout_id":"w"}}"#,
+        )
+        .unwrap();
+        db.push_events(u, vec![event]).await.unwrap();
         for sql in [
-            r#"INSERT INTO account_events (user_id, seq, id, event)
-               VALUES (?, 1, 'e', '{"seq":1,"id":"e","at":1,"WorkoutDiscarded":{"workout_id":"w"}}')"#,
             "INSERT INTO page_views (user_id, app_session_id, seq, page, entered_at_ms)
              VALUES (?, 's', 1, 'home', 1)",
+            "INSERT INTO heart_rate_files (user_id, workout_id, file) VALUES (?, 'w', 'f')",
         ] {
             sqlx::query(sql)
                 .bind(u)

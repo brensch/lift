@@ -1,168 +1,138 @@
-//! Accounts as event logs. Each user's history lives in `account_events`, in
-//! the server's order, and nothing else of it is kept: a read folds it from
-//! there, and a push places events after the head without folding anything.
+//! Accounts, kept by the ledger (`db/ledger`): a device's events are held
+//! in memory until the account is written (its workout ends, it goes
+//! quiet), which is when its devices hear them back placed; a read folds
+//! the account's snapshot and what's held, for that read.
 
 use schlift_core::account::Account;
-use schlift_core::events::{Event, Fact};
-use schlift_core::session::shared_with_partners;
-use std::collections::HashSet;
-
-/// How far back a partner's latest workout is looked for: more events than
-/// any one workout records.
-const WORKOUT_REACH: i64 = 2_000;
+use schlift_core::events::Event;
 
 use super::*;
 
-/// What a push did.
-#[derive(Default)]
-pub struct Pushed {
-    /// The events it added, each with its place.
-    pub stored: Vec<Event>,
-}
-
 impl ServerDb {
-    /// Look at a user's account, folded from its history (without heart
-    /// rate, which the server never reads). The fold and the read run on
-    /// the blocking pool: a large account takes a while to fold, and the
-    /// runtime's few workers also serve every stream.
-    pub async fn read_account<R: Send + 'static>(
+    /// Look at a user's account as it is now (without heart rate, which the
+    /// server never reads): events pushed and not yet written included.
+    pub async fn read_account<R: Send + 'static, F: FnOnce(&Account) -> R + Send + 'static>(
         &self,
         user_id: &str,
-        read: impl FnOnce(&Account) -> R + Send + 'static,
+        read: F,
     ) -> DbResult<R> {
-        // Heart-rate rows are most of a log and change nothing in a fold
-        // without heart rate, so they are not read (or parsed) at all.
-        let rows: Vec<String> = sqlx::query_scalar(
-            "SELECT event FROM account_events
-             WHERE user_id = ? AND event -> '$.HeartRateRecorded' IS NULL ORDER BY seq",
-        )
-        .bind(user_id)
-        .fetch_all(&self.read_pool)
-        .await?;
-        tokio::task::spawn_blocking(move || {
-            let events = rows
-                .iter()
-                .map(|json| serde_json::from_str(json))
-                .collect::<Result<Vec<Event>, _>>()?;
-            Ok(read(&Account::fold_without_heart_rate(&events)))
-        })
-        .await?
+        self.ledger.read_account(user_id, read).await
     }
 
-    /// The last seq the server holds for the user.
+    /// The last seq written for the user.
     pub async fn head(&self, user_id: &str) -> DbResult<i64> {
-        let head: i64 = sqlx::query_scalar(
-            "SELECT COALESCE(MAX(seq), 0) FROM account_events WHERE user_id = ?",
-        )
-        .bind(user_id)
-        .fetch_one(&self.read_pool)
-        .await?;
-        Ok(head)
+        self.ledger.head(user_id).await
     }
 
-    /// Up to `limit` of the user's events after `after_seq`, in order.
+    /// The last seq written for the user, and the id of the event there.
+    pub async fn last_written(&self, user_id: &str) -> DbResult<(i64, String)> {
+        self.ledger.last(user_id).await
+    }
+
+    /// Up to `limit` of the user's written events after `after_seq`, from
+    /// the files: an app from before snapshots catches up with these.
     pub async fn events_after(
         &self,
         user_id: &str,
         after_seq: i64,
         limit: i64,
     ) -> DbResult<Vec<Event>> {
-        let rows: Vec<String> = sqlx::query_scalar(
-            "SELECT event FROM account_events WHERE user_id = ? AND seq > ? ORDER BY seq LIMIT ?",
-        )
-        .bind(user_id)
-        .bind(after_seq)
-        .bind(limit)
-        .fetch_all(&self.read_pool)
-        .await?;
-        rows.iter()
-            .map(|json| Ok(serde_json::from_str(json)?))
-            .collect()
+        self.ledger
+            .events_after(
+                user_id,
+                after_seq,
+                limit.clamp(0, i64::from(u32::MAX)) as usize,
+            )
+            .await
     }
 
-    /// A workout of the user's as their session partners see it: its events
-    /// from its start, only those shared with partners, in order. Empty if
-    /// it did not start within the last `WORKOUT_REACH` events (heart rate
-    /// aside).
+    /// The account as written (`schlift_core::snapshot`), its seq and the id
+    /// of the event there: what a device that needs the account whole is
+    /// sent.
+    pub async fn snapshot_now(&self, user_id: &str) -> DbResult<(Vec<u8>, i64, String)> {
+        self.ledger.snapshot_now(user_id).await
+    }
+
+    /// Of a device's pending events, those already written (it was away
+    /// when they were acked).
+    pub async fn written_among(&self, user_id: &str, ids: &[String]) -> DbResult<Vec<String>> {
+        self.ledger.written_among(user_id, ids).await
+    }
+
+    /// A workout of the user's as their session partners see it: its shared
+    /// events from its start, written (while on show) or held, in order.
     pub async fn workout_events(&self, user_id: &str, workout_id: &str) -> DbResult<Vec<Event>> {
-        let rows: Vec<String> = sqlx::query_scalar(
-            "SELECT event FROM account_events
-             WHERE user_id = ? AND event -> '$.HeartRateRecorded' IS NULL
-             ORDER BY seq DESC LIMIT ?",
-        )
-        .bind(user_id)
-        .bind(WORKOUT_REACH)
-        .fetch_all(&self.read_pool)
-        .await?;
-        let mut workout = Vec::new();
-        for json in rows {
-            let event: Event = serde_json::from_str(&json)?;
-            if !shared_with_partners(&event.fact) {
-                continue;
-            }
-            let started = matches!(event.fact, Fact::WorkoutStarted(_)) && event.id == workout_id;
-            workout.push(event);
-            if started {
-                workout.retain(|e| e.workout_id() == Some(workout_id));
-                workout.reverse();
-                return Ok(workout);
-            }
-        }
-        Ok(Vec::new())
+        self.ledger.workout_events(user_id, workout_id).await
     }
 
-    /// Give a device's events their places after the head and append them.
-    /// One the server already holds (by id: a device resends until it hears
-    /// back) is skipped. All in one transaction on the one write connection,
-    /// so pushes are placed one at a time, each after the last; one racing
-    /// the account's deletion fails on the foreign key. What they say of the
-    /// user's session workout is followed once they're stored.
-    pub async fn push_events(&self, user_id: &str, events: Vec<Event>) -> DbResult<Pushed> {
-        let mut tx = self.write_pool.begin().await?;
-        let ids: Vec<&str> = events.iter().map(|e| e.id.as_str()).collect();
-        let mut placed: HashSet<String> = sqlx::query_scalar(
-            "SELECT id FROM account_events
-             WHERE user_id = ? AND id IN (SELECT value FROM json_each(?))",
-        )
-        .bind(user_id)
-        .bind(serde_json::to_string(&ids)?)
-        .fetch_all(&mut *tx)
-        .await?
-        .into_iter()
-        .collect();
-        let mut head: i64 = sqlx::query_scalar(
-            "SELECT COALESCE(MAX(seq), 0) FROM account_events WHERE user_id = ?",
-        )
-        .bind(user_id)
-        .fetch_one(&mut *tx)
-        .await?;
-        let mut pushed = Pushed::default();
-        for mut event in events {
-            // Held already, or earlier in this push: skipped. A set, so the
-            // largest push is not checked against itself event by event.
-            if !placed.insert(event.id.clone()) {
-                continue;
-            }
-            head += 1;
-            event.seq = head;
-            sqlx::query("INSERT INTO account_events (user_id, seq, id, event) VALUES (?, ?, ?, ?)")
-                .bind(user_id)
-                .bind(event.seq)
-                .bind(&event.id)
-                .bind(serde_json::to_string(&event)?)
-                .execute(&mut *tx)
-                .await?;
-            pushed.stored.push(event);
+    /// A workout's heart rate, by its id.
+    pub async fn workout_heart_rate(
+        &self,
+        user_id: &str,
+        workout_id: &str,
+    ) -> DbResult<Option<ledger::files::Beats>> {
+        self.ledger.heart_rate(user_id, workout_id).await
+    }
+
+    /// A device's events: those the account doesn't hold (by id; a device
+    /// resends until it hears back; with `check_written`, a stream's first
+    /// push, also against what was written while it was away). They go to
+    /// the user's session partners now, and are written with the account,
+    /// when its devices hear them back placed. What they say of the user's
+    /// session workout is followed.
+    pub async fn buffer_events(
+        &self,
+        user_id: &str,
+        events: Vec<Event>,
+        check_written: bool,
+    ) -> DbResult<usize> {
+        let taken = self.ledger.buffer(user_id, events, check_written).await?;
+        if taken.is_empty() {
+            return Ok(0);
         }
-        if pushed.stored.is_empty() {
-            return Ok(pushed);
-        }
-        tx.commit().await?;
+        let live: Vec<Event> = taken.iter().map(|e| (**e).clone()).collect();
         self.notify(
             Topic::User(user_id.to_string()),
-            Change::Account(pushed.stored.as_slice().into()),
+            Change::Live(live.as_slice().into()),
         );
-        self.follow_session(user_id, &pushed.stored).await?;
-        Ok(pushed)
+        self.follow_session(user_id, &live).await?;
+        Ok(live.len())
+    }
+
+    /// Events no phone holds (an assistant's write, a friend's suggestion,
+    /// a seed): written now, and returned placed.
+    pub async fn push_events(&self, user_id: &str, events: Vec<Event>) -> DbResult<Vec<Event>> {
+        let placed = self.ledger.push_now(user_id, events).await?;
+        if !placed.is_empty() {
+            let live: Vec<Event> = placed
+                .iter()
+                .map(|e| Event {
+                    seq: 0,
+                    ..e.clone()
+                })
+                .collect();
+            self.notify(
+                Topic::User(user_id.to_string()),
+                Change::Live(live.as_slice().into()),
+            );
+            self.follow_session(user_id, &placed).await?;
+        }
+        Ok(placed)
+    }
+
+    /// Write every account holding events now (tests).
+    #[cfg(test)]
+    pub async fn flush(&self) -> DbResult<()> {
+        self.ledger.flush().await
+    }
+
+    /// What a stopping server writes: what is due, then the WAL into the
+    /// database.
+    pub async fn shut_down(&self) -> DbResult<()> {
+        self.ledger.shut_down().await?;
+        sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+            .execute(&self.write_pool)
+            .await?;
+        Ok(())
     }
 }

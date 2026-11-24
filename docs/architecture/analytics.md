@@ -141,8 +141,8 @@ The page also shows, all behind `authed_admin_id`:
 - **Everyone and their training** (`GetTrainingStats`): every account with
   when it was last in the app, its build, passkeys, signed-in devices and
   workouts; the finished workouts in the window; workouts per day; the lifts
-  done; who has a workout open. The server keeps no folded account, so each
-  account is folded from its events for that answer and dropped
+  done; who has a workout open. Each account is read as any read is (its
+  snapshot with what's held, `src/db/ledger/`) for that answer and dropped
   (`training_stats`, `src/server/analytics.rs`): the page costs a fold of
   every account (up to 2,000, eight at a time), which is why it is its own
   RPC and not part of `GetStats`.

@@ -67,7 +67,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1096010202;
+  int get rustContentHash => 1274896356;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -95,10 +95,14 @@ abstract class RustLibApi extends BaseApi {
 
   Future<PlatformInt64> crateApiConfirmed({required int handle});
 
+  Future<String> crateApiConfirmedId({required int handle});
+
   Future<void> crateApiExportAccount({
     required int handle,
     required String dest,
   });
+
+  Future<String> crateApiFoldRules();
 
   Future<PlatformInt64> crateApiImportFile({
     required int handle,
@@ -111,6 +115,8 @@ abstract class RustLibApi extends BaseApi {
     required int handle,
     required List<String> partners,
   });
+
+  Future<PlatformInt64> crateApiOldestPendingAt({required int handle});
 
   Future<int> crateApiOpenAccount({
     required String path,
@@ -136,6 +142,8 @@ abstract class RustLibApi extends BaseApi {
 
   Future<PlatformInt64> crateApiPendingCount({required int handle});
 
+  Future<List<String>> crateApiPendingIds({required int handle});
+
   Future<List<KeptLogLine>> crateApiLogsReadLogs({
     required int minLevel,
     required String tag,
@@ -148,6 +156,14 @@ abstract class RustLibApi extends BaseApi {
     required int handle,
     required List<int> packed,
     required PlatformInt64 head,
+  });
+
+  Future<void> crateApiReceiveAccount({
+    required int handle,
+    required List<int> snapshot,
+    required PlatformInt64 seq,
+    required String lastId,
+    required List<String> placedIds,
   });
 
   Future<void> crateApiReceivePartner({
@@ -342,6 +358,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(debugName: "confirmed", argNames: ["handle"]);
 
   @override
+  Future<String> crateApiConfirmedId({required int handle}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(handle, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiConfirmedIdConstMeta,
+        argValues: [handle],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiConfirmedIdConstMeta =>
+      const TaskConstMeta(debugName: "confirmed_id", argNames: ["handle"]);
+
+  @override
   Future<void> crateApiExportAccount({
     required int handle,
     required String dest,
@@ -355,7 +399,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 8,
             port: port_,
           );
         },
@@ -376,6 +420,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<String> crateApiFoldRules() {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_String,
+          decodeErrorData: null,
+        ),
+        constMeta: kCrateApiFoldRulesConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiFoldRulesConstMeta =>
+      const TaskConstMeta(debugName: "fold_rules", argNames: []);
+
+  @override
   Future<PlatformInt64> crateApiImportFile({
     required int handle,
     required String path,
@@ -389,7 +460,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 10,
             port: port_,
           );
         },
@@ -418,7 +489,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 11,
             port: port_,
           );
         },
@@ -450,7 +521,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 12,
             port: port_,
           );
         },
@@ -471,6 +542,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<PlatformInt64> crateApiOldestPendingAt({required int handle}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(handle, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 13,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_i_64,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiOldestPendingAtConstMeta,
+        argValues: [handle],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOldestPendingAtConstMeta =>
+      const TaskConstMeta(debugName: "oldest_pending_at", argNames: ["handle"]);
+
+  @override
   Future<int> crateApiOpenAccount({
     required String path,
     required String userId,
@@ -486,7 +585,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 14,
             port: port_,
           );
         },
@@ -516,7 +615,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 15,
             port: port_,
           );
         },
@@ -544,7 +643,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 16,
             port: port_,
           );
         },
@@ -576,7 +675,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 17,
             port: port_,
           );
         },
@@ -612,7 +711,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 18,
             port: port_,
           );
         },
@@ -642,7 +741,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 19,
             port: port_,
           );
         },
@@ -659,6 +758,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiPendingCountConstMeta =>
       const TaskConstMeta(debugName: "pending_count", argNames: ["handle"]);
+
+  @override
+  Future<List<String>> crateApiPendingIds({required int handle}) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(handle, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_list_String,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiPendingIdsConstMeta,
+        argValues: [handle],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiPendingIdsConstMeta =>
+      const TaskConstMeta(debugName: "pending_ids", argNames: ["handle"]);
 
   @override
   Future<List<KeptLogLine>> crateApiLogsReadLogs({
@@ -680,7 +807,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 21,
             port: port_,
           );
         },
@@ -716,7 +843,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 22,
             port: port_,
           );
         },
@@ -737,6 +864,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<void> crateApiReceiveAccount({
+    required int handle,
+    required List<int> snapshot,
+    required PlatformInt64 seq,
+    required String lastId,
+    required List<String> placedIds,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_32(handle, serializer);
+          sse_encode_list_prim_u_8_loose(snapshot, serializer);
+          sse_encode_i_64(seq, serializer);
+          sse_encode_String(lastId, serializer);
+          sse_encode_list_String(placedIds, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 23,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_String,
+        ),
+        constMeta: kCrateApiReceiveAccountConstMeta,
+        argValues: [handle, snapshot, seq, lastId, placedIds],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiReceiveAccountConstMeta => const TaskConstMeta(
+    debugName: "receive_account",
+    argNames: ["handle", "snapshot", "seq", "lastId", "placedIds"],
+  );
+
+  @override
   Future<void> crateApiReceivePartner({
     required int handle,
     required String partner,
@@ -754,7 +921,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 24,
             port: port_,
           );
         },

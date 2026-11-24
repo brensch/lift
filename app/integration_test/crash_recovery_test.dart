@@ -46,13 +46,12 @@ void main() {
         reason: 'a cold restart should resume the in-progress workout',
       );
 
-      // And the completed set should still be recorded (via the backend).
-      final api = await s.api.login(username);
-      await api.adoptActiveWorkout();
-      final detail = await api.workoutDetail();
+      // And the completed set should still be recorded: the phone holds a
+      // workout's events until the server writes them at its end.
+      final detail = await s.appWorkoutDetail();
       final completed = detail?.completedSets.length ?? 0;
       s.note(
-        'Backend after restart',
+        'App after restart',
         detail: 'completedSets=$completed',
         kind: 'api',
       );

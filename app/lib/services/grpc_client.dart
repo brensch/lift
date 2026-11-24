@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:grpc/grpc.dart';
 import '../gen/workout/v1/account.pbgrpc.dart';
-import '../gen/workout/v1/workout.pbgrpc.dart' show UserServiceClient;
+import '../gen/workout/v1/workout.pbgrpc.dart'
+    show UserServiceClient, WorkoutServiceClient;
 import '../gen/workout/v1/group.pbgrpc.dart';
 import '../gen/workout/v1/auth.pbgrpc.dart';
 import '../gen/workout/v1/analytics.pbgrpc.dart';
@@ -171,6 +172,7 @@ class GrpcClient {
   late ClientChannel channel;
   late SyncServiceClient syncService;
   late UserServiceClient userService;
+  late WorkoutServiceClient workoutService;
   late MultiplayerServiceClient multiplayerService;
   late AuthServiceClient authService;
   late AnalyticsServiceClient analyticsService;
@@ -188,8 +190,9 @@ class GrpcClient {
   ];
 
   void _buildChannel() {
-    // Use secure credentials for production (port 443)
-    final credentials = port == 443
+    // TLS to a deployed server (its own listener, or 443 for an old build
+    // pointed at Caddy); plain to a local backend.
+    final credentials = const {443, 8443, 8444}.contains(port)
         ? const ChannelCredentials.secure()
         : const ChannelCredentials.insecure();
 
@@ -201,17 +204,19 @@ class GrpcClient {
         idleTimeout: const Duration(minutes: 5),
         connectionTimeout: const Duration(minutes: 10),
         connectTimeout: const Duration(seconds: 10),
-        // The Sync stream is open for a whole workout; pings keep the
-        // proxies from idling it out and notice a dead link.
+        // The Sync stream is open for a whole workout; pings keep NATs
+        // from idling it out. Its heartbeat notices a dead link, so these
+        // are sparse: every phone sends them, and the server answers each.
         keepAlive: const ClientKeepAliveOptions(
-          pingInterval: Duration(seconds: 10),
-          timeout: Duration(seconds: 10),
+          pingInterval: Duration(seconds: 60),
+          timeout: Duration(seconds: 20),
           permitWithoutCalls: true,
         ),
       ),
     );
     syncService = SyncServiceClient(channel, interceptors: _interceptors);
     userService = UserServiceClient(channel, interceptors: _interceptors);
+    workoutService = WorkoutServiceClient(channel, interceptors: _interceptors);
     multiplayerService = MultiplayerServiceClient(
       channel,
       interceptors: _interceptors,
