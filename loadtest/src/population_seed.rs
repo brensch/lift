@@ -39,6 +39,14 @@ struct Args {
     /// Print the rules this build folds by (schlift_core::FOLD) and stop.
     #[arg(long)]
     print_fold: bool,
+    /// Check, instead of seeding, that the data directory's snapshots read
+    /// by this build's rules, as the server reads them: the stamp inside
+    /// each snapshot, not the `fold` column. A server built from another
+    /// commit would refold every account from the files, which a load test
+    /// must not mistake for the server's own cost. Never restamp snapshots
+    /// by SQL to get round it (the column alone isn't the stamp): seed again.
+    #[arg(long)]
+    check: bool,
     #[arg(long, default_value = ".")]
     data: PathBuf,
     #[arg(long, default_value_t = 1_000_000)]
@@ -155,6 +163,10 @@ fn main() {
         println!("{}", schlift_core::FOLD);
         return;
     }
+    if args.check {
+        check(&args.data);
+        return;
+    }
     let started = Instant::now();
     let events = template(args.weeks);
     let json: Vec<String> = events
@@ -253,4 +265,45 @@ fn main() {
         }
     }
     println!("head {head} last_id {last_id}");
+}
+
+/// The seeded snapshots read by this build's rules, or the process fails
+/// saying how many don't (see `--check`).
+fn check(data: &Path) {
+    let db = Connection::open(data.join("server.sqlite")).expect("database");
+    let total: i64 = db
+        .query_row("SELECT COUNT(*) FROM account_snapshots", [], |r| r.get(0))
+        .expect("count");
+    let mut sample = db
+        .prepare("SELECT user_id, state FROM account_snapshots ORDER BY random() LIMIT 200")
+        .expect("sample");
+    let rows: Vec<(String, Vec<u8>)> = sample
+        .query_map([], |r| Ok((r.get(0)?, r.get(1)?)))
+        .expect("rows")
+        .collect::<Result<_, _>>()
+        .expect("rows");
+    let bad: Vec<String> = rows
+        .iter()
+        .filter_map(|(user, state)| {
+            schlift_core::snapshot::restore(state)
+                .err()
+                .map(|e| format!("{user}: {e}"))
+        })
+        .collect();
+    if !bad.is_empty() {
+        eprintln!(
+            "{} of {} sampled snapshots (of {total}) don't read by this build's rules ({}); \
+             seed again with this build:\n  {}",
+            bad.len(),
+            rows.len(),
+            schlift_core::FOLD,
+            bad.iter().take(3).cloned().collect::<Vec<_>>().join("\n  ")
+        );
+        std::process::exit(1);
+    }
+    println!(
+        "{} sampled snapshots (of {total}) read by this build's rules ({})",
+        rows.len(),
+        schlift_core::FOLD
+    );
 }
