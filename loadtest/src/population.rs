@@ -107,12 +107,16 @@ struct Shared {
     sets: AtomicUsize,
     ended: AtomicUsize,
     pushed: AtomicUsize,
+    /// This run, mixed into every phone's seed.
+    run: u64,
 }
 
 /// One app: open, heartbeat until told to stop or reopen.
 async fn app(shared: Arc<Shared>, n: usize, mut reopen: mpsc::Receiver<bool>) {
     let channel = shared.channels[n % shared.channels.len()].clone();
-    let mut rng = rand::rngs::StdRng::seed_from_u64(n as u64);
+    // Each run's phones make new event ids, as real ones do (random): a
+    // run after another would otherwise resend the last one's.
+    let mut rng = rand::rngs::StdRng::seed_from_u64(n as u64 ^ shared.run);
     let mut stop = shared.stop.clone();
     let mut from_nothing = false;
     // Training: the phone, where the server's placed events have it, and
@@ -339,6 +343,9 @@ async fn main() {
         sets: AtomicUsize::new(0),
         ended: AtomicUsize::new(0),
         pushed: AtomicUsize::new(0),
+        run: std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_nanos() as u64),
     });
     let started = Instant::now();
     let mut reopeners = Vec::with_capacity(args.count);

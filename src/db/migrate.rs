@@ -628,6 +628,9 @@ async fn v10(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
              state BLOB NOT NULL,
              -- A JSON array of the latest ids placed: a resend is placed once.
              recent_ids TEXT NOT NULL DEFAULT '[]',
+             -- The workout under way as of `seq` (its id, or ''): what the
+             -- events after it are held for until it ends.
+             active_workout TEXT NOT NULL DEFAULT '',
              updated_at INTEGER NOT NULL
          );",
     )

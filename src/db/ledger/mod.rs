@@ -120,8 +120,9 @@ struct Log {
     unacked_ids: HashSet<String>,
     /// Bytes `unacked` holds, roughly.
     bytes: usize,
-    /// A workout under way among them.
-    in_workout: bool,
+    /// The workout under way (its id, or empty): from the snapshot, then
+    /// the events held. While there is one, the account waits for its end.
+    active: String,
     /// When the oldest unacked event came.
     since: Option<Instant>,
     /// Writes waiting on this account's next write (a write no phone holds).
@@ -205,6 +206,10 @@ fn now_ms() -> i64 {
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_millis() as i64)
 }
+
+/// An account moved in from SQLite: its id, seq, snapshot, latest ids and
+/// workout under way.
+type Moved = (String, i64, Vec<u8>, String, String);
 
 /// An account's held events taken for a write: who, its log, the events,
 /// its head and the writes waiting on it.
@@ -309,21 +314,29 @@ impl Ledger {
     /// An account into memory: whether it exists, and where its snapshot
     /// is (its head), in one query. Nothing else is read.
     async fn load(&self, user_id: &str, log: &mut Log) -> DbResult<()> {
-        let (exists, seq, last_id, ours): (bool, Option<i64>, Option<String>, Option<bool>) =
-            sqlx::query_as(
-                "SELECT EXISTS (SELECT 1 FROM users WHERE id = ?1),
+        type Loaded = (
+            bool,
+            Option<i64>,
+            Option<String>,
+            Option<bool>,
+            Option<String>,
+        );
+        let (exists, seq, last_id, ours, active): Loaded = sqlx::query_as(
+            "SELECT EXISTS (SELECT 1 FROM users WHERE id = ?1),
                     (SELECT seq FROM account_snapshots WHERE user_id = ?1),
                     (SELECT recent_ids ->> '$[#-1]' FROM account_snapshots WHERE user_id = ?1),
-                    (SELECT fold = ?2 FROM account_snapshots WHERE user_id = ?1)",
-            )
-            .bind(user_id)
-            .bind(schlift_core::FOLD)
-            .fetch_one(&self.read_pool)
-            .await?;
+                    (SELECT fold = ?2 FROM account_snapshots WHERE user_id = ?1),
+                    (SELECT active_workout FROM account_snapshots WHERE user_id = ?1)",
+        )
+        .bind(user_id)
+        .bind(schlift_core::FOLD)
+        .fetch_one(&self.read_pool)
+        .await?;
         log.exists = exists;
         log.head = seq.unwrap_or(0);
         log.last_id = last_id.unwrap_or_default();
         log.snapshot_ours = ours.unwrap_or(true);
+        log.active = active.unwrap_or_default();
         Ok(())
     }
 
@@ -442,9 +455,11 @@ impl Ledger {
             }
             event.seq = 0;
             match &event.fact {
-                Fact::WorkoutStarted(_) => log.in_workout = true,
+                Fact::WorkoutStarted(_) => log.active = event.id.clone(),
                 Fact::WorkoutEnded(_) | Fact::WorkoutDiscarded(_) => {
-                    log.in_workout = false;
+                    if event.workout_id() == Some(log.active.as_str()) {
+                        log.active.clear();
+                    }
                     ended = true;
                 }
                 _ => {}
@@ -467,7 +482,7 @@ impl Ledger {
         log.since.get_or_insert(now);
         let write_by = if !log.waiters.is_empty() || ended {
             now
-        } else if log.in_workout {
+        } else if !log.active.is_empty() {
             now + self.timing.abandoned
         } else {
             now + self.timing.quiet
@@ -793,9 +808,11 @@ impl Ledger {
                 continue;
             }
             sqlx::query(
-                "INSERT INTO account_snapshots (user_id, seq, fold, state, recent_ids, updated_at)
-                 SELECT ?1, ?2, ?3, ?4, ?5, ?6 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)
+                "INSERT INTO account_snapshots
+                     (user_id, seq, fold, state, recent_ids, updated_at, active_workout)
+                 SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)
                  ON CONFLICT (user_id) DO UPDATE SET
+                     active_workout = excluded.active_workout,
                      seq = excluded.seq, fold = excluded.fold, state = excluded.state,
                      recent_ids = excluded.recent_ids, updated_at = excluded.updated_at",
             )
@@ -805,6 +822,7 @@ impl Ledger {
             .bind(&p.snapshot)
             .bind(&p.recent)
             .bind(unix)
+            .bind(&p.active)
             .execute(&mut *tx)
             .await?;
         }
@@ -1117,13 +1135,13 @@ impl Ledger {
             .fetch_one(&self.read_pool)
             .await?;
         let mut index = Vec::new();
-        let mut snapshots: Vec<(String, i64, Vec<u8>, String)> = Vec::new();
+        let mut snapshots: Vec<Moved> = Vec::new();
         let (mut after_user, mut after_seq) = (String::new(), 0i64);
         let mut part = 0;
         // Per account as it goes: the fold, and its ids.
         let mut account: Option<(String, Account, Vec<String>, i64)> = None;
         let finish = |account: Option<(String, Account, Vec<String>, i64)>,
-                      snapshots: &mut Vec<(String, i64, Vec<u8>, String)>| {
+                      snapshots: &mut Vec<Moved>| {
             if let Some((user, folded, ids, seq)) = account {
                 let recent = ids[ids.len().saturating_sub(RECENT_IDS)..].to_vec();
                 snapshots.push((
@@ -1131,6 +1149,7 @@ impl Ledger {
                     seq,
                     schlift_core::snapshot::snapshot(&folded, seq),
                     serde_json::to_string(&recent).unwrap_or_else(|_| "[]".into()),
+                    folded.active_workout_id.clone(),
                 ));
             }
         };
@@ -1208,10 +1227,11 @@ impl Ledger {
             .await?;
         }
         let now = now_unix();
-        for (user, seq, state, recent) in &snapshots {
+        for (user, seq, state, recent, active) in &snapshots {
             sqlx::query(
-                "INSERT OR REPLACE INTO account_snapshots (user_id, seq, fold, state, recent_ids, updated_at)
-                 SELECT ?1, ?2, ?3, ?4, ?5, ?6 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)",
+                "INSERT OR REPLACE INTO account_snapshots
+                     (user_id, seq, fold, state, recent_ids, updated_at, active_workout)
+                 SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)",
             )
             .bind(user)
             .bind(seq)
@@ -1219,6 +1239,7 @@ impl Ledger {
             .bind(state)
             .bind(recent)
             .bind(now)
+            .bind(active)
             .execute(&mut *tx)
             .await?;
         }
@@ -1244,6 +1265,8 @@ struct Placed {
     beats: Vec<Beats>,
     snapshot: Vec<u8>,
     recent: String,
+    /// The workout under way once these are folded (or empty).
+    active: String,
 }
 
 /// One account's write to work out: its held events, its head, its base
@@ -1315,6 +1338,7 @@ fn place(
     let recent = recent.split_off(recent.len().saturating_sub(RECENT_IDS));
     let snapshot = schlift_core::snapshot::snapshot(&account, seq);
     Ok(Placed {
+        active: account.active_workout_id.clone(),
         user_id,
         head: seq,
         events: placed,

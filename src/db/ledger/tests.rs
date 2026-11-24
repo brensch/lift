@@ -433,3 +433,28 @@ async fn compaction_changes_the_files_and_nothing_else() {
         .unwrap();
     assert_eq!(files::list(&db.ledger.events_dir()).unwrap(), after);
 }
+
+/// A workout whose start was written before the rest (a server stopped
+/// mid-workout writes what it holds): after the restart its sets are still
+/// held for its end, not written one by one as other writes are.
+#[tokio::test]
+async fn a_workout_started_before_a_restart_is_still_held_until_it_ends() {
+    let dir = dir();
+    let db = open(&dir, holding()).await;
+    let mut phone = Phone::new();
+    let events = phone.workout(now_unix() - 3600, 3, true);
+    let (start, rest) = events.split_at(3);
+    db.buffer_events("u", start.to_vec(), true).await.unwrap();
+    db.flush().await.unwrap();
+    drop(db);
+    let db = open(&dir, holding()).await;
+    let head = db.head("u").await.unwrap();
+    assert_eq!(head, 3);
+    let (during, end) = rest.split_at(rest.len() - 2);
+    db.buffer_events("u", during.to_vec(), true).await.unwrap();
+    // Well past the quiet time other writes wait.
+    tokio::time::sleep(Duration::from_millis(200)).await;
+    assert_eq!(db.head("u").await.unwrap(), head, "held for the end");
+    db.buffer_events("u", end.to_vec(), false).await.unwrap();
+    written(&db, events.len() as i64).await;
+}
