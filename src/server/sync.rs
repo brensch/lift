@@ -203,7 +203,9 @@ struct Stream {
     /// Opened by an app from before snapshots (`after_seq`): it catches up
     /// on events from the files, as it always did.
     legacy: bool,
-    /// The device has pushed on this stream.
+    /// The device has pushed on this stream, or opened current: what it
+    /// pushes from here needs no check against what was written while it
+    /// was away.
     pushed: bool,
 }
 
@@ -274,6 +276,10 @@ impl Stream {
             // holds already. Nothing is read from the event files.
             let current = self.sent == head
                 && (head == 0 || open.last_id.is_empty() || open.last_id == last_id);
+            // A device current at the open holds the head: nothing it has
+            // pending can have been written (that would be past its head),
+            // so its first push isn't checked against what was.
+            self.pushed = current;
             let sent = if current {
                 let message = schlift::workout::v1::Events {
                     packed: Vec::new(),
