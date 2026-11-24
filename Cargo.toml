@@ -45,3 +45,9 @@ tonic-build = "0.12.3"
 
 [workspace]
 members = ["core", "app/native", "loadtest", "testkit"]
+
+# The server's allocator: jemalloc gives freed memory back to the system
+# (glibc's arenas kept a burst of workouts' memory, 4 GB, after it was
+# freed).
+[target.'cfg(not(target_env = "msvc"))'.dependencies]
+tikv-jemallocator = "0.6"

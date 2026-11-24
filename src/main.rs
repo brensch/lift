@@ -10,6 +10,10 @@ use schlift::workout::v1::{
 use std::net::SocketAddr;
 use tower_http::cors::{Any, CorsLayer};
 
+#[cfg(not(target_env = "msvc"))]
+#[global_allocator]
+static ALLOCATOR: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 mod auth;
 mod db;
 #[cfg(feature = "test-auth")]
