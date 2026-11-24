@@ -61,6 +61,11 @@ struct Args {
     long_every: usize,
     #[arg(long, default_value_t = 52)]
     long_weeks: u32,
+    /// Write the snapshots only, not the event files behind them: nothing
+    /// in normal running reads those (only a refold after the rules change
+    /// does), and a year of history for every account outgrows the disk.
+    #[arg(long)]
+    snapshots_only: bool,
     /// Accounts written per transaction and per file.
     #[arg(long, default_value_t = 20_000)]
     batch: usize,
@@ -251,7 +256,7 @@ fn main() {
                 .filter(|&i| std::ptr::eq(kind_of(i), kind))
                 .map(user_id)
                 .collect();
-            if users.is_empty() {
+            if users.is_empty() || args.snapshots_only {
                 continue;
             }
             let file = format!("0000000001000-population-{part:06}-{k}.parquet");
@@ -287,11 +292,7 @@ fn main() {
             for i in n..end {
                 let id = &user_id(i);
                 let kind = kind_of(i);
-                let file = &files
-                    .iter()
-                    .find(|(_, k)| std::ptr::eq(*k, kind))
-                    .expect("its file")
-                    .0;
+                let file = files.iter().find(|(_, k)| std::ptr::eq(*k, kind));
                 user.execute(params![
                     id,
                     format!("p{i}"),
@@ -311,9 +312,11 @@ fn main() {
                     created
                 ])
                 .expect("snapshot");
-                index
-                    .execute(params![file, id, kind.head, kind.head])
-                    .expect("index");
+                if let Some((file, _)) = file {
+                    index
+                        .execute(params![file, id, kind.head, kind.head])
+                        .expect("index");
+                }
             }
         }
         tx.commit().expect("commit");
