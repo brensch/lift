@@ -328,7 +328,7 @@ impl Ledger {
         let (exists, seq, last_id, ours, active): Loaded = sqlx::query_as(
             "SELECT EXISTS (SELECT 1 FROM users WHERE id = ?1),
                     (SELECT seq FROM account_snapshots WHERE user_id = ?1),
-                    (SELECT recent_ids ->> '$[#-1]' FROM account_snapshots WHERE user_id = ?1),
+                    (SELECT last_id FROM account_snapshots WHERE user_id = ?1),
                     (SELECT fold = ?2 FROM account_snapshots WHERE user_id = ?1),
                     (SELECT active_workout FROM account_snapshots WHERE user_id = ?1)",
         )
@@ -840,10 +840,11 @@ impl Ledger {
             }
             sqlx::query(
                 "INSERT INTO account_snapshots
-                     (user_id, seq, fold, state, recent_ids, updated_at, active_workout)
-                 SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)
+                     (user_id, seq, fold, state, recent_ids, updated_at, active_workout, last_id)
+                 SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, coalesce(?5 ->> '$[#-1]', '')
+                 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)
                  ON CONFLICT (user_id) DO UPDATE SET
-                     active_workout = excluded.active_workout,
+                     active_workout = excluded.active_workout, last_id = excluded.last_id,
                      seq = excluded.seq, fold = excluded.fold, state = excluded.state,
                      recent_ids = excluded.recent_ids, updated_at = excluded.updated_at",
             )
@@ -1288,8 +1289,9 @@ impl Ledger {
         for (user, seq, state, recent, active) in &snapshots {
             sqlx::query(
                 "INSERT OR REPLACE INTO account_snapshots
-                     (user_id, seq, fold, state, recent_ids, updated_at, active_workout)
-                 SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)",
+                     (user_id, seq, fold, state, recent_ids, updated_at, active_workout, last_id)
+                 SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, coalesce(?5 ->> '$[#-1]', '')
+                 WHERE EXISTS (SELECT 1 FROM users WHERE id = ?1)",
             )
             .bind(user)
             .bind(seq)

@@ -279,8 +279,8 @@ fn main() {
             let mut snap = tx
                 .prepare_cached(
                     "INSERT OR REPLACE INTO account_snapshots
-                         (user_id, seq, fold, state, recent_ids, updated_at)
-                     VALUES (?, ?, ?, ?, ?, ?)",
+                         (user_id, seq, fold, state, recent_ids, updated_at, last_id)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, coalesce(?5 ->> '$[#-1]', ''))",
                 )
                 .expect("snapshots");
             let mut index = tx

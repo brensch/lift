@@ -620,20 +620,25 @@ async fn v10(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
              PRIMARY KEY (user_id, workout_id)
          ) WITHOUT ROWID;
          CREATE INDEX IF NOT EXISTS heart_rate_files_file ON heart_rate_files(file);
+         -- The small columns first: a column after a large one is read
+         -- through all of it (its overflow pages), and an account's load
+         -- (every stream that opens) wants only these.
          CREATE TABLE IF NOT EXISTS account_snapshots (
              user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
              -- The last event folded into it.
              seq INTEGER NOT NULL,
              -- The rules that folded it: schlift_core::FOLD.
              fold TEXT NOT NULL,
-             -- schlift_core::snapshot, without heart rate.
-             state BLOB NOT NULL,
-             -- A JSON array of the latest ids placed: a resend is placed once.
-             recent_ids TEXT NOT NULL DEFAULT '[]',
+             -- The id of the event at `seq`.
+             last_id TEXT NOT NULL DEFAULT '',
              -- The workout under way as of `seq` (its id, or ''): what the
              -- events after it are held for until it ends.
              active_workout TEXT NOT NULL DEFAULT '',
-             updated_at INTEGER NOT NULL
+             updated_at INTEGER NOT NULL,
+             -- A JSON array of the latest ids placed: a resend is placed once.
+             recent_ids TEXT NOT NULL DEFAULT '[]',
+             -- schlift_core::snapshot, without heart rate.
+             state BLOB NOT NULL
          );",
     )
     .execute(&mut **tx)
