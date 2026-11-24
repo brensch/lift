@@ -458,3 +458,30 @@ async fn a_workout_started_before_a_restart_is_still_held_until_it_ends() {
     db.buffer_events("u", end.to_vec(), false).await.unwrap();
     written(&db, events.len() as i64).await;
 }
+
+/// A file no index names (a write that died before it committed, or a
+/// merge's input already merged) is set aside at start and never read: the
+/// events in it are read once, from the file the index names.
+#[tokio::test]
+async fn a_file_no_index_names_is_set_aside_at_start() {
+    let dir = dir();
+    let db = open(&dir, holding()).await;
+    let mut phone = Phone::new();
+    let events = phone.workout(now_unix() - 3600, 2, true);
+    db.buffer_events("u", events.clone(), true).await.unwrap();
+    written(&db, events.len() as i64).await;
+    let written_files = files::list(&db.ledger.events_dir()).unwrap();
+    drop(db);
+    let events_dir = dir.join("events");
+    let copy = written_files[0].replace("/b-", "/b-9");
+    std::fs::copy(events_dir.join(&written_files[0]), events_dir.join(&copy)).unwrap();
+    std::fs::write(events_dir.join("half.parquet.tmp"), b"half").unwrap();
+    let db = open(&dir, holding()).await;
+    assert_eq!(files::list(&events_dir).unwrap(), written_files);
+    assert!(events_dir.join(files::ORPHANED).join(&copy).exists());
+    assert!(!events_dir.join("half.parquet.tmp").exists());
+    assert_eq!(
+        db.events_after("u", 0, i64::MAX).await.unwrap().len(),
+        events.len()
+    );
+}

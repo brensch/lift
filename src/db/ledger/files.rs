@@ -27,7 +27,7 @@ use arrow_array::builder::{Int64Builder, ListBuilder, UInt16Builder};
 use arrow_array::{Array, ArrayRef, BooleanArray, Int64Array, RecordBatch, StringArray};
 use arrow_schema::{DataType, Field, Schema};
 use parquet::arrow::arrow_reader::ParquetRecordBatchReaderBuilder;
-use parquet::arrow::{ArrowWriter, ProjectionMask};
+use parquet::arrow::ArrowWriter;
 use parquet::basic::{Compression, ZstdLevel};
 use parquet::data_type::AsBytes;
 use parquet::file::properties::WriterProperties;
@@ -370,32 +370,6 @@ pub fn read_all_beats(path: &Path, user_id: Option<&str>) -> io::Result<Vec<Beat
     Ok(out)
 }
 
-/// What each account has in the file, from its user and seq columns only:
-/// how the index is rebuilt for a file it lacks.
-pub fn read_spans(path: &Path) -> io::Result<Vec<Span>> {
-    let builder = ParquetRecordBatchReaderBuilder::try_new(File::open(path)?).map_err(other)?;
-    let mask = ProjectionMask::roots(builder.parquet_schema(), [0, 1]);
-    let reader = builder.with_projection(mask).build().map_err(other)?;
-    let mut rows = Vec::new();
-    for batch in reader {
-        let batch = batch.map_err(other)?;
-        let (users, seqs) = (strings(&batch, "user_id")?, ints(&batch, "seq")?);
-        for i in 0..batch.num_rows() {
-            rows.push(Row {
-                user_id: users.value(i).to_string(),
-                seq: seqs.value(i),
-                id: String::new(),
-                at: 0,
-                kind: String::new(),
-                workout_id: String::new(),
-                heart_rate: false,
-                event: String::new(),
-            });
-        }
-    }
-    Ok(spans(&rows))
-}
-
 /// How many rows the file holds, from its footer.
 pub fn row_count(path: &Path) -> io::Result<i64> {
     let builder = ParquetRecordBatchReaderBuilder::try_new(File::open(path)?).map_err(other)?;
@@ -412,6 +386,27 @@ pub fn list(dir: &Path) -> io::Result<Vec<String>> {
     Ok(files)
 }
 
+/// Files set aside at start (written by a write that never committed) go
+/// here, under the folder of the files: kept, never read.
+pub const ORPHANED: &str = "orphaned";
+
+/// Remove what writes left half done (`.parquet.tmp`): only at start, when
+/// nothing is writing.
+pub fn clear_temporary(dir: &Path) -> io::Result<()> {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return Ok(());
+    };
+    for entry in entries {
+        let path = entry?.path();
+        if path.is_dir() {
+            clear_temporary(&path)?;
+        } else if path.to_string_lossy().ends_with(".parquet.tmp") {
+            std::fs::remove_file(&path)?;
+        }
+    }
+    Ok(())
+}
+
 fn walk(root: &Path, dir: &Path, out: &mut Vec<String>) -> io::Result<()> {
     let Ok(entries) = std::fs::read_dir(dir) else {
         return Ok(());
@@ -419,16 +414,16 @@ fn walk(root: &Path, dir: &Path, out: &mut Vec<String>) -> io::Result<()> {
     for entry in entries {
         let path = entry?.path();
         if path.is_dir() {
-            walk(root, &path, out)?;
+            if path.file_name().and_then(|n| n.to_str()) != Some(ORPHANED) {
+                walk(root, &path, out)?;
+            }
             continue;
         }
         let name = path
             .file_name()
             .and_then(|n| n.to_str())
             .unwrap_or_default();
-        if name.ends_with(".parquet.tmp") {
-            std::fs::remove_file(&path)?;
-        } else if name.ends_with(".parquet") {
+        if name.ends_with(".parquet") {
             if let Ok(relative) = path.strip_prefix(root) {
                 out.push(relative.to_string_lossy().into_owned());
             }

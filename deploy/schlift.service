@@ -13,7 +13,10 @@ ExecStart=__INSTALL_ROOT__/current/schlift
 Restart=always
 RestartSec=2
 KillSignal=SIGTERM
-TimeoutStopSec=30
+# Stopping, the server writes every workout it holds (the phones would
+# send them again, but a deploy should ack what it held): a busy server
+# takes a minute or more.
+TimeoutStopSec=120
 
 [Install]
 WantedBy=multi-user.target
