@@ -233,10 +233,20 @@ bad wifi is found in seconds. The phone also sends HTTP/2 keepalive pings.
   `ProgramSet` must hold a program with no errors, since every device
   folds it.
   No workout, set or template is copied into a table, and nothing of an
-  account is held in memory.
+  account is held in memory. Pushes go to one writer, which places all
+  that are waiting in a single transaction, each after the last.
+- `account_snapshots` holds each account folded as of some seq, written
+  with `schlift_core::snapshot` (`src/db/snapshots.rs`). A read restores
+  it and folds only the events after it; one that folded 64 or more
+  writes a fresh snapshot after answering, and a background sweep folds
+  forward the accounts that have moved on. It is a shortcut, never the
+  truth: a snapshot caught up is exactly the whole fold
+  (`testkit/tests/snapshot.rs`), each is stamped with a hash of the core
+  that folded it (`SCHLIFT_FOLD`, `build.rs`) and only this build's are
+  used, a migration step clears them all, and any row can be deleted.
 - The workout reads the web makes (`WorkoutService`, `SettingsService`) are
   answered by the core's `View` over the account folded from its history
-  then — the same code as the phone. An assistant's MCP tools read the
+  (caught up from its snapshot) then — the same code as the phone. An assistant's MCP tools read the
   same way, and `set_program` writes through the core's `Call` and places
   the `ProgramSet` like a pushed event, so the person's phones hear it
   over Sync ([backend.md](backend.md#mcp-assistants)).

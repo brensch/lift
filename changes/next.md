@@ -1,0 +1,1 @@
+- Your training history loads faster on the website and for AI assistants, however long you've been training.
