@@ -1,6 +1,7 @@
 //! What the load test binaries share.
 
 pub mod metrics;
+pub mod training;
 
 use tonic::transport::{ClientTlsConfig, Endpoint};
 
