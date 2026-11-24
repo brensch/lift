@@ -68,8 +68,15 @@ ship it, and [`docs/linting.md`](docs/linting.md) for formatting and linting. Th
   passkeys, logins, who trained together, telemetry) is plain columns, no
   proto blobs. What only matters while the server runs (join requests,
   which stream watches whom) is in memory. The server holds no folded
-  account and computes no live state: partners' status is folded on each
-  phone from the workout events the server routes to it.
+  account in memory and computes no live state: partners' status is folded
+  on each phone from the workout events the server routes to it. The one
+  exception is `account_snapshots`: an account folded as of some event, so a
+  read folds only what came after. It is never the truth: it is stamped
+  with the core that folded it, thrown away when that changes or a
+  migration runs, and must equal the whole fold
+  (`testkit/tests/snapshot.rs`). Never write one with a push, never read
+  anything from it that the events don't also say, and a new `Account`
+  field goes in `core/src/snapshot.rs` (it won't compile until it does).
 - **Server schema changes are a new step in `src/db/migrate.rs`**: an
   `if version < N` block at the end of `migrate`, run once at startup and
   tracked by `PRAGMA user_version`. Never edit a step that has shipped.

@@ -35,6 +35,8 @@ test-auth = []
 
 [build-dependencies]
 tonic-build = "0.12.3"
+# Hashes what decides how accounts fold (build.rs).
+sha2 = "0.10"
 
 [workspace]
 members = ["core", "app/native", "loadtest", "testkit"]

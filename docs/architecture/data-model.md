@@ -56,9 +56,11 @@ it was laid out from and every weight change since), and the active
 workout's id. Each `WorkoutRecord` also holds the program its sets were
 laid out by (from the start's recorded `rules`). Nothing else is kept: each lift's estimated max is walked
 from the workouts whenever a plan is made (`core/src/plan.rs`). The
-account is never stored whole; the phone holds it in memory while the
-account is open, and the server folds it from its history only when the
-website asks, keeping nothing.
+account is never the stored truth; the phone holds it in memory while the
+account is open, and the server folds it when the website or an assistant
+asks, from a snapshot of it (`account_snapshots`, see
+[local-first.md](local-first.md#on-the-server)) and the events since. A
+snapshot can always be thrown away and folded again.
 
 ## Exported tables
 

@@ -22,6 +22,7 @@ pub mod recovery;
 pub mod rotation;
 pub mod session;
 pub mod simulate;
+pub mod snapshot;
 pub mod sync;
 pub mod template_library;
 pub mod volume;

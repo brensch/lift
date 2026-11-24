@@ -73,6 +73,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if let Ok(name) = std::env::var("SEED_DEMO_USER") {
         demo_seed::seed_demo_user(&server_db, &name).await?;
     }
+    // Accounts folded forward in the background, so reads fold little.
+    server_db.sweep_snapshots();
     let auth_state = std::sync::Arc::new(AuthState::new(server_db.clone()));
 
     // Loopback only: Caddy, on the same host, is the way in. PORT lets a

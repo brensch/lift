@@ -6,7 +6,8 @@
 //! What lives here is only what the server owns: who people are, how they
 //! sign in, who trained together, and telemetry. A person's training is
 //! their account's events, stored as they arrive and never interpreted by
-//! SQL (see `docs/architecture/data-model.md`).
+//! SQL (see `docs/architecture/data-model.md`); `account_snapshots` only
+//! saves folding them again, and can be emptied at any time.
 
 use super::DbResult;
 use crate::time::now_unix;
@@ -103,8 +104,27 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 10 {
+        let mut tx = pool.begin().await?;
+        v10(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 10")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
+    // A step that moves events (as v6 did) leaves snapshots folded from the
+    // events as they were: any step run clears them, and they are folded
+    // again as accounts are read.
+    if version > 0 && version < LATEST {
+        sqlx::query("DELETE FROM account_snapshots")
+            .execute(pool)
+            .await?;
+    }
     Ok(())
 }
+
+/// The version the steps above bring a database to: a new step moves it.
+const LATEST: i64 = 10;
 
 /// A login token as stored: its SHA-256, so the table never holds a token
 /// that would let someone in.
@@ -567,6 +587,28 @@ async fn v9(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
     Ok(())
 }
 
+/// Each account folded as of some point in its log (`db/snapshots.rs`), so
+/// a read folds only the events after it. Nothing in it is the truth: every
+/// row can be thrown away and folded again from the events, and is when the
+/// rules that folded it (`fold`, the build's) aren't this server's.
+async fn v10(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS account_snapshots (
+             user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+             -- The last event folded into it.
+             seq INTEGER NOT NULL,
+             -- The rules that folded it: schlift_core's sources, hashed.
+             fold TEXT NOT NULL,
+             -- schlift_core::snapshot, without heart rate.
+             state BLOB NOT NULL,
+             updated_at INTEGER NOT NULL
+         );",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use crate::db::ServerDb;
@@ -621,7 +663,7 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-        assert_eq!(version, 9);
+        assert_eq!(version, super::LATEST);
         drop(db);
         // Opening again runs nothing.
         ServerDb::new_in_dir(&dir).await.unwrap();

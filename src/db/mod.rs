@@ -15,6 +15,7 @@ mod auth;
 mod changes;
 mod migrate;
 mod recovery;
+mod snapshots;
 mod training;
 pub use changes::{Change, Topic};
 mod session;
@@ -33,6 +34,10 @@ pub struct ServerDb {
     write_pool: Pool<Sqlite>,
     join_requests: std::sync::Arc<session::JoinRequests>,
     changes: std::sync::Arc<changes::Changes>,
+    /// Pushes waiting for the one writer of events (`accounts::writer`).
+    pushes: tokio::sync::mpsc::Sender<accounts::Push>,
+    /// Whose snapshot is behind (`snapshots`).
+    snapshots: std::sync::Arc<snapshots::Lag>,
 }
 
 impl ServerDb {
@@ -55,11 +60,22 @@ impl ServerDb {
             .connect_with(options)
             .await?;
         migrate::migrate(&write_pool).await?;
+        let changes = std::sync::Arc::<changes::Changes>::default();
+        let snapshots = std::sync::Arc::<snapshots::Lag>::default();
+        let (pushes, waiting) = tokio::sync::mpsc::channel(accounts::PUSHES_WAITING);
+        tokio::spawn(accounts::writer(
+            write_pool.clone(),
+            changes.clone(),
+            snapshots.clone(),
+            waiting,
+        ));
         Ok(Self {
             read_pool,
             write_pool,
             join_requests: Default::default(),
-            changes: Default::default(),
+            changes,
+            pushes,
+            snapshots,
         })
     }
 

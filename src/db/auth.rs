@@ -622,6 +622,8 @@ mod tests {
                VALUES (?, 1, 'e', '{"seq":1,"id":"e","at":1,"WorkoutDiscarded":{"workout_id":"w"}}')"#,
             "INSERT INTO page_views (user_id, app_session_id, seq, page, entered_at_ms)
              VALUES (?, 's', 1, 'home', 1)",
+            "INSERT INTO account_snapshots (user_id, seq, fold, state, updated_at)
+             VALUES (?, 1, 'f', x'00', 1)",
         ] {
             sqlx::query(sql)
                 .bind(u)
