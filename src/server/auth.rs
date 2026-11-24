@@ -52,6 +52,12 @@ const RECOVERY_REQUEST_HEADER: &str = "x-recovery-request";
 /// Longest username a new account may take.
 const MAX_USERNAME_CHARS: usize = 64;
 
+/// The ids a ceremony hands out are uuids: anything longer is refused before
+/// it is logged or looked up.
+fn id_too_long(id: &str) -> bool {
+    id.len() > 64
+}
+
 /// The one rule for a username: what registration and dev login both
 /// accept, as the error to refuse with (`invalid_argument`). The app and the
 /// website show it as it comes; they keep no copy of the rule, so the two
@@ -62,12 +68,23 @@ fn username_problem(username: &str) -> Option<&'static str> {
     } else if username.chars().any(char::is_whitespace) {
         Some("username cannot contain spaces")
     } else if username.chars().count() > MAX_USERNAME_CHARS
-        || username.chars().any(char::is_control)
+        || username.chars().any(|c| c.is_control() || invisible(c))
     {
         Some("username is not valid")
     } else {
         None
     }
+}
+
+/// Characters that show as nothing (zero-width spaces and joiners, marks
+/// that flip text direction, soft hyphens): a name holding one reads as
+/// another person's.
+fn invisible(c: char) -> bool {
+    matches!(
+        c,
+        '\u{00AD}' | '\u{061C}' | '\u{180E}' | '\u{200B}'..='\u{200F}'
+            | '\u{202A}'..='\u{202E}' | '\u{2060}'..='\u{2069}' | '\u{FEFF}'
+    )
 }
 
 /// Passkey names past this are cut short.
@@ -118,14 +135,7 @@ fn client_ip<T>(request: &Request<T>) -> Option<String> {
 /// Who is counted as one client for the limit on ceremonies in flight: the
 /// address, or for IPv6 its /64, which one host can move freely within.
 fn client_key<T>(request: &Request<T>) -> String {
-    let ip = client_ip(request).unwrap_or_default();
-    match ip.parse::<std::net::IpAddr>() {
-        Ok(std::net::IpAddr::V6(v6)) => {
-            let s = v6.segments();
-            format!("{:x}:{:x}:{:x}:{:x}::/64", s[0], s[1], s[2], s[3])
-        }
-        _ => ip,
-    }
+    crate::rate::client_key(&client_ip(request).unwrap_or_default())
 }
 
 #[tonic::async_trait]
@@ -194,10 +204,11 @@ impl AuthService for ServerAuthService {
         let client = client_key(&request);
         let req = request.into_inner();
         let username = req.username.trim().to_string();
-        info!(rpc = "RegisterStart", %username, "request");
+        // Checked before it is logged: the caller chose it.
         if let Some(problem) = username_problem(&username) {
             return Err(Status::invalid_argument(problem));
         }
+        info!(rpc = "RegisterStart", %username, "request");
         if self
             .db
             .get_user_by_name(&username)
@@ -228,6 +239,9 @@ impl AuthService for ServerAuthService {
     ) -> Result<Response<AuthResponse>, Status> {
         let remote_addr = client_ip(&request);
         let req = request.into_inner();
+        if id_too_long(&req.user_id) {
+            return Err(Status::invalid_argument("id too long"));
+        }
         info!(rpc = "RegisterFinish", user_id = %req.user_id, "request");
         let credential: RegisterPublicKeyCredential = serde_json::from_str(&req.credential_json)
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
@@ -268,6 +282,13 @@ impl AuthService for ServerAuthService {
         let client = client_key(&request);
         let req = request.into_inner();
         info!(rpc = "LoginStart", "request");
+        if req
+            .username
+            .as_deref()
+            .is_some_and(|name| name.trim().chars().count() > MAX_USERNAME_CHARS)
+        {
+            return Err(Status::invalid_argument("username too long"));
+        }
         let (challenge_id, options) = match req.username.as_deref() {
             Some(username) if !username.trim().is_empty() => self
                 .auth_state
@@ -294,6 +315,9 @@ impl AuthService for ServerAuthService {
         request: Request<LoginFinishRequest>,
     ) -> Result<Response<AuthResponse>, Status> {
         let req = request.into_inner();
+        if id_too_long(&req.challenge_id) {
+            return Err(Status::invalid_argument("id too long"));
+        }
         info!(rpc = "LoginFinish", challenge_id = %req.challenge_id, "request");
         let credential: PublicKeyCredential = serde_json::from_str(&req.credential_json)
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
@@ -494,10 +518,10 @@ impl AuthService for ServerAuthService {
         let client = client_key(&request);
         let req = request.into_inner();
         let username = req.username.trim();
-        info!(rpc = "RecoveryStart", %username, "request");
         if username.is_empty() || username.chars().count() > MAX_USERNAME_CHARS {
             return Err(Status::invalid_argument("username is required"));
         }
+        info!(rpc = "RecoveryStart", %username, "request");
         let (request_id, options) = self
             .auth_state
             .start_recovery(username, &client)
@@ -520,6 +544,9 @@ impl AuthService for ServerAuthService {
         let remote_addr = client_ip(&request);
         let (platform, _) = client_labels(&request);
         let req = request.into_inner();
+        if id_too_long(&req.request_id) {
+            return Err(Status::invalid_argument("id too long"));
+        }
         info!(rpc = "RecoveryFinish", request_id = %req.request_id, "request");
         let credential: RegisterPublicKeyCredential = serde_json::from_str(&req.credential_json)
             .map_err(|e| Status::invalid_argument(format!("Invalid credential JSON: {}", e)))?;
@@ -620,6 +647,9 @@ impl AuthService for ServerAuthService {
     ) -> Result<Response<DenyMyRecoveryResponse>, Status> {
         let user_id = authed_user_id(&request, &self.db).await?;
         let req = request.into_inner();
+        if id_too_long(&req.request_id) {
+            return Err(Status::invalid_argument("id too long"));
+        }
         info!(rpc = "DenyMyRecovery", %user_id, request_id = %req.request_id, "request");
         // One that is not theirs, or already decided, is left as it is.
         self.db

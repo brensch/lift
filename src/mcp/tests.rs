@@ -16,6 +16,10 @@ async fn mcp() -> Mcp {
     Mcp {
         db,
         origin: "https://schlift.test".into(),
+        registrations: std::sync::Arc::new(crate::rate::Limiter::new(
+            1000,
+            std::time::Duration::from_secs(1),
+        )),
     }
 }
 

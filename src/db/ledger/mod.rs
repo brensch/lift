@@ -108,6 +108,21 @@ const SNAPSHOT_READERS: usize = 64;
 /// Accounts written in one batch at most.
 const ACCOUNTS_PER_BATCH: usize = 5_000;
 
+/// An account holding more than this is written at the next batch, under
+/// way or not: one account can't fill the server's memory however it
+/// pushes (a long workout's events are a few hundred KB).
+const MAX_HELD_BYTES_PER_ACCOUNT: usize = 32 << 20;
+const MAX_HELD_EVENTS_PER_ACCOUNT: usize = 20_000;
+
+/// Sets planned by the held events of one account past this are refused:
+/// folding a workout costs with the sets it holds, on the server and on
+/// every partner's phone (a real workout plans a few dozen).
+const MAX_PLANNED_SETS_HELD: usize = 2_000;
+
+/// An account whose write failed is tried again this much later, not with
+/// every batch.
+const FAILED_RETRY: Duration = Duration::from_secs(60);
+
 /// One account, in memory.
 #[derive(Default)]
 struct Log {
@@ -202,12 +217,57 @@ fn kind_of(json: &str) -> String {
 }
 
 fn approx_bytes(event: &Event) -> usize {
-    match &event.fact {
-        Fact::HeartRateRecorded(h) => 128 + h.packed.len() + h.bpm.len() * 6,
+    // What the event holds, as its JSON (a phone chose its strings and
+    // lists: a guess by kind let a few huge events count as small ones),
+    // and at least the guess by kind.
+    struct Count(usize);
+    impl std::io::Write for Count {
+        fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+            self.0 += buf.len();
+            Ok(buf.len())
+        }
+        fn flush(&mut self) -> std::io::Result<()> {
+            Ok(())
+        }
+    }
+    let mut count = Count(0);
+    let _ = serde_json::to_writer(&mut count, event);
+    let floor = match &event.fact {
+        Fact::HeartRateRecorded(h) => 128 + h.bpm.len() * 6,
         Fact::WorkoutStarted(_) => 8_192,
         _ => 384,
+    };
+    count.0.max(floor)
+}
+
+/// The sets a held event plans: a workout's start and its added lifts,
+/// and the set count an adjust asks for.
+fn planned_sets(event: &Event) -> usize {
+    let sets = |decisions: &[schlift_core::pb::ExerciseDecision]| {
+        decisions
+            .iter()
+            .map(|d| usize::try_from(d.sets).unwrap_or(0))
+            .sum::<usize>()
+    };
+    match &event.fact {
+        Fact::WorkoutStarted(started) => sets(&started.decisions),
+        Fact::ExercisesAdded(added) => sets(&added.decisions),
+        Fact::ExerciseAdjusted(adjusted) => usize::try_from(adjusted.sets).unwrap_or(0),
+        _ => 0,
     }
 }
+
+/// A push the ledger refuses: what the caller is told.
+#[derive(Debug)]
+pub struct Refused(pub &'static str);
+
+impl std::fmt::Display for Refused {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.0)
+    }
+}
+
+impl std::error::Error for Refused {}
 
 fn now_ms() -> i64 {
     std::time::SystemTime::now()
@@ -475,6 +535,22 @@ impl Ledger {
             } else {
                 HashSet::new()
             };
+        let new = || {
+            events
+                .iter()
+                .filter(|e| !log.unacked_ids.contains(&e.id) && !written.contains(&e.id))
+        };
+        let planned: usize = log
+            .unacked
+            .iter()
+            .map(|e| planned_sets(e))
+            .chain(new().map(planned_sets))
+            .sum();
+        if planned > MAX_PLANNED_SETS_HELD {
+            return Err(Box::new(Refused(
+                "more sets planned than any workout holds",
+            )));
+        }
         let mut taken = Vec::new();
         let mut ended = false;
         for mut event in events {
@@ -512,7 +588,9 @@ impl Ledger {
         // the next batch, so the ends of a busy minute share their files
         // rather than each making its own.
         let urgent = !log.waiters.is_empty();
-        let write_by = if urgent || ended {
+        let too_much = log.bytes > MAX_HELD_BYTES_PER_ACCOUNT
+            || log.unacked.len() > MAX_HELD_EVENTS_PER_ACCOUNT;
+        let write_by = if urgent || ended || too_much {
             now
         } else if !log.active.is_empty() {
             now + self.timing.abandoned
@@ -619,7 +697,14 @@ impl Ledger {
         let result = self.write_taken(&taken).await;
         match result {
             Ok(written) => {
-                for ((user, log, _, _, waiters), written) in taken.into_iter().zip(written) {
+                for ((user, log, events, _, waiters), written) in taken.into_iter().zip(written) {
+                    let Some(written) = written else {
+                        // Not written (logged): held again, and tried later
+                        // than the rest, so it doesn't fail every batch.
+                        self.put_back(user, &log, events, waiters, Instant::now() + FAILED_RETRY)
+                            .await;
+                        continue;
+                    };
                     let mut held = log.lock().await;
                     if let Some(last) = written.last() {
                         held.head = last.seq;
@@ -664,29 +749,46 @@ impl Ledger {
             Err(error) => {
                 // Nothing written: the events go back in front, as they were.
                 for (user, log, events, _, waiters) in taken {
-                    let mut held = log.lock().await;
-                    let later = std::mem::take(&mut held.unacked);
-                    let bytes: usize = events.iter().map(|e| approx_bytes(e)).sum();
-                    held.bytes += bytes;
-                    self.held.fetch_add(bytes, Ordering::Relaxed);
-                    held.unacked = events.into_iter().chain(later).collect();
-                    held.unacked_ids = held.unacked.iter().map(|e| e.id.clone()).collect();
-                    held.waiters.splice(0..0, waiters);
-                    held.since.get_or_insert(Instant::now());
-                    drop(held);
-                    self.due
-                        .lock()
-                        .unwrap_or_else(|e| e.into_inner())
-                        .insert(user, Instant::now());
+                    self.put_back(user, &log, events, waiters, Instant::now())
+                        .await;
                 }
                 Err(error)
             }
         }
     }
 
+    /// Taken events not written: back in front of the account's held ones,
+    /// as they were, due again at `due`.
+    async fn put_back(
+        &self,
+        user: String,
+        log: &tokio::sync::Mutex<Log>,
+        events: Vec<Arc<Event>>,
+        waiters: Vec<oneshot::Sender<Vec<Event>>>,
+        due: Instant,
+    ) {
+        let mut held = log.lock().await;
+        let later = std::mem::take(&mut held.unacked);
+        let bytes: usize = events.iter().map(|e| approx_bytes(e)).sum();
+        held.bytes += bytes;
+        self.held.fetch_add(bytes, Ordering::Relaxed);
+        held.unacked = events.into_iter().chain(later).collect();
+        held.unacked_ids = held.unacked.iter().map(|e| e.id.clone()).collect();
+        held.waiters.splice(0..0, waiters);
+        held.since.get_or_insert(Instant::now());
+        drop(held);
+        self.due
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(user, due);
+    }
+
     /// The write itself: what each account's events become, in the files
-    /// and its snapshot. The events placed, per account, in `taken`'s order.
-    async fn write_taken(&self, taken: &[Taken]) -> DbResult<Vec<Vec<Event>>> {
+    /// and its snapshot. The events placed, per account, in `taken`'s order;
+    /// None for an account that couldn't be placed (its snapshot didn't
+    /// read, its fold failed): left out, so one account never stops the
+    /// others being written.
+    async fn write_taken(&self, taken: &[Taken]) -> DbResult<Vec<Option<Vec<Event>>>> {
         // The snapshots these fold onto, and the ids kept with them, in one
         // query; accounts whose snapshot is by other rules are folded again
         // from the files (after a release changed them).
@@ -717,19 +819,20 @@ impl Ledger {
         let read = started.elapsed();
         // Each account's base: its stored snapshot (read in `place`), an
         // empty account, or (by other rules) folded again from the files.
-        let mut bases: Vec<(Option<Account>, Vec<String>)> = Vec::with_capacity(taken.len());
+        let mut bases: Vec<Base> = Vec::with_capacity(taken.len());
         for (user, _, _, head, _) in taken {
             match saved.get(user) {
                 Some((_, recent, fold)) if fold == schlift_core::FOLD => {
-                    bases.push((None, serde_json::from_str(recent).unwrap_or_default()));
+                    bases.push(Ok((None, serde_json::from_str(recent).unwrap_or_default())));
                 }
                 _ if *head == 0 => {
-                    bases.push((Some(Account::fold_without_heart_rate([])), Vec::new()))
+                    bases.push(Ok((Some(Account::fold_without_heart_rate([])), Vec::new())))
                 }
                 _ => bases.push(
                     self.fold_from_files(user)
                         .await
-                        .map(|(a, r)| (Some(a), r))?,
+                        .map(|(a, r)| (Some(a), r))
+                        .map_err(|e| format!("folding from the files: {e}")),
                 ),
             }
         }
@@ -737,19 +840,30 @@ impl Ledger {
         // the cores.
         let now = now_ms();
         let mut jobs = Vec::new();
-        for ((user, _, events, head, _), (base, recent)) in taken.iter().zip(bases) {
+        let mut placed: Vec<Option<Placed>> = (0..taken.len()).map(|_| None).collect();
+        for (i, ((user, _, events, head, _), base)) in taken.iter().zip(bases).enumerate() {
+            let (base, recent) = match base {
+                Ok(base) => base,
+                Err(error) => {
+                    tracing::error!(user_id = %user, %error, "an account couldn't be written");
+                    continue;
+                }
+            };
             let state = saved
                 .get(user)
                 .filter(|(_, _, fold)| fold == schlift_core::FOLD)
                 .map(|(state, _, _)| state.clone());
-            jobs.push(Job {
-                user_id: user.clone(),
-                events: events.clone(),
-                head: *head,
-                base,
-                state,
-                recent,
-            });
+            jobs.push((
+                i,
+                Job {
+                    user_id: user.clone(),
+                    events: events.clone(),
+                    head: *head,
+                    base,
+                    state,
+                    recent,
+                },
+            ));
         }
         let parts = std::thread::available_parallelism()
             .map_or(4, |n| n.get())
@@ -762,20 +876,43 @@ impl Ledger {
             if chunk.is_empty() {
                 break;
             }
-            handles.push(tokio::task::spawn_blocking(
-                move || -> DbResult<Vec<Placed>> { chunk.into_iter().map(place).collect() },
-            ));
+            // Each account on its own: a fold that fails or panics (an
+            // event no app makes) leaves that account out, not the batch.
+            handles.push(tokio::task::spawn_blocking(move || {
+                chunk
+                    .into_iter()
+                    .map(|(i, job)| {
+                        let user = job.user_id.clone();
+                        let result =
+                            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| place(job)))
+                                .map_err(|_| "its fold panicked".to_string())
+                                .and_then(|r| r.map_err(|e| e.to_string()));
+                        (i, user, result)
+                    })
+                    .collect::<Vec<_>>()
+            }));
         }
-        let mut placed: Vec<Placed> = Vec::with_capacity(taken.len());
         for handle in handles {
-            placed.extend(handle.await??);
+            for (i, user, result) in handle.await? {
+                match result {
+                    Ok(p) => placed[i] = Some(p),
+                    Err(error) => {
+                        tracing::error!(user_id = %user, %error, "an account couldn't be written");
+                    }
+                }
+            }
         }
         let (fold, files_from) = (started.elapsed() - read, Instant::now());
         // The files: events, and heart rate, of the whole batch.
-        let mut rows: Vec<Row> = placed.iter().flat_map(|p| p.rows.iter().cloned()).collect();
+        let mut rows: Vec<Row> = placed
+            .iter()
+            .flatten()
+            .flat_map(|p| p.rows.iter().cloned())
+            .collect();
         rows.sort_by(|a, b| (&a.user_id, a.seq).cmp(&(&b.user_id, b.seq)));
         let mut beats: Vec<Beats> = placed
             .iter()
+            .flatten()
             .flat_map(|p| p.beats.iter().cloned())
             .collect();
         beats.sort_by(|a, b| (&a.user_id, &a.workout_id).cmp(&(&b.user_id, &b.workout_id)));
@@ -829,6 +966,7 @@ impl Ledger {
         .await?;
         let beat_index: Vec<(&str, &str, &str)> = placed
             .iter()
+            .flatten()
             .flat_map(|p| {
                 p.beats.iter().map(|b| {
                     (
@@ -850,7 +988,7 @@ impl Ledger {
             .await?;
         }
         let unix = now_unix();
-        for p in &placed {
+        for p in placed.iter().flatten() {
             if p.events.is_empty() {
                 continue;
             }
@@ -886,7 +1024,7 @@ impl Ledger {
                 "a write took longer than the batch interval"
             );
         }
-        Ok(placed.into_iter().map(|p| p.events).collect())
+        Ok(placed.into_iter().map(|p| p.map(|p| p.events)).collect())
     }
 
     /// Whether the account is in a session, or ended one still on show:
@@ -1378,6 +1516,10 @@ struct Placed {
     /// The workout under way once these are folded (or empty).
     active: String,
 }
+
+/// An account's base to fold onto (folded already, or None for its stored
+/// snapshot) and its latest ids; or why there is none.
+type Base = Result<(Option<Account>, Vec<String>), String>;
 
 /// One account's write to work out: its held events, its head, its base
 /// (folded already, or its stored snapshot's bytes) and its latest ids.

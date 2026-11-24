@@ -49,6 +49,28 @@ pub struct Mcp {
     pub db: ServerDb,
     /// Where people reach this server: `https://schlift.com`.
     pub origin: String,
+    /// Registrations each address may make: open to anyone, and the cap
+    /// on clients nobody connected drops the oldest, so a flood would push
+    /// out the ones people were about to allow.
+    pub registrations: std::sync::Arc<crate::rate::Limiter>,
+}
+
+/// Registrations from one address: a few at once, then one a minute.
+const REGISTRATIONS_BURST: u32 = 10;
+const REGISTRATION_REFILL: std::time::Duration = std::time::Duration::from_secs(60);
+/// The redirect URIs a client registers, together.
+const MAX_REDIRECT_BYTES: usize = 2048;
+
+/// The address a request came from: the last X-Forwarded-For entry, which
+/// Caddy (or the apps' own listener) sets from the peer.
+fn caller(headers: &HeaderMap) -> String {
+    let ip = headers
+        .get("x-forwarded-for")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.rsplit(',').next())
+        .map(str::trim)
+        .unwrap_or_default();
+    crate::rate::client_key(ip)
 }
 
 impl Mcp {
@@ -59,6 +81,10 @@ impl Mcp {
         Self {
             db,
             origin: origin.trim_end_matches('/').to_string(),
+            registrations: std::sync::Arc::new(crate::rate::Limiter::new(
+                REGISTRATIONS_BURST,
+                REGISTRATION_REFILL,
+            )),
         }
     }
 
@@ -148,7 +174,14 @@ pub fn redirect_allowed(uri: &str) -> bool {
     }
 }
 
-async fn register(State(mcp): State<Mcp>, body: Bytes) -> Response {
+async fn register(State(mcp): State<Mcp>, headers: HeaderMap, body: Bytes) -> Response {
+    if !mcp.registrations.allow(&caller(&headers)) {
+        return oauth_error(
+            StatusCode::TOO_MANY_REQUESTS,
+            "invalid_request",
+            "too many registrations; try again later",
+        );
+    }
     let Ok(request) = serde_json::from_slice::<Value>(&body) else {
         return oauth_error(
             StatusCode::BAD_REQUEST,
@@ -171,7 +204,11 @@ async fn register(State(mcp): State<Mcp>, body: Bytes) -> Response {
                 .collect()
         })
         .unwrap_or_default();
-    if uris.is_empty() || uris.len() > 10 || !uris.iter().all(|u| redirect_allowed(u)) {
+    if uris.is_empty()
+        || uris.len() > 10
+        || uris.iter().map(String::len).sum::<usize>() > MAX_REDIRECT_BYTES
+        || !uris.iter().all(|u| redirect_allowed(u))
+    {
         return oauth_error(
             StatusCode::BAD_REQUEST,
             "invalid_redirect_uri",
@@ -303,7 +340,11 @@ pub async fn check_connect(
         .db
         .assistant_client(&request.client_id)
         .await
-        .map_err(|e| e.to_string())?
+        .map_err(|error| {
+            // Logged, not told: the caller isn't signed in.
+            tracing::error!(%error, "reading an assistant");
+            "Something went wrong; try again".to_string()
+        })?
         .ok_or("This assistant isn't registered")?;
     if !client.redirect_uris.contains(&request.redirect_uri) {
         return Err("The return address isn't one this assistant registered".into());

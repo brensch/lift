@@ -17,6 +17,13 @@ const CHALLENGE_TTL_SECS: u64 = 300;
 const MAX_PENDING_PER_CLIENT: usize = 20;
 const MAX_PENDING_CHALLENGES: usize = 100_000;
 
+/// Ceremonies a client may start: a burst, then one each refill. The cap
+/// on those in flight alone let a client start, fail and start again at
+/// line rate (each start files an attempt and may make an account or a
+/// recovery request).
+const STARTS_BURST: u32 = 30;
+const STARTS_REFILL: std::time::Duration = std::time::Duration::from_secs(20);
+
 /// Why a ceremony was refused. The caller is told `message`; what went
 /// wrong in detail is logged where it happened, never sent: a failure used
 /// to be shown to the user with the challenge and every allowed origin in it.
@@ -170,6 +177,8 @@ pub struct AuthState {
     auth_challenges: Arc<Mutex<HashMap<String, PendingAuthChallenge>>>,
     /// Recoveries in flight, by request id.
     recovery_challenges: Arc<Mutex<HashMap<String, PendingRecovery>>>,
+    /// Each client's allowance of ceremony starts, and when it was counted.
+    starts: Arc<crate::rate::Limiter>,
     /// Mixed into the user id a recovery for a name nobody holds is given,
     /// so the same name gets the same id each time, as a real one would.
     nobody_key: [u8; 16],
@@ -207,7 +216,17 @@ impl AuthState {
             add_challenges: Arc::new(Mutex::new(HashMap::new())),
             auth_challenges: Arc::new(Mutex::new(HashMap::new())),
             recovery_challenges: Arc::new(Mutex::new(HashMap::new())),
+            starts: Arc::new(crate::rate::Limiter::new(STARTS_BURST, STARTS_REFILL)),
             nobody_key: *uuid::Uuid::new_v4().as_bytes(),
+        }
+    }
+
+    /// Spend one of `client`'s ceremony starts, or refuse when it has none.
+    fn charge(&self, client: &str) -> Result<(), Refusal> {
+        if self.starts.allow(client) {
+            Ok(())
+        } else {
+            Err(Refusal::Busy)
         }
     }
 
@@ -216,6 +235,7 @@ impl AuthState {
         username: &str,
         client: &str,
     ) -> Result<(String, CreationChallengeResponse), Refusal> {
+        self.charge(client)?;
         let user_unique_id = uuid::Uuid::new_v4();
         let user_id = user_unique_id.to_string();
 
@@ -288,6 +308,7 @@ impl AuthState {
         username: &str,
         client: &str,
     ) -> Result<CreationChallengeResponse, Refusal> {
+        self.charge(client)?;
         let user_unique_id =
             uuid::Uuid::parse_str(user_id).map_err(|e| internal("user id is not a uuid", e))?;
 
@@ -372,6 +393,7 @@ impl AuthState {
         username: &str,
         client: &str,
     ) -> Result<(String, CreationChallengeResponse), Refusal> {
+        self.charge(client)?;
         let user = self
             .db
             .get_user_by_name(username)
@@ -462,6 +484,7 @@ impl AuthState {
         &self,
         client: &str,
     ) -> Result<(String, RequestChallengeResponse), Refusal> {
+        self.charge(client)?;
         let (rcr, auth_state) = self
             .webauthn
             .start_discoverable_authentication()
@@ -489,6 +512,7 @@ impl AuthState {
         username: &str,
         client: &str,
     ) -> Result<(String, RequestChallengeResponse), Refusal> {
+        self.charge(client)?;
         let user = self
             .db
             .get_user_by_name(username)
@@ -767,7 +791,11 @@ fn client_data(cred: &PublicKeyCredential) -> (Option<String>, Option<String>) {
     else {
         return (None, None);
     };
-    let field = |key: &str| client_data.get(key)?.as_str().map(str::to_string);
+    // Cut short: the client chose them, and they go into the logs.
+    let field = |key: &str| {
+        let value = client_data.get(key)?.as_str()?;
+        Some(value.chars().take(128).collect())
+    };
     (field("challenge"), field("origin"))
 }
 
