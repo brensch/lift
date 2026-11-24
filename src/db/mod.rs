@@ -56,10 +56,13 @@ impl ServerDb {
             .synchronous(SqliteSynchronous::Normal)
             .journal_mode(SqliteJournalMode::Wal)
             .busy_timeout(std::time::Duration::from_secs(30));
+        // The writer never checkpoints: a commit that did would copy the WAL
+        // into the database (random writes) before it returned, and a
+        // batch of snapshots is megabytes. `checkpoint_in_background` does.
         let write_pool = SqlitePoolOptions::new()
             .max_connections(1)
             .acquire_slow_threshold(std::time::Duration::from_secs(60))
-            .connect_with(options.clone())
+            .connect_with(options.clone().pragma("wal_autocheckpoint", "0"))
             .await?;
         let read_pool = SqlitePoolOptions::new()
             .max_connections(16)
@@ -76,6 +79,7 @@ impl ServerDb {
         )
         .await?;
         ledger.run();
+        checkpoint_in_background(&read_pool);
         Ok(Self {
             read_pool,
             write_pool,
@@ -93,4 +97,30 @@ impl ServerDb {
     fn notify(&self, topic: Topic, change: Change) {
         self.changes.notify(topic, change);
     }
+}
+
+/// Copy the WAL into the database every few seconds, from a reader: a
+/// passive checkpoint waits for no one and blocks no one, so the writer's
+/// commits stay appends and the WAL stays a few seconds' writes long.
+fn checkpoint_in_background(pool: &Pool<Sqlite>) {
+    let pool = pool.clone();
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(std::time::Duration::from_secs(if cfg!(test) {
+                1
+            } else {
+                5
+            }))
+            .await;
+            if pool.is_closed() {
+                return;
+            }
+            if let Err(error) = sqlx::query("PRAGMA wal_checkpoint(PASSIVE)")
+                .execute(&pool)
+                .await
+            {
+                tracing::warn!(%error, "checkpointing the WAL");
+            }
+        }
+    });
 }
