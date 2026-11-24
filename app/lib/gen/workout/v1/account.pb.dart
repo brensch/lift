@@ -204,18 +204,20 @@ class ImportedWorkout extends $pb.GeneratedMessage {
   $pb.PbList<$1.ExerciseLog> get exerciseLogs => $_getList(4);
 }
 
-enum SyncRequest_Kind { heartbeat, afterSeq, events, notSet }
+enum SyncRequest_Kind { heartbeat, afterSeq, events, open, notSet }
 
 class SyncRequest extends $pb.GeneratedMessage {
   factory SyncRequest({
     Heartbeat? heartbeat,
     $fixnum.Int64? afterSeq,
     $core.List<$core.int>? events,
+    SyncOpen? open,
   }) {
     final result = create();
     if (heartbeat != null) result.heartbeat = heartbeat;
     if (afterSeq != null) result.afterSeq = afterSeq;
     if (events != null) result.events = events;
+    if (open != null) result.open = open;
     return result;
   }
 
@@ -232,18 +234,21 @@ class SyncRequest extends $pb.GeneratedMessage {
     2: SyncRequest_Kind.heartbeat,
     3: SyncRequest_Kind.afterSeq,
     4: SyncRequest_Kind.events,
+    5: SyncRequest_Kind.open,
     0: SyncRequest_Kind.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'SyncRequest',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [2, 3, 4])
+    ..oo(0, [2, 3, 4, 5])
     ..aOM<Heartbeat>(2, _omitFieldNames ? '' : 'heartbeat',
         subBuilder: Heartbeat.create)
     ..aInt64(3, _omitFieldNames ? '' : 'afterSeq')
     ..a<$core.List<$core.int>>(
         4, _omitFieldNames ? '' : 'events', $pb.PbFieldType.OY)
+    ..aOM<SyncOpen>(5, _omitFieldNames ? '' : 'open',
+        subBuilder: SyncOpen.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -268,10 +273,12 @@ class SyncRequest extends $pb.GeneratedMessage {
   @$pb.TagNumber(2)
   @$pb.TagNumber(3)
   @$pb.TagNumber(4)
+  @$pb.TagNumber(5)
   SyncRequest_Kind whichKind() => _SyncRequest_KindByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(2)
   @$pb.TagNumber(3)
   @$pb.TagNumber(4)
+  @$pb.TagNumber(5)
   void clearKind() => $_clearField($_whichOneof(0));
 
   /// Keeps the stream (and the proxies on the way) awake; answered with the
@@ -288,6 +295,7 @@ class SyncRequest extends $pb.GeneratedMessage {
   Heartbeat ensureHeartbeat() => $_ensure(0);
 
   /// First, and only first: the last seq the device holds, 0 for none.
+  /// An app from before `open` sends this; it is sent events only.
   @$pb.TagNumber(3)
   $fixnum.Int64 get afterSeq => $_getI64(1);
   @$pb.TagNumber(3)
@@ -307,6 +315,18 @@ class SyncRequest extends $pb.GeneratedMessage {
   $core.bool hasEvents() => $_has(2);
   @$pb.TagNumber(4)
   void clearEvents() => $_clearField(4);
+
+  /// First, and only first: where the device is (see SyncOpen).
+  @$pb.TagNumber(5)
+  SyncOpen get open => $_getN(3);
+  @$pb.TagNumber(5)
+  set open(SyncOpen value) => $_setField(5, value);
+  @$pb.TagNumber(5)
+  $core.bool hasOpen() => $_has(3);
+  @$pb.TagNumber(5)
+  void clearOpen() => $_clearField(5);
+  @$pb.TagNumber(5)
+  SyncOpen ensureOpen() => $_ensure(3);
 }
 
 class Heartbeat extends $pb.GeneratedMessage {
@@ -346,12 +366,110 @@ class Heartbeat extends $pb.GeneratedMessage {
   static Heartbeat? _defaultInstance;
 }
 
+/// How a device opens its stream: the last seq it holds, the rules it folds
+/// by, and the events it has waiting to be placed. The server sends what
+/// costs least to make it current: nothing, the events it lacks, or (far
+/// behind, new, or on rules the server's snapshot is by) the account whole
+/// (`AccountState`), then events from there.
+class SyncOpen extends $pb.GeneratedMessage {
+  factory SyncOpen({
+    $fixnum.Int64? afterSeq,
+    $core.String? fold,
+    $core.Iterable<$core.String>? pendingIds,
+    $core.String? lastId,
+  }) {
+    final result = create();
+    if (afterSeq != null) result.afterSeq = afterSeq;
+    if (fold != null) result.fold = fold;
+    if (pendingIds != null) result.pendingIds.addAll(pendingIds);
+    if (lastId != null) result.lastId = lastId;
+    return result;
+  }
+
+  SyncOpen._();
+
+  factory SyncOpen.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory SyncOpen.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'SyncOpen',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'afterSeq')
+    ..aOS(2, _omitFieldNames ? '' : 'fold')
+    ..pPS(3, _omitFieldNames ? '' : 'pendingIds')
+    ..aOS(4, _omitFieldNames ? '' : 'lastId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SyncOpen clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  SyncOpen copyWith(void Function(SyncOpen) updates) =>
+      super.copyWith((message) => updates(message as SyncOpen)) as SyncOpen;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static SyncOpen create() => SyncOpen._();
+  @$core.override
+  SyncOpen createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static SyncOpen getDefault() =>
+      _defaultInstance ??= $pb.GeneratedMessage.$_defaultFor<SyncOpen>(create);
+  static SyncOpen? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get afterSeq => $_getI64(0);
+  @$pb.TagNumber(1)
+  set afterSeq($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasAfterSeq() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearAfterSeq() => $_clearField(1);
+
+  /// schlift_core::FOLD: a snapshot is only sent to a device folding by the
+  /// same rules; one on others is sent events and folds them itself.
+  @$pb.TagNumber(2)
+  $core.String get fold => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set fold($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFold() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFold() => $_clearField(2);
+
+  /// The device's events not yet heard back placed, by id: of these, the
+  /// ones the server holds by the snapshot it sends are named in it, so the
+  /// device lets them go instead of folding them again on top.
+  @$pb.TagNumber(3)
+  $pb.PbList<$core.String> get pendingIds => $_getList(2);
+
+  /// The id of the event at after_seq: a server that holds another there
+  /// (restored from an older backup, and placed others since) sends the
+  /// account whole, so the device doesn't fold the server's events onto a
+  /// history that parted from it.
+  @$pb.TagNumber(4)
+  $core.String get lastId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set lastId($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasLastId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLastId() => $_clearField(4);
+}
+
 enum SyncResponse_Kind {
   head,
   joinRequests,
   events,
   session,
   partnerEvents,
+  account,
   notSet
 }
 
@@ -362,6 +480,7 @@ class SyncResponse extends $pb.GeneratedMessage {
     Events? events,
     $2.Session? session,
     PartnerEvents? partnerEvents,
+    AccountState? account,
   }) {
     final result = create();
     if (head != null) result.head = head;
@@ -369,6 +488,7 @@ class SyncResponse extends $pb.GeneratedMessage {
     if (events != null) result.events = events;
     if (session != null) result.session = session;
     if (partnerEvents != null) result.partnerEvents = partnerEvents;
+    if (account != null) result.account = account;
     return result;
   }
 
@@ -388,13 +508,14 @@ class SyncResponse extends $pb.GeneratedMessage {
     5: SyncResponse_Kind.events,
     6: SyncResponse_Kind.session,
     7: SyncResponse_Kind.partnerEvents,
+    8: SyncResponse_Kind.account,
     0: SyncResponse_Kind.notSet
   };
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'SyncResponse',
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
-    ..oo(0, [1, 3, 5, 6, 7])
+    ..oo(0, [1, 3, 5, 6, 7, 8])
     ..aInt64(1, _omitFieldNames ? '' : 'head')
     ..aOM<$2.GetJoinRequestsResponse>(3, _omitFieldNames ? '' : 'joinRequests',
         subBuilder: $2.GetJoinRequestsResponse.create)
@@ -403,6 +524,8 @@ class SyncResponse extends $pb.GeneratedMessage {
         subBuilder: $2.Session.create)
     ..aOM<PartnerEvents>(7, _omitFieldNames ? '' : 'partnerEvents',
         subBuilder: PartnerEvents.create)
+    ..aOM<AccountState>(8, _omitFieldNames ? '' : 'account',
+        subBuilder: AccountState.create)
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -429,12 +552,14 @@ class SyncResponse extends $pb.GeneratedMessage {
   @$pb.TagNumber(5)
   @$pb.TagNumber(6)
   @$pb.TagNumber(7)
+  @$pb.TagNumber(8)
   SyncResponse_Kind whichKind() => _SyncResponse_KindByTag[$_whichOneof(0)]!;
   @$pb.TagNumber(1)
   @$pb.TagNumber(3)
   @$pb.TagNumber(5)
   @$pb.TagNumber(6)
   @$pb.TagNumber(7)
+  @$pb.TagNumber(8)
   void clearKind() => $_clearField($_whichOneof(0));
 
   /// The last seq the server holds: the answer to a heartbeat.
@@ -495,6 +620,19 @@ class SyncResponse extends $pb.GeneratedMessage {
   void clearPartnerEvents() => $_clearField(7);
   @$pb.TagNumber(7)
   PartnerEvents ensurePartnerEvents() => $_ensure(4);
+
+  /// The account whole, folded by the server as of a seq: sent on opening
+  /// to a device far behind or new (see SyncOpen), before any events.
+  @$pb.TagNumber(8)
+  AccountState get account => $_getN(5);
+  @$pb.TagNumber(8)
+  set account(AccountState value) => $_setField(8, value);
+  @$pb.TagNumber(8)
+  $core.bool hasAccount() => $_has(5);
+  @$pb.TagNumber(8)
+  void clearAccount() => $_clearField(8);
+  @$pb.TagNumber(8)
+  AccountState ensureAccount() => $_ensure(5);
 }
 
 class PartnerEvents extends $pb.GeneratedMessage {
@@ -578,6 +716,97 @@ class PartnerEvents extends $pb.GeneratedMessage {
   $core.bool hasWhole() => $_has(2);
   @$pb.TagNumber(3)
   void clearWhole() => $_clearField(3);
+}
+
+class AccountState extends $pb.GeneratedMessage {
+  factory AccountState({
+    $core.List<$core.int>? snapshot,
+    $fixnum.Int64? seq,
+    $core.Iterable<$core.String>? placedIds,
+    $core.String? lastId,
+  }) {
+    final result = create();
+    if (snapshot != null) result.snapshot = snapshot;
+    if (seq != null) result.seq = seq;
+    if (placedIds != null) result.placedIds.addAll(placedIds);
+    if (lastId != null) result.lastId = lastId;
+    return result;
+  }
+
+  AccountState._();
+
+  factory AccountState.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory AccountState.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'AccountState',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
+      createEmptyInstance: create)
+    ..a<$core.List<$core.int>>(
+        1, _omitFieldNames ? '' : 'snapshot', $pb.PbFieldType.OY)
+    ..aInt64(2, _omitFieldNames ? '' : 'seq')
+    ..pPS(3, _omitFieldNames ? '' : 'placedIds')
+    ..aOS(4, _omitFieldNames ? '' : 'lastId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AccountState clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  AccountState copyWith(void Function(AccountState) updates) =>
+      super.copyWith((message) => updates(message as AccountState))
+          as AccountState;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static AccountState create() => AccountState._();
+  @$core.override
+  AccountState createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static AccountState getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<AccountState>(create);
+  static AccountState? _defaultInstance;
+
+  /// schlift_core::snapshot: an AccountSnapshot, zstd compressed, without
+  /// heart rate.
+  @$pb.TagNumber(1)
+  $core.List<$core.int> get snapshot => $_getN(0);
+  @$pb.TagNumber(1)
+  set snapshot($core.List<$core.int> value) => $_setBytes(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasSnapshot() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearSnapshot() => $_clearField(1);
+
+  /// The last event folded into it: events after it follow.
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get seq => $_getI64(1);
+  @$pb.TagNumber(2)
+  set seq($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasSeq() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearSeq() => $_clearField(2);
+
+  /// Of the device's pending ids (SyncOpen), those in it already: placed
+  /// before it was folded.
+  @$pb.TagNumber(3)
+  $pb.PbList<$core.String> get placedIds => $_getList(2);
+
+  /// The id of the event at seq: what the device opens with next time.
+  @$pb.TagNumber(4)
+  $core.String get lastId => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set lastId($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasLastId() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearLastId() => $_clearField(4);
 }
 
 class Events extends $pb.GeneratedMessage {

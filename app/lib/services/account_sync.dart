@@ -77,9 +77,13 @@ class AccountSync extends ChangeNotifier
   bool get updateRequired => _updateRequired;
   bool _updateRequired = false;
 
-  /// Events recorded here that the server hasn't placed yet.
+  /// Events recorded here that the server hasn't placed for a while. The
+  /// server stores pushes with its next flush (a minute or so) and acks
+  /// them then, so events waiting less than [_unsyncedAfter] are normal and
+  /// not counted.
   int get unsynced => _unsynced;
   int _unsynced = 0;
+  static const _unsyncedAfter = Duration(minutes: 2);
 
   // ── The stream ──
 
@@ -240,13 +244,19 @@ class AccountSync extends ChangeNotifier
     _sentUpTo = null;
     _lastHeard = DateTime.now();
     final generation = _generation;
-    // The stream opens with what this phone holds (from a little before its
-    // last, so the two histories can be seen to agree); the server sends
-    // the rest.
+    // The stream opens with what this phone holds, the rules it folds by,
+    // and what it has waiting; the server sends the rest (or, far behind,
+    // the account whole).
     unawaited(() async {
       final int after;
+      final List<String> pendingIds;
+      final String fold;
+      final String lastId;
       try {
         after = await core.opensAfter();
+        lastId = await core.confirmedId();
+        pendingIds = await core.pendingIds();
+        fold = await LocalCore.foldRules();
       } catch (e) {
         // Closed by a sign-out meanwhile: this stream is already hung up.
         // Anything else is a real failure reading this phone's file.
@@ -258,7 +268,16 @@ class AccountSync extends ChangeNotifier
         return;
       }
       if (generation != _generation || up.isClosed) return;
-      up.add(SyncRequest(afterSeq: Int64(after)));
+      up.add(
+        SyncRequest(
+          open: SyncOpen(
+            afterSeq: Int64(after),
+            fold: fold,
+            pendingIds: pendingIds,
+            lastId: lastId,
+          ),
+        ),
+      );
     }());
     final down = _grpc.syncService.sync(up.stream);
     _down = down;
@@ -300,6 +319,8 @@ class AccountSync extends ChangeNotifier
     switch (message.whichKind()) {
       case SyncResponse_Kind.events:
         await _received(message.events);
+      case SyncResponse_Kind.account:
+        await _receivedAccount(message.account);
       case SyncResponse_Kind.head:
         // The answer to a heartbeat: the link is alive.
         break;
@@ -324,6 +345,28 @@ class AccountSync extends ChangeNotifier
       case SyncResponse_Kind.notSet:
         break;
     }
+  }
+
+  /// The account whole from the server, sent on opening to a phone far
+  /// behind or new: it becomes what this phone holds placed, and events
+  /// from its seq follow.
+  Future<void> _receivedAccount(AccountState state) async {
+    final core = _core;
+    if (core == null) return;
+    try {
+      await core.receiveAccount(
+        state.snapshot,
+        state.seq.toInt(),
+        state.lastId,
+        state.placedIds,
+      );
+    } catch (e) {
+      AppLogger.instance.warn(_tag, 'account refused', {'error': e.toString()});
+      _lost(e);
+      return;
+    }
+    _changed();
+    await _refreshUnsynced();
   }
 
   /// Events placed by the server: this phone's own coming back, or another
@@ -428,7 +471,12 @@ class AccountSync extends ChangeNotifier
   Future<void> _refreshUnsynced() async {
     final core = _core;
     if (core == null) return;
-    final unsynced = await core.pendingCount();
+    final oldest = await core.oldestPendingAt();
+    final waitedLong =
+        oldest > 0 &&
+        DateTime.now().millisecondsSinceEpoch ~/ 1000 - oldest >
+            _unsyncedAfter.inSeconds;
+    final unsynced = waitedLong ? await core.pendingCount() : 0;
     if (unsynced != _unsynced) {
       _unsynced = unsynced;
       notifyListeners();

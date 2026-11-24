@@ -292,14 +292,26 @@ pub fn snapshot(account: &Account, seq: i64) -> Vec<u8> {
     zstd::encode_all(bytes.as_slice(), LEVEL).expect("compressing to memory")
 }
 
-/// What `snapshot` wrote: the account and its seq. An error for one folded
-/// by other rules, cut short, or that doesn't read.
-pub fn restore(snapshot: &[u8]) -> Result<(Account, i64), String> {
+/// A snapshot folded by any rules, as best it reads: what a phone shows
+/// after an update, until the server sends the account by the new ones.
+pub fn restore_by_any_rules(snapshot: &[u8]) -> Result<(Account, i64), String> {
+    let mut message = read(snapshot)?;
+    message.fold = crate::FOLD.to_string();
+    decode(message)
+}
+
+fn read(snapshot: &[u8]) -> Result<AccountSnapshot, String> {
     let mut bytes = Vec::new();
     zstd::Decoder::new(snapshot)
         .map_err(|e| e.to_string())?
         .take(MAX_SNAPSHOT_BYTES)
         .read_to_end(&mut bytes)
         .map_err(|e| e.to_string())?;
-    decode(AccountSnapshot::decode(bytes.as_slice()).map_err(|e| e.to_string())?)
+    AccountSnapshot::decode(bytes.as_slice()).map_err(|e| e.to_string())
+}
+
+/// What `snapshot` wrote: the account and its seq. An error for one folded
+/// by other rules, cut short, or that doesn't read.
+pub fn restore(snapshot: &[u8]) -> Result<(Account, i64), String> {
+    decode(read(snapshot)?)
 }

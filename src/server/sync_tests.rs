@@ -1199,7 +1199,10 @@ mod stream {
             db.push_events("u1", placed.to_vec()).await.unwrap();
             let channel = serve(db.clone()).await;
             // It recorded the last four (two placed already, unheard; two not).
-            let mut pending_ids: Vec<String> = placed[placed.len() - 2..].iter().map(|e| e.id.clone()).collect();
+            let mut pending_ids: Vec<String> = placed[placed.len() - 2..]
+                .iter()
+                .map(|e| e.id.clone())
+                .collect();
             pending_ids.extend(waiting.iter().map(|e| e.id.clone()));
             let mut link = Link::open_with(
                 channel,
@@ -1208,6 +1211,7 @@ mod stream {
                     after_seq: 0,
                     fold: schlift_core::FOLD.to_string(),
                     pending_ids: pending_ids.clone(),
+                    last_id: String::new(),
                 },
             )
             .await;
@@ -1218,7 +1222,11 @@ mod stream {
                 })
                 .await;
             assert_eq!(state.seq, placed.len() as i64);
-            assert_eq!(state.placed_ids, pending_ids[..2].to_vec(), "the two it holds");
+            assert_eq!(
+                state.placed_ids,
+                pending_ids[..2].to_vec(),
+                "the two it holds"
+            );
             let (account, seq) = schlift_core::snapshot::restore(&state.snapshot).unwrap();
             assert_eq!(seq, state.seq);
             assert!(account == Account::fold_without_heart_rate(placed));
@@ -1233,6 +1241,38 @@ mod stream {
                 "only the two not placed, once"
             );
             drop(phone);
+        }
+
+        /// A server restored from an older backup that has placed others'
+        /// events since: the device's last event isn't its at that seq, so
+        /// it gets this server's account whole rather than events onto a
+        /// history that parted.
+        #[tokio::test]
+        async fn a_device_whose_history_parted_gets_the_account_whole() {
+            let db = db().await;
+            let token = db.create_auth_session("u1").await.unwrap();
+            let (_, events) = history(20);
+            db.push_events("u1", events.clone()).await.unwrap();
+            let channel = serve(db.clone()).await;
+            let mut link = Link::open_with(
+                channel,
+                &token,
+                SyncOpen {
+                    after_seq: 10,
+                    fold: schlift_core::FOLD.to_string(),
+                    pending_ids: Vec::new(),
+                    last_id: "an event this server never placed there".to_string(),
+                },
+            )
+            .await;
+            let state = link
+                .next(|kind| match kind {
+                    sync_response::Kind::Account(a) => Some(a),
+                    _ => None,
+                })
+                .await;
+            assert_eq!(state.seq, events.len() as i64);
+            assert_eq!(state.last_id, events.last().unwrap().id);
         }
 
         #[tokio::test]
@@ -1253,12 +1293,20 @@ mod stream {
                         after_seq,
                         fold: fold.clone(),
                         pending_ids: Vec::new(),
+                        last_id: String::new(),
                     },
                 )
                 .await;
                 let got = link.events_through(events.len() as i64).await;
-                assert_eq!(got.len() as i64, events.len() as i64 - after_seq, "{fold} from {after_seq}");
-                assert!(link.skipped.iter().all(|k| !matches!(k, sync_response::Kind::Account(_))));
+                assert_eq!(
+                    got.len() as i64,
+                    events.len() as i64 - after_seq,
+                    "{fold} from {after_seq}"
+                );
+                assert!(link
+                    .skipped
+                    .iter()
+                    .all(|k| !matches!(k, sync_response::Kind::Account(_))));
             }
         }
     }

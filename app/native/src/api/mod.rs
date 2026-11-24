@@ -49,15 +49,53 @@ pub fn confirmed(handle: u32) -> StoreResult<i64> {
     with_store(handle, |store| store.confirmed())
 }
 
-/// What the Sync stream opens with: a seq before the last the file holds,
-/// so the server's first event shows whether the histories agree.
+/// What the Sync stream opens with: the last seq the file holds placed (0
+/// while its account is by rules from before an update, so the server sends
+/// it whole).
 pub fn opens_after(handle: u32) -> StoreResult<i64> {
     with_store(handle, |store| store.opens_after())
 }
 
-/// Bring in the export at `path`: what in it the file lacks is added, in
-/// its places where its history carries on from the file's, otherwise to
-/// wait to be placed; nothing is removed. Returns how many events it added.
+/// The rules this app folds accounts by: sent when the stream opens, so the
+/// server only sends an account whole to an app that folds the same.
+pub fn fold_rules() -> String {
+    schlift_core::FOLD.to_string()
+}
+
+/// The ids of what waits for the server, sent when the stream opens.
+pub fn pending_ids(handle: u32) -> StoreResult<Vec<String>> {
+    with_store(handle, |store| store.pending_ids())
+}
+
+/// When the oldest event waiting for the server was recorded (Unix
+/// seconds), or 0 if none waits.
+pub fn oldest_pending_at(handle: u32) -> StoreResult<i64> {
+    with_store(handle, |store| Ok(store.oldest_pending_at()?.unwrap_or(0)))
+}
+
+/// The account whole from the server, as of `seq`, and which of this
+/// device's pending events it holds already. The account changes under the
+/// app.
+pub fn receive_account(
+    handle: u32,
+    snapshot: Vec<u8>,
+    seq: i64,
+    last_id: String,
+    placed_ids: Vec<String>,
+) -> StoreResult<()> {
+    with_store(handle, |store| {
+        store.receive_account(&snapshot, seq, &last_id, &placed_ids)
+    })
+}
+
+/// The id of the last event the server placed that the file holds: sent
+/// when the stream opens.
+pub fn confirmed_id(handle: u32) -> StoreResult<String> {
+    with_store(handle, |store| Ok(store.confirmed_id().to_string()))
+}
+
+/// Bring in the export at `path`: what in it the file lacks waits to be
+/// placed (the server skips what it holds); nothing is removed. Returns how many events it added.
 pub fn import_file(handle: u32, path: String) -> StoreResult<i64> {
     with_store(handle, |store| {
         store.import(&PathBuf::from(path)).map(|added| added as i64)

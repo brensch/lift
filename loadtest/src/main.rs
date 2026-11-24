@@ -302,7 +302,7 @@ async fn run(args: &Args, profile: Profile) -> Result<bool, String> {
     let usage = server.as_ref().map(Server::usage);
 
     let (matching, differing) = verify(&channels[0], &outcomes).await;
-    let events: usize = outcomes.iter().map(|o| o.events.len()).sum();
+    let events: usize = outcomes.iter().map(|o| o.seq.max(0) as usize).sum();
     let report = Report {
         profile: args.profile.clone(),
         settings: profile,
@@ -353,13 +353,28 @@ async fn verify(channel: &Channel, outcomes: &[Outcome]) -> (usize, Vec<String>)
     let mut matching = 0;
     let mut differing = Vec::new();
     for outcome in outcomes {
+        // Exact: every event the server holds, folded from the start, is
+        // the account the client holds placed.
         match server_log(channel, &outcome.token).await {
-            Ok(events) if events == outcome.events => matching += 1,
+            Ok(events)
+                if events.len() as i64 == outcome.seq
+                    && schlift_core::account::Account::fold_without_heart_rate(&events)
+                        == outcome.account =>
+            {
+                matching += 1
+            }
             Ok(events) => differing.push(format!(
-                "{}: server holds {} events, client {}",
+                "{}: server holds {} events, client {} (accounts {})",
                 outcome.username,
                 events.len(),
-                outcome.events.len()
+                outcome.seq,
+                if schlift_core::account::Account::fold_without_heart_rate(&events)
+                    == outcome.account
+                {
+                    "agree"
+                } else {
+                    "differ"
+                }
             )),
             Err(error) => differing.push(format!("{}: {error}", outcome.username)),
         }

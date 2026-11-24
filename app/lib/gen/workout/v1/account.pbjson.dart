@@ -118,6 +118,15 @@ const SyncRequest$json = {
   '1': 'SyncRequest',
   '2': [
     {'1': 'after_seq', '3': 3, '4': 1, '5': 3, '9': 0, '10': 'afterSeq'},
+    {
+      '1': 'open',
+      '3': 5,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.SyncOpen',
+      '9': 0,
+      '10': 'open'
+    },
     {'1': 'events', '3': 4, '4': 1, '5': 12, '9': 0, '10': 'events'},
     {
       '1': 'heartbeat',
@@ -139,9 +148,10 @@ const SyncRequest$json = {
 
 /// Descriptor for `SyncRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List syncRequestDescriptor = $convert.base64Decode(
-    'CgtTeW5jUmVxdWVzdBIdCglhZnRlcl9zZXEYAyABKANIAFIIYWZ0ZXJTZXESGAoGZXZlbnRzGA'
-    'QgASgMSABSBmV2ZW50cxI1CgloZWFydGJlYXQYAiABKAsyFS53b3Jrb3V0LnYxLkhlYXJ0YmVh'
-    'dEgAUgloZWFydGJlYXRCBgoEa2luZEoECAEQAg==');
+    'CgtTeW5jUmVxdWVzdBIdCglhZnRlcl9zZXEYAyABKANIAFIIYWZ0ZXJTZXESKgoEb3BlbhgFIA'
+    'EoCzIULndvcmtvdXQudjEuU3luY09wZW5IAFIEb3BlbhIYCgZldmVudHMYBCABKAxIAFIGZXZl'
+    'bnRzEjUKCWhlYXJ0YmVhdBgCIAEoCzIVLndvcmtvdXQudjEuSGVhcnRiZWF0SABSCWhlYXJ0Ym'
+    'VhdEIGCgRraW5kSgQIARAC');
 
 @$core.Deprecated('Use heartbeatDescriptor instead')
 const Heartbeat$json = {
@@ -151,6 +161,23 @@ const Heartbeat$json = {
 /// Descriptor for `Heartbeat`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List heartbeatDescriptor =
     $convert.base64Decode('CglIZWFydGJlYXQ=');
+
+@$core.Deprecated('Use syncOpenDescriptor instead')
+const SyncOpen$json = {
+  '1': 'SyncOpen',
+  '2': [
+    {'1': 'after_seq', '3': 1, '4': 1, '5': 3, '10': 'afterSeq'},
+    {'1': 'fold', '3': 2, '4': 1, '5': 9, '10': 'fold'},
+    {'1': 'pending_ids', '3': 3, '4': 3, '5': 9, '10': 'pendingIds'},
+    {'1': 'last_id', '3': 4, '4': 1, '5': 9, '10': 'lastId'},
+  ],
+};
+
+/// Descriptor for `SyncOpen`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List syncOpenDescriptor = $convert.base64Decode(
+    'CghTeW5jT3BlbhIbCglhZnRlcl9zZXEYASABKANSCGFmdGVyU2VxEhIKBGZvbGQYAiABKAlSBG'
+    'ZvbGQSHwoLcGVuZGluZ19pZHMYAyADKAlSCnBlbmRpbmdJZHMSFwoHbGFzdF9pZBgEIAEoCVIG'
+    'bGFzdElk');
 
 @$core.Deprecated('Use syncResponseDescriptor instead')
 const SyncResponse$json = {
@@ -193,6 +220,15 @@ const SyncResponse$json = {
       '9': 0,
       '10': 'joinRequests'
     },
+    {
+      '1': 'account',
+      '3': 8,
+      '4': 1,
+      '5': 11,
+      '6': '.workout.v1.AccountState',
+      '9': 0,
+      '10': 'account'
+    },
   ],
   '8': [
     {'1': 'kind'},
@@ -210,8 +246,9 @@ final $typed_data.Uint8List syncResponseDescriptor = $convert.base64Decode(
     'ZlbnRzEhQKBGhlYWQYASABKANIAFIEaGVhZBIvCgdzZXNzaW9uGAYgASgLMhMud29ya291dC52'
     'MS5TZXNzaW9uSABSB3Nlc3Npb24SQgoOcGFydG5lcl9ldmVudHMYByABKAsyGS53b3Jrb3V0Ln'
     'YxLlBhcnRuZXJFdmVudHNIAFINcGFydG5lckV2ZW50cxJKCg1qb2luX3JlcXVlc3RzGAMgASgL'
-    'MiMud29ya291dC52MS5HZXRKb2luUmVxdWVzdHNSZXNwb25zZUgAUgxqb2luUmVxdWVzdHNCBg'
-    'oEa2luZEoECAIQA0oECAQQBVIHbGlicmFyeQ==');
+    'MiMud29ya291dC52MS5HZXRKb2luUmVxdWVzdHNSZXNwb25zZUgAUgxqb2luUmVxdWVzdHMSNA'
+    'oHYWNjb3VudBgIIAEoCzIYLndvcmtvdXQudjEuQWNjb3VudFN0YXRlSABSB2FjY291bnRCBgoE'
+    'a2luZEoECAIQA0oECAQQBVIHbGlicmFyeQ==');
 
 @$core.Deprecated('Use partnerEventsDescriptor instead')
 const PartnerEvents$json = {
@@ -227,6 +264,23 @@ const PartnerEvents$json = {
 final $typed_data.Uint8List partnerEventsDescriptor = $convert.base64Decode(
     'Cg1QYXJ0bmVyRXZlbnRzEhcKB3VzZXJfaWQYASABKAlSBnVzZXJJZBIWCgZwYWNrZWQYAiABKA'
     'xSBnBhY2tlZBIUCgV3aG9sZRgDIAEoCFIFd2hvbGU=');
+
+@$core.Deprecated('Use accountStateDescriptor instead')
+const AccountState$json = {
+  '1': 'AccountState',
+  '2': [
+    {'1': 'snapshot', '3': 1, '4': 1, '5': 12, '10': 'snapshot'},
+    {'1': 'seq', '3': 2, '4': 1, '5': 3, '10': 'seq'},
+    {'1': 'placed_ids', '3': 3, '4': 3, '5': 9, '10': 'placedIds'},
+    {'1': 'last_id', '3': 4, '4': 1, '5': 9, '10': 'lastId'},
+  ],
+};
+
+/// Descriptor for `AccountState`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List accountStateDescriptor = $convert.base64Decode(
+    'CgxBY2NvdW50U3RhdGUSGgoIc25hcHNob3QYASABKAxSCHNuYXBzaG90EhAKA3NlcRgCIAEoA1'
+    'IDc2VxEh0KCnBsYWNlZF9pZHMYAyADKAlSCXBsYWNlZElkcxIXCgdsYXN0X2lkGAQgASgJUgZs'
+    'YXN0SWQ=');
 
 @$core.Deprecated('Use eventsDescriptor instead')
 const Events$json = {

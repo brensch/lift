@@ -2549,6 +2549,7 @@ dependencies = [
  "schlift-core",
  "serde_json",
  "uuid",
+ "zstd",
 ]
 
 [[package]]

@@ -215,11 +215,26 @@ impl Stream {
         // New, far behind, or holding more than this server: the account
         // whole, if the device folds by the same rules, costs less than the
         // events (or is the only way back to the server's).
+        // Its last event isn't this server's there: the histories parted
+        // (a restore from an older backup); it takes this server's whole.
+        let parted = self.sent > 0
+            && self.sent <= head
+            && !open.last_id.is_empty()
+            && self
+                .db
+                .id_at(&self.user_id, self.sent)
+                .await
+                .map_err(internal_error)?
+                .is_some_and(|id| id != open.last_id);
         let whole = open.fold == schlift_core::FOLD
-            && head > 0
-            && (self.sent == 0 || self.sent > head || head - self.sent > SNAPSHOT_WHEN_BEHIND);
+            && (self.sent > head
+                || head > 0
+                    && (parted || self.sent == 0 || head - self.sent > SNAPSHOT_WHEN_BEHIND));
         if whole {
-            if self.send_account(&open).await?.is_err() {
+            // Its pending ones the server holds were placed after where
+            // they last agreed: all of it, if they parted.
+            let from = if parted { 0 } else { self.sent.min(head) };
+            if self.send_account(&open, from).await?.is_err() {
                 return Ok(());
             }
         } else if self.sent > head {
@@ -316,16 +331,19 @@ impl Stream {
 
     /// The account whole, as of its last stored event, and which of the
     /// device's pending events it holds already; events after it follow.
-    async fn send_account(&mut self, open: &SyncOpen) -> ServerResult<Result<(), Closed>> {
+    async fn send_account(
+        &mut self,
+        open: &SyncOpen,
+        from: i64,
+    ) -> ServerResult<Result<(), Closed>> {
         let (snapshot, seq) = self
             .db
             .snapshot_now(&self.user_id)
             .await
             .map_err(internal_error)?;
-        // Its pending ones it holds were placed after what it last heard.
         let placed = self
             .db
-            .ids_after(&self.user_id, self.sent.min(seq))
+            .ids_after(&self.user_id, from)
             .await
             .map_err(internal_error)?;
         let placed_ids: Vec<String> = open
@@ -336,10 +354,17 @@ impl Stream {
             .collect();
         self.caught_up.extend(placed);
         self.sent = seq;
+        let last_id = self
+            .db
+            .id_at(&self.user_id, seq)
+            .await
+            .map_err(internal_error)?
+            .unwrap_or_default();
         let message = AccountState {
             snapshot,
             seq,
             placed_ids,
+            last_id,
         };
         Ok(self.send(sync_response::Kind::Account(message)).await)
     }
