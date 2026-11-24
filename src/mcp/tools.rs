@@ -130,7 +130,7 @@ fn tools() -> Vec<Value> {
         json!({
             "name": "get_history",
             "title": "Get workout history",
-            "description": "Finished workouts, newest first: each lift's plan and every set's target and what was done.",
+            "description": "Workouts, newest first: the one under way (under_way, up to the set just done), then finished ones; each lift's plan and every set's target and what was done.",
             "inputSchema": schema(json!({
                 "exercise": { "type": "string", "description": "Only workouts with this exercise key, and only its sets" },
                 "since_days": { "type": "integer", "minimum": 1, "description": "Only the last this many days" },
@@ -486,7 +486,7 @@ pub async fn call(
             let history = mcp
                 .db
                 .read_account(whose, move |a| {
-                    history(a, exercise.as_deref(), since, limit)
+                    history(a, exercise.as_deref(), since, limit, now)
                 })
                 .await?;
             Ok(text(&history))
@@ -910,11 +910,20 @@ fn profile(account: &Account, now: i64) -> Value {
 }
 
 /// Finished workouts, newest first.
-fn history(account: &Account, exercise: Option<&str>, since: Option<i64>, limit: usize) -> Value {
+fn history(
+    account: &Account,
+    exercise: Option<&str>,
+    since: Option<i64>,
+    limit: usize,
+    now: i64,
+) -> Value {
     let view = View::new(account, 0);
-    let workouts: Vec<Value> = view
-        .finished()
+    // The workout under way first, as far as it has got: the set just done
+    // is in it (the server folds what the phone sent a moment ago).
+    let workouts: Vec<Value> = account
+        .active_workout()
         .into_iter()
+        .chain(view.finished())
         .filter(|r| since.is_none_or(|s| r.workout.start_time >= s))
         .filter(|r| exercise.is_none_or(|e| r.proposed_sets.iter().any(|s| s.exercise == e)))
         .take(limit)
@@ -925,11 +934,14 @@ fn history(account: &Account, exercise: Option<&str>, since: Option<i64>, limit:
                     keys.push(&s.exercise);
                 }
             }
+            let under_way = r.workout.end_time == 0;
+            let end = if under_way { now } else { r.workout.end_time };
             json!({
                 "id": r.workout.id,
                 "date": date(r.workout.start_time),
                 "name": r.workout.name,
-                "minutes": (r.workout.end_time - r.workout.start_time) / 60,
+                "under_way": under_way,
+                "minutes": (end - r.workout.start_time) / 60,
                 "workout_id": r.workout.template_id,
                 "lifts": keys.iter().map(|key| {
                     let planned = r.decision(key);
