@@ -254,6 +254,19 @@ impl ServerDb {
     /// stays signed in: its expiry slides to `LOGIN_SECONDS` from now
     /// (written once it is more than a day old).
     pub async fn validate_auth_session(&self, token: &str) -> DbResult<Option<String>> {
+        Ok(self
+            .validate_auth_session_until(token)
+            .await?
+            .map(|(user_id, _)| user_id))
+    }
+
+    /// The same, with when the login expires (after any slide): a stream
+    /// checks it again then, not before (signing out, and deleting the
+    /// account, are told to it at once).
+    pub async fn validate_auth_session_until(
+        &self,
+        token: &str,
+    ) -> DbResult<Option<(String, i64)>> {
         let now = now_unix();
         let hash = token_hash(token);
         let row: Option<(String, i64)> = sqlx::query_as(
@@ -273,8 +286,9 @@ impl ServerDb {
                 .bind(now)
                 .execute(&self.write_pool)
                 .await?;
+            return Ok(Some((user_id, now + LOGIN_SECONDS)));
         }
-        Ok(Some(user_id))
+        Ok(Some((user_id, expires_at)))
     }
 
     /// When one of the user's logins was last used, to within a day (a
