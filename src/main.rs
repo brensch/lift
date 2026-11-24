@@ -17,6 +17,7 @@ mod demo_seed;
 mod mcp;
 mod server;
 mod time;
+mod tls;
 
 use auth::AuthState;
 use db::ServerDb;
@@ -174,6 +175,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         shutdown_signal().await;
         let _ = stopping.send(true);
     });
+    // The apps' own listener (src/tls.rs), when TLS_PORT is set.
+    if let Some(config) = tls::Config::from_env()? {
+        let (app, stop) = (app.clone(), stop.clone());
+        tokio::spawn(async move {
+            if let Err(error) = tls::serve(config, app, stop).await {
+                eprintln!("TLS listener stopped: {error}");
+            }
+        });
+    }
     let mut drain_stop = stop.clone();
     let flush_db = server_db.clone();
     let server = axum::serve(
