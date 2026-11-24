@@ -35,8 +35,14 @@ void main() {
       await s.doWorkoutInApp('Seeded session', [
         for (final lift in Scenario.defaultTemplateLifts) MapEntry(lift, 95.0),
       ]);
+      // The server writes a workout with the batch after it ends.
       final api = await s.api.login(username);
-      if (!await api.hasPerformed('squat')) {
+      var performed = false;
+      for (var i = 0; i < 15 && !performed; i++) {
+        performed = await api.hasPerformed('squat');
+        if (!performed) await s.settle(seconds: 1);
+      }
+      if (!performed) {
         throw StateError('the seeded session did not mark Squat performed');
       }
 
