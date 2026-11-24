@@ -1,269 +1,343 @@
-//! The ledger against what it promises: nothing acked is lost, a resend is
-//! placed once, and every account read is exactly the fold of every event
-//! stored, across restarts, idle accounts, rule changes and a crash between
-//! a file and its index.
+//! The ledger against what it promises: a workout's events are held until
+//! it ends and then written, with the snapshot, once; every read is the
+//! fold of every event, written or held; nothing in normal running reads
+//! the event files; after a restart the phones' resends are placed once;
+//! memory past its budget is written early; heart rate is stored typed and
+//! fetched by workout; compaction changes the files and nothing else.
 
 use super::*;
 use crate::db::ServerDb;
-use std::path::Path;
+use schlift_core::api::Call;
+use schlift_core::pb::{
+    workout_mutation, AppendWorkoutMutationsRequest, CompleteSetRequest, EndWorkoutRequest,
+    StartWorkoutRequest, WorkoutHeartRatePoint, WorkoutMutation,
+};
 use uuid::Uuid;
-
-/// Twelve weeks of a lifter's training, as phones record it.
-fn training() -> Vec<Event> {
-    let path =
-        Path::new(env!("CARGO_MANIFEST_DIR")).join("testkit/tests/testdata/golden_events.json.zst");
-    schlift_core::sync::unpack(&std::fs::read(path).unwrap()).unwrap()
-}
 
 fn dir() -> PathBuf {
     std::env::temp_dir().join(format!("lift-ledger-test-{}", Uuid::new_v4()))
 }
 
-async fn open(dir: &Path, users: &[&str]) -> ServerDb {
-    let db = ServerDb::new_in_dir(dir).await.unwrap();
-    for user in users {
-        if db.get_user(user).await.unwrap().is_none() {
-            db.create_user_with_id(user, user).await.unwrap();
-        }
+/// Holding a workout until it ends (a long abandon time), writing as soon
+/// as it does.
+fn holding() -> Timing {
+    Timing {
+        batch_every: Duration::from_millis(10),
+        abandoned: Duration::from_secs(3600),
+        quiet: Duration::from_millis(30),
+        memory_budget: 1 << 30,
+    }
+}
+
+async fn open(dir: &Path, timing: Timing) -> ServerDb {
+    let db = ServerDb::new_with_timing(dir, timing).await.unwrap();
+    if db.get_user("u").await.unwrap().is_none() {
+        db.create_user_with_id("u", "u").await.unwrap();
     }
     db
 }
 
-/// Everything stored for the account, folded from the start: what a read
-/// must equal.
-async fn whole(db: &ServerDb, user: &str) -> Account {
-    Account::fold_without_heart_rate(&db.events_after(user, 0, i64::MAX).await.unwrap())
+/// A phone: its account, and what it recorded.
+struct Phone {
+    account: Account,
 }
 
-fn ids(events: &[Event]) -> Vec<String> {
-    events.iter().map(|e| e.id.clone()).collect()
-}
-
-#[tokio::test]
-async fn a_read_is_the_whole_fold_through_flushes_restarts_and_idling() {
-    let dir = dir();
-    let events = training();
-    let db = open(&dir, &["u"]).await;
-    for (n, chunk) in events.chunks(97).enumerate() {
-        db.buffer_events("u", chunk.to_vec()).await.unwrap();
-        if n % 3 == 0 {
-            db.flush().await.unwrap();
-        }
-        // Pushed so far, stored or still buffered.
-        let end = ((n + 1) * 97).min(events.len());
-        let read = db.read_account("u", Clone::clone).await.unwrap();
-        let now = Account::fold_without_heart_rate(&events[..end]);
-        assert!(read == now, "after chunk {n}");
-    }
-    db.flush().await.unwrap();
-    assert_eq!(db.head("u").await.unwrap(), events.len() as i64);
-    assert_eq!(
-        ids(&db.events_after("u", 0, i64::MAX).await.unwrap()),
-        ids(&events)
-    );
-    let folded = whole(&db, "u").await;
-    assert!(db.read_account("u", Clone::clone).await.unwrap() == folded);
-
-    // Idle: written down and dropped from memory; read again the same.
-    db.ledger.sweep_all().await;
-    assert!(
-        db.ledger.users.lock().unwrap().is_empty(),
-        "dropped from memory"
-    );
-    assert!(db.read_account("u", Clone::clone).await.unwrap() == folded);
-
-    // Restarted: the same, and the same events.
-    drop(db);
-    let db = open(&dir, &["u"]).await;
-    assert!(db.read_account("u", Clone::clone).await.unwrap() == folded);
-    assert_eq!(
-        ids(&db.events_after("u", 0, i64::MAX).await.unwrap()),
-        ids(&events)
-    );
-}
-
-/// The phone resends what it never heard back: buffered and lost in a
-/// crash, it is placed when it comes again, and once.
-#[tokio::test]
-async fn a_crash_before_a_flush_loses_nothing_a_phone_resends() {
-    let dir = dir();
-    let events = training();
-    let (stored, lost) = events.split_at(300);
-    let db = open(&dir, &["u"]).await;
-    db.push_events("u", stored.to_vec()).await.unwrap();
-    // Buffered, then the process dies before the next flush (no shutdown
-    // flush: dropped).
-    db.ledger.stop_flushing();
-    db.buffer_events("u", lost.to_vec()).await.unwrap();
-    drop(db);
-    let db = open(&dir, &["u"]).await;
-    assert_eq!(db.head("u").await.unwrap(), 300, "only what was stored");
-    // The phone sends everything it never heard back, and some it did.
-    db.push_events("u", events[250..].to_vec()).await.unwrap();
-    assert_eq!(
-        ids(&db.events_after("u", 0, i64::MAX).await.unwrap()),
-        ids(&events)
-    );
-    assert!(
-        db.read_account("u", Clone::clone).await.unwrap()
-            == Account::fold_without_heart_rate(&events)
-    );
-}
-
-#[tokio::test]
-async fn a_resend_is_placed_once_however_large() {
-    let dir = dir();
-    let events = training();
-    let db = open(&dir, &["u"]).await;
-    assert_eq!(
-        db.push_events("u", events.clone()).await.unwrap().len(),
-        events.len()
-    );
-    // The whole outbox again, buffered and pushed: nothing new.
-    db.buffer_events("u", events.clone()).await.unwrap();
-    assert!(db
-        .push_events("u", events.clone())
-        .await
-        .unwrap()
-        .is_empty());
-    db.flush().await.unwrap();
-    assert_eq!(db.head("u").await.unwrap(), events.len() as i64);
-    // And after a restart, from the snapshot's ids and the files.
-    drop(db);
-    let db = open(&dir, &["u"]).await;
-    assert!(db
-        .push_events("u", events[events.len() - 50..].to_vec())
-        .await
-        .unwrap()
-        .is_empty());
-    assert!(db
-        .push_events("u", events.clone())
-        .await
-        .unwrap()
-        .is_empty());
-}
-
-#[tokio::test]
-async fn pushes_at_once_are_each_placed_in_order_once() {
-    let db = open(&dir(), &["a", "b"]).await;
-    let events = training();
-    let mut pushing = tokio::task::JoinSet::new();
-    for (n, chunk) in events.chunks(5).enumerate() {
-        let user = if n % 2 == 0 { "a" } else { "b" };
-        for _ in 0..2 {
-            let (db, chunk) = (db.clone(), chunk.to_vec());
-            pushing.spawn(async move { db.buffer_events(user, chunk).await.unwrap() });
+impl Phone {
+    fn new() -> Self {
+        Self {
+            account: Account::default(),
         }
     }
-    while pushing.join_next().await.is_some() {}
-    db.flush().await.unwrap();
-    let mut held = 0;
-    for user in ["a", "b"] {
-        let log = db.events_after(user, 0, i64::MAX).await.unwrap();
-        let seqs: Vec<i64> = log.iter().map(|e| e.seq).collect();
-        assert_eq!(
-            seqs,
-            (1..=log.len() as i64).collect::<Vec<_>>(),
-            "{user}'s places"
-        );
-        let unique: HashSet<&str> = log.iter().map(|e| e.id.as_str()).collect();
-        assert_eq!(unique.len(), log.len(), "{user}'s events once each");
-        held += log.len();
+
+    fn write(&mut self, now: i64, f: impl FnOnce(&mut Call)) -> Vec<Event> {
+        let mut call = Call::new(&mut self.account, now, Uuid::new_v4().to_string());
+        f(&mut call);
+        std::mem::take(&mut call.events)
     }
-    assert_eq!(held, events.len());
+
+    /// A workout: its start, `sets` sets done, then (with `end`) its heart
+    /// rate and its end. The events, in order.
+    fn workout(&mut self, now: i64, sets: usize, end: bool) -> Vec<Event> {
+        let mut workout_id = String::new();
+        let mut events = self.write(now, |call| {
+            let started = call
+                .start_workout(StartWorkoutRequest {
+                    exercises: vec!["pull_up".to_string()],
+                    ..Default::default()
+                })
+                .unwrap();
+            workout_id = started.id;
+        });
+        for n in 0..sets {
+            let set = self
+                .account
+                .workout(&workout_id)
+                .unwrap()
+                .proposed_sets
+                .get(n)
+                .cloned();
+            let Some(set) = set else { break };
+            let at = now + 60 * (n as i64 + 1);
+            events.extend(self.write(at, |call| {
+                call.append_workout_mutations(AppendWorkoutMutationsRequest {
+                    mutations: vec![WorkoutMutation {
+                        mutation: Some(workout_mutation::Mutation::CompleteSet(
+                            CompleteSetRequest {
+                                workout_id: workout_id.clone(),
+                                proposed_set_id: set.id.clone(),
+                                actual_reps: 8,
+                                actual_weight: 0.0,
+                                completed_at: at,
+                            },
+                        )),
+                    }],
+                })
+                .unwrap();
+            }));
+        }
+        if end {
+            let samples: Vec<WorkoutHeartRatePoint> = (0..300)
+                .map(|n| WorkoutHeartRatePoint {
+                    sampled_at: now * 1000 + n * 2000,
+                    bpm: 110.0 + (n % 30) as f32,
+                })
+                .collect();
+            let id = workout_id.clone();
+            events.extend(self.write(now + 900, |call| {
+                call.record_heart_rate(&id, &samples).unwrap();
+            }));
+            events.extend(self.write(now + 900, |call| {
+                call.end_workout(EndWorkoutRequest {
+                    workout_id: workout_id.clone(),
+                    ended_at: now + 900,
+                })
+                .unwrap();
+            }));
+        }
+        events
+    }
 }
 
-/// A release that changes how accounts fold: every snapshot is by other
-/// rules, so each account is folded again from its files, once.
+fn without_heart_rate(account: &Account) -> Account {
+    let mut account = account.clone();
+    account.without_heart_rate = true;
+    for w in &mut account.workouts {
+        w.heart_rate.clear();
+    }
+    account
+}
+
+/// Until written to `head`, within a second.
+async fn written(db: &ServerDb, head: i64) {
+    for _ in 0..200 {
+        if db.head("u").await.unwrap() >= head {
+            return;
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    panic!("not written to {head}: {}", db.head("u").await.unwrap());
+}
+
 #[tokio::test]
-async fn snapshots_by_other_rules_are_folded_again() {
+async fn a_workout_is_held_until_it_ends_then_written_once_with_its_snapshot() {
     let dir = dir();
-    let events = training();
-    let db = open(&dir, &["u"]).await;
-    db.push_events("u", events.clone()).await.unwrap();
-    let folded = whole(&db, "u").await;
-    db.ledger.sweep_all().await;
-    sqlx::query("UPDATE account_snapshots SET fold = 'an older core'")
-        .execute(&db.write_pool)
-        .await
-        .unwrap();
-    drop(db);
-    let db = open(&dir, &["u"]).await;
-    // Where it is, and the last event there, without folding: what opening
-    // a stream needs.
-    let last = events.last().unwrap();
-    assert_eq!(db.head("u").await.unwrap(), events.len() as i64);
+    let db = open(&dir, holding()).await;
+    let mut phone = Phone::new();
+    let now = now_unix() - 3600;
+    let events = phone.workout(now, 3, true);
+    let (during, end) = events.split_at(events.len() - 2);
+    db.buffer_events("u", during.to_vec(), true).await.unwrap();
+    tokio::time::sleep(Duration::from_millis(100)).await;
     assert_eq!(
-        db.id_at("u", last.seq.max(events.len() as i64))
-            .await
-            .unwrap()
-            .as_deref(),
-        Some(last.id.as_str())
+        db.head("u").await.unwrap(),
+        0,
+        "held while the workout runs"
     );
-    assert!(db
-        .events_after("u", events.len() as i64, 10)
-        .await
-        .unwrap()
-        .is_empty());
-    assert!(db.read_account("u", Clone::clone).await.unwrap() == folded);
-    let fold: String = sqlx::query_scalar("SELECT fold FROM account_snapshots WHERE user_id = 'u'")
-        .fetch_one(&db.read_pool)
-        .await
-        .unwrap();
-    assert_eq!(fold, schlift_core::FOLD, "written down by these rules");
-    // A damaged one is folded again too.
-    db.ledger.sweep_all().await;
-    sqlx::query("UPDATE account_snapshots SET state = x'28b52ffd00'")
-        .execute(&db.write_pool)
-        .await
-        .unwrap();
-    drop(db);
-    let db = open(&dir, &["u"]).await;
-    assert!(db.read_account("u", Clone::clone).await.unwrap() == folded);
-}
-
-/// A file written and synced, then a crash before it was indexed: the
-/// next start indexes it from its contents, and a temporary file is gone.
-#[tokio::test]
-async fn a_file_the_index_lacks_is_indexed_on_the_next_start() {
-    let dir = dir();
-    let events = training();
-    let db = open(&dir, &["u"]).await;
-    db.push_events("u", events[..100].to_vec()).await.unwrap();
-    sqlx::query("DELETE FROM event_files")
-        .execute(&db.write_pool)
-        .await
-        .unwrap();
-    drop(db);
-    std::fs::write(dir.join("events/9999999999999-000000.parquet.tmp"), b"half").unwrap();
-    let db = open(&dir, &["u"]).await;
-    assert_eq!(db.head("u").await.unwrap(), 100);
-    assert_eq!(
-        ids(&db.events_after("u", 0, i64::MAX).await.unwrap()),
-        ids(&events[..100])
-    );
-    assert!(!dir.join("events/9999999999999-000000.parquet.tmp").exists());
-}
-
-#[tokio::test]
-async fn heart_rate_is_stored_and_sent_but_never_folded() {
-    let dir = dir();
-    let events = training();
-    let beats = events.iter().filter(|e| is_heart_rate(e)).count();
-    assert!(beats > 0, "the history has heart rate");
-    let db = open(&dir, &["u"]).await;
-    db.push_events("u", events.clone()).await.unwrap();
+    // A read mid-set has every set done so far.
+    let read = db.read_account("u", Clone::clone).await.unwrap();
+    assert_eq!(read, Account::fold_without_heart_rate(during));
+    // The end: written, each event once, in order, with its snapshot.
+    db.buffer_events("u", end.to_vec(), false).await.unwrap();
+    written(&db, events.len() as i64).await;
     let stored = db.events_after("u", 0, i64::MAX).await.unwrap();
-    assert_eq!(stored.iter().filter(|e| is_heart_rate(e)).count(), beats);
-    let account = db.read_account("u", Clone::clone).await.unwrap();
-    assert!(account.without_heart_rate);
-    assert!(account.workouts.iter().all(|w| w.heart_rate.is_empty()));
+    assert_eq!(
+        stored.iter().map(|e| e.id.clone()).collect::<Vec<_>>(),
+        events.iter().map(|e| e.id.clone()).collect::<Vec<_>>()
+    );
+    assert_eq!(stored.last().unwrap().seq, events.len() as i64);
+    let (snapshot, seq, last_id) = db.snapshot_now("u").await.unwrap();
+    assert_eq!(seq, events.len() as i64);
+    assert_eq!(last_id, events.last().unwrap().id);
+    let (account, _) = schlift_core::snapshot::restore(&snapshot).unwrap();
+    assert_eq!(account, Account::fold_without_heart_rate(&events));
+    assert_eq!(without_heart_rate(&phone.account), account);
 }
 
-/// A database from before the ledger: its events move into files, read
-/// back exactly, and the table is gone.
+/// After a restart the server holds the snapshots only; the phone sends
+/// what it holds unacked again, and it is placed once.
 #[tokio::test]
-async fn events_move_in_from_sqlite() {
+async fn after_a_restart_the_phones_resend_and_each_event_is_placed_once() {
+    let dir = dir();
+    let db = open(&dir, holding()).await;
+    let mut phone = Phone::new();
+    let now = now_unix() - 7200;
+    let first = phone.workout(now, 2, true);
+    db.buffer_events("u", first.clone(), true).await.unwrap();
+    written(&db, first.len() as i64).await;
+    let second = phone.workout(now + 3600, 2, false);
+    db.buffer_events("u", second.clone(), false).await.unwrap();
+    db.ledger.stop_writing();
+    drop(db);
+    let db = open(&dir, holding()).await;
+    assert_eq!(
+        db.head("u").await.unwrap(),
+        first.len() as i64,
+        "the held workout is gone"
+    );
+    // The phone resends everything it holds unacked: the second workout, and
+    // (it lost the first's ack) the first again.
+    let resend: Vec<Event> = first.iter().chain(&second).cloned().collect();
+    let ids: Vec<String> = resend.iter().map(|e| e.id.clone()).collect();
+    let written_before = db.written_among("u", &ids).await.unwrap();
+    assert_eq!(
+        written_before.len(),
+        first.len(),
+        "the first is known written"
+    );
+    let fresh: Vec<Event> = resend
+        .into_iter()
+        .filter(|e| !written_before.contains(&e.id))
+        .collect();
+    db.buffer_events("u", fresh, true).await.unwrap();
+    db.flush().await.unwrap();
+    let stored = db.events_after("u", 0, i64::MAX).await.unwrap();
+    let unique: HashSet<&str> = stored.iter().map(|e| e.id.as_str()).collect();
+    assert_eq!(unique.len(), stored.len(), "each once");
+    assert_eq!(stored.len(), first.len() + second.len());
+    let read = db.read_account("u", Clone::clone).await.unwrap();
+    assert_eq!(read, without_heart_rate(&phone.account));
+}
+
+/// Nothing a phone or an assistant does reads the event files: they are
+/// moved away, and every read, open and write still works.
+#[tokio::test]
+async fn normal_running_never_reads_the_event_files() {
+    let dir = dir();
+    let db = open(&dir, holding()).await;
+    let mut phone = Phone::new();
+    let now = now_unix() - 7200;
+    let first = phone.workout(now, 2, true);
+    db.buffer_events("u", first.clone(), true).await.unwrap();
+    written(&db, first.len() as i64).await;
+    drop(db);
+    std::fs::rename(dir.join("events"), dir.join("events-away")).unwrap();
+    std::fs::create_dir_all(dir.join("events")).unwrap();
+    let db = open(&dir, holding()).await;
+    let second = phone.workout(now + 3600, 2, true);
+    db.buffer_events("u", second.clone(), true).await.unwrap();
+    let all = first.len() + second.len();
+    written(&db, all as i64).await;
+    let read = db.read_account("u", Clone::clone).await.unwrap();
+    assert_eq!(read, without_heart_rate(&phone.account));
+    let (snapshot, seq, _) = db.snapshot_now("u").await.unwrap();
+    assert_eq!(seq, all as i64);
+    assert_eq!(schlift_core::snapshot::restore(&snapshot).unwrap().0, read);
+}
+
+#[tokio::test]
+async fn past_the_memory_budget_workouts_are_written_early() {
+    let dir = dir();
+    let db = open(
+        &dir,
+        Timing {
+            memory_budget: 4_096,
+            ..holding()
+        },
+    )
+    .await;
+    let mut phone = Phone::new();
+    let events = phone.workout(now_unix() - 600, 4, false);
+    db.buffer_events("u", events.clone(), true).await.unwrap();
+    // The workout runs on, but memory is short: written (and acked) now.
+    written(&db, events.len() as i64).await;
+    assert!(db.ledger.held.load(Ordering::Relaxed) < 4_096);
+}
+
+#[tokio::test]
+async fn heart_rate_is_stored_typed_and_fetched_by_workout() {
+    let dir = dir();
+    let db = open(&dir, holding()).await;
+    let mut phone = Phone::new();
+    let events = phone.workout(now_unix() - 3600, 1, true);
+    let workout = events[0].id.clone();
+    db.buffer_events("u", events.clone(), true).await.unwrap();
+    written(&db, events.len() as i64).await;
+    let beats = db.workout_heart_rate("u", &workout).await.unwrap().unwrap();
+    let recorded = phone.account.workout(&workout).unwrap().heart_rate.clone();
+    assert!(!recorded.is_empty());
+    assert_eq!(
+        beats.t_ms,
+        recorded.iter().map(|s| s.sampled_at).collect::<Vec<_>>()
+    );
+    assert_eq!(
+        beats.bpm,
+        recorded.iter().map(|s| s.bpm as u16).collect::<Vec<_>>()
+    );
+    assert!(db
+        .workout_heart_rate("u", "no such workout")
+        .await
+        .unwrap()
+        .is_none());
+}
+
+/// A release that changes the rules: the snapshot is by other ones, and
+/// the account is folded again from the files, once.
+#[tokio::test]
+async fn a_snapshot_by_other_rules_is_folded_again_from_the_files() {
+    let dir = dir();
+    let db = open(&dir, holding()).await;
+    let mut phone = Phone::new();
+    let events = phone.workout(now_unix() - 3600, 2, true);
+    db.buffer_events("u", events.clone(), true).await.unwrap();
+    written(&db, events.len() as i64).await;
+    drop(db);
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}/server.sqlite", dir.display()))
+        .await
+        .unwrap();
+    sqlx::query("UPDATE account_snapshots SET fold = 'an older core'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    pool.close().await;
+    let db = open(&dir, holding()).await;
+    let read = db.read_account("u", Clone::clone).await.unwrap();
+    assert_eq!(read, Account::fold_without_heart_rate(&events));
+    // The next write folds onto it and stamps it by these rules.
+    let more = phone.workout(now_unix() - 600, 1, true);
+    db.buffer_events("u", more.clone(), true).await.unwrap();
+    written(&db, (events.len() + more.len()) as i64).await;
+    let (snapshot, _, _) = db.snapshot_now("u").await.unwrap();
+    assert!(schlift_core::snapshot::restore(&snapshot).is_ok());
+}
+
+#[tokio::test]
+async fn a_push_to_an_account_that_isnt_there_fails() {
+    let db = open(&dir(), holding()).await;
+    let mut phone = Phone::new();
+    let events = phone.workout(now_unix() - 600, 1, true);
+    assert!(db.push_events("nobody", events.clone()).await.is_err());
+    db.push_events("u", events[..2].to_vec()).await.unwrap();
+    db.delete_user_account_and_data("u").await.unwrap();
+    assert!(db
+        .buffer_events("u", events[2..].to_vec(), true)
+        .await
+        .is_err());
+}
+
+/// An old database's events move into the files, each account with its
+/// snapshot, and the table goes.
+#[tokio::test]
+async fn events_move_in_from_sqlite_with_their_snapshots() {
     let dir = dir();
     std::fs::create_dir_all(&dir).unwrap();
     let pool = sqlx::SqlitePool::connect(&format!(
@@ -280,7 +354,8 @@ async fn events_move_in_from_sqlite() {
     .execute(&pool)
     .await
     .unwrap();
-    let events = training();
+    let mut phone = Phone::new();
+    let events = phone.workout(now_unix() - 3600, 3, true);
     for (n, event) in events.iter().enumerate() {
         let mut event = event.clone();
         event.seq = n as i64 + 1;
@@ -293,75 +368,68 @@ async fn events_move_in_from_sqlite() {
             .unwrap();
     }
     pool.close().await;
-    let db = ServerDb::new_in_dir(&dir).await.unwrap();
-    let moved = db.events_after("u", 0, i64::MAX).await.unwrap();
-    assert_eq!(ids(&moved), ids(&events));
-    assert_eq!(moved.last().unwrap().seq, events.len() as i64);
-    assert!(
-        db.read_account("u", Clone::clone).await.unwrap()
-            == Account::fold_without_heart_rate(&events)
+    let db = open(&dir, holding()).await;
+    assert_eq!(db.head("u").await.unwrap(), events.len() as i64);
+    assert_eq!(
+        db.read_account("u", Clone::clone).await.unwrap(),
+        Account::fold_without_heart_rate(&events)
+    );
+    assert_eq!(
+        db.events_after("u", 0, i64::MAX).await.unwrap().len(),
+        events.len()
     );
     let table: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE name = 'account_events'")
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-    assert_eq!(table, 0, "the table is dropped");
-    // Opened again, nothing moves twice.
-    drop(db);
-    let db = ServerDb::new_in_dir(&dir).await.unwrap();
-    assert_eq!(
-        ids(&db.events_after("u", 0, i64::MAX).await.unwrap()),
-        ids(&events)
-    );
+    assert_eq!(table, 0);
 }
 
-/// A partner sees the workout so far from memory, the events not yet
-/// stored included, and after a restart from the files.
+/// Compaction merges closed hours' and days' batch files into one: the
+/// same events, the index on the new file, the old files gone, heart rate
+/// still fetched by workout.
 #[tokio::test]
-async fn a_workout_so_far_comes_from_memory_and_after_a_restart_from_the_files() {
+async fn compaction_changes_the_files_and_nothing_else() {
     let dir = dir();
-    let events = training();
-    let start = events
-        .iter()
-        .rposition(|e| matches!(e.fact, Fact::WorkoutStarted(_)))
-        .unwrap();
-    let workout = events[start].id.clone();
-    let db = open(&dir, &["u"]).await;
-    db.push_events("u", events[..start + 3].to_vec())
+    let db = open(&dir, holding()).await;
+    let mut phone = Phone::new();
+    let mut all = Vec::new();
+    let mut workouts = Vec::new();
+    for n in 0..4 {
+        let events = phone.workout(now_unix() - 4 * 3600 + n * 1000, 1, true);
+        workouts.push(events[0].id.clone());
+        all.extend(events.clone());
+        db.buffer_events("u", events, true).await.unwrap();
+        written(&db, all.len() as i64).await;
+    }
+    let before = files::list(&db.ledger.events_dir()).unwrap();
+    assert!(before.len() >= 4, "a batch file each: {before:?}");
+    // Two days on: every hour and the day are closed.
+    compact::compact(&db.ledger, now_ms() + 2 * 86_400_000)
         .await
         .unwrap();
-    db.ledger.stop_flushing();
-    db.buffer_events("u", events[start + 3..start + 6].to_vec())
-        .await
-        .unwrap();
-    let shared: Vec<String> = events[start..start + 6]
-        .iter()
-        .filter(|e| shared_with_partners(&e.fact) && e.workout_id() == Some(&workout))
-        .map(|e| e.id.clone())
-        .collect();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+    let after = files::list(&db.ledger.events_dir()).unwrap();
+    assert_eq!(after.len(), 1, "{after:?}");
+    assert!(after[0].contains("/d-"), "{after:?}");
+    let stored = db.events_after("u", 0, i64::MAX).await.unwrap();
     assert_eq!(
-        ids(&db.workout_events("u", &workout).await.unwrap()),
-        shared
+        stored.iter().map(|e| e.id.clone()).collect::<Vec<_>>(),
+        all.iter().map(|e| e.id.clone()).collect::<Vec<_>>()
     );
-    db.flush().await.unwrap();
-    drop(db);
-    let db = open(&dir, &["u"]).await;
-    assert_eq!(
-        ids(&db.workout_events("u", &workout).await.unwrap()),
-        shared
-    );
-}
-
-#[tokio::test]
-async fn a_push_to_an_account_that_isnt_there_fails() {
-    let db = open(&dir(), &["u"]).await;
-    let events = training();
-    assert!(db
-        .push_events("nobody", events[..3].to_vec())
+    let indexed: Vec<String> = sqlx::query_scalar("SELECT DISTINCT file FROM event_files")
+        .fetch_all(&db.read_pool)
         .await
-        .is_err());
-    db.push_events("u", events[..3].to_vec()).await.unwrap();
-    db.delete_user_account_and_data("u").await.unwrap();
-    assert!(db.buffer_events("u", events[3..6].to_vec()).await.is_err());
+        .unwrap();
+    assert_eq!(indexed, after);
+    for workout in &workouts {
+        assert!(db.workout_heart_rate("u", workout).await.unwrap().is_some());
+    }
+    assert_eq!(files::list(&db.ledger.beats_dir()).unwrap().len(), 1);
+    // Done again, nothing changes.
+    compact::compact(&db.ledger, now_ms() + 2 * 86_400_000)
+        .await
+        .unwrap();
+    assert_eq!(files::list(&db.ledger.events_dir()).unwrap(), after);
 }

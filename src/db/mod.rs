@@ -13,7 +13,7 @@ mod analytics;
 mod assistants;
 mod auth;
 mod changes;
-mod ledger;
+pub mod ledger;
 mod migrate;
 mod recovery;
 mod training;
@@ -40,6 +40,14 @@ pub struct ServerDb {
 
 impl ServerDb {
     pub async fn new_in_dir(data_dir: impl AsRef<Path>) -> DbResult<Self> {
+        Self::new_with_timing(data_dir, ledger::Timing::from_env()).await
+    }
+
+    /// The same, with the ledger's timings given (tests of holding events).
+    pub async fn new_with_timing(
+        data_dir: impl AsRef<Path>,
+        timing: ledger::Timing,
+    ) -> DbResult<Self> {
         let data_dir = data_dir.as_ref();
         std::fs::create_dir_all(data_dir)?;
         let db_path = format!("{}/server.sqlite", data_dir.display());
@@ -64,9 +72,10 @@ impl ServerDb {
             read_pool.clone(),
             write_pool.clone(),
             changes.clone(),
+            timing,
         )
         .await?;
-        ledger.run(ledger::flush_every());
+        ledger.run();
         Ok(Self {
             read_pool,
             write_pool,

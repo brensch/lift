@@ -51,6 +51,16 @@ class WorkoutServiceClient extends $grpc.Client {
     return $createUnaryCall(_$getExerciseProgress, request, options: options);
   }
 
+  /// A finished workout's heart rate, by its id, as the server stores it:
+  /// for a phone that doesn't hold it (one restored from the account whole,
+  /// which leaves heart rate out), and the website.
+  $grpc.ResponseFuture<$0.GetWorkoutHeartRateResponse> getWorkoutHeartRate(
+    $0.GetWorkoutHeartRateRequest request, {
+    $grpc.CallOptions? options,
+  }) {
+    return $createUnaryCall(_$getWorkoutHeartRate, request, options: options);
+  }
+
   // method descriptors
 
   static final _$listWorkoutSummaries = $grpc.ClientMethod<
@@ -63,6 +73,11 @@ class WorkoutServiceClient extends $grpc.Client {
       '/workout.v1.WorkoutService/GetExerciseProgress',
       ($0.GetExerciseProgressRequest value) => value.writeToBuffer(),
       $0.GetExerciseProgressResponse.fromBuffer);
+  static final _$getWorkoutHeartRate = $grpc.ClientMethod<
+          $0.GetWorkoutHeartRateRequest, $0.GetWorkoutHeartRateResponse>(
+      '/workout.v1.WorkoutService/GetWorkoutHeartRate',
+      ($0.GetWorkoutHeartRateRequest value) => value.writeToBuffer(),
+      $0.GetWorkoutHeartRateResponse.fromBuffer);
 }
 
 @$pb.GrpcServiceName('workout.v1.WorkoutService')
@@ -88,6 +103,15 @@ abstract class WorkoutServiceBase extends $grpc.Service {
         ($core.List<$core.int> value) =>
             $0.GetExerciseProgressRequest.fromBuffer(value),
         ($0.GetExerciseProgressResponse value) => value.writeToBuffer()));
+    $addMethod($grpc.ServiceMethod<$0.GetWorkoutHeartRateRequest,
+            $0.GetWorkoutHeartRateResponse>(
+        'GetWorkoutHeartRate',
+        getWorkoutHeartRate_Pre,
+        false,
+        false,
+        ($core.List<$core.int> value) =>
+            $0.GetWorkoutHeartRateRequest.fromBuffer(value),
+        ($0.GetWorkoutHeartRateResponse value) => value.writeToBuffer()));
   }
 
   $async.Future<$0.ListWorkoutSummariesResponse> listWorkoutSummaries_Pre(
@@ -107,6 +131,15 @@ abstract class WorkoutServiceBase extends $grpc.Service {
 
   $async.Future<$0.GetExerciseProgressResponse> getExerciseProgress(
       $grpc.ServiceCall call, $0.GetExerciseProgressRequest request);
+
+  $async.Future<$0.GetWorkoutHeartRateResponse> getWorkoutHeartRate_Pre(
+      $grpc.ServiceCall $call,
+      $async.Future<$0.GetWorkoutHeartRateRequest> $request) async {
+    return getWorkoutHeartRate($call, await $request);
+  }
+
+  $async.Future<$0.GetWorkoutHeartRateResponse> getWorkoutHeartRate(
+      $grpc.ServiceCall call, $0.GetWorkoutHeartRateRequest request);
 }
 
 @$pb.GrpcServiceName('workout.v1.UserService')

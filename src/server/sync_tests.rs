@@ -1230,8 +1230,7 @@ mod stream {
             let (account, seq) = schlift_core::snapshot::restore(&state.snapshot).unwrap();
             assert_eq!(seq, state.seq);
             assert!(account == Account::fold_without_heart_rate(placed));
-            // Caught up: the head, and nothing before it again.
-            assert_eq!(link.head().await, placed.len() as i64);
+            // Where it is now: nothing before it is sent again.
             // Its waiting ones go up and come back placed after the snapshot.
             link.push(events[events.len() - 4..].to_vec()).await;
             let back = link.events_through(events.len() as i64 - 2).await;
@@ -1275,39 +1274,52 @@ mod stream {
             assert_eq!(state.last_id, events.last().unwrap().id);
         }
 
+        /// One version: an app folding by other rules is told to update.
+        /// One just behind (another device wrote since) gets the account
+        /// whole: no events are read from the files.
         #[tokio::test]
-        async fn a_device_on_other_rules_or_just_behind_gets_events() {
+        async fn other_rules_update_and_one_behind_gets_the_account_whole() {
             let db = db().await;
             let token = db.create_auth_session("u1").await.unwrap();
             let (_, events) = history(300);
             db.push_events("u1", events.clone()).await.unwrap();
             let channel = serve(db.clone()).await;
-            for (after_seq, fold) in [
-                (0, "an older core".to_string()),
-                (events.len() as i64 - 10, schlift_core::FOLD.to_string()),
-            ] {
-                let mut link = Link::open_with(
-                    channel.clone(),
-                    &token,
-                    SyncOpen {
-                        after_seq,
-                        fold: fold.clone(),
-                        pending_ids: Vec::new(),
-                        last_id: String::new(),
-                    },
-                )
+            let mut old = Link::open_with(
+                channel.clone(),
+                &token,
+                SyncOpen {
+                    after_seq: 0,
+                    fold: "an older core".to_string(),
+                    ..Default::default()
+                },
+            )
+            .await;
+            let status = tokio::time::timeout(Duration::from_secs(5), old.down.message())
+                .await
+                .unwrap()
+                .unwrap_err();
+            assert_eq!(status.code(), tonic::Code::FailedPrecondition);
+            assert_eq!(status.message(), "app_update_required");
+            let behind = events.len() as i64 - 10;
+            let mut link = Link::open_with(
+                channel,
+                &token,
+                SyncOpen {
+                    after_seq: behind,
+                    fold: schlift_core::FOLD.to_string(),
+                    pending_ids: Vec::new(),
+                    last_id: events[behind as usize - 1].id.clone(),
+                },
+            )
+            .await;
+            let state = link
+                .next(|kind| match kind {
+                    sync_response::Kind::Account(a) => Some(a),
+                    _ => None,
+                })
                 .await;
-                let got = link.events_through(events.len() as i64).await;
-                assert_eq!(
-                    got.len() as i64,
-                    events.len() as i64 - after_seq,
-                    "{fold} from {after_seq}"
-                );
-                assert!(link
-                    .skipped
-                    .iter()
-                    .all(|k| !matches!(k, sync_response::Kind::Account(_))));
-            }
+            assert_eq!(state.seq, events.len() as i64);
+            assert_eq!(state.last_id, events.last().unwrap().id);
         }
     }
 }

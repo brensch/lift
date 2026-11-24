@@ -642,8 +642,7 @@ mod tests {
         for sql in [
             "INSERT INTO page_views (user_id, app_session_id, seq, page, entered_at_ms)
              VALUES (?, 's', 1, 'home', 1)",
-            "INSERT INTO account_snapshots (user_id, seq, fold, state, updated_at)
-             VALUES (?, 1, 'f', x'00', 1)",
+            "INSERT INTO heart_rate_files (user_id, workout_id, file) VALUES (?, 'w', 'f')",
         ] {
             sqlx::query(sql)
                 .bind(u)

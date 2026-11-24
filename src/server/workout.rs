@@ -33,4 +33,32 @@ impl WorkoutService for ServerWorkoutService {
             read_api(&self.db, &user_id, |call| call.get_exercise_progress()).await?,
         ))
     }
+
+    async fn get_workout_heart_rate(
+        &self,
+        request: Request<GetWorkoutHeartRateRequest>,
+    ) -> Result<Response<GetWorkoutHeartRateResponse>, Status> {
+        let user_id = authed_user_id(&request, &self.db).await?;
+        let workout_id = request.into_inner().workout_id;
+        info!(rpc = "GetWorkoutHeartRate", %user_id, %workout_id, "request");
+        let beats = self
+            .db
+            .workout_heart_rate(&user_id, &workout_id)
+            .await
+            .map_err(internal_error)?;
+        Ok(Response::new(GetWorkoutHeartRateResponse {
+            samples: beats
+                .map(|b| {
+                    b.t_ms
+                        .iter()
+                        .zip(&b.bpm)
+                        .map(|(&sampled_at, &bpm)| WorkoutHeartRatePoint {
+                            sampled_at,
+                            bpm: f32::from(bpm),
+                        })
+                        .collect()
+                })
+                .unwrap_or_default(),
+        }))
+    }
 }
