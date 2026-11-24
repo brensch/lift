@@ -82,9 +82,9 @@ class AccountSync extends ChangeNotifier
   bool _updateRequired = false;
 
   /// Events recorded here that the server hasn't placed for a while. The
-  /// server stores pushes with its next flush (a minute or so) and acks
-  /// them then, so events waiting less than [_unsyncedAfter] are normal and
-  /// not counted.
+  /// server places a workout when it ends and anything else a minute or two
+  /// after it comes, so a workout under way, and events waiting less than
+  /// [_unsyncedAfter], are normal and not counted.
   int get unsynced => _unsynced;
   int _unsynced = 0;
   static const _unsyncedAfter = Duration(minutes: 2);

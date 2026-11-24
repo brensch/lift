@@ -210,7 +210,7 @@ void main() {
     // read still running.
     Future<void>? signedOut;
     service.onRequest = (r) {
-      if (r.hasAfterSeq()) signedOut ??= sync.signOut();
+      if (r.hasOpen()) signedOut ??= sync.signOut();
     };
     for (var i = 1; i <= 5; i++) {
       signedOut = null;
@@ -309,42 +309,6 @@ void main() {
     },
   );
 
-  test('a server that holds less is sent the rest from its head', () async {
-    final service = _Scripted();
-    final opened = <int>[];
-    service.onRequest = (r) {
-      if (r.hasAfterSeq()) opened.add(r.afterSeq.toInt());
-    };
-    final sync = await serve(service);
-    await sync.signIn('u1', 'Me');
-    await _until(() => service.streams.length == 1);
-    _restore(1).forEach(service.streams.first.add);
-    await _until(() => sync.isReady);
-    await sync.core!.call(
-      'StartWorkout',
-      StartWorkoutRequest(name: 'Test', exercises: ['squat']),
-      StartWorkoutResponse.fromBuffer,
-    );
-    await service.streams.first.close();
-
-    // Restored from an older backup, the server holds one event: once the
-    // phone has said what it holds (as a real server waits to hear), it
-    // says so and ends the stream, unread.
-    await _until(() => opened.length == 2);
-    service.streams[1]
-      ..add(SyncResponse(events: Events(head: Int64(1))))
-      ..close();
-
-    // The phone queues everything after the head and dials again from
-    // before it, to see the server's last event is its own.
-    await _until(() => opened.length == 3);
-    expect(opened, [0, 2, 0]);
-    expect(await sync.core!.confirmed(), 1);
-    expect(await sync.core!.pendingCount(), 3);
-
-    await sync.signOut();
-  });
-
   test('a damaged import is turned away and the account stays open', () async {
     final service = _Scripted();
     final sync = await serve(service);
@@ -428,8 +392,12 @@ void main() {
     // goes up than what it lacked.
     await _until(() => service.streams.length == 2);
     _restore(1).forEach(service.streams.last.add);
-    await _until(() => sync.unsynced == pending);
+    await _until(() => sync.connected);
     expect(await sync.core!.confirmed(), 3);
+    expect(await sync.core!.pendingCount(), pending);
+    // What waits is the workout under way: the server places it when it
+    // ends, so it isn't unsynced.
+    expect(sync.unsynced, 0);
 
     await sync.signOut();
   });

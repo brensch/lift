@@ -113,6 +113,13 @@ impl Store {
     /// else is refused.
     pub fn open(path: &Path, user_id: &str, name: &str) -> StoreResult<Self> {
         let conn = Connection::open(path).map_err(storage)?;
+        // A damaged file is turned away whole, wherever the damage is.
+        let check: String = conn
+            .query_row("PRAGMA quick_check", [], |r| r.get(0))
+            .map_err(storage)?;
+        if check != "ok" {
+            return Err(format!("invalid_argument: that file is damaged ({check})"));
+        }
         let format: i64 = conn
             .query_row("PRAGMA user_version", [], |r| r.get(0))
             .map_err(storage)?;
@@ -493,9 +500,18 @@ impl Store {
 
     /// When the oldest event waiting for the server was recorded (Unix
     /// seconds), if one waits: the app says it's unsynced only once that is
-    /// a while ago, since the server acks a minute or so after a push.
+    /// a while ago: the server acks a workout when it ends, anything else a
+    /// minute or two after it is pushed.
     pub fn oldest_pending_at(&self) -> StoreResult<Option<i64>> {
-        Ok(self.pending()?.iter().map(|e| e.at).min())
+        // The server holds a workout under way until it ends, and places it
+        // then: its events waiting is normal, not unsynced.
+        let active = self.account.active_workout().map(|w| w.workout.id.as_str());
+        Ok(self
+            .pending()?
+            .iter()
+            .filter(|e| active.is_none() || e.workout_id() != active)
+            .map(|e| e.at)
+            .min())
     }
 
     /// What this device recorded that the server hasn't placed, oldest first.
@@ -552,6 +568,13 @@ impl Store {
         }
         let conn = Connection::open_with_flags(path, rusqlite::OpenFlags::SQLITE_OPEN_READ_ONLY)
             .map_err(storage)?;
+        // A damaged file is turned away whole, wherever the damage is.
+        let check: String = conn
+            .query_row("PRAGMA quick_check", [], |r| r.get(0))
+            .map_err(storage)?;
+        if check != "ok" {
+            return Err(format!("invalid_argument: that file is damaged ({check})"));
+        }
         let format: i64 = conn
             .query_row("PRAGMA user_version", [], |r| r.get(0))
             .map_err(storage)?;
@@ -575,8 +598,37 @@ impl Store {
                 .map_err(storage)?;
             rows.collect::<Result<_, _>>().map_err(storage)?
         };
+        // A phone holding nothing the server placed (its copy lost) takes
+        // the export's places as they are: its base and placed, so they
+        // aren't sent up again. A phone holding some keeps its own, and
+        // the export's go up as pending, where the server knows them.
+        let empty = self.confirmed_seq == 0 && self.placed()?.is_empty();
+        let base: Option<(i64, String, Vec<u8>)> = if empty && format >= 3 {
+            conn.query_row("SELECT seq, fold, state FROM base", [], |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+            })
+            .optional()
+            .map_err(storage)?
+        } else {
+            None
+        };
+        let last_id: Option<String> = if empty {
+            conn.query_row("SELECT value FROM meta WHERE key = 'last_id'", [], |r| {
+                r.get(0)
+            })
+            .optional()
+            .map_err(storage)?
+        } else {
+            None
+        };
+        let (kept, placed): (Vec<Event>, Vec<Event>) = if empty && last_id.is_some() {
+            (placed, Vec::new())
+        } else {
+            (Vec::new(), placed)
+        };
         let mut held: HashSet<String> = self.placed()?.into_iter().map(|e| e.id).collect();
         held.extend(self.pending_ids()?);
+        held.extend(kept.iter().map(|e| e.id.clone()));
         let added: Vec<Event> = placed
             .into_iter()
             .chain(waiting)
@@ -584,6 +636,31 @@ impl Store {
             .map(|e| Event { seq: 0, ..e })
             .collect();
         let tx = self.conn.transaction().map_err(storage)?;
+        if let Some(last_id) = &last_id {
+            if let Some((seq, fold, state)) = &base {
+                tx.execute(
+                    "INSERT OR REPLACE INTO base (id, seq, fold, state) VALUES (1, ?, ?, ?)",
+                    params![seq, fold, state],
+                )
+                .map_err(storage)?;
+            }
+            for event in &kept {
+                tx.execute(
+                    "INSERT OR IGNORE INTO placed (seq, id, event) VALUES (?, ?, ?)",
+                    params![
+                        event.seq,
+                        event.id,
+                        serde_json::to_string(event).map_err(storage)?
+                    ],
+                )
+                .map_err(storage)?;
+            }
+            tx.execute(
+                "INSERT OR REPLACE INTO meta (key, value) VALUES ('last_id', ?)",
+                params![last_id],
+            )
+            .map_err(storage)?;
+        }
         add_pending(&tx, &added)?;
         for (workout_id, sampled_at, bpm) in &heart_rate {
             tx.execute(
@@ -593,10 +670,13 @@ impl Store {
             .map_err(storage)?;
         }
         tx.commit().map_err(storage)?;
-        if !added.is_empty() {
+        if last_id.is_some() {
+            self.load_confirmed()?;
+        }
+        if !added.is_empty() || last_id.is_some() {
             self.refold()?;
         }
-        Ok(added.len())
+        Ok(added.len() + kept.len())
     }
 
     /// Events from the server, in its order, and the last seq it holds.
@@ -1040,6 +1120,24 @@ mod tests {
             .iter()
             .map(|s| s.sampled_at - base)
             .collect()
+    }
+
+    /// The server places a workout when it ends: until then its events
+    /// waiting don't make the app unsynced; anything else waiting does.
+    #[test]
+    fn a_workout_under_way_is_not_unsynced() {
+        let mut store = Store::open(&temp("unsynced"), U1, "").unwrap();
+        let home = onboard(&mut store);
+        let onboarded = store.oldest_pending_at().unwrap();
+        assert!(onboarded.is_some(), "onboarding waits like any write");
+        let placed = place(store.pending().unwrap(), 0);
+        store.receive(placed, 1).unwrap();
+        assert_eq!(store.oldest_pending_at().unwrap(), None);
+        let started = start(&mut store, &home.templates[0].id);
+        assert!(!store.pending().unwrap().is_empty());
+        assert_eq!(store.oldest_pending_at().unwrap(), None, "under way");
+        end(&mut store, &started.id, 2_010);
+        assert!(store.oldest_pending_at().unwrap().is_some(), "ended: waits");
     }
 
     #[test]
