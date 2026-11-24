@@ -27,7 +27,7 @@ enum Step {
     /// Not started; starts at the next action.
     Waiting,
     /// Under way: the workout as the core last answered it.
-    Training(String, GetWorkoutResponse),
+    Training(String, Box<GetWorkoutResponse>),
     /// A set started: done at the next action.
     Lifting(String, CompleteSetRequest),
     Done,
@@ -146,7 +146,7 @@ impl Phone {
                     next_up_set: started.next_up_set,
                     ..Default::default()
                 };
-                self.step = Step::Training(started.id, state);
+                self.step = Step::Training(started.id, Box::new(state));
                 // Setting up the first lift.
                 Ok(Done {
                     events,
@@ -157,7 +157,7 @@ impl Phone {
             Step::Training(id, state) => match self.lifter.next_move(&id, &state) {
                 Move::AnswerRung(answer) => {
                     let (state, events) = self.mutate(rng, Mutation::AnswerRung(answer), now)?;
-                    self.step = Step::Training(id, state);
+                    self.step = Step::Training(id, Box::new(state));
                     Ok(Done {
                         events,
                         what: "answer",
@@ -166,7 +166,7 @@ impl Phone {
                 }
                 Move::AnswerEffort(answer) => {
                     let (state, events) = self.mutate(rng, Mutation::AnswerEffort(answer), now)?;
-                    self.step = Step::Training(id, state);
+                    self.step = Step::Training(id, Box::new(state));
                     Ok(Done {
                         events,
                         what: "answer",
@@ -209,7 +209,7 @@ impl Phone {
                     .next_up_set
                     .as_ref()
                     .map_or(90, |s| s.rest_seconds.max(30)) as f64;
-                self.step = Step::Training(id, state);
+                self.step = Step::Training(id, Box::new(state));
                 Ok(Done {
                     events,
                     what: "set done",
