@@ -40,6 +40,10 @@ struct Args {
     /// couple of minutes; the profiles compress it).
     #[arg(long)]
     set_every: Option<f64>,
+    /// Clients signing up at once. A server allows 20 passkey ceremonies
+    /// in flight per address, and behind Caddy every client is this one.
+    #[arg(long, default_value_t = 64)]
+    setup_at_once: usize,
     /// Seconds over which the clients start, overriding the profile.
     #[arg(long)]
     ramp: Option<f64>,
@@ -214,8 +218,7 @@ async fn run(args: &Args, profile: Profile) -> Result<bool, String> {
     let mut channels = Vec::new();
     for _ in 0..profile.connections.max(1) {
         channels.push(
-            Channel::from_shared(url.clone())
-                .map_err(|e| e.to_string())?
+            schlift_load::endpoint(&url)?
                 .connect()
                 .await
                 .map_err(|e| format!("connecting to {url}: {e}"))?,
@@ -232,7 +235,7 @@ async fn run(args: &Args, profile: Profile) -> Result<bool, String> {
     // Set up: every account signs up, restores its history and connects
     // before anything is measured as load, a few dozen at a time.
     let mut client_errors: BTreeMap<String, usize> = BTreeMap::new();
-    let gate = Arc::new(tokio::sync::Semaphore::new(64));
+    let gate = Arc::new(tokio::sync::Semaphore::new(args.setup_at_once));
     let mut preparing = tokio::task::JoinSet::new();
     for n in 0..profile.clients {
         // Watchers are spread through the run, not bunched at one end.

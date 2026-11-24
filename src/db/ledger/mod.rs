@@ -87,6 +87,9 @@ struct UserLog {
     head: i64,
     /// The seq the stored snapshot is folded to.
     snapshot_seq: i64,
+    /// The id of the event at `snapshot_seq`: what a device opening from
+    /// there is checked against, without reading the files.
+    snapshot_last_id: String,
     /// Placed events after the snapshot, heart rate and all.
     tail: VecDeque<Arc<Event>>,
     /// The account folded (without heart rate), and the seq it is folded
@@ -280,21 +283,26 @@ impl Ledger {
     /// events placed after it (none, for an account written down when it
     /// went idle).
     async fn load(&self, user_id: &str, log: &mut UserLog) -> DbResult<()> {
-        // One query: whether it exists, its head, and its snapshot's seq.
-        let (exists, head, saved): (bool, Option<i64>, Option<i64>) = sqlx::query_as(
-            "SELECT EXISTS (SELECT 1 FROM users WHERE id = ?1),
+        // One query: whether it exists, its head, its snapshot's seq and
+        // the id there (the last it keeps).
+        let (exists, head, saved, last_id): (bool, Option<i64>, Option<i64>, Option<String>) =
+            sqlx::query_as(
+                "SELECT EXISTS (SELECT 1 FROM users WHERE id = ?1),
                     (SELECT MAX(max_seq) FROM event_files WHERE user_id = ?1),
-                    (SELECT seq FROM account_snapshots WHERE user_id = ?1 AND fold = ?2)",
-        )
-        .bind(user_id)
-        .bind(schlift_core::FOLD)
-        .fetch_one(&self.read_pool)
-        .await?;
+                    (SELECT seq FROM account_snapshots WHERE user_id = ?1 AND fold = ?2),
+                    (SELECT recent_ids ->> '$[#-1]' FROM account_snapshots
+                     WHERE user_id = ?1 AND fold = ?2)",
+            )
+            .bind(user_id)
+            .bind(schlift_core::FOLD)
+            .fetch_one(&self.read_pool)
+            .await?;
         log.exists = exists;
         log.head = head.unwrap_or(0);
         match saved {
             Some(seq) if seq <= log.head => {
                 log.snapshot_seq = seq;
+                log.snapshot_last_id = last_id.unwrap_or_default();
                 log.snapshot_unread = true;
                 log.ids_unread = true;
                 if log.head > seq {
@@ -909,6 +917,31 @@ impl Ledger {
             .collect()
     }
 
+    /// The id of the account's placed event at `seq`: from memory (the
+    /// tail, or the snapshot's last), else the files.
+    pub async fn id_at(&self, user_id: &str, seq: i64) -> DbResult<Option<String>> {
+        let log = self.user(user_id).await?;
+        {
+            let log = log.lock().await;
+            if let Some(event) = log.tail.iter().find(|e| e.seq == seq) {
+                return Ok(Some(event.id.clone()));
+            }
+            if seq == log.snapshot_seq && !log.snapshot_last_id.is_empty() {
+                return Ok(Some(log.snapshot_last_id.clone()));
+            }
+            if seq > log.head || seq <= 0 {
+                return Ok(None);
+            }
+        }
+        Ok(self
+            .events_after(user_id, seq - 1, 1)
+            .await?
+            .into_iter()
+            .next()
+            .filter(|e| e.seq == seq)
+            .map(|e| e.id))
+    }
+
     /// The ids of the account's placed events after `after_seq`: from
     /// memory when it holds them, else the files.
     pub async fn ids_after(&self, user_id: &str, after_seq: i64) -> DbResult<HashSet<String>> {
@@ -1110,16 +1143,18 @@ fn log_snapshot(log: &mut UserLog) -> Snapshot {
     let (account, seq) = log.account.clone().expect("folded before a snapshot");
     log.snapshot_seq = seq;
     log.tail.retain(|e| e.seq > seq);
+    let recent: Vec<String> = log
+        .recent
+        .iter()
+        .rev()
+        .take(RECENT_IDS)
+        .rev()
+        .cloned()
+        .collect();
+    log.snapshot_last_id = recent.last().cloned().unwrap_or_default();
     Snapshot {
         account,
         seq,
-        recent: log
-            .recent
-            .iter()
-            .rev()
-            .take(RECENT_IDS)
-            .rev()
-            .cloned()
-            .collect(),
+        recent,
     }
 }

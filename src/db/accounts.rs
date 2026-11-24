@@ -49,14 +49,7 @@ impl ServerDb {
 
     /// The id of the user's stored event at `seq`, if there is one.
     pub async fn id_at(&self, user_id: &str, seq: i64) -> DbResult<Option<String>> {
-        Ok(self
-            .ledger
-            .events_after(user_id, seq - 1, 1)
-            .await?
-            .into_iter()
-            .next()
-            .filter(|e| e.seq == seq)
-            .map(|e| e.id))
+        self.ledger.id_at(user_id, seq).await
     }
 
     /// The ids of the user's stored events after `after_seq`.

@@ -21,7 +21,7 @@ use schlift::workout::v1::*;
 use schlift_load::metrics::Metrics;
 use tokio::sync::{mpsc, watch};
 use tokio_stream::wrappers::ReceiverStream;
-use tonic::transport::{Channel, Endpoint};
+use tonic::transport::Channel;
 
 /// Past any version gate.
 const APP_VERSION: &str = "999.0.0";
@@ -194,10 +194,7 @@ async fn main() {
     let args = Args::parse();
     let mut channels = Vec::with_capacity(args.connections);
     for _ in 0..args.connections {
-        let endpoint = Endpoint::from_shared(args.server.clone())
-            .expect("server url")
-            .http2_adaptive_window(true)
-            .tcp_nodelay(true);
+        let endpoint = schlift_load::endpoint(&args.server).expect("server url");
         channels.push(endpoint.connect_lazy());
     }
     let (stop_tx, stop) = watch::channel(false);

@@ -28,7 +28,8 @@ schlift = { path = ".." }
 schlift-core = { path = "../core" }
 schlift_native = { path = "../app/native" }
 schlift-testkit = { path = "../testkit" }
-tonic = "0.12.3"
+# TLS to reach a server behind Caddy, as phones do.
+tonic = { version = "0.12.3", features = ["tls-webpki-roots"] }
 prost = "0.13.4"
 tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread", "time", "process", "sync", "net", "io-util", "fs"] }
 tokio-stream = "0.1.17"
