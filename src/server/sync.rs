@@ -27,6 +27,10 @@ use tonic::Streaming;
 /// Events per message down: a whole account's history arrives in pieces.
 const EVENTS_PER_MESSAGE: i64 = 500;
 
+/// A device further behind than this is sent its account whole (when it
+/// folds by the server's rules) rather than the events it lacks.
+const SNAPSHOT_WHEN_BEHIND: i64 = EVENTS_PER_MESSAGE;
+
 /// How long a stream sends what it is told without asking again whether its
 /// login is still good: an expired login sends nothing more after this.
 /// (Signing out and deleting the account are told at once, as
@@ -191,22 +195,40 @@ impl Stream {
         mut changes: broadcast::Receiver<Change>,
     ) -> ServerResult<()> {
         // The device says what it holds; it gets the rest.
-        self.sent = match inbound.message().await {
+        let open = match inbound.message().await {
             Ok(Some(SyncRequest {
                 kind: Some(sync_request::Kind::AfterSeq(after_seq)),
-            })) => after_seq.max(0),
+            })) => SyncOpen {
+                after_seq,
+                ..Default::default()
+            },
+            Ok(Some(SyncRequest {
+                kind: Some(sync_request::Kind::Open(open)),
+            })) => open,
             Ok(Some(_)) => {
-                return Err(Status::invalid_argument("the stream opens with after_seq").into())
+                return Err(Status::invalid_argument("the stream opens with open").into())
             }
             Ok(None) | Err(_) => return Ok(()),
         };
-        // It holds more than this server (restored from an older backup):
-        // told the head, it queues what the server lacks ahead of what it
-        // has waiting. What it pushed on opening, before it heard, would be
-        // placed ahead of those older events, so the stream ends unread and
-        // the device dials again from the head.
+        self.sent = open.after_seq.max(0);
         let head = self.db.head(&self.user_id).await.map_err(internal_error)?;
-        if self.sent > head {
+        // New, far behind, or holding more than this server: the account
+        // whole, if the device folds by the same rules, costs less than the
+        // events (or is the only way back to the server's).
+        let whole = open.fold == schlift_core::FOLD
+            && head > 0
+            && (self.sent == 0 || self.sent > head || head - self.sent > SNAPSHOT_WHEN_BEHIND);
+        if whole {
+            if self.send_account(&open).await?.is_err() {
+                return Ok(());
+            }
+        } else if self.sent > head {
+            // It holds more than this server (restored from an older
+            // backup) and can't take the account whole: told the head, it
+            // queues what the server lacks ahead of what it has waiting.
+            // What it pushed on opening, before it heard, would be placed
+            // ahead of those older events, so the stream ends unread and the
+            // device dials again from the head.
             let message = schlift::workout::v1::Events {
                 packed: Vec::new(),
                 head,
@@ -292,6 +314,36 @@ impl Stream {
         }
     }
 
+    /// The account whole, as of its last stored event, and which of the
+    /// device's pending events it holds already; events after it follow.
+    async fn send_account(&mut self, open: &SyncOpen) -> ServerResult<Result<(), Closed>> {
+        let (snapshot, seq) = self
+            .db
+            .snapshot_now(&self.user_id)
+            .await
+            .map_err(internal_error)?;
+        // Its pending ones it holds were placed after what it last heard.
+        let placed = self
+            .db
+            .ids_after(&self.user_id, self.sent.min(seq))
+            .await
+            .map_err(internal_error)?;
+        let placed_ids: Vec<String> = open
+            .pending_ids
+            .iter()
+            .filter(|id| placed.contains(*id))
+            .cloned()
+            .collect();
+        self.caught_up.extend(placed);
+        self.sent = seq;
+        let message = AccountState {
+            snapshot,
+            seq,
+            placed_ids,
+        };
+        Ok(self.send(sync_response::Kind::Account(message)).await)
+    }
+
     async fn send(&self, kind: sync_response::Kind) -> Result<(), Closed> {
         self.tx
             .send(Ok(SyncResponse { kind: Some(kind) }))
@@ -335,8 +387,8 @@ impl Stream {
                 let head = self.db.head(&self.user_id).await.map_err(internal_error)?;
                 Ok(self.send(sync_response::Kind::Head(head)).await)
             }
-            Some(sync_request::Kind::AfterSeq(_)) => {
-                Err(Status::invalid_argument("after_seq opens the stream, once").into())
+            Some(sync_request::Kind::AfterSeq(_) | sync_request::Kind::Open(_)) => {
+                Err(Status::invalid_argument("a stream is opened once").into())
             }
         }
     }
