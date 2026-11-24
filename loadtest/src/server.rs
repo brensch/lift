@@ -39,6 +39,12 @@ impl Server {
             .env("RUST_LOG", "warn")
             .env("WEBAUTHN_RP_ID", "localhost")
             .env("WEBAUTHN_RP_ORIGIN", ORIGIN)
+            // Acks come with each flush: every second here, so a short run
+            // drains quickly (FLUSH_MS overrides it).
+            .env(
+                "FLUSH_MS",
+                std::env::var("FLUSH_MS").unwrap_or_else(|_| "1000".to_string()),
+            )
             .env_remove("MIN_APP_VERSION")
             .stdout(log.try_clone().map_err(|e| e.to_string())?)
             .stderr(log)

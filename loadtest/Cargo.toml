@@ -12,6 +12,17 @@ publish = false
 name = "seed"
 path = "src/seed.rs"
 
+# `seed-population`: a million accounts written into a throwaway server's
+# data directory, for `schlift-population`.
+[[bin]]
+name = "seed-population"
+path = "src/population_seed.rs"
+
+# `schlift-population`: the idle apps of a population test.
+[[bin]]
+name = "schlift-population"
+path = "src/population.rs"
+
 [dependencies]
 schlift = { path = ".." }
 schlift-core = { path = "../core" }
@@ -29,3 +40,8 @@ serde_json = "1"
 hdrhistogram = "7"
 clap = { version = "4.5", features = ["derive"] }
 rand = "0.8"
+rusqlite = { version = "0.32", features = ["bundled"] }
+sha2 = "0.10"
+parquet = { version = "54", default-features = false, features = ["arrow", "zstd"] }
+arrow-array = "54"
+arrow-schema = "54"

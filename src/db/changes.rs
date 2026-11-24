@@ -41,13 +41,26 @@ const BACKLOG: usize = 64;
 /// A channel per watched topic, made by the first to watch it and dropped
 /// once nobody does.
 #[derive(Default)]
-pub(super) struct Changes(Mutex<HashMap<Topic, broadcast::Sender<Change>>>);
+pub(super) struct Changes(Mutex<Topics>);
+
+#[derive(Default)]
+pub(super) struct Topics {
+    channels: HashMap<Topic, broadcast::Sender<Change>>,
+    /// How many there were after the last sweep for unwatched ones: swept
+    /// again once they've doubled, so a watch costs the same with a million
+    /// streams open as with ten (not a walk over all of them each time).
+    swept_at: usize,
+}
 
 impl Changes {
     pub(super) fn watch(&self, topic: Topic) -> broadcast::Receiver<Change> {
         let mut topics = self.0.lock().unwrap_or_else(|e| e.into_inner());
-        topics.retain(|_, tx| tx.receiver_count() > 0);
+        if topics.channels.len() > 2 * topics.swept_at.max(64) {
+            topics.channels.retain(|_, tx| tx.receiver_count() > 0);
+            topics.swept_at = topics.channels.len();
+        }
         topics
+            .channels
             .entry(topic)
             .or_insert_with(|| broadcast::channel(BACKLOG).0)
             .subscribe()
@@ -55,7 +68,7 @@ impl Changes {
 
     pub(super) fn notify(&self, topic: Topic, change: Change) {
         let topics = self.0.lock().unwrap_or_else(|e| e.into_inner());
-        if let Some(tx) = topics.get(&topic) {
+        if let Some(tx) = topics.channels.get(&topic) {
             // Nobody watching any more is fine: the next watch drops it.
             let _ = tx.send(change);
         }
