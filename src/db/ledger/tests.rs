@@ -189,6 +189,22 @@ async fn snapshots_by_other_rules_are_folded_again() {
         .unwrap();
     drop(db);
     let db = open(&dir, &["u"]).await;
+    // Where it is, and the last event there, without folding: what opening
+    // a stream needs.
+    let last = events.last().unwrap();
+    assert_eq!(db.head("u").await.unwrap(), events.len() as i64);
+    assert_eq!(
+        db.id_at("u", last.seq.max(events.len() as i64))
+            .await
+            .unwrap()
+            .as_deref(),
+        Some(last.id.as_str())
+    );
+    assert!(db
+        .events_after("u", events.len() as i64, 10)
+        .await
+        .unwrap()
+        .is_empty());
     assert!(db.read_account("u", Clone::clone).await.unwrap() == folded);
     let fold: String = sqlx::query_scalar("SELECT fold FROM account_snapshots WHERE user_id = 'u'")
         .fetch_one(&db.read_pool)

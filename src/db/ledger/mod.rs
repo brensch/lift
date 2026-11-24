@@ -283,27 +283,36 @@ impl Ledger {
     /// events placed after it (none, for an account written down when it
     /// went idle).
     async fn load(&self, user_id: &str, log: &mut UserLog) -> DbResult<()> {
-        // One query: whether it exists, its head, its snapshot's seq and
-        // the id there (the last it keeps).
-        let (exists, head, saved, last_id): (bool, Option<i64>, Option<i64>, Option<String>) =
-            sqlx::query_as(
-                "SELECT EXISTS (SELECT 1 FROM users WHERE id = ?1),
-                    (SELECT MAX(max_seq) FROM event_files WHERE user_id = ?1),
-                    (SELECT seq FROM account_snapshots WHERE user_id = ?1 AND fold = ?2),
-                    (SELECT recent_ids ->> '$[#-1]' FROM account_snapshots
-                     WHERE user_id = ?1 AND fold = ?2)",
-            )
-            .bind(user_id)
-            .bind(schlift_core::FOLD)
-            .fetch_one(&self.read_pool)
-            .await?;
+        // One query: whether it exists, its head, its snapshot's seq, the
+        // id there (the last it keeps), and whether these rules folded it.
+        // The seq and ids are good whatever folded it: opening a stream
+        // needs only those, so a release that changes the rules refolds an
+        // account when it is next read, not every account as it connects.
+        let (exists, head, saved, last_id, ours): (
+            bool,
+            Option<i64>,
+            Option<i64>,
+            Option<String>,
+            Option<bool>,
+        ) = sqlx::query_as(
+            "SELECT EXISTS (SELECT 1 FROM users WHERE id = ?1),
+                (SELECT MAX(max_seq) FROM event_files WHERE user_id = ?1),
+                (SELECT seq FROM account_snapshots WHERE user_id = ?1),
+                (SELECT recent_ids ->> '$[#-1]' FROM account_snapshots WHERE user_id = ?1),
+                (SELECT fold = ?2 FROM account_snapshots WHERE user_id = ?1)",
+        )
+        .bind(user_id)
+        .bind(schlift_core::FOLD)
+        .fetch_one(&self.read_pool)
+        .await?;
         log.exists = exists;
         log.head = head.unwrap_or(0);
         match saved {
             Some(seq) if seq <= log.head => {
                 log.snapshot_seq = seq;
                 log.snapshot_last_id = last_id.unwrap_or_default();
-                log.snapshot_unread = true;
+                // By other rules: folded again from the files when needed.
+                log.snapshot_unread = ours.unwrap_or(false);
                 log.ids_unread = true;
                 if log.head > seq {
                     for (_, _, json) in self.read_user(user_id, seq, true).await? {

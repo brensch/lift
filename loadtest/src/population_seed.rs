@@ -36,7 +36,10 @@ use sha2::{Digest, Sha256};
 
 #[derive(Parser)]
 struct Args {
+    /// Print the rules this build folds by (schlift_core::FOLD) and stop.
     #[arg(long)]
+    print_fold: bool,
+    #[arg(long, default_value = ".")]
     data: PathBuf,
     #[arg(long, default_value_t = 1_000_000)]
     users: usize,
@@ -148,6 +151,10 @@ fn write_file(path: &Path, users: &[String], events: &[Event], json: &[String]) 
 
 fn main() {
     let args = Args::parse();
+    if args.print_fold {
+        println!("{}", schlift_core::FOLD);
+        return;
+    }
     let started = Instant::now();
     let events = template(args.weeks);
     let json: Vec<String> = events
