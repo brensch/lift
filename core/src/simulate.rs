@@ -80,6 +80,7 @@ fn backtest(account: &Account, draft: &Program, count: usize) -> Vec<SimulatedWo
     let mut finished: Vec<&WorkoutRecord> = account
         .workouts
         .iter()
+        .map(|r| &**r)
         .filter(|r| r.workout.end_time > 0)
         .collect();
     finished.sort_by_key(|r| r.workout.start_time);

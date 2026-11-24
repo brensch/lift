@@ -353,7 +353,7 @@ fn without_heart_rate(account: &Account) -> Account {
     let mut account = account.clone();
     account.without_heart_rate = true;
     for workout in &mut account.workouts {
-        workout.heart_rate.clear();
+        std::sync::Arc::make_mut(workout).heart_rate.clear();
     }
     account
 }

@@ -113,7 +113,7 @@ pub fn encode(account: &Account, seq: i64) -> AccountSnapshot {
                 exercise_logs,
                 unit,
                 program,
-            } = w;
+            } = &**w;
             SnapshotWorkout {
                 workout: Some(workout.clone()),
                 proposed_sets: proposed_sets.clone(),
@@ -251,7 +251,7 @@ pub fn decode(snapshot: AccountSnapshot) -> Result<(Account, i64), String> {
             .workouts
             .into_iter()
             .map(|w| {
-                Ok(WorkoutRecord {
+                Ok(std::sync::Arc::new(WorkoutRecord {
                     workout: w.workout.unwrap_or_default(),
                     proposed_sets: w.proposed_sets,
                     completed_sets: w.completed_sets,
@@ -263,7 +263,7 @@ pub fn decode(snapshot: AccountSnapshot) -> Result<(Account, i64), String> {
                         AppWeightUnit::Lb
                     },
                     program: program(w.program)?,
-                })
+                }))
             })
             .collect::<Result<_, String>>()?,
         suggestions: snapshot

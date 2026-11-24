@@ -52,10 +52,13 @@ fn trained_exercises(record: &WorkoutRecord) -> Vec<&str> {
 }
 
 /// Recovery for all 10 muscles, from history, by the program's windows.
-pub fn per_muscle_recovery(program: &Program, history: &[WorkoutRecord]) -> Vec<MuscleRecovery> {
+pub fn per_muscle_recovery(
+    program: &Program,
+    history: &[impl AsRef<WorkoutRecord>],
+) -> Vec<MuscleRecovery> {
     let mut latest: std::collections::HashMap<Muscle, i64> = std::collections::HashMap::new();
 
-    for record in history {
+    for record in history.iter().map(AsRef::as_ref) {
         let t = record.workout.start_time;
         if t <= 0 {
             continue;
