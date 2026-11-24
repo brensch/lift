@@ -5,9 +5,10 @@
 /// this phone holds and the server sends the rest; up go the events recorded
 /// here, which come back down placed in the server's order with any another
 /// device made (the core folds them in: `LocalCore.receive`). An event stays
-/// pending until it comes back, and is sent again after any reconnect. A
-/// heartbeat every few seconds, answered by the server, catches a link that
-/// died quietly (half-open wifi) within [_silenceLimit]; the stream is then
+/// pending until it comes back (the server stores pushes with its next
+/// flush, about a minute), and is sent again after any reconnect. A
+/// heartbeat every [_heartbeatEvery], answered by the server, catches a link
+/// that died quietly (half-open wifi) within [_silenceLimit]; the stream is then
 /// dropped and dialled again, with backoff (to 10 s) while the server stays
 /// out of reach.
 library;
@@ -37,8 +38,11 @@ class AccountSync extends ChangeNotifier
   }
 
   static const _tag = 'Sync';
-  static const _heartbeatEvery = Duration(seconds: 5);
-  static const _silenceLimit = Duration(seconds: 15);
+  // Every open app sends one, so at scale they're most of what the server
+  // answers: a link that died is found within [_silenceLimit], well inside
+  // the minute a push waits for its ack anyway.
+  static const _heartbeatEvery = Duration(seconds: 30);
+  static const _silenceLimit = Duration(seconds: 75);
   static const _maxBackoff = Duration(seconds: 10);
 
   LocalCore? _core;

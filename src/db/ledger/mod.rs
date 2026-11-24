@@ -92,11 +92,12 @@ struct UserLog {
     /// The account folded (without heart rate), and the seq it is folded
     /// to; None until something needs it.
     account: Option<(Account, i64)>,
-    /// The stored snapshot, not yet read (`account` is None), and the ids
-    /// kept with it: loading an account reads neither, so a million phones
-    /// coming back after a restart cost a query each.
-    saved: Option<Vec<u8>>,
-    saved_ids: Option<String>,
+    /// A stored snapshot (by these rules, at `snapshot_seq`) not yet read
+    /// (`account` is None), and the ids kept with it not yet read: loading
+    /// an account reads neither, so an idle phone holds a few hundred bytes
+    /// here and a million coming back after a restart cost a query each.
+    snapshot_unread: bool,
+    ids_unread: bool,
     /// Ids placed, newest last (the snapshot's and the tail's).
     recent: VecDeque<String>,
     ids: HashSet<String>,
@@ -289,18 +290,18 @@ impl Ledger {
                 .fetch_one(&self.read_pool)
                 .await?;
         log.head = head.unwrap_or(0);
-        let saved: Option<(i64, Vec<u8>, String)> = sqlx::query_as(
-            "SELECT seq, state, recent_ids FROM account_snapshots WHERE user_id = ? AND fold = ?",
+        let saved: Option<i64> = sqlx::query_scalar(
+            "SELECT seq FROM account_snapshots WHERE user_id = ? AND fold = ?",
         )
         .bind(user_id)
         .bind(schlift_core::FOLD)
         .fetch_optional(&self.read_pool)
         .await?;
         match saved {
-            Some((seq, state, recent)) if seq <= log.head => {
+            Some(seq) if seq <= log.head => {
                 log.snapshot_seq = seq;
-                log.saved = Some(state);
-                log.saved_ids = Some(recent);
+                log.snapshot_unread = true;
+                log.ids_unread = true;
                 if log.head > seq {
                     for (_, _, json) in self.read_user(user_id, seq, true).await? {
                         let event = Arc::new(serde_json::from_str::<Event>(&json)?);
@@ -315,28 +316,47 @@ impl Ledger {
         Ok(())
     }
 
-    /// The ids kept with the snapshot, into the set that turns resends away.
-    fn ids_ready(log: &mut UserLog) {
-        if let Some(json) = log.saved_ids.take() {
-            let tail: Vec<String> = log.tail.iter().map(|e| e.id.clone()).collect();
-            log.recent.clear();
-            for id in serde_json::from_str::<Vec<String>>(&json).unwrap_or_default() {
-                log.recent.push_back(id.clone());
-                log.ids.insert(id);
-            }
-            log.recent.extend(tail);
+    /// The ids kept with the snapshot, into the set that turns resends away,
+    /// read the first time a push needs them.
+    async fn ids_ready(&self, user_id: &str, log: &mut UserLog) -> DbResult<()> {
+        if !log.ids_unread {
+            return Ok(());
         }
+        let json: Option<String> =
+            sqlx::query_scalar("SELECT recent_ids FROM account_snapshots WHERE user_id = ?")
+                .bind(user_id)
+                .fetch_optional(&self.read_pool)
+                .await?;
+        let tail: Vec<String> = log.tail.iter().map(|e| e.id.clone()).collect();
+        log.recent.clear();
+        for id in serde_json::from_str::<Vec<String>>(&json.unwrap_or_default()).unwrap_or_default() {
+            log.recent.push_back(id.clone());
+            log.ids.insert(id);
+        }
+        log.recent.extend(tail);
+        log.ids_unread = false;
+        Ok(())
     }
 
     /// The account folded, as of the last event placed: its snapshot read
     /// and caught up, or (with none by these rules) its whole history
     /// folded once, and written down so the next load folds little.
     async fn folded(&self, user_id: &str, log: &mut UserLog) -> DbResult<()> {
-        Self::ids_ready(log);
+        self.ids_ready(user_id, log).await?;
         if log.account.is_some() {
             return Ok(());
         }
-        if let Some(state) = log.saved.take() {
+        let state: Option<Vec<u8>> = if log.snapshot_unread {
+            sqlx::query_scalar("SELECT state FROM account_snapshots WHERE user_id = ? AND fold = ?")
+                .bind(user_id)
+                .bind(schlift_core::FOLD)
+                .fetch_optional(&self.read_pool)
+                .await?
+        } else {
+            None
+        };
+        log.snapshot_unread = false;
+        if let Some(state) = state {
             match tokio::task::spawn_blocking(move || schlift_core::snapshot::restore(&state))
                 .await?
             {
@@ -537,7 +557,7 @@ impl Ledger {
                 return Err(format!("no account {user_id}").into());
             }
         }
-        Self::ids_ready(&mut log);
+        self.ids_ready(user_id, &mut log).await?;
         // A push larger than the ids held in memory (an outbox after a long
         // time away, an import resent whole) is checked against every id
         // the account holds, from the files.
@@ -683,7 +703,7 @@ impl Ledger {
         for (user_id, events) in &by_user {
             let log = self.user(user_id).await?;
             let mut log = log.lock().await;
-            Self::ids_ready(&mut log);
+            self.ids_ready(user_id, &mut log).await?;
             for event in events {
                 log.head = log.head.max(event.seq);
                 log.buffered_ids.remove(&event.id);

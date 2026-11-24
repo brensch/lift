@@ -4,7 +4,7 @@
 //! every write pushes what the server hasn't acknowledged, a heartbeat goes
 //! up every few seconds, and the server's head acknowledges.
 
-use crate::metrics::Metrics;
+use schlift_load::metrics::Metrics;
 use crate::server::ORIGIN;
 use crate::Profile;
 use prost::Message;
@@ -52,7 +52,15 @@ pub struct Outcome {
     pub seq: i64,
 }
 
+/// Each grouped client's pushed workout events, by id, and when they went
+/// up: the first partner to hear one records how long it took
+/// (`partner.seen`), the time from a set done to a partner's phone having it.
+static SENT_TO_PARTNERS: std::sync::LazyLock<std::sync::Mutex<std::collections::HashMap<String, Instant>>> =
+    std::sync::LazyLock::new(Default::default);
+
 pub struct Client {
+    /// In a group: its pushes are timed to its partners (`SENT_TO_PARTNERS`).
+    grouped: bool,
     username: String,
     /// Only keeps the app open: never trains.
     watcher: bool,
@@ -89,6 +97,7 @@ impl Client {
         profile: Profile,
     ) -> Self {
         Client {
+            grouped: false,
             username: format!("load-{run}-{n}"),
             watcher,
             lifter: Lifter::new(n as u64),
@@ -389,6 +398,14 @@ impl Client {
             Some(sync_response::Kind::PartnerEvents(partner)) => {
                 let events =
                     schlift_core::sync::unpack(&partner.packed).map_err(|e| e.to_string())?;
+                if !partner.whole {
+                    let mut sent = SENT_TO_PARTNERS.lock().expect("sent lock");
+                    for event in &events {
+                        if let Some(at) = sent.remove(&event.id) {
+                            self.metrics.record("partner.seen", at.elapsed());
+                        }
+                    }
+                }
                 let metrics = self.metrics.clone();
                 let store = self.store()?;
                 metrics.time_sync("core.partner", || {
@@ -423,6 +440,15 @@ impl Client {
         let Some(last_id) = events.last().map(|e| e.id.clone()) else {
             return Ok(());
         };
+        if self.grouped {
+            let now = Instant::now();
+            let mut sent = SENT_TO_PARTNERS.lock().expect("sent lock");
+            for event in &events {
+                if schlift_core::session::shared_with_partners(&event.fact) {
+                    sent.insert(event.id.clone(), now);
+                }
+            }
+        }
         self.in_flight.push_back((last_id, Instant::now()));
         self.send(sync_request::Kind::Events(schlift_core::sync::pack(
             &events,
@@ -558,6 +584,7 @@ impl Client {
     async fn group(&mut self, role: Role) -> Result<(), String> {
         let metrics = self.metrics.clone();
         let mut multiplayer = MultiplayerServiceClient::new(self.channel.clone());
+        self.grouped = !matches!(role, Role::Solo);
         match role {
             Role::Solo => {}
             Role::Leads(share) => {

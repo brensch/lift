@@ -5,12 +5,11 @@
 //! numbers are compared with a baseline. See docs/testing/load.md.
 
 mod client;
-mod metrics;
 mod server;
 
 use clap::Parser;
 use client::{Client, Outcome, Role};
-use metrics::{Metrics, OpSummary};
+use schlift_load::metrics::{Metrics, OpSummary};
 use schlift::workout::v1::sync_service_client::SyncServiceClient;
 use schlift::workout::v1::{sync_request, sync_response, SyncRequest};
 use schlift_core::events::Event;
@@ -447,7 +446,12 @@ fn regressions(baseline: &Report, report: &Report) -> Vec<String> {
         let Some(now) = report.ops.get(op) else {
             continue;
         };
-        if before.count < 20 || before.p95_ms == 0.0 {
+        // An ack comes with the server's next flush, and a restore waits
+        // for its own: they time the flush interval, not the server.
+        if before.count < 20
+            || before.p95_ms == 0.0
+            || matches!(op.as_str(), "sync.push_acked" | "sync.restore")
+        {
             continue;
         }
         let limit = before.p95_ms * 1.5 + 5.0;

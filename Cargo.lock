@@ -2509,16 +2509,21 @@ dependencies = [
 name = "schlift-load"
 version = "0.1.0"
 dependencies = [
+ "arrow-array",
+ "arrow-schema",
  "clap",
  "hdrhistogram",
+ "parquet",
  "prost",
  "rand 0.8.5",
+ "rusqlite",
  "schlift",
  "schlift-core",
  "schlift-testkit",
  "schlift_native",
  "serde",
  "serde_json",
+ "sha2",
  "tokio",
  "tokio-stream",
  "tonic",
