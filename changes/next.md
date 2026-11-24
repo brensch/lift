@@ -2,3 +2,4 @@
 - The app syncs straight to the server, not through the web proxy: faster to connect, and the server handles far more people at once. An older app is asked to update.
 - Your AI assistant can see the workout you're doing right now, up to the set you just finished.
 - On a new phone, your past workouts' heart rate charts show again.
+- Usernames can't hold invisible characters, so nobody can pose as someone else with a name that looks the same, and a burst of failed sign-ins from one place is slowed down.

@@ -33,9 +33,13 @@ if [[ ! -f "${INSTALL_ROOT}/shared/schlift.env" ]]; then
 fi
 
 # The copy of Caddy's certificates for the apps' own TLS listeners
-# (deploy/schlift-tls-sync.*): run on every renewal, and at boot.
+# (deploy/schlift-tls-sync.*): run on every renewal, and at boot. It runs as
+# root, so it lives where only root can change it: never in shared/, which
+# the service user owns.
 DEV_INSTALL_ROOT="${DEV_INSTALL_ROOT:-/opt/schlift-dev}"
-install -m 0755 "${REPO_ROOT}/deploy/schlift-tls-sync.sh" "${INSTALL_ROOT}/shared/schlift-tls-sync.sh"
+install -d -m 0755 -o root -g root /usr/local/lib/schlift
+install -m 0755 -o root -g root "${REPO_ROOT}/deploy/schlift-tls-sync.sh" /usr/local/lib/schlift/schlift-tls-sync.sh
+rm -f "${INSTALL_ROOT}/shared/schlift-tls-sync.sh"
 sed \
 	-e "s#__INSTALL_ROOT__#${INSTALL_ROOT}#g" \
 	-e "s#__DEV_INSTALL_ROOT__#${DEV_INSTALL_ROOT}#g" \

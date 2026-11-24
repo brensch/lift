@@ -527,3 +527,61 @@ async fn an_account_without_its_snapshot_is_folded_from_the_files() {
     let (account, _) = schlift_core::snapshot::restore(&snapshot).unwrap();
     assert_eq!(account, Account::fold_without_heart_rate(&events));
 }
+
+#[tokio::test]
+async fn an_account_that_cant_be_written_doesnt_stop_the_others() {
+    let dir = dir();
+    let db = open(&dir, holding()).await;
+    db.create_user_with_id("v", "v").await.unwrap();
+    let (mut mine, mut theirs) = (Phone::new(), Phone::new());
+    let first = mine.workout(now_unix() - 7200, 1, true);
+    db.buffer_events("u", first.clone(), true).await.unwrap();
+    written(&db, first.len() as i64).await;
+    drop(db);
+    // u's snapshot no longer reads, by these rules.
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}/server.sqlite", dir.display()))
+        .await
+        .unwrap();
+    sqlx::query("UPDATE account_snapshots SET state = x'00' WHERE user_id = 'u'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    pool.close().await;
+    let db = open(&dir, holding()).await;
+    // Both end a workout in the same batch: v's is written, u's is held.
+    let more = mine.workout(now_unix() - 3600, 1, true);
+    let other = theirs.workout(now_unix() - 3600, 1, true);
+    db.buffer_events("u", more, true).await.unwrap();
+    db.buffer_events("v", other.clone(), true).await.unwrap();
+    for _ in 0..200 {
+        if db.head("v").await.unwrap() >= other.len() as i64 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(5)).await;
+    }
+    assert_eq!(db.head("v").await.unwrap(), other.len() as i64);
+    assert_eq!(db.head("u").await.unwrap(), first.len() as i64);
+}
+
+#[tokio::test]
+async fn a_push_planning_more_sets_than_any_workout_holds_is_refused() {
+    let dir = dir();
+    let db = open(&dir, holding()).await;
+    let mut phone = Phone::new();
+    let mut events = phone.workout(now_unix() - 600, 0, false);
+    let workout_id = events[0].id.clone();
+    // Twenty-one adjusts of a hundred sets: past what's held at once.
+    for n in 0..21 {
+        let mut adjust = events[0].clone();
+        adjust.id = format!("adjust-{n}");
+        adjust.fact = Fact::ExerciseAdjusted(schlift_core::events::ExerciseAdjusted {
+            workout_id: workout_id.clone(),
+            exercise: "pull_up".to_string(),
+            sets: 100,
+            ..Default::default()
+        });
+        events.push(adjust);
+    }
+    let refused = db.buffer_events("u", events, true).await.unwrap_err();
+    assert!(refused.downcast_ref::<Refused>().is_some(), "{refused}");
+}

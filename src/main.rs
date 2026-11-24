@@ -19,6 +19,7 @@ mod db;
 #[cfg(feature = "test-auth")]
 mod demo_seed;
 mod mcp;
+mod rate;
 mod server;
 mod time;
 mod tls;
