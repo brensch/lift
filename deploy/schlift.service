@@ -17,6 +17,33 @@ KillSignal=SIGTERM
 # waited on) and checkpoints the WAL; workouts under way are left to the
 # phones, which send them again. A busy end-of-workout burst takes a while.
 TimeoutStopSec=120
+# A stream per phone: the default 1024 files would cap it near a thousand.
+LimitNOFILE=524288
+
+# The server needs its own shared/ (data, env, certificates) and the
+# network, nothing else: a compromised server can't write the rest of the
+# box, gain privileges or reach the kernel.
+UMask=0077
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ReadWritePaths=__INSTALL_ROOT__/shared
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+RestrictSUIDSGID=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+SystemCallArchitectures=native
 
 [Install]
 WantedBy=multi-user.target

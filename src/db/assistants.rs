@@ -131,6 +131,11 @@ impl ServerDb {
     /// A person's consent: a code the client exchanges, once, within
     /// `CODE_SECONDS`.
     pub async fn issue_assistant_code(&self, consent: &Consent) -> DbResult<String> {
+        // Lapsed codes, anyone's, are cleared on the way: nothing else does.
+        sqlx::query("DELETE FROM assistant_codes WHERE expires_at <= ?")
+            .bind(now_unix())
+            .execute(&self.write_pool)
+            .await?;
         let code = secret();
         sqlx::query(
             "INSERT INTO assistant_codes

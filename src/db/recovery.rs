@@ -16,6 +16,9 @@ const DECIDED_KEPT_SECONDS: i64 = 30 * 24 * 60 * 60;
 /// grow the table without bound.
 const MAX_WAITING_PER_USER: i64 = 5;
 const MAX_WAITING: i64 = 1_000;
+/// From one address: with the in-flight limit alone, one caller could fill
+/// the whole queue (every real recovery refused for a week).
+const MAX_WAITING_PER_IP: i64 = 3;
 
 /// Letters and digits that can't be read as each other (no 0/O, 1/I/L).
 const CODE_ALPHABET: &[u8] = b"ABCDEFGHJKMNPQRSTUVWXYZ23456789";
@@ -180,19 +183,25 @@ impl ServerDb {
         .bind(now - DECIDED_KEPT_SECONDS)
         .execute(&mut *tx)
         .await?;
-        // For the same account; with none, for the same name.
-        let (waiting, theirs): (i64, i64) = sqlx::query_as(
+        // For the same account (with none, for the same name), and from the
+        // same address.
+        let (waiting, theirs, from_there): (i64, i64, i64) = sqlx::query_as(
             "SELECT COUNT(*),
                     COALESCE(SUM(CASE WHEN ?1 IS NULL
                                       THEN user_id IS NULL AND asked_username = ?2 COLLATE NOCASE
-                                      ELSE user_id = ?1 END), 0)
+                                      ELSE user_id = ?1 END), 0),
+                    COALESCE(SUM(?3 IS NOT NULL AND created_ip = ?3), 0)
              FROM passkey_recoveries WHERE status = 'pending'",
         )
         .bind(user_id)
         .bind(asked_username)
+        .bind(created_ip)
         .fetch_one(&mut *tx)
         .await?;
-        if waiting >= MAX_WAITING || theirs >= MAX_WAITING_PER_USER {
+        if waiting >= MAX_WAITING
+            || theirs >= MAX_WAITING_PER_USER
+            || from_there >= MAX_WAITING_PER_IP
+        {
             return Ok(Err(Refusal::TooManyRecoveries));
         }
         let held: bool = sqlx::query_scalar(
@@ -409,6 +418,22 @@ mod tests {
             .unwrap()
             .unwrap()
             .0
+    }
+
+    #[tokio::test]
+    async fn one_address_holds_only_a_few_requests() {
+        let db = temp_db().await;
+        for i in 0..=MAX_WAITING_PER_IP {
+            let user = format!("user{i}");
+            db.create_user_with_id(&user, &user).await.unwrap();
+            let (id, credential) = (format!("r{i}"), format!("c{i}"));
+            let held = Held {
+                created_ip: Some("203.0.113.7"),
+                ..Held::of(&id, Some(&user), &user, &credential)
+            };
+            let stored = db.store_recovery(held).await.unwrap();
+            assert_eq!(stored.is_ok(), i < MAX_WAITING_PER_IP, "request {i}");
+        }
     }
 
     #[test]

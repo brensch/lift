@@ -135,6 +135,8 @@ impl Event {
         match &self.fact {
             Fact::WorkoutStarted(started) => sane(&started.decisions),
             Fact::ExercisesAdded(added) => sane(&added.decisions),
+            // Each set asked for past those there is made one at a time.
+            Fact::ExerciseAdjusted(adjusted) => adjusted.sets <= 100,
             // A program is folded on every device: it must be one the core
             // would set.
             Fact::ProgramSet(set) => crate::program::check(&set.program).iter().all(|p| !p.error),
@@ -692,6 +694,21 @@ pub struct OverrideSet {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn an_adjust_asking_for_more_sets_than_any_app_does_is_not_sane() {
+        let adjust = |sets| Event {
+            seq: 0,
+            id: "e".to_string(),
+            at: 0,
+            fact: Fact::ExerciseAdjusted(ExerciseAdjusted {
+                sets,
+                ..Default::default()
+            }),
+        };
+        assert!(adjust(20).plans_are_sane());
+        assert!(!adjust(2_000_000_000).plans_are_sane());
+    }
 
     #[test]
     fn a_fact_from_a_newer_app_is_kept_and_folds_as_nothing() {

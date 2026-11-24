@@ -43,6 +43,7 @@ const RECHECK_SIGNED_IN: Duration = Duration::from_secs(if cfg!(test) { 1 } else
 /// A workout's heart rate is one event: a reading a second for over a day.
 const MAX_HEART_RATE_SAMPLES_PER_EVENT: usize = 100_000;
 const MAX_IMPORTED_WORKOUTS: usize = 10_000;
+const MAX_ID_BYTES: usize = 128;
 const MAX_IMPORTED_HEART_RATE_SAMPLES: usize = 2_000_000;
 
 /// Refuse a push larger than any phone makes, or holding an event that
@@ -54,6 +55,13 @@ fn check_push(events: &[Event]) -> ServerResult<()> {
         Err(Status::invalid_argument(format!("push too large: more than {limit} {what}")).into())
     };
     for event in events {
+        // Ids are the app's uuids (and a few longer made-up ones): never a
+        // phone's choice of size, as they are held, written and logged.
+        if event.id.len() > MAX_ID_BYTES
+            || event.workout_id().is_some_and(|w| w.len() > MAX_ID_BYTES)
+        {
+            return Err(Status::invalid_argument("an event's id is too long").into());
+        }
         if !event.reads_back() {
             return Err(Status::invalid_argument(format!(
                 "event {} holds a number that can't be stored",
@@ -461,7 +469,10 @@ impl Stream {
                 self.db
                     .buffer_events(&self.user_id, events, first && self.legacy)
                     .await
-                    .map_err(internal_error)?;
+                    .map_err(|e| match e.downcast_ref::<crate::db::ledger::Refused>() {
+                        Some(refused) => Status::invalid_argument(refused.0).into(),
+                        None => internal_error(e),
+                    })?;
                 Ok(Ok(()))
             }
             Some(sync_request::Kind::Heartbeat(_)) | None => {

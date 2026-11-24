@@ -90,6 +90,11 @@ schlift.com {
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
+        # Only this site's own scripts, and calls to this server: the
+        # session token is in localStorage, so a script injected or pulled in
+        # from elsewhere would hold the account. Styles may be inline (React
+        # style attributes) and the fonts are Google's.
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
     }
 }
 
@@ -149,6 +154,11 @@ dev.schlift.com {
         X-Content-Type-Options "nosniff"
         X-Frame-Options "DENY"
         Referrer-Policy "strict-origin-when-cross-origin"
+        # Only this site's own scripts, and calls to this server: the
+        # session token is in localStorage, so a script injected or pulled in
+        # from elsewhere would hold the account. Styles may be inline (React
+        # style attributes) and the fonts are Google's.
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
     }
 }
 
