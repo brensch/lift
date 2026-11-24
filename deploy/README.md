@@ -97,10 +97,17 @@ required" (the `update_required` snippet in the `Caddyfile`).
   `scripts/install_schlift_service.sh`.
 - Ports 8443 and 8444 must be open in the box's firewall (iptables) and in
   the Oracle Cloud security list.
-- Order the first rollout so phones always have a way in: open the ports,
-  install the sync units and the env lines, deploy the backend (it now
-  listens on both), then release the apps. The `Caddyfile` ships with the
-  backend, so from that deploy old apps are told to update.
+- Order the first rollout so phones always have a way in:
+  1. Open the ports, install the sync units and the env lines, deploy the
+     backend. It listens on both; Caddy still sends native gRPC on 443 to
+     it, where older apps carry on as before (they open with `after_seq`,
+     which the server still serves from the event files).
+  2. Release the app that dials the listener, and wait until the stores
+     give it.
+  3. Raise `MIN_APP_VERSION` to it in the env file and switch the `@grpc`
+     handlers in the `Caddyfile` to `import update_required`: from then a
+     native call on 443 is an app to update, answered by Caddy without
+     reaching the backend.
 
 ## Downtime model
 
