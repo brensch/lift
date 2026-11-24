@@ -13,9 +13,9 @@ ExecStart=__INSTALL_ROOT__/current/schlift
 Restart=always
 RestartSec=2
 KillSignal=SIGTERM
-# Stopping, the server writes every workout it holds (the phones would
-# send them again, but a deploy should ack what it held): a busy server
-# takes a minute or more.
+# Stopping, the server writes what is due (workouts that ended, writes
+# waited on) and checkpoints the WAL; workouts under way are left to the
+# phones, which send them again. A busy end-of-workout burst takes a while.
 TimeoutStopSec=120
 
 [Install]

@@ -120,8 +120,19 @@ impl ServerDb {
         Ok(placed)
     }
 
-    /// Write every account holding events now (a stopping server, tests).
+    /// Write every account holding events now (tests).
+    #[cfg(test)]
     pub async fn flush(&self) -> DbResult<()> {
         self.ledger.flush().await
+    }
+
+    /// What a stopping server writes: what is due, then the WAL into the
+    /// database.
+    pub async fn shut_down(&self) -> DbResult<()> {
+        self.ledger.shut_down().await?;
+        sqlx::query("PRAGMA wal_checkpoint(TRUNCATE)")
+            .execute(&self.write_pool)
+            .await?;
+        Ok(())
     }
 }

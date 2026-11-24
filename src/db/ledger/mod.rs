@@ -902,10 +902,17 @@ impl Ledger {
         .await?)
     }
 
-    /// Write every account holding events now: what a stopping server does
-    /// (so a deploy acks what it held), and tests.
+    /// Write every account holding events now: tests.
+    #[cfg(test)]
     pub async fn flush(&self) -> DbResult<()> {
         self.write_due(true).await
+    }
+
+    /// What a stopping server writes: what is due now (workouts ended,
+    /// writes waited on, quiet ones), not workouts under way, which their
+    /// phones hold and send again.
+    pub async fn shut_down(&self) -> DbResult<()> {
+        self.write_due(false).await
     }
 
     // ── Reading ──
