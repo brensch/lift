@@ -20,6 +20,9 @@ use hyper_util::server::conn::auto::Builder;
 use hyper_util::service::TowerToHyperService;
 use tokio::net::TcpListener;
 use tokio::sync::watch;
+
+/// How long a client has to finish its TLS handshake.
+const HANDSHAKE: Duration = Duration::from_secs(10);
 use tokio_rustls::rustls::crypto::ring::sign::any_supported_type;
 use tokio_rustls::rustls::server::{ClientHello, ResolvesServerCert};
 use tokio_rustls::rustls::sign::CertifiedKey;
@@ -127,21 +130,32 @@ pub async fn serve(
     let acceptor = TlsAcceptor::from(Arc::new(tls));
     let listener = TcpListener::bind(config.bind).await?;
     println!("Server listening on {} (TLS, for the apps)", config.bind);
+    let mut warned: Option<std::time::Instant> = None;
     loop {
-        let (tcp, peer) = tokio::select! {
-            accepted = listener.accept() => match accepted {
-                Ok(accepted) => accepted,
-                Err(error) => {
-                    tracing::warn!(%error, "accepting a connection");
-                    continue;
-                }
-            },
+        let accepted = tokio::select! {
+            accepted = listener.accept() => accepted,
             _ = stop.wait_for(|s| *s) => return Ok(()),
+        };
+        let (tcp, peer) = match accepted {
+            Ok(accepted) => accepted,
+            Err(error) => {
+                // Out of sockets (or the like): retrying at once spins a
+                // core and floods the log. A moment, then again; said at
+                // most once a second.
+                if warned.is_none_or(|at| at.elapsed() > Duration::from_secs(1)) {
+                    tracing::warn!(%error, "accepting a connection");
+                    warned = Some(std::time::Instant::now());
+                }
+                tokio::time::sleep(Duration::from_millis(100)).await;
+                continue;
+            }
         };
         let _ = tcp.set_nodelay(true);
         let (acceptor, app) = (acceptor.clone(), app.clone());
         tokio::spawn(async move {
-            let Ok(stream) = acceptor.accept(tcp).await else {
+            // A client that never finishes its handshake gives its socket
+            // back.
+            let Ok(Ok(stream)) = tokio::time::timeout(HANDSHAKE, acceptor.accept(tcp)).await else {
                 return;
             };
             // Who it is, as Caddy would say: the peer, never what the client
