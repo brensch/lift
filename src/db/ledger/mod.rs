@@ -77,6 +77,10 @@ const LIVE_WORKOUTS: usize = 3;
 /// An account not used for this long is dropped from memory.
 const IDLE: Duration = Duration::from_secs(600);
 
+/// The newest event files checked against the index at start: only the
+/// last flushes' can be missing from it.
+const RECONCILE_AT_START: usize = 100;
+
 /// Events a flush may write in one file.
 const ROWS_PER_FILE: usize = 500_000;
 
@@ -630,7 +634,7 @@ impl Ledger {
     pub async fn flush(&self) -> DbResult<()> {
         let _one_at_a_time = self.flushing.lock().await;
         if self.unindexed.swap(false, Ordering::Relaxed) {
-            if let Err(error) = self.reconcile().await {
+            if let Err(error) = self.reconcile_files(None).await {
                 self.unindexed.store(true, Ordering::Relaxed);
                 tracing::error!(%error, "indexing event files again");
             }
@@ -815,37 +819,52 @@ impl Ledger {
     }
 
     /// Files the index lacks (written, then a crash before they were
-    /// indexed) are indexed from their contents.
+    /// indexed) are indexed from their contents. Only the newest few can be
+    /// (a flush indexes its file before the next is written), so at start
+    /// those are looked up one by one, not the whole index read; after a
+    /// flush that failed to index, every file is.
     async fn reconcile(&self) -> DbResult<()> {
-        let indexed: HashSet<String> = sqlx::query_scalar("SELECT DISTINCT file FROM event_files")
-            .fetch_all(&self.read_pool)
-            .await?
-            .into_iter()
-            .collect();
+        self.reconcile_files(Some(RECONCILE_AT_START)).await
+    }
+
+    async fn reconcile_files(&self, newest: Option<usize>) -> DbResult<()> {
         let dir = self.dir.clone();
-        let missing = tokio::task::spawn_blocking(move || -> DbResult<_> {
-            let mut missing = Vec::new();
-            for path in files::list(&dir)? {
-                let name = path
-                    .file_name()
-                    .and_then(|n| n.to_str())
-                    .unwrap_or_default()
-                    .to_string();
-                if !indexed.contains(&name) {
-                    missing.push((name, files::read_spans(&path)?));
-                }
+        let mut on_disk = tokio::task::spawn_blocking(move || files::list(&dir)).await??;
+        if let Some(newest) = newest {
+            let keep = on_disk.len().saturating_sub(newest);
+            on_disk.drain(..keep);
+        }
+        let mut lacking = Vec::new();
+        for path in on_disk {
+            let name = path
+                .file_name()
+                .and_then(|n| n.to_str())
+                .unwrap_or_default()
+                .to_string();
+            let indexed: bool =
+                sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM event_files WHERE file = ?)")
+                    .bind(&name)
+                    .fetch_one(&self.read_pool)
+                    .await?;
+            if !indexed {
+                lacking.push((name, path));
             }
-            Ok(missing)
+        }
+        if lacking.is_empty() {
+            return Ok(());
+        }
+        let missing = tokio::task::spawn_blocking(move || -> DbResult<_> {
+            lacking
+                .into_iter()
+                .map(|(name, path)| Ok((name, files::read_spans(&path)?)))
+                .collect::<DbResult<Vec<_>>>()
         })
         .await??;
-        if !missing.is_empty() {
-            tracing::warn!(
-                files = missing.len(),
-                "indexing event files the index lacked"
-            );
-            self.index(&missing).await?;
-        }
-        Ok(())
+        tracing::warn!(
+            files = missing.len(),
+            "indexing event files the index lacked"
+        );
+        self.index(&missing).await
     }
 
     // ── Snapshots ──
