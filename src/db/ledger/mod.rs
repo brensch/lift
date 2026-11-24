@@ -99,8 +99,9 @@ impl Timing {
 /// is told are placed.
 const RECENT_IDS: usize = 2_000;
 
-/// Snapshots one statement reads, of a batch's: the rest are read beside it.
-const SNAPSHOTS_PER_READ: usize = 250;
+/// Statements a batch's snapshot reads are split across, at once: the read
+/// pool's connections.
+const SNAPSHOT_READERS: usize = 16;
 
 /// Accounts written in one batch at most.
 const ACCOUNTS_PER_BATCH: usize = 5_000;
@@ -679,7 +680,8 @@ impl Ledger {
         // which the disk serves many of together but one statement asks for
         // one at a time (20k accounts in one statement: a minute).
         let mut reads = tokio::task::JoinSet::new();
-        for chunk in ids.chunks(SNAPSHOTS_PER_READ) {
+        let started = Instant::now();
+        for chunk in ids.chunks(ids.len().div_ceil(SNAPSHOT_READERS).max(1)) {
             let (pool, chunk) = (self.read_pool.clone(), serde_json::to_string(chunk)?);
             reads.spawn(async move {
                 sqlx::query_as::<_, (String, Vec<u8>, String, String)>(
@@ -752,6 +754,7 @@ impl Ledger {
         for handle in handles {
             placed.extend(handle.await??);
         }
+        let (read_and_fold, files_from) = (started.elapsed(), Instant::now());
         // The files: events, and heart rate, of the whole batch.
         let mut rows: Vec<Row> = placed.iter().flat_map(|p| p.rows.iter().cloned()).collect();
         rows.sort_by(|a, b| (&a.user_id, a.seq).cmp(&(&b.user_id, b.seq)));
@@ -783,6 +786,7 @@ impl Ledger {
             })
             .await??;
         }
+        let (files, commit_from) = (files_from.elapsed(), Instant::now());
         // The index, the heart-rate index and the snapshots, in one go.
         let events_file = events_file.to_string_lossy().into_owned();
         let beats_file = beats_file.to_string_lossy().into_owned();
@@ -854,6 +858,16 @@ impl Ledger {
             .await?;
         }
         tx.commit().await?;
+        if started.elapsed() > self.timing.batch_every {
+            // Slower than batches come: say where the time went.
+            tracing::warn!(
+                accounts = taken.len(),
+                read_and_fold_ms = read_and_fold.as_millis() as u64,
+                files_ms = files.as_millis() as u64,
+                commit_ms = commit_from.elapsed().as_millis() as u64,
+                "a write took longer than the batch interval"
+            );
+        }
         Ok(placed.into_iter().map(|p| p.events).collect())
     }
 
