@@ -379,7 +379,9 @@ jobs:
         run: |
           chmod +x target/debug/schlift app/build/linux/x64/debug/bundle/schlift
           mkdir -p .tmp/e2e-backend
-          DATA_DIR=.tmp/e2e-backend RUST_LOG=warn \
+          # A write outside a workout is placed a second after it goes quiet
+          # (90 s in production): the peers wait for what they seed.
+          DATA_DIR=.tmp/e2e-backend RUST_LOG=warn LEDGER_QUIET_MS=1000 \
             WEBAUTHN_RP_ID=localhost WEBAUTHN_RP_ORIGIN=http://localhost:5173 \
             target/debug/schlift > .tmp/e2e-backend.log 2>&1 &
           for _ in $(seq 60); do curl -fsS http://127.0.0.1:50051/api/health && exit 0; sleep 1; done

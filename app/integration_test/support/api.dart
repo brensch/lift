@@ -89,7 +89,9 @@ class Peer {
       if (!message.hasEvents()) continue;
       final head = message.events.head.toInt();
       await core.receive(message.events.packed, head);
-      if (await core.pendingCount() == 0 && await core.confirmed() >= head) {
+      // A workout under way waits on the server until it ends: nothing
+      // else may wait.
+      if (await core.oldestPendingAt() == 0 && await core.confirmed() >= head) {
         break;
       }
     }
@@ -140,24 +142,34 @@ class Peer {
     );
   }
 
-  /// The user's active workout as the backend holds it — used to cross-check
-  /// that UI actions (starting sets, completing them) reached the server.
-  Future<Workout?> activeWorkout() async {
-    final r = await _read(
-      'GetActiveWorkout',
-      GetActiveWorkoutRequest(),
-      GetActiveWorkoutResponse.fromBuffer,
-    );
-    return r.hasWorkout() ? r.workout : null;
-  }
-
-  /// Full detail (proposed + completed sets) for the adopted workout.
+  /// Full detail (proposed + completed sets) for the adopted workout, as the
+  /// server holds it.
   Future<GetWorkoutResponse?> workoutDetail() async {
     if (workoutId == null) return null;
     return _read(
       'GetWorkout',
       GetWorkoutRequest(workoutId: workoutId),
       GetWorkoutResponse.fromBuffer,
+    );
+  }
+
+  /// The adopted workout as the server holds it once it has ended: written
+  /// with the batch after its end, so waited for.
+  Future<GetWorkoutResponse> endedWorkoutDetail({int seconds = 20}) async {
+    Object? last;
+    for (var i = 0; i < seconds; i++) {
+      try {
+        final detail = await workoutDetail();
+        if (detail != null && detail.workout.endTime != Int64.ZERO) {
+          return detail;
+        }
+      } catch (e) {
+        last = e; // not written yet: the peer's account doesn't hold it
+      }
+      await Future<void>.delayed(const Duration(seconds: 1));
+    }
+    throw StateError(
+      'the server never held workout $workoutId ended (${last ?? "not ended"})',
     );
   }
 
@@ -212,13 +224,11 @@ class Peer {
     workoutId = resp.workout.id;
   }
 
-  /// Follow the app's own active workout (the same user), to read what
-  /// the server holds of it. Read-only from here on.
-  Future<bool> adoptActiveWorkout() async {
+  /// Follow the app's workout [id] (the same user), to read what the
+  /// server holds of it once it has ended. Read-only from here on.
+  void adoptWorkout(String id) {
     _readOnly = true;
-    final w = await activeWorkout();
-    workoutId = w?.id;
-    return workoutId != null;
+    workoutId = id;
   }
 
   /// Run a whole workout end to end: start it with the given lifts (each
