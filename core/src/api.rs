@@ -993,6 +993,7 @@ impl<'a> View<'a> {
             .account
             .workouts
             .iter()
+            .map(|r| &**r)
             .filter(|r| r.workout.end_time > 0)
             .collect();
         out.sort_by_key(|r| std::cmp::Reverse(r.workout.start_time));

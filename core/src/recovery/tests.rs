@@ -119,7 +119,7 @@ fn unfinished_sets_do_not_count() {
 /// Always all ten muscles, in catalog order.
 #[test]
 fn every_muscle_reports() {
-    let rec = per_muscle_recovery(&Program::builtin(), &[]);
+    let rec = per_muscle_recovery(&Program::builtin(), &[] as &[WorkoutRecord]);
     assert_eq!(rec.len(), 10);
     for entry in &rec {
         assert!(entry.is_recovered(1_000));

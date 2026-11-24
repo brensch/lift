@@ -28,13 +28,13 @@ use crate::recovery::MuscleRecovery;
 /// train. Calibration rungs count as warmups; drops and minis part of a set.
 pub fn weekly_sets(
     program: &Program,
-    history: &[WorkoutRecord],
+    history: &[impl AsRef<WorkoutRecord>],
     now: i64,
 ) -> BTreeMap<Muscle, f32> {
     let cutoff = now - program.volume.window_days * DAY;
     let mut sets: BTreeMap<Muscle, f32> = BTreeMap::new();
 
-    for record in history {
+    for record in history.iter().map(AsRef::as_ref) {
         let proposed_by_id: HashMap<&str, _> = record
             .proposed_sets
             .iter()
@@ -65,7 +65,11 @@ pub fn weekly_sets(
 }
 
 /// The window's sets per muscle, against the band, as Home shows them.
-pub fn muscle_volume(program: &Program, history: &[WorkoutRecord], now: i64) -> Vec<MuscleVolume> {
+pub fn muscle_volume(
+    program: &Program,
+    history: &[impl AsRef<WorkoutRecord>],
+    now: i64,
+) -> Vec<MuscleVolume> {
     volume_rows(program, &weekly_sets(program, history, now))
 }
 

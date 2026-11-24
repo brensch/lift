@@ -84,7 +84,7 @@ impl Drop for App {
         let mut server = self.account.clone();
         server.without_heart_rate = true;
         for record in &mut server.workouts {
-            record.heart_rate.clear();
+            std::sync::Arc::make_mut(record).heart_rate.clear();
         }
         assert_eq!(
             Account::fold_without_heart_rate(&self.log),
