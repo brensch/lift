@@ -480,7 +480,11 @@ impl Ledger {
         }
         let now = Instant::now();
         log.since.get_or_insert(now);
-        let write_by = if !log.waiters.is_empty() || ended {
+        // Waited on (no phone holds it): written now. A workout's end: with
+        // the next batch, so the ends of a busy minute share their files
+        // rather than each making its own.
+        let urgent = !log.waiters.is_empty();
+        let write_by = if urgent || ended {
             now
         } else if !log.active.is_empty() {
             now + self.timing.abandoned
@@ -498,7 +502,7 @@ impl Ledger {
             write_by
         };
         drop(due);
-        if write_by == now {
+        if urgent {
             self.wake.notify_one();
         }
         Ok(taken)
