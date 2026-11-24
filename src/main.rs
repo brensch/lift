@@ -209,10 +209,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
             println!("Shutdown: open streams cut after {SHUTDOWN_DRAIN:?}");
         }
     }
-    // What phones pushed since the last flush is stored before exiting, so
-    // a deploy acks it rather than leaving it for the phones to resend.
-    if let Err(error) = flush_db.flush().await {
-        eprintln!("Shutdown: flushing pushed events failed: {error}");
+    // What is due a write (workouts ended, writes waited on) is written
+    // before exiting; workouts under way are left to the phones holding
+    // them, which send them again when they reconnect: a busy server would
+    // otherwise take minutes to stop.
+    if let Err(error) = flush_db.shut_down().await {
+        eprintln!("Shutdown: writing what was due failed: {error}");
     }
 
     Ok(())

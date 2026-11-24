@@ -2,7 +2,7 @@ use sqlx::{
     sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions, SqliteSynchronous},
     Pool, Row, Sqlite,
 };
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -86,7 +86,11 @@ impl ServerDb {
         )
         .await?;
         ledger.run();
-        checkpoint_in_background(&read_pool);
+        checkpoint_in_background(
+            &read_pool,
+            &write_pool,
+            PathBuf::from(format!("{db_path}-wal")),
+        );
         Ok(Self {
             read_pool,
             write_pool,
@@ -108,9 +112,12 @@ impl ServerDb {
 
 /// Copy the WAL into the database every few seconds, from a reader: a
 /// passive checkpoint waits for no one and blocks no one, so the writer's
-/// commits stay appends and the WAL stays a few seconds' writes long.
-fn checkpoint_in_background(pool: &Pool<Sqlite>) {
-    let pool = pool.clone();
+/// commits stay appends. It can't copy past what readers still use, so
+/// under steady reads it falls behind; once the WAL passes
+/// `WAL_TRUNCATE_AT`, a truncating checkpoint on the writer's connection
+/// (between its writes) waits for the readers and starts the WAL again.
+fn checkpoint_in_background(read_pool: &Pool<Sqlite>, write_pool: &Pool<Sqlite>, wal: PathBuf) {
+    let (read_pool, write_pool) = (read_pool.clone(), write_pool.clone());
     tokio::spawn(async move {
         loop {
             tokio::time::sleep(std::time::Duration::from_secs(if cfg!(test) {
@@ -119,15 +126,21 @@ fn checkpoint_in_background(pool: &Pool<Sqlite>) {
                 5
             }))
             .await;
-            if pool.is_closed() {
+            if read_pool.is_closed() {
                 return;
             }
-            if let Err(error) = sqlx::query("PRAGMA wal_checkpoint(PASSIVE)")
-                .execute(&pool)
-                .await
-            {
+            let long = std::fs::metadata(&wal).is_ok_and(|m| m.len() > WAL_TRUNCATE_AT);
+            let (pool, checkpoint) = if long {
+                (&write_pool, "PRAGMA wal_checkpoint(TRUNCATE)")
+            } else {
+                (&read_pool, "PRAGMA wal_checkpoint(PASSIVE)")
+            };
+            if let Err(error) = sqlx::query(checkpoint).execute(pool).await {
                 tracing::warn!(%error, "checkpointing the WAL");
             }
         }
     });
 }
+
+/// A WAL longer than this is checkpointed whole and truncated.
+const WAL_TRUNCATE_AT: u64 = 256 << 20;
