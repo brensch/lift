@@ -280,22 +280,18 @@ impl Ledger {
     /// events placed after it (none, for an account written down when it
     /// went idle).
     async fn load(&self, user_id: &str, log: &mut UserLog) -> DbResult<()> {
-        log.exists = sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM users WHERE id = ?)")
-            .bind(user_id)
-            .fetch_one(&self.read_pool)
-            .await?;
-        let head: Option<i64> =
-            sqlx::query_scalar("SELECT MAX(max_seq) FROM event_files WHERE user_id = ?")
-                .bind(user_id)
-                .fetch_one(&self.read_pool)
-                .await?;
+        // One query: whether it exists, its head, and its snapshot's seq.
+        let (exists, head, saved): (bool, Option<i64>, Option<i64>) = sqlx::query_as(
+            "SELECT EXISTS (SELECT 1 FROM users WHERE id = ?1),
+                    (SELECT MAX(max_seq) FROM event_files WHERE user_id = ?1),
+                    (SELECT seq FROM account_snapshots WHERE user_id = ?1 AND fold = ?2)",
+        )
+        .bind(user_id)
+        .bind(schlift_core::FOLD)
+        .fetch_one(&self.read_pool)
+        .await?;
+        log.exists = exists;
         log.head = head.unwrap_or(0);
-        let saved: Option<i64> =
-            sqlx::query_scalar("SELECT seq FROM account_snapshots WHERE user_id = ? AND fold = ?")
-                .bind(user_id)
-                .bind(schlift_core::FOLD)
-                .fetch_optional(&self.read_pool)
-                .await?;
         match saved {
             Some(seq) if seq <= log.head => {
                 log.snapshot_seq = seq;
