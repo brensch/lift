@@ -704,6 +704,7 @@ impl Ledger {
                 saved.insert(u, (state, recent, fold));
             }
         }
+        let read = started.elapsed();
         // Each account's base: its stored snapshot (read in `place`), an
         // empty account, or (by other rules) folded again from the files.
         let mut bases: Vec<(Option<Account>, Vec<String>)> = Vec::with_capacity(taken.len());
@@ -759,7 +760,7 @@ impl Ledger {
         for handle in handles {
             placed.extend(handle.await??);
         }
-        let (read_and_fold, files_from) = (started.elapsed(), Instant::now());
+        let (fold, files_from) = (started.elapsed() - read, Instant::now());
         // The files: events, and heart rate, of the whole batch.
         let mut rows: Vec<Row> = placed.iter().flat_map(|p| p.rows.iter().cloned()).collect();
         rows.sort_by(|a, b| (&a.user_id, a.seq).cmp(&(&b.user_id, b.seq)));
@@ -868,7 +869,8 @@ impl Ledger {
             // Slower than batches come: say where the time went.
             tracing::warn!(
                 accounts = taken.len(),
-                read_and_fold_ms = read_and_fold.as_millis() as u64,
+                read_ms = read.as_millis() as u64,
+                fold_ms = fold.as_millis() as u64,
                 files_ms = files.as_millis() as u64,
                 commit_ms = commit_from.elapsed().as_millis() as u64,
                 "a write took longer than the batch interval"
