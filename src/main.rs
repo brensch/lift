@@ -179,11 +179,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         shutdown_signal().await;
         let _ = stopping.send(true);
     });
-    // The apps' own listener (src/tls.rs), when TLS_PORT is set.
+    // The apps' own listener (src/tls.rs), when TLS_PORT is set. Not bound
+    // (the port taken, no certificate) stops the server here.
     if let Some(config) = tls::Config::from_env()? {
+        let listener = tls::bind(config).await?;
         let (app, stop) = (app.clone(), stop.clone());
         tokio::spawn(async move {
-            if let Err(error) = tls::serve(config, app, stop).await {
+            if let Err(error) = tls::serve(listener, app, stop).await {
                 eprintln!("TLS listener stopped: {error}");
             }
         });
