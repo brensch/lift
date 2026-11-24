@@ -33,8 +33,12 @@ fn catches_up(events: &[Event], every: usize) {
         let whole = fold(events, with_heart_rate);
         let cuts = (0..=events.len()).filter(|n| n % every == 0 || *n == events.len());
         for cut in cuts {
-            let mut account = restore(&snapshot(&fold(&events[..cut], with_heart_rate)))
-                .unwrap_or_else(|e| panic!("snapshot after {cut} events doesn't read: {e}"));
+            let (mut account, seq) = restore(&snapshot(
+                &fold(&events[..cut], with_heart_rate),
+                cut as i64,
+            ))
+            .unwrap_or_else(|e| panic!("snapshot after {cut} events doesn't read: {e}"));
+            assert_eq!(seq, cut as i64);
             for event in &events[cut..] {
                 account.replay(event);
             }
@@ -64,13 +68,11 @@ fn a_snapshot_caught_up_is_the_whole_fold_of_every_kind_of_fact() {
 fn a_snapshot_reads_back_as_the_account() {
     let events = history("golden_events.json.zst");
     let account = Account::fold_without_heart_rate(&events);
-    let written = snapshot(&account);
-    assert!(restore(&written).unwrap() == account);
+    let written = snapshot(&account, 9);
+    assert!(restore(&written).unwrap() == (account.clone(), 9));
     // Each program once, not once per workout: no more than the account
     // was ever set, and the built-in one.
-    let json: serde_json::Value =
-        serde_json::from_slice(&zstd::decode_all(written.as_slice()).unwrap()).unwrap();
-    let written_programs = json["programs"].as_array().unwrap().len();
+    let written_programs = schlift_core::snapshot::encode(&account, 9).programs.len();
     assert!(account.workouts.len() > 10);
     assert!(
         written_programs <= account.programs.len() + 1,
@@ -81,7 +83,31 @@ fn a_snapshot_reads_back_as_the_account() {
 
 #[test]
 fn a_damaged_snapshot_is_an_error_not_an_account() {
-    let written = snapshot(&Account::fold(&history("golden_every_fact_events.json.zst")));
+    let written = snapshot(
+        &Account::fold(&history("golden_every_fact_events.json.zst")),
+        1,
+    );
     assert!(restore(&written[..written.len() / 2]).is_err());
     assert!(restore(b"not a snapshot").is_err());
+}
+
+#[test]
+fn a_snapshot_by_other_rules_is_not_used() {
+    let account = Account::fold(&history("golden_every_fact_events.json.zst"));
+    let mut message = schlift_core::snapshot::encode(&account, 3);
+    assert!(schlift_core::snapshot::decode(message.clone()).is_ok());
+    message.fold = "an older core".to_string();
+    let error = schlift_core::snapshot::decode(message).unwrap_err();
+    assert!(error.contains("other rules"), "{error}");
+}
+
+/// The same account is the same bytes, so a phone and the server can tell
+/// they agree by comparing them.
+#[test]
+fn a_snapshot_is_the_same_bytes_every_time() {
+    use prost::Message;
+    let events = history("golden_events.json.zst");
+    let one = schlift_core::snapshot::encode(&Account::fold_without_heart_rate(&events), 5);
+    let two = schlift_core::snapshot::encode(&Account::fold_without_heart_rate(&events), 5);
+    assert_eq!(one.encode_to_vec(), two.encode_to_vec());
 }

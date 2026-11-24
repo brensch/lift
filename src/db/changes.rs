@@ -18,8 +18,12 @@ pub enum Topic {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Change {
-    /// New events in the user's account, each with its place.
+    /// New events in the user's account, each with its place: stored, and
+    /// sent to the user's devices.
     Account(Arc<[Event]>),
+    /// Events the user just pushed, not yet placed (no seq): for their
+    /// session partners at once, before they're stored with the next flush.
+    Live(Arc<[Event]>),
     /// The user's own session membership.
     Membership,
     /// Requests to join the user.

@@ -1511,9 +1511,14 @@ mod ceremony_tests {
             "base64url: {key}"
         );
 
-        // Back to before step 4.
+        // Back to before step 4, events in SQLite as they were then (the
+        // ledger moves them out when it opens).
         let setup = "UPDATE passkeys SET credential_id = 'HumanBinaryData([1, 2, 3])';
              DROP TABLE passkey_recoveries;
+             CREATE TABLE account_events (
+                 user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                 seq INTEGER NOT NULL, id TEXT NOT NULL, event TEXT NOT NULL,
+                 PRIMARY KEY (user_id, seq), UNIQUE (user_id, id));
              PRAGMA user_version = 3;";
         sqlx::query(setup).execute(&svc.db.read_pool).await.unwrap();
         drop(svc);

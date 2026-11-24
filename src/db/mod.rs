@@ -13,9 +13,9 @@ mod analytics;
 mod assistants;
 mod auth;
 mod changes;
+mod ledger;
 mod migrate;
 mod recovery;
-mod snapshots;
 mod training;
 pub use changes::{Change, Topic};
 mod session;
@@ -34,10 +34,8 @@ pub struct ServerDb {
     write_pool: Pool<Sqlite>,
     join_requests: std::sync::Arc<session::JoinRequests>,
     changes: std::sync::Arc<changes::Changes>,
-    /// Pushes waiting for the one writer of events (`accounts::writer`).
-    pushes: tokio::sync::mpsc::Sender<accounts::Push>,
-    /// Whose snapshot is behind (`snapshots`).
-    snapshots: std::sync::Arc<snapshots::Lag>,
+    /// Every account's events and each account folded (`ledger`).
+    ledger: std::sync::Arc<ledger::Ledger>,
 }
 
 impl ServerDb {
@@ -61,21 +59,20 @@ impl ServerDb {
             .await?;
         migrate::migrate(&write_pool).await?;
         let changes = std::sync::Arc::<changes::Changes>::default();
-        let snapshots = std::sync::Arc::<snapshots::Lag>::default();
-        let (pushes, waiting) = tokio::sync::mpsc::channel(accounts::PUSHES_WAITING);
-        tokio::spawn(accounts::writer(
+        let ledger = ledger::Ledger::open(
+            data_dir,
+            read_pool.clone(),
             write_pool.clone(),
             changes.clone(),
-            snapshots.clone(),
-            waiting,
-        ));
+        )
+        .await?;
+        ledger.run(ledger::flush_every());
         Ok(Self {
             read_pool,
             write_pool,
             join_requests: Default::default(),
             changes,
-            pushes,
-            snapshots,
+            ledger,
         })
     }
 

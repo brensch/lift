@@ -2,6 +2,11 @@
 //! the server and the app alike. See `docs/architecture/local-first.md`.
 
 /// The proto messages (`workout.v1`).
+/// The rules accounts fold by: a hash of this crate's sources, the protos
+/// and every dependency's version (build.rs). A snapshot folded by other
+/// rules is not used.
+pub const FOLD: &str = env!("SCHLIFT_FOLD");
+
 pub mod pb {
     include!(concat!(env!("OUT_DIR"), "/workout.v1.rs"));
 }

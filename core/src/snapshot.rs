@@ -9,98 +9,44 @@
 //! one stamps it with the build of these rules and throws it away when they
 //! change.
 //!
-//! Programs are shared: every workout holds the program it was planned
+//! Written as an `AccountSnapshot` (proto/workout/v1/snapshot.proto), zstd
+//! compressed: about a quarter of the size of the same account as JSON,
+//! and decoded several times faster. Programs are shared: every workout holds the program it was planned
 //! under, mostly the same few. Each is written once and the workouts name
 //! it by its place, so a year of workouts doesn't write the program a
 //! hundred times, and a restored account shares them again.
 
-use std::collections::BTreeMap;
 use std::io::Read;
 use std::sync::Arc;
 
-use serde::{Deserialize, Serialize};
+use prost::Message;
 
 use crate::account::{Account, ProgramVersion, Suggestion};
-use crate::events::ProgramSuggested;
 use crate::history::WorkoutRecord;
-use crate::pb::{CompletedSet, ExerciseLog, ProposedSet, UserSetting, Workout, WorkoutHeartRatePoint};
+use crate::pb::{
+    AccountSnapshot, SnapshotOverride, SnapshotProgramVersion, SnapshotStartingWeight,
+    SnapshotSuggestion, SnapshotWorkout,
+};
 use crate::plan::Override;
 use crate::program::{Program, ProgramRef};
 use crate::weight_units::AppWeightUnit;
 
-/// zstd's default level: snapshots are written now and then, read often.
-const LEVEL: i32 = 3;
+/// zstd's fastest levels lose little here: snapshots are written often.
+const LEVEL: i32 = 1;
 
 /// The most a snapshot may decompress to: far above any account, so a bad
-/// row can't make a reader hold more than this.
+/// one can't make a reader hold more than this.
 const MAX_SNAPSHOT_BYTES: u64 = 512 << 20;
-
-/// What a snapshot is: the account, and the programs it holds, once each.
-#[derive(Serialize, Deserialize)]
-struct Written {
-    programs: Vec<Program>,
-    account: Stored,
-}
-
-#[derive(Serialize, Deserialize)]
-struct Stored {
-    settings: Vec<UserSetting>,
-    programs: Vec<StoredVersion>,
-    program: usize,
-    starting_weights: BTreeMap<String, f32>,
-    overrides: BTreeMap<String, StoredOverride>,
-    workouts: Vec<StoredWorkout>,
-    suggestions: Vec<StoredSuggestion>,
-    active_workout_id: String,
-    onboarded: bool,
-    without_heart_rate: bool,
-}
-
-#[derive(Serialize, Deserialize)]
-struct StoredVersion {
-    id: String,
-    at: i64,
-    author: String,
-    note: String,
-    program: usize,
-}
-
-#[derive(Serialize, Deserialize)]
-struct StoredOverride {
-    at: i64,
-    weight: f32,
-    reps: i32,
-    sets: Option<i32>,
-}
-
-#[derive(Serialize, Deserialize)]
-struct StoredWorkout {
-    workout: Workout,
-    proposed_sets: Vec<ProposedSet>,
-    completed_sets: Vec<CompletedSet>,
-    heart_rate: Vec<WorkoutHeartRatePoint>,
-    exercise_logs: Vec<ExerciseLog>,
-    kg: bool,
-    program: usize,
-}
-
-#[derive(Serialize, Deserialize)]
-struct StoredSuggestion {
-    id: String,
-    at: i64,
-    suggested: ProgramSuggested,
-    answer: Option<(bool, i64)>,
-}
 
 /// Each distinct program once, by the place it was first met.
 #[derive(Default)]
 struct Programs {
-    places: Vec<(*const Program, usize)>,
+    places: Vec<(*const Program, u32)>,
     programs: Vec<Program>,
 }
 
 impl Programs {
-    fn place(&mut self, program: &ProgramRef) -> usize {
+    fn place(&mut self, program: &ProgramRef) -> u32 {
         let key = Arc::as_ptr(&program.0);
         if let Some((_, place)) = self.places.iter().find(|(k, _)| *k == key) {
             return *place;
@@ -113,14 +59,14 @@ impl Programs {
                 self.programs.push((*program.0).clone());
                 self.programs.len() - 1
             }
-        };
+        } as u32;
         self.places.push((key, place));
         place
     }
 }
 
-/// The account, written down.
-pub fn snapshot(account: &Account) -> Vec<u8> {
+/// The account as folded up to `seq`, as a message.
+pub fn encode(account: &Account, seq: i64) -> AccountSnapshot {
     // Every field by name: one added to `Account` doesn't compile here until
     // it is written down too.
     let Account {
@@ -136,29 +82,68 @@ pub fn snapshot(account: &Account) -> Vec<u8> {
         without_heart_rate,
     } = account;
     let mut shared = Programs::default();
-    let stored = Stored {
-        settings: settings.clone(),
-        programs: programs
+    let versions = programs
+        .iter()
+        .map(|v| {
+            let ProgramVersion {
+                id,
+                at,
+                author,
+                note,
+                program,
+            } = v;
+            SnapshotProgramVersion {
+                id: id.clone(),
+                at: *at,
+                author: author.clone(),
+                note: note.clone(),
+                program: shared.place(program),
+            }
+        })
+        .collect();
+    let program = shared.place(program);
+    let workouts = workouts
+        .iter()
+        .map(|w| {
+            let WorkoutRecord {
+                workout,
+                proposed_sets,
+                completed_sets,
+                heart_rate,
+                exercise_logs,
+                unit,
+                program,
+            } = w;
+            SnapshotWorkout {
+                workout: Some(workout.clone()),
+                proposed_sets: proposed_sets.clone(),
+                completed_sets: completed_sets.clone(),
+                exercise_logs: exercise_logs.clone(),
+                kg: *unit == AppWeightUnit::Kg,
+                program: shared.place(program),
+                heart_rate: heart_rate.clone(),
+            }
+        })
+        .collect();
+    AccountSnapshot {
+        fold: crate::FOLD.to_string(),
+        seq,
+        // Plain data: serialising it can't fail.
+        programs: shared
+            .programs
             .iter()
-            .map(|v| {
-                let ProgramVersion {
-                    id,
-                    at,
-                    author,
-                    note,
-                    program,
-                } = v;
-                StoredVersion {
-                    id: id.clone(),
-                    at: *at,
-                    author: author.clone(),
-                    note: note.clone(),
-                    program: shared.place(program),
-                }
+            .map(|p| serde_json::to_string(p).expect("a program serialises"))
+            .collect(),
+        settings: settings.clone(),
+        versions,
+        program,
+        starting_weights: starting_weights
+            .iter()
+            .map(|(lift, weight)| SnapshotStartingWeight {
+                lift: lift.clone(),
+                weight: *weight,
             })
             .collect(),
-        program: shared.place(program),
-        starting_weights: starting_weights.clone(),
         overrides: overrides
             .iter()
             .map(|(lift, o)| {
@@ -168,40 +153,17 @@ pub fn snapshot(account: &Account) -> Vec<u8> {
                     reps,
                     sets,
                 } = o;
-                (
-                    lift.clone(),
-                    StoredOverride {
-                        at: *at,
-                        weight: *weight,
-                        reps: *reps,
-                        sets: *sets,
-                    },
-                )
-            })
-            .collect(),
-        workouts: workouts
-            .iter()
-            .map(|w| {
-                let WorkoutRecord {
-                    workout,
-                    proposed_sets,
-                    completed_sets,
-                    heart_rate,
-                    exercise_logs,
-                    unit,
-                    program,
-                } = w;
-                StoredWorkout {
-                    workout: workout.clone(),
-                    proposed_sets: proposed_sets.clone(),
-                    completed_sets: completed_sets.clone(),
-                    heart_rate: heart_rate.clone(),
-                    exercise_logs: exercise_logs.clone(),
-                    kg: *unit == AppWeightUnit::Kg,
-                    program: shared.place(program),
+                SnapshotOverride {
+                    lift: lift.clone(),
+                    at: *at,
+                    weight: *weight,
+                    reps: *reps,
+                    has_sets: sets.is_some(),
+                    sets: sets.unwrap_or_default(),
                 }
             })
             .collect(),
+        workouts,
         suggestions: suggestions
             .iter()
             .map(|s| {
@@ -211,49 +173,48 @@ pub fn snapshot(account: &Account) -> Vec<u8> {
                     suggested,
                     answer,
                 } = s;
-                StoredSuggestion {
+                SnapshotSuggestion {
                     id: id.clone(),
                     at: *at,
-                    suggested: suggested.clone(),
-                    answer: *answer,
+                    suggested: serde_json::to_string(suggested).expect("a suggestion serialises"),
+                    answered: answer.is_some(),
+                    accepted: answer.is_some_and(|(accepted, _)| accepted),
+                    answered_at: answer.map_or(0, |(_, at)| at),
                 }
             })
             .collect(),
         active_workout_id: active_workout_id.clone(),
         onboarded: *onboarded,
         without_heart_rate: *without_heart_rate,
-    };
-    let written = Written {
-        programs: shared.programs,
-        account: stored,
-    };
-    // Plain data to a buffer, then compressed: neither can fail.
-    let json = serde_json::to_vec(&written).expect("an account serialises");
-    zstd::encode_all(json.as_slice(), LEVEL).expect("compressing to memory")
+    }
 }
 
-/// The account a snapshot holds; an error for one that doesn't read (cut
-/// short, or written by other rules).
-pub fn restore(snapshot: &[u8]) -> Result<Account, String> {
-    let mut json = Vec::new();
-    zstd::Decoder::new(snapshot)
-        .map_err(|e| e.to_string())?
-        .take(MAX_SNAPSHOT_BYTES)
-        .read_to_end(&mut json)
+/// The account a message holds, and the seq it was folded up to. An error
+/// for one folded by other rules, or that doesn't read.
+pub fn decode(snapshot: AccountSnapshot) -> Result<(Account, i64), String> {
+    if snapshot.fold != crate::FOLD {
+        return Err(format!(
+            "folded by other rules ({}, not {})",
+            snapshot.fold,
+            crate::FOLD
+        ));
+    }
+    let programs = snapshot
+        .programs
+        .iter()
+        .map(|json| serde_json::from_str::<Program>(json).map(ProgramRef::new))
+        .collect::<Result<Vec<_>, _>>()
         .map_err(|e| e.to_string())?;
-    let Written { programs, account } =
-        serde_json::from_slice(&json).map_err(|e| e.to_string())?;
-    let programs: Vec<ProgramRef> = programs.into_iter().map(ProgramRef::new).collect();
-    let program = |place: usize| {
+    let program = |place: u32| {
         programs
-            .get(place)
+            .get(place as usize)
             .cloned()
             .ok_or_else(|| format!("no program {place} in the snapshot"))
     };
-    Ok(Account {
-        settings: account.settings,
-        programs: account
-            .programs
+    let account = Account {
+        settings: snapshot.settings,
+        programs: snapshot
+            .versions
             .into_iter()
             .map(|v| {
                 Ok(ProgramVersion {
@@ -265,29 +226,33 @@ pub fn restore(snapshot: &[u8]) -> Result<Account, String> {
                 })
             })
             .collect::<Result<_, String>>()?,
-        program: program(account.program)?,
-        starting_weights: account.starting_weights,
-        overrides: account
+        program: program(snapshot.program)?,
+        starting_weights: snapshot
+            .starting_weights
+            .into_iter()
+            .map(|w| (w.lift, w.weight))
+            .collect(),
+        overrides: snapshot
             .overrides
             .into_iter()
-            .map(|(lift, o)| {
+            .map(|o| {
                 (
-                    lift,
+                    o.lift,
                     Override {
                         at: o.at,
                         weight: o.weight,
                         reps: o.reps,
-                        sets: o.sets,
+                        sets: o.has_sets.then_some(o.sets),
                     },
                 )
             })
             .collect(),
-        workouts: account
+        workouts: snapshot
             .workouts
             .into_iter()
             .map(|w| {
                 Ok(WorkoutRecord {
-                    workout: w.workout,
+                    workout: w.workout.unwrap_or_default(),
                     proposed_sets: w.proposed_sets,
                     completed_sets: w.completed_sets,
                     heart_rate: w.heart_rate,
@@ -301,18 +266,40 @@ pub fn restore(snapshot: &[u8]) -> Result<Account, String> {
                 })
             })
             .collect::<Result<_, String>>()?,
-        suggestions: account
+        suggestions: snapshot
             .suggestions
             .into_iter()
-            .map(|s| Suggestion {
-                id: s.id,
-                at: s.at,
-                suggested: s.suggested,
-                answer: s.answer,
+            .map(|s| {
+                Ok(Suggestion {
+                    id: s.id,
+                    at: s.at,
+                    suggested: serde_json::from_str(&s.suggested).map_err(|e| e.to_string())?,
+                    answer: s.answered.then_some((s.accepted, s.answered_at)),
+                })
             })
-            .collect(),
-        active_workout_id: account.active_workout_id,
-        onboarded: account.onboarded,
-        without_heart_rate: account.without_heart_rate,
-    })
+            .collect::<Result<_, String>>()?,
+        active_workout_id: snapshot.active_workout_id,
+        onboarded: snapshot.onboarded,
+        without_heart_rate: snapshot.without_heart_rate,
+    };
+    Ok((account, snapshot.seq))
+}
+
+/// The account as folded up to `seq`, written down: the message, zstd
+/// compressed.
+pub fn snapshot(account: &Account, seq: i64) -> Vec<u8> {
+    let bytes = encode(account, seq).encode_to_vec();
+    zstd::encode_all(bytes.as_slice(), LEVEL).expect("compressing to memory")
+}
+
+/// What `snapshot` wrote: the account and its seq. An error for one folded
+/// by other rules, cut short, or that doesn't read.
+pub fn restore(snapshot: &[u8]) -> Result<(Account, i64), String> {
+    let mut bytes = Vec::new();
+    zstd::Decoder::new(snapshot)
+        .map_err(|e| e.to_string())?
+        .take(MAX_SNAPSHOT_BYTES)
+        .read_to_end(&mut bytes)
+        .map_err(|e| e.to_string())?;
+    decode(AccountSnapshot::decode(bytes.as_slice()).map_err(|e| e.to_string())?)
 }

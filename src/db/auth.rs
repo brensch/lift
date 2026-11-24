@@ -218,6 +218,8 @@ impl ServerDb {
             .execute(&mut *tx)
             .await?;
         tx.commit().await?;
+        // Its events stay in the files, under an id nothing points to now.
+        self.ledger.forget(user_id);
         self.forget_join_requests(user_id);
         if let Some(session) = session {
             self.session_changed(&session);
@@ -617,9 +619,13 @@ mod tests {
             .await
             .unwrap();
         db.set_can_suggest(u, u, true).await.unwrap();
+        // An event, stored: its file indexed under the account.
+        let event: schlift_core::events::Event = serde_json::from_str(
+            r#"{"seq":0,"id":"e","at":1,"WorkoutDiscarded":{"workout_id":"w"}}"#,
+        )
+        .unwrap();
+        db.push_events(u, vec![event]).await.unwrap();
         for sql in [
-            r#"INSERT INTO account_events (user_id, seq, id, event)
-               VALUES (?, 1, 'e', '{"seq":1,"id":"e","at":1,"WorkoutDiscarded":{"workout_id":"w"}}')"#,
             "INSERT INTO page_views (user_id, app_session_id, seq, page, entered_at_ms)
              VALUES (?, 's', 1, 'home', 1)",
             "INSERT INTO account_snapshots (user_id, seq, fold, state, updated_at)
