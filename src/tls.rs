@@ -20,15 +20,15 @@ use hyper_util::server::conn::auto::Builder;
 use hyper_util::service::TowerToHyperService;
 use tokio::net::TcpListener;
 use tokio::sync::watch;
-
-/// How long a client has to finish its TLS handshake.
-const HANDSHAKE: Duration = Duration::from_secs(10);
 use tokio_rustls::rustls::crypto::ring::sign::any_supported_type;
 use tokio_rustls::rustls::server::{ClientHello, ResolvesServerCert};
 use tokio_rustls::rustls::sign::CertifiedKey;
 use tokio_rustls::rustls::ServerConfig;
 use tokio_rustls::TlsAcceptor;
 use tower::ServiceExt;
+
+/// How long a client has to finish its TLS handshake.
+const HANDSHAKE: Duration = Duration::from_secs(10);
 
 /// How often the certificate's file is looked at for a renewal.
 const RECHECK: Duration = Duration::from_secs(600);
@@ -94,13 +94,17 @@ impl ResolvesServerCert for Current {
     }
 }
 
-/// Serve `app` over TLS until `stop`. A renewed certificate is used for new
+/// The listener, bound and with its certificate loaded: a server that
+/// can't have it stops at start (a deploy then puts the last release
+/// back) rather than running with no way in for the apps.
+pub struct Listener {
+    listener: TcpListener,
+    acceptor: TlsAcceptor,
+}
+
+/// Load the certificate and bind. A renewed certificate is used for new
 /// connections from when it is noticed.
-pub async fn serve(
-    config: Config,
-    app: axum::Router,
-    mut stop: watch::Receiver<bool>,
-) -> io::Result<()> {
+pub async fn bind(config: Config) -> io::Result<Listener> {
     let current = Arc::new(Current(RwLock::new(Arc::new(load(&config)?))));
     {
         let (current, config) = (current.clone(), config.clone());
@@ -130,6 +134,15 @@ pub async fn serve(
     let acceptor = TlsAcceptor::from(Arc::new(tls));
     let listener = TcpListener::bind(config.bind).await?;
     println!("Server listening on {} (TLS, for the apps)", config.bind);
+    Ok(Listener { listener, acceptor })
+}
+
+/// Serve `app` over TLS until `stop`.
+pub async fn serve(
+    Listener { listener, acceptor }: Listener,
+    app: axum::Router,
+    mut stop: watch::Receiver<bool>,
+) -> io::Result<()> {
     let mut warned: Option<std::time::Instant> = None;
     loop {
         let accepted = tokio::select! {

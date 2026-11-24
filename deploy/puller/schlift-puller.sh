@@ -105,10 +105,12 @@ PY
 	# The live env file, with its PORT and DATA_DIR replaced by the spare port and
 	# the copy. Passing them with -E is not enough: systemd lets EnvironmentFile
 	# override Environment, so the dev env's PORT=50052 put the preflight on the
-	# live dev port, where it failed to bind.
+	# live dev port, where it failed to bind. Without TLS_PORT: the apps' own
+	# listener is public, and a phone that reached the copy would be told its
+	# events were written when they were written only to the copy.
 	local envfile="${dir}/preflight.env"
 	{
-		grep -vE '^[[:space:]]*(export[[:space:]]+)?(PORT|DATA_DIR)=' "${root}/shared/schlift.env" 2>/dev/null || true
+		grep -vE '^[[:space:]]*(export[[:space:]]+)?(PORT|DATA_DIR|TLS_PORT)=' "${root}/shared/schlift.env" 2>/dev/null || true
 		printf 'PORT=%s\nDATA_DIR=%s\n' "${port}" "${dir}/data"
 	} >"${envfile}"
 	chmod 600 "${envfile}"
