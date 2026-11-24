@@ -1133,6 +1133,10 @@ impl Ledger {
         }
         let moved_dir = self.events_dir().join("moved");
         let _ = std::fs::remove_dir_all(&moved_dir);
+        let _ = std::fs::remove_dir_all(self.beats_dir().join("moved"));
+        // Each workout's heart rate, its last record (a later one replaces
+        // an earlier), for the heart-rate files.
+        let mut beats: HashMap<(String, String), Beats> = HashMap::new();
         let total: i64 = sqlx::query_scalar("SELECT COUNT(*) FROM account_events")
             .fetch_one(&self.read_pool)
             .await?;
@@ -1183,6 +1187,9 @@ impl Ledger {
                     ids.push(id.clone());
                     *last = seq;
                 }
+                for b in beats_of(&user_id, &event) {
+                    beats.insert((b.user_id.clone(), b.workout_id.clone()), b);
+                }
                 rows.push(Row {
                     heart_rate: is_heart_rate(&event),
                     kind: kind_of(&json),
@@ -1205,7 +1212,30 @@ impl Ledger {
             index.push((file, spans));
         }
         finish(account.take(), &mut snapshots);
+        let mut beats: Vec<Beats> = beats.into_values().collect();
+        beats.sort_by(|a, b| (&a.user_id, &a.workout_id).cmp(&(&b.user_id, &b.workout_id)));
+        let beats_file = "moved/m-heart-rate.parquet";
+        if !beats.is_empty() {
+            let path = self.beats_dir().join(beats_file);
+            let beats = beats.clone();
+            tokio::task::spawn_blocking(move || files::write_beats(&path, &beats, 3)).await??;
+        }
         let mut tx = self.write_pool.begin().await?;
+        let beat_index: Vec<(&str, &str)> = beats
+            .iter()
+            .map(|b| (b.user_id.as_str(), b.workout_id.as_str()))
+            .collect();
+        if !beat_index.is_empty() {
+            sqlx::query(
+                "INSERT OR REPLACE INTO heart_rate_files (user_id, workout_id, file)
+                 SELECT value ->> 0, value ->> 1, ? FROM json_each(?)
+                 WHERE EXISTS (SELECT 1 FROM users WHERE id = value ->> 0)",
+            )
+            .bind(beats_file)
+            .bind(serde_json::to_string(&beat_index)?)
+            .execute(&mut *tx)
+            .await?;
+        }
         for (file, spans) in &index {
             let rows: Vec<(&str, &str, i64, i64, i64)> = spans
                 .iter()
@@ -1255,6 +1285,32 @@ impl Ledger {
             "moved account events into the ledger"
         );
         Ok(())
+    }
+}
+
+/// The heart rate an event brings, as the heart-rate files hold it: a
+/// workout's readings once it has ended, or imported workouts' own.
+fn beats_of(user_id: &str, event: &Event) -> Vec<Beats> {
+    let beats = |workout_id: &str, samples: &[schlift_core::pb::WorkoutHeartRatePoint]| Beats {
+        user_id: user_id.to_string(),
+        workout_id: workout_id.to_string(),
+        start_ms: samples.first().map_or(0, |s| s.sampled_at),
+        t_ms: samples.iter().map(|s| s.sampled_at).collect(),
+        bpm: samples.iter().map(|s| s.bpm.round() as u16).collect(),
+    };
+    match &event.fact {
+        Fact::HeartRateRecorded(h) => h
+            .samples()
+            .map(|samples| beats(&h.workout_id, &samples))
+            .into_iter()
+            .collect(),
+        Fact::HistoryImported(imported) => imported
+            .workouts
+            .iter()
+            .filter(|w| !w.heart_rate.is_empty())
+            .filter_map(|w| Some(beats(&w.workout.as_ref()?.id, &w.heart_rate)))
+            .collect(),
+        _ => Vec::new(),
     }
 }
 
@@ -1310,17 +1366,8 @@ fn place(
         seq += 1;
         let mut event = (**event).clone();
         event.seq = seq;
-        if let Fact::HeartRateRecorded(h) = &event.fact {
-            if let Some(samples) = h.samples() {
-                beats.push(Beats {
-                    user_id: user_id.clone(),
-                    workout_id: h.workout_id.clone(),
-                    start_ms: h.start_ms,
-                    t_ms: samples.iter().map(|s| s.sampled_at).collect(),
-                    bpm: samples.iter().map(|s| s.bpm as u16).collect(),
-                });
-            }
-        } else {
+        beats.extend(beats_of(&user_id, &event));
+        if !is_heart_rate(&event) {
             account.replay(&event);
         }
         let json = json(&event);

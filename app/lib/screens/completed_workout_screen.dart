@@ -68,7 +68,18 @@ class _CompletedWorkoutScreenState extends State<CompletedWorkoutScreen> {
       _loadError = null;
       final response = await service.getWorkout(widget.workoutId);
       // From the account, so a workout opened from History shows it too.
-      final heartRate = await service.getWorkoutHeartRate(widget.workoutId);
+      // A phone given its account whole (a new install) holds no heart
+      // rate from before: the server keeps it, by workout.
+      var heartRate = await service.getWorkoutHeartRate(widget.workoutId);
+      if (heartRate.isEmpty && response.workout.endTime != Int64.ZERO) {
+        try {
+          heartRate = (await grpc.workoutService.getWorkoutHeartRate(
+            GetWorkoutHeartRateRequest()..workoutId = widget.workoutId,
+          )).samples;
+        } catch (_) {
+          // Offline: no chart, as before.
+        }
+      }
       final sessionId = response.workout.sessionId;
       if (mounted) {
         setState(() {
