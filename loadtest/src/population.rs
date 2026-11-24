@@ -14,11 +14,11 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use clap::Parser;
-use schlift_load::metrics::Metrics;
 use rand::{Rng, SeedableRng};
 use schlift::workout::v1::sync_service_client::SyncServiceClient;
 use schlift::workout::v1::workout_service_client::WorkoutServiceClient;
 use schlift::workout::v1::*;
+use schlift_load::metrics::Metrics;
 use tokio::sync::{mpsc, watch};
 use tokio_stream::wrappers::ReceiverStream;
 use tonic::transport::{Channel, Endpoint};
@@ -242,10 +242,18 @@ async fn main() {
                 let p = |op: &str| {
                     summary
                         .get(op)
-                        .map(|s| format!("{} p50 {:.1} p99 {:.1} max {:.0}", s.count, s.p50_ms, s.p99_ms, s.max_ms))
+                        .map(|s| {
+                            format!(
+                                "{} p50 {:.1} p99 {:.1} max {:.0}",
+                                s.count, s.p50_ms, s.p99_ms, s.max_ms
+                            )
+                        })
                         .unwrap_or_default()
                 };
-                let errors: u64 = summary.values().map(|s| s.errors.values().sum::<u64>()).sum();
+                let errors: u64 = summary
+                    .values()
+                    .map(|s| s.errors.values().sum::<u64>())
+                    .sum();
                 println!(
                     "{:>5.0}s connected {:>8} beats/s {:>6.0} | open {} | heartbeat {} | restore {} | read {} | errors {errors}",
                     started.elapsed().as_secs_f64(),
@@ -261,7 +269,11 @@ async fn main() {
         })
     };
     reopeners.extend(opener.await.expect("opener"));
-    println!("all {} opened in {:.0}s", args.count, started.elapsed().as_secs_f64());
+    println!(
+        "all {} opened in {:.0}s",
+        args.count,
+        started.elapsed().as_secs_f64()
+    );
     // Holding: reopens, restores and website reads, until the hold is over.
     let held = Instant::now();
     let mut rng = rand::rngs::StdRng::seed_from_u64(42);
@@ -288,8 +300,10 @@ async fn main() {
                     .metrics
                     .time(
                         "web.read",
-                        WorkoutServiceClient::new(channel)
-                            .list_workout_summaries(authed(&token(n), ListWorkoutSummariesRequest {})),
+                        WorkoutServiceClient::new(channel).list_workout_summaries(authed(
+                            &token(n),
+                            ListWorkoutSummariesRequest {},
+                        )),
                     )
                     .await;
             });
@@ -309,7 +323,11 @@ async fn main() {
         "seconds": started.elapsed().as_secs_f64(),
         "ops": summary,
     });
-    std::fs::write(&args.out, serde_json::to_string_pretty(&report).expect("json")).expect("report");
+    std::fs::write(
+        &args.out,
+        serde_json::to_string_pretty(&report).expect("json"),
+    )
+    .expect("report");
     println!("{}", serde_json::to_string_pretty(&report).expect("json"));
 }
 

@@ -35,8 +35,10 @@ pub enum Change {
     SignedOut,
 }
 
-/// Changes a stream may fall behind by before it is told it missed some.
-const BACKLOG: usize = 64;
+/// Changes a stream may fall behind by before it is told it missed some
+/// (and sends everything again). Each watched topic holds this many slots
+/// from the start, so with a million streams it is kept small.
+const BACKLOG: usize = 16;
 
 /// A channel per watched topic, made by the first to watch it and dropped
 /// once nobody does.

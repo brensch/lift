@@ -1,3 +1,5 @@
+pub mod codec;
+
 pub mod workout {
     // tonic's generated client/server methods return `Result<_, Status>`;
     // newer clippy flags the large `Err` variant. It is generated code.

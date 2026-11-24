@@ -290,13 +290,12 @@ impl Ledger {
                 .fetch_one(&self.read_pool)
                 .await?;
         log.head = head.unwrap_or(0);
-        let saved: Option<i64> = sqlx::query_scalar(
-            "SELECT seq FROM account_snapshots WHERE user_id = ? AND fold = ?",
-        )
-        .bind(user_id)
-        .bind(schlift_core::FOLD)
-        .fetch_optional(&self.read_pool)
-        .await?;
+        let saved: Option<i64> =
+            sqlx::query_scalar("SELECT seq FROM account_snapshots WHERE user_id = ? AND fold = ?")
+                .bind(user_id)
+                .bind(schlift_core::FOLD)
+                .fetch_optional(&self.read_pool)
+                .await?;
         match saved {
             Some(seq) if seq <= log.head => {
                 log.snapshot_seq = seq;
@@ -329,7 +328,8 @@ impl Ledger {
                 .await?;
         let tail: Vec<String> = log.tail.iter().map(|e| e.id.clone()).collect();
         log.recent.clear();
-        for id in serde_json::from_str::<Vec<String>>(&json.unwrap_or_default()).unwrap_or_default() {
+        for id in serde_json::from_str::<Vec<String>>(&json.unwrap_or_default()).unwrap_or_default()
+        {
             log.recent.push_back(id.clone());
             log.ids.insert(id);
         }
