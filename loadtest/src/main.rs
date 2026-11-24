@@ -36,6 +36,13 @@ struct Args {
     /// Connections to the server, overriding the profile.
     #[arg(long)]
     connections: Option<usize>,
+    /// Seconds between sets, overriding the profile (a real rest is a
+    /// couple of minutes; the profiles compress it).
+    #[arg(long)]
+    set_every: Option<f64>,
+    /// Seconds over which the clients start, overriding the profile.
+    #[arg(long)]
+    ramp: Option<f64>,
     /// Test a server that is already running instead of starting one.
     #[arg(long)]
     server: Option<String>,
@@ -167,6 +174,12 @@ async fn main() {
     }
     if let Some(seconds) = args.seconds {
         profile.hold = Duration::from_secs(seconds);
+    }
+    if let Some(every) = args.set_every {
+        profile.set_every = Duration::from_secs_f64(every);
+    }
+    if let Some(ramp) = args.ramp {
+        profile.ramp = Duration::from_secs_f64(ramp);
     }
     if let Some(connections) = args.connections {
         profile.connections = connections;

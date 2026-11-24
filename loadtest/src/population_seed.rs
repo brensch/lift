@@ -106,7 +106,7 @@ fn schema() -> Arc<Schema> {
 fn write_file(path: &Path, users: &[String], events: &[Event], json: &[String]) {
     let per = events.len();
     let rows = users.len() * per;
-    let user_col = StringArray::from_iter_values(users.iter().flat_map(|u| std::iter::repeat_n(u.as_str(), per)));
+    let user_col = StringArray::from_iter_values((0..rows).map(|i| users[i / per].as_str()));
     let seq_col = Int64Array::from_iter_values((0..rows).map(|i| events[i % per].seq));
     let id_col = StringArray::from_iter_values((0..rows).map(|i| events[i % per].id.as_str()));
     let at_col = Int64Array::from_iter_values((0..rows).map(|i| events[i % per].at));
