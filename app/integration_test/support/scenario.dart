@@ -617,6 +617,24 @@ class Scenario {
     listen: false,
   );
 
+  /// The app's workout under way, as the app holds it: the server holds a
+  /// workout's events until it ends, so until then the app's own core is
+  /// where it is. Null when none is under way.
+  Future<GetWorkoutResponse?> appWorkoutDetail() async {
+    final core = await accountSync.ready;
+    final active = await core.call(
+      'GetActiveWorkout',
+      GetActiveWorkoutRequest(),
+      GetActiveWorkoutResponse.fromBuffer,
+    );
+    if (!active.hasWorkout()) return null;
+    return core.call(
+      'GetWorkout',
+      GetWorkoutRequest(workoutId: active.workout.id),
+      GetWorkoutResponse.fromBuffer,
+    );
+  }
+
   /// Wait until the app's copy of the account holds everything the server
   /// does — after [peer], signed in as the app's own user, seeded history
   /// for it. The server streams it to the app as it is placed, and the app

@@ -36,6 +36,7 @@ void main() {
 
       // Start in the UI, fast-forward every set, then finish from the UI.
       await s.startWorkoutFromHome();
+      final workoutId = s.workout.workout!.id;
       final completed = await s.completeAllWorkingSetsInApp();
       s.note('Completed in the app', detail: '$completed sets');
       await s.shot('All sets done');
@@ -48,9 +49,8 @@ void main() {
 
       // The heaviest working set done is the calibrated weight, as the
       // server holds it.
-      await api.adoptActiveWorkout();
-      api.workoutId ??= s.workout.workout?.id;
-      final detail = (await api.workoutDetail())!;
+      api.adoptWorkout(workoutId);
+      final detail = await api.endedWorkoutDetail();
       final proposedById = {for (final p in detail.proposedSets) p.id: p};
       var calibrated = 0.0;
       for (final c in detail.completedSets) {

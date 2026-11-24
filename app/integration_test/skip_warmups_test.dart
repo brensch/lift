@@ -41,9 +41,8 @@ void main() {
       }
 
       await s.startWorkoutFromHome();
-      await api.adoptActiveWorkout();
       final warmupsBefore =
-          (await api.workoutDetail())?.proposedSets
+          (await s.appWorkoutDetail())?.proposedSets
               .where((x) => x.warmup)
               .length ??
           0;
@@ -65,7 +64,7 @@ void main() {
         reason: 'up next is the first working set',
       );
 
-      final detail = await api.workoutDetail();
+      final detail = await s.appWorkoutDetail();
       final warmups =
           detail?.proposedSets.where((x) => x.warmup).toList() ?? [];
       expect(warmups.length, warmupsBefore, reason: 'no warmup is removed');

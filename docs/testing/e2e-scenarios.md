@@ -156,15 +156,23 @@ await bob.joinViaInvite(await alice.inviteToken());  // pull the app user into a
 ```
 
 A peer logged in as the app's own user only reads, so what the app shows is
-the app's own doing: once it adopts the app's workout (`adoptActiveWorkout`) a write
-throws. Reads pull the account's log into the peer's core and answer from it,
+the app's own doing: once it adopts the app's workout (`adoptWorkout`) a write
+throws. Reads pull the account into the peer's core and answer from it,
 exactly as a reinstalled phone would.
+
+The server holds a workout's events until it ends and writes it then (other
+writes once they are quiet: 90 s in production, a second for the e2e
+backend, `LEDGER_QUIET_MS`). So a peer sees the app's workout only once it
+has ended (`endedWorkoutDetail`); while it is under way, read it from the
+app (`s.appWorkoutDetail()`). A peer's own write waits until it is placed,
+except a workout under way, which waits on the server until the peer ends
+it.
 
 The one exception is seeding history before the app does anything: a peer
 as the app's user can `doWorkout` while the app sits idle on a screen. The
 app pulls those events when its stream next reports the server's head (its
-heartbeat, every 5 s), and until then it can show the account mid-seed — a
-seeded workout half done, live. Follow a seed with
+heartbeat, every 5 s), and until then it can show the account mid-seed.
+Follow a seed with
 `s.waitForAppToCatchUp(peer)`. A workout that must carry the app's session
 (trained with someone) has to be done in the app (`doWorkoutInApp`): the
 phone records the session on its workout, a peer's write does not.
