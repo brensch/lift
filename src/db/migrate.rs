@@ -587,20 +587,39 @@ async fn v9(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
     Ok(())
 }
 
-/// Each account folded as of some point in its log (`db/snapshots.rs`), so
-/// a read folds only the events after it. Nothing in it is the truth: every
-/// row can be thrown away and folded again from the events, and is when the
-/// rules that folded it (`fold`, the build's) aren't this server's.
+/// The ledger's tables (`db/ledger`). Events themselves move out of SQLite
+/// into Parquet files under `DATA_DIR/events/`, written once and never
+/// changed; the ledger moves `account_events` there when it first opens,
+/// and drops the table.
+///
+/// - `event_files`: which file holds which of an account's events, so an
+///   account's history is read from the files that hold it. Rebuilt from
+///   the files for any the index lacks.
+/// - `account_snapshots`: each account folded as of some event, so loading
+///   one folds only what came after. Nothing in it is the truth: any row
+///   can be thrown away and folded again from the files, and is when the
+///   rules that folded it (`fold`) aren't this server's.
 async fn v10(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
     sqlx::query(
-        "CREATE TABLE IF NOT EXISTS account_snapshots (
+        "CREATE TABLE IF NOT EXISTS event_files (
+             file TEXT NOT NULL,
+             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             min_seq INTEGER NOT NULL,
+             max_seq INTEGER NOT NULL,
+             events INTEGER NOT NULL,
+             PRIMARY KEY (user_id, file)
+         ) WITHOUT ROWID;
+         CREATE INDEX IF NOT EXISTS event_files_file ON event_files(file);
+         CREATE TABLE IF NOT EXISTS account_snapshots (
              user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
              -- The last event folded into it.
              seq INTEGER NOT NULL,
-             -- The rules that folded it: schlift_core's sources, hashed.
+             -- The rules that folded it: schlift_core::FOLD.
              fold TEXT NOT NULL,
              -- schlift_core::snapshot, without heart rate.
              state BLOB NOT NULL,
+             -- A JSON array of the latest ids placed: a resend is placed once.
+             recent_ids TEXT NOT NULL DEFAULT '[]',
              updated_at INTEGER NOT NULL
          );",
     )
@@ -705,12 +724,13 @@ mod tests {
             let opened = ServerDb::new_in_dir(&dir).await;
             assert_eq!(opened.is_ok(), starts, "events held: {events}");
             if let Ok(db) = opened {
+                // Converted, then moved into the ledger's files.
                 let columns: Vec<String> =
-                    sqlx::query_scalar("SELECT name FROM pragma_table_info('account_events')")
+                    sqlx::query_scalar("SELECT name FROM pragma_table_info('event_files')")
                         .fetch_all(&db.read_pool)
                         .await
                         .unwrap();
-                assert_eq!(columns, ["user_id", "seq", "id", "event"]);
+                assert_eq!(columns, ["file", "user_id", "min_seq", "max_seq", "events"]);
             }
         }
     }
@@ -856,8 +876,22 @@ mod tests {
     #[tokio::test]
     async fn accounts_move_to_programs() {
         let dir = std::env::temp_dir().join(format!("lift-v6-{}", Uuid::new_v4()));
-        let db = ServerDb::new_in_dir(&dir).await.unwrap();
-        db.create_user_with_id("u1", "Lyss").await.unwrap();
+        // The tables as they were, without the ledger: its events in SQLite.
+        std::fs::create_dir_all(&dir).unwrap();
+        let pool = sqlx::SqlitePool::connect(&format!(
+            "sqlite://{}/server.sqlite?mode=rwc",
+            dir.display()
+        ))
+        .await
+        .unwrap();
+        super::migrate(&pool).await.unwrap();
+        sqlx::query(
+            "INSERT INTO users (id, username, invite_token, created_at, emoji, color_hex)
+             VALUES ('u1', 'Lyss', 'i', 0, '', '')",
+        )
+        .execute(&pool)
+        .await
+        .unwrap();
         let old: Vec<serde_json::Value> = serde_json::from_str(include_str!(
             "../../core/tests/testdata/stored_events_before_programs.json"
         ))
@@ -868,26 +902,27 @@ mod tests {
                 .bind(n as i64 + 1)
                 .bind(event["id"].as_str().unwrap())
                 .bind(event.to_string())
-                .execute(&db.write_pool)
+                .execute(&pool)
                 .await
                 .unwrap();
         }
         sqlx::query("PRAGMA user_version = 5")
-            .execute(&db.write_pool)
+            .execute(&pool)
             .await
             .unwrap();
-        drop(db);
+        pool.close().await;
 
         let db = ServerDb::new_in_dir(&dir).await.unwrap();
         let account = db.read_account("u1", Clone::clone).await.unwrap();
         assert!(!account.program.workouts.is_empty(), "the templates moved");
         assert!(!account.workouts.is_empty());
-        let rows: Vec<(i64, String)> = sqlx::query_as(
-            "SELECT seq, event FROM account_events WHERE user_id = 'u1' ORDER BY seq",
-        )
-        .fetch_all(&db.read_pool)
-        .await
-        .unwrap();
+        let rows: Vec<(i64, String)> = db
+            .events_after("u1", 0, i64::MAX)
+            .await
+            .unwrap()
+            .into_iter()
+            .map(|e| (e.seq, serde_json::to_string(&e).unwrap()))
+            .collect();
         assert!(rows
             .iter()
             .enumerate()

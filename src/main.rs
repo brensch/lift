@@ -73,8 +73,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     if let Ok(name) = std::env::var("SEED_DEMO_USER") {
         demo_seed::seed_demo_user(&server_db, &name).await?;
     }
-    // Accounts folded forward in the background, so reads fold little.
-    server_db.sweep_snapshots();
     let auth_state = std::sync::Arc::new(AuthState::new(server_db.clone()));
 
     // Loopback only: Caddy, on the same host, is the way in. PORT lets a
@@ -177,6 +175,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let _ = stopping.send(true);
     });
     let mut drain_stop = stop.clone();
+    let flush_db = server_db.clone();
     let server = axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
@@ -195,6 +194,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         } => {
             println!("Shutdown: open streams cut after {SHUTDOWN_DRAIN:?}");
         }
+    }
+    // What phones pushed since the last flush is stored before exiting, so
+    // a deploy acks it rather than leaving it for the phones to resend.
+    if let Err(error) = flush_db.flush().await {
+        eprintln!("Shutdown: flushing pushed events failed: {error}");
     }
 
     Ok(())

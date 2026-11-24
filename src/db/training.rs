@@ -47,7 +47,8 @@ impl ServerDb {
                     COALESCE((SELECT v.entered_at_ms {LATEST_VIEW}), 0) AS last_seen_ms,
                     COALESCE((SELECT v.platform {LATEST_VIEW}), '') AS platform,
                     COALESCE((SELECT v.app_version {LATEST_VIEW}), '') AS app_version,
-                    (SELECT COUNT(*) FROM account_events e WHERE e.user_id = u.id) AS events
+                    COALESCE((SELECT SUM(f.events) FROM event_files f WHERE f.user_id = u.id), 0)
+                        AS events
              FROM users u WHERE ? IS NULL OR u.id = ? ORDER BY u.created_at DESC LIMIT ?"
         ))
         .bind(now_unix())

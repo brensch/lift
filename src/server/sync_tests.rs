@@ -72,7 +72,7 @@ mod store {
         let mut phone = Phone::new();
         let (started, events) = phone.start_squats(1_000);
         let pushed = db.push_events("u1", events).await.unwrap();
-        assert_eq!(pushed.stored.iter().map(|e| e.seq).collect::<Vec<_>>(), [1]);
+        assert_eq!(pushed.iter().map(|e| e.seq).collect::<Vec<_>>(), [1]);
 
         let server = db.read_account("u1", Clone::clone).await.unwrap();
         let without_heart_rate = Account {
@@ -101,20 +101,13 @@ mod store {
             })
             .unwrap()
         });
-        assert_eq!(
-            db.push_events("u1", first.clone())
-                .await
-                .unwrap()
-                .stored
-                .len(),
-            1
-        );
+        assert_eq!(db.push_events("u1", first.clone()).await.unwrap().len(), 1);
         // The whole outbox again, twice: what's held is skipped.
         let all: Vec<Event> = first.into_iter().chain(second).collect();
         let pushed = db.push_events("u1", all.clone()).await.unwrap();
-        assert_eq!(pushed.stored.iter().map(|e| e.seq).collect::<Vec<_>>(), [2]);
+        assert_eq!(pushed.iter().map(|e| e.seq).collect::<Vec<_>>(), [2]);
         let again = db.push_events("u1", all).await.unwrap();
-        assert!(again.stored.is_empty());
+        assert!(again.is_empty());
         let ids: Vec<&str> = phone.log.iter().map(|e| e.id.as_str()).collect();
         let server = held(&db).await;
         assert_eq!(
@@ -190,7 +183,7 @@ mod store {
         for expected in [events.len(), 0] {
             let started = std::time::Instant::now();
             let pushed = db.push_events("u1", events.clone()).await.unwrap();
-            assert_eq!(pushed.stored.len(), expected);
+            assert_eq!(pushed.len(), expected);
             let took = started.elapsed();
             assert!(took < Duration::from_secs(30), "a push took {took:?}");
         }
@@ -242,6 +235,11 @@ mod stream {
     struct Link {
         up: mpsc::Sender<SyncRequest>,
         down: tonic::Streaming<SyncResponse>,
+        /// What came down that a wait passed over, in order: the next wait
+        /// looks there first. Changes may come in any order (a session
+        /// moves when a push arrives, its events are acked when stored),
+        /// as a phone takes them.
+        skipped: std::collections::VecDeque<sync_response::Kind>,
     }
 
     impl Link {
@@ -258,7 +256,11 @@ mod stream {
                 .await
                 .unwrap()
                 .into_inner();
-            Self { up, down }
+            Self {
+                up,
+                down,
+                skipped: Default::default(),
+            }
         }
 
         async fn open(channel: Channel, token: &str) -> Self {
@@ -276,12 +278,26 @@ mod stream {
 
         /// The next message that matches, within a few seconds.
         async fn next<T>(&mut self, mut pick: impl FnMut(sync_response::Kind) -> Option<T>) -> T {
+            for n in 0..self.skipped.len() {
+                if let Some(found) = pick(self.skipped[n].clone()) {
+                    self.skipped.remove(n);
+                    return found;
+                }
+            }
+            let (down, skipped) = (&mut self.down, &mut self.skipped);
             tokio::time::timeout(Duration::from_secs(5), async {
                 loop {
-                    let message = self.down.message().await.unwrap().expect("stream open");
-                    if let Some(found) = pick(message.kind.unwrap()) {
+                    let kind = down
+                        .message()
+                        .await
+                        .unwrap()
+                        .expect("stream open")
+                        .kind
+                        .unwrap();
+                    if let Some(found) = pick(kind.clone()) {
                         return found;
                     }
+                    skipped.push_back(kind);
                 }
             })
             .await

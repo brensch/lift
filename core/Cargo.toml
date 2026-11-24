@@ -22,3 +22,5 @@ uuid = { version = "1.11.0", features = ["v4"] }
 
 [build-dependencies]
 prost-build = "0.13.4"
+# Hashes what decides how accounts fold (build.rs).
+sha2 = "0.10"

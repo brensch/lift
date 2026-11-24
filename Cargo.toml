@@ -22,6 +22,10 @@ url = "2"
 sha2 = "0.10"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
+# The event log: each flush is one Parquet file (src/ledger).
+parquet = { version = "54", default-features = false, features = ["arrow", "zstd"] }
+arrow-array = "54"
+arrow-schema = "54"
 
 [dev-dependencies]
 # Calls the HTTP routes (the MCP's) in tests without a socket.
@@ -35,8 +39,6 @@ test-auth = []
 
 [build-dependencies]
 tonic-build = "0.12.3"
-# Hashes what decides how accounts fold (build.rs).
-sha2 = "0.10"
 
 [workspace]
 members = ["core", "app/native", "loadtest", "testkit"]

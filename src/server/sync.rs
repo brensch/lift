@@ -130,6 +130,7 @@ impl SyncService for ServerSyncService {
                 last_session: None,
                 last_requests: None,
                 checked: Instant::now(),
+                caught_up: Default::default(),
             };
             if let Err(error) = stream.run(inbound, changes).await {
                 let _ = stream.tx.send(Err(error.into())).await;
@@ -144,9 +145,9 @@ struct Stream {
     db: ServerDb,
     user_id: String,
     /// The session the stream was opened with: signing out, expiry or
-    /// deleting the account ends it, and the stream with it: checked before
-    /// anything is stored, as soon as a sign-out or deletion is told, and
-    /// otherwise at most `RECHECK_SIGNED_IN` before anything is sent.
+    /// deleting the account ends it, and the stream with it: checked as
+    /// soon as a sign-out or deletion is told, and otherwise at most
+    /// `RECHECK_SIGNED_IN` before anything is taken or sent.
     token: String,
     tx: mpsc::Sender<SyncResult>,
     /// The session the user's pointer named when the session was last sent,
@@ -165,6 +166,11 @@ struct Stream {
     last_requests: Option<GetJoinRequestsResponse>,
     /// When the login was last found good.
     checked: Instant,
+    /// The ids of the events this stream sent the device as it caught up:
+    /// placed already, so the device's push of one (it lost the ack, and
+    /// pushed before it heard them all) is turned away here, however far
+    /// back the ledger's own check reaches.
+    caught_up: std::collections::HashSet<String>,
 }
 
 /// The phone hung up.
@@ -267,7 +273,9 @@ impl Stream {
                     }
                     self.send_session().await?
                 }
-                Woke::Partner(partner, Ok(Change::Account(events))) => {
+                // A partner's events as they push them, before they're
+                // stored; stored, they were sent already.
+                Woke::Partner(partner, Ok(Change::Live(events))) => {
                     self.send_partner(&partner, &events, false).await
                 }
                 Woke::Partner(_, Ok(_)) => Ok(()),
@@ -308,13 +316,17 @@ impl Stream {
     /// The device's own events (placed, stored, and sent back down with
     /// everyone else's) or a heartbeat (answered with the head).
     async fn receive(&mut self, up: SyncRequest) -> ServerResult<Result<(), Closed>> {
-        self.ensure_signed_in().await?;
+        if self.checked.elapsed() > RECHECK_SIGNED_IN {
+            self.ensure_signed_in().await?;
+        }
         match up.kind {
             Some(sync_request::Kind::Events(packed)) => {
-                let events = unpack_push(&packed).map_err(core_status)?;
+                let mut events = unpack_push(&packed).map_err(core_status)?;
                 check_push(&events)?;
+                events.retain(|e| !self.caught_up.contains(&e.id));
+                // Buffered: partners have them now, this device once stored.
                 self.db
-                    .push_events(&self.user_id, events)
+                    .buffer_events(&self.user_id, events)
                     .await
                     .map_err(internal_error)?;
                 Ok(Ok(()))
@@ -350,6 +362,7 @@ impl Stream {
                 break;
             };
             let full = events.len() as i64 == EVENTS_PER_MESSAGE;
+            self.caught_up.extend(events.iter().map(|e| e.id.clone()));
             let message = schlift::workout::v1::Events {
                 packed: pack(&events),
                 head: head.max(last),
@@ -440,6 +453,8 @@ impl Stream {
     async fn changed(&mut self, change: &Change) -> ServerResult<Result<(), Closed>> {
         match change {
             Change::Account(events) => self.send_new(events).await,
+            // Not yet placed: for partners; this device hears them placed.
+            Change::Live(_) => Ok(Ok(())),
             Change::JoinRequests => self.send_requests().await,
             Change::Membership | Change::Session => self.send_session().await,
             Change::SignedOut => self.ensure_signed_in().await.map(Ok),
