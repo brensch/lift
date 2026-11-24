@@ -99,9 +99,11 @@ impl Timing {
 /// is told are placed.
 const RECENT_IDS: usize = 2_000;
 
-/// Statements a batch's snapshot reads are split across, at once: the read
-/// pool's connections.
-const SNAPSHOT_READERS: usize = 16;
+/// Statements a batch's snapshot reads are split across, at once, on their
+/// own connections (`Ledger::snapshot_pool`): a cold snapshot is a few
+/// random page reads, and the disk serves many more at once than the
+/// read pool's sixteen ask for.
+const SNAPSHOT_READERS: usize = 64;
 
 /// Accounts written in one batch at most.
 const ACCOUNTS_PER_BATCH: usize = 5_000;
@@ -159,6 +161,8 @@ impl Log {
 pub struct Ledger {
     dir: PathBuf,
     read_pool: Pool<Sqlite>,
+    /// A batch's snapshot reads, apart from every other read.
+    snapshot_pool: Pool<Sqlite>,
     write_pool: Pool<Sqlite>,
     changes: Arc<Changes>,
     timing: Timing,
@@ -238,8 +242,14 @@ impl Ledger {
         let dir = data_dir.to_path_buf();
         std::fs::create_dir_all(dir.join("events"))?;
         std::fs::create_dir_all(dir.join("heart_rate"))?;
+        let snapshot_pool = sqlx::sqlite::SqlitePoolOptions::new()
+            .max_connections(SNAPSHOT_READERS as u32)
+            .min_connections(0)
+            .idle_timeout(Duration::from_secs(60))
+            .connect_lazy_with((*read_pool.connect_options()).clone().read_only(true));
         let ledger = Arc::new(Self {
             dir,
+            snapshot_pool,
             read_pool,
             write_pool,
             changes,
@@ -687,7 +697,7 @@ impl Ledger {
         let mut reads = tokio::task::JoinSet::new();
         let started = Instant::now();
         for chunk in ids.chunks(ids.len().div_ceil(SNAPSHOT_READERS).max(1)) {
-            let (pool, chunk) = (self.read_pool.clone(), serde_json::to_string(chunk)?);
+            let (pool, chunk) = (self.snapshot_pool.clone(), serde_json::to_string(chunk)?);
             reads.spawn(async move {
                 sqlx::query_as::<_, (String, Vec<u8>, String, String)>(
                     "SELECT s.user_id, s.state, s.recent_ids, s.fold
