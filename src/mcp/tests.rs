@@ -310,6 +310,49 @@ async fn an_assistant_connects_and_sets_a_program() {
         .unwrap()
         .is_empty());
 
+    // Mid-set: the phone sent a set a moment ago; asked now, it's there.
+    let mut account = mcp.db.read_account("u1", Clone::clone).await.unwrap();
+    let at = crate::time::now_unix();
+    let mut call_ = schlift_core::api::Call::new(&mut account, at, "mid-set");
+    let started = call_
+        .start_workout(schlift_core::pb::StartWorkoutRequest {
+            exercises: vec!["pull_up".into()],
+            ..Default::default()
+        })
+        .unwrap();
+    let set = started.next_up_set.clone().unwrap();
+    call_
+        .append_workout_mutations(schlift_core::pb::AppendWorkoutMutationsRequest {
+            mutations: vec![schlift_core::pb::WorkoutMutation {
+                mutation: Some(schlift_core::pb::workout_mutation::Mutation::CompleteSet(
+                    schlift_core::pb::CompleteSetRequest {
+                        workout_id: started.id.clone(),
+                        proposed_set_id: set.id.clone(),
+                        actual_reps: 7,
+                        actual_weight: 0.0,
+                        completed_at: at,
+                    },
+                )),
+            }],
+        })
+        .unwrap();
+    let events = std::mem::take(&mut call_.events);
+    mcp.db.buffer_events("u1", events, true).await.unwrap();
+    let (_, _, history) = send(&mcp, call("get_history", json!({ "limit": 5 }))).await;
+    let workout = &structured(&history)["workouts"][0];
+    assert_eq!(workout["under_way"], true, "{history}");
+    let done: Vec<&Value> = workout["lifts"][0]["sets"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|s| !s["done"].is_null())
+        .collect();
+    assert_eq!(done.len(), 1, "{history}");
+    assert!(
+        done[0]["done"].as_str().unwrap().starts_with("7 ×"),
+        "{history}"
+    );
+
     // Refresh: new tokens, the old refresh token spent.
     let refresh_with = |token: &str| {
         post_form(

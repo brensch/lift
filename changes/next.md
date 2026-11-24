@@ -1,2 +1,3 @@
 - Your training history loads faster on the website and for AI assistants, however long you've been training.
 - The app syncs straight to the server, not through the web proxy: faster to connect, and the server handles far more people at once. An older app is asked to update.
+- Your AI assistant can see the workout you're doing right now, up to the set you just finished.
