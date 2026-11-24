@@ -14,6 +14,9 @@ pub struct Metrics(Mutex<BTreeMap<&'static str, Op>>);
 struct Op {
     /// Microseconds.
     latency: Histogram<u64>,
+    /// The same, since the last `interval`: what a report says of now,
+    /// which one stall early on doesn't hide for the rest of a run.
+    recent: Histogram<u64>,
     errors: BTreeMap<String, u64>,
 }
 
@@ -22,6 +25,7 @@ impl Default for Op {
         Op {
             // 1 µs to 10 minutes, three significant figures.
             latency: Histogram::new_with_bounds(1, 600_000_000, 3).expect("valid bounds"),
+            recent: Histogram::new_with_bounds(1, 600_000_000, 3).expect("valid bounds"),
             errors: BTreeMap::new(),
         }
     }
@@ -42,7 +46,27 @@ impl Metrics {
     pub fn record(&self, op: &'static str, took: Duration) {
         let micros = (took.as_micros() as u64).clamp(1, 600_000_000);
         let mut ops = self.0.lock().expect("metrics lock");
-        let _ = ops.entry(op).or_default().latency.record(micros);
+        let op = ops.entry(op).or_default();
+        let _ = op.latency.record(micros);
+        let _ = op.recent.record(micros);
+    }
+
+    /// Each operation's p99 and worst (ms) since the last call, and the
+    /// count; then those start again.
+    pub fn interval(&self) -> BTreeMap<&'static str, (u64, f64, f64)> {
+        let mut ops = self.0.lock().expect("metrics lock");
+        ops.iter_mut()
+            .map(|(name, op)| {
+                let h = &mut op.recent;
+                let got = (
+                    h.len(),
+                    h.value_at_quantile(0.99) as f64 / 1000.0,
+                    h.max() as f64 / 1000.0,
+                );
+                h.reset();
+                (*name, got)
+            })
+            .collect()
     }
 
     pub fn error(&self, op: &'static str, why: impl Display) {

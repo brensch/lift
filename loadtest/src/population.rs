@@ -404,6 +404,22 @@ async fn main() {
                     p("web.read"),
                 );
                 last_beats = beats;
+                // The last 10 s alone: p99 and worst, ms.
+                let recent = shared.metrics.interval();
+                let r = |op: &str| {
+                    recent
+                        .get(op)
+                        .filter(|(n, _, _)| *n > 0)
+                        .map(|(n, p99, max)| format!("{n} p99 {p99:.0} max {max:.0}"))
+                        .unwrap_or_default()
+                };
+                println!(
+                    "        last 10s: heartbeat {} | ask {} | ack.end {} | errors so far {}",
+                    r("heartbeat"),
+                    r("ask.mid-set"),
+                    r("ack.end"),
+                    errors
+                );
                 if shared.args.train {
                     let (sets, pushed) = (
                         shared.sets.load(Ordering::Relaxed),
