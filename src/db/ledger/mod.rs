@@ -893,6 +893,29 @@ impl Ledger {
             .collect()
     }
 
+    /// The ids of the account's placed events after `after_seq`: from
+    /// memory when it holds them, else the files.
+    pub async fn ids_after(&self, user_id: &str, after_seq: i64) -> DbResult<HashSet<String>> {
+        let log = self.user(user_id).await?;
+        {
+            let log = log.lock().await;
+            if log.snapshot_seq >= 0 && after_seq >= log.snapshot_seq {
+                return Ok(log
+                    .tail
+                    .iter()
+                    .filter(|e| e.seq > after_seq)
+                    .map(|e| e.id.clone())
+                    .collect());
+            }
+        }
+        Ok(self
+            .read_user(user_id, after_seq, true)
+            .await?
+            .into_iter()
+            .map(|(_, id, _)| id)
+            .collect())
+    }
+
     /// Look at the account as it is now: folded from its snapshot and every
     /// event placed since, with those pushed and not yet placed on top.
     pub async fn read_account<R: Send + 'static>(

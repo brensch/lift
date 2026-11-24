@@ -47,6 +47,15 @@ impl ServerDb {
         self.ledger.snapshot_now(user_id).await
     }
 
+    /// The ids of the user's stored events after `after_seq`.
+    pub async fn ids_after(
+        &self,
+        user_id: &str,
+        after_seq: i64,
+    ) -> DbResult<std::collections::HashSet<String>> {
+        self.ledger.ids_after(user_id, after_seq).await
+    }
+
     /// A workout of the user's as their session partners see it: its shared
     /// events from its start, stored or not, in order. Empty if it isn't one
     /// of their latest.

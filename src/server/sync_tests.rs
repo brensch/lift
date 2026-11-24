@@ -263,6 +263,27 @@ mod stream {
             }
         }
 
+        /// A device opening as the app does: where it is, its rules, and the
+        /// ids of what it has waiting.
+        async fn open_with(channel: Channel, token: &str, open: SyncOpen) -> Self {
+            let (up, rx) = mpsc::channel(8);
+            up.send(SyncRequest {
+                kind: Some(sync_request::Kind::Open(open)),
+            })
+            .await
+            .unwrap();
+            let down = SyncServiceClient::new(channel)
+                .sync(authed(token, ReceiverStream::new(rx)))
+                .await
+                .unwrap()
+                .into_inner();
+            Self {
+                up,
+                down,
+                skipped: Default::default(),
+            }
+        }
+
         async fn open(channel: Channel, token: &str) -> Self {
             Self::open_after(channel, token, 0).await
         }
@@ -1141,5 +1162,104 @@ mod stream {
             .await
             .unwrap_err();
         assert_eq!(status.code(), tonic::Code::Unauthenticated);
+    }
+
+    /// Opening with `open`: a device that folds by the server's rules and is
+    /// new or far behind gets its account whole; one on other rules, or just
+    /// behind, gets the events.
+    mod open {
+        use super::*;
+
+        /// A history of `workouts` short workouts, as one phone records them.
+        fn history(workouts: usize) -> (Phone, Vec<Event>) {
+            let mut phone = Phone::new();
+            let mut all = Vec::new();
+            for n in 0..workouts {
+                let at = 1_700_000_000 + n as i64 * 86_400;
+                let (started, events) = phone.start_squats(at);
+                all.extend(events);
+                let (_, ended) = phone.write(at + 600, |call| {
+                    call.end_workout(EndWorkoutRequest {
+                        workout_id: started.id.clone(),
+                        ended_at: at + 600,
+                    })
+                    .unwrap()
+                });
+                all.extend(ended);
+            }
+            (phone, all)
+        }
+
+        #[tokio::test]
+        async fn a_new_device_on_the_same_rules_gets_its_account_whole() {
+            let db = db().await;
+            let token = db.create_auth_session("u1").await.unwrap();
+            let (phone, events) = history(300);
+            let (placed, waiting) = events.split_at(events.len() - 4);
+            db.push_events("u1", placed.to_vec()).await.unwrap();
+            let channel = serve(db.clone()).await;
+            // It recorded the last four (two placed already, unheard; two not).
+            let mut pending_ids: Vec<String> = placed[placed.len() - 2..].iter().map(|e| e.id.clone()).collect();
+            pending_ids.extend(waiting.iter().map(|e| e.id.clone()));
+            let mut link = Link::open_with(
+                channel,
+                &token,
+                SyncOpen {
+                    after_seq: 0,
+                    fold: schlift_core::FOLD.to_string(),
+                    pending_ids: pending_ids.clone(),
+                },
+            )
+            .await;
+            let state = link
+                .next(|kind| match kind {
+                    sync_response::Kind::Account(a) => Some(a),
+                    _ => None,
+                })
+                .await;
+            assert_eq!(state.seq, placed.len() as i64);
+            assert_eq!(state.placed_ids, pending_ids[..2].to_vec(), "the two it holds");
+            let (account, seq) = schlift_core::snapshot::restore(&state.snapshot).unwrap();
+            assert_eq!(seq, state.seq);
+            assert!(account == Account::fold_without_heart_rate(placed));
+            // Caught up: the head, and nothing before it again.
+            assert_eq!(link.head().await, placed.len() as i64);
+            // Its waiting ones go up and come back placed after the snapshot.
+            link.push(events[events.len() - 4..].to_vec()).await;
+            let back = link.events_through(events.len() as i64 - 2).await;
+            assert_eq!(
+                back.iter().map(|e| e.id.clone()).collect::<Vec<_>>(),
+                waiting.iter().map(|e| e.id.clone()).collect::<Vec<_>>(),
+                "only the two not placed, once"
+            );
+            drop(phone);
+        }
+
+        #[tokio::test]
+        async fn a_device_on_other_rules_or_just_behind_gets_events() {
+            let db = db().await;
+            let token = db.create_auth_session("u1").await.unwrap();
+            let (_, events) = history(300);
+            db.push_events("u1", events.clone()).await.unwrap();
+            let channel = serve(db.clone()).await;
+            for (after_seq, fold) in [
+                (0, "an older core".to_string()),
+                (events.len() as i64 - 10, schlift_core::FOLD.to_string()),
+            ] {
+                let mut link = Link::open_with(
+                    channel.clone(),
+                    &token,
+                    SyncOpen {
+                        after_seq,
+                        fold: fold.clone(),
+                        pending_ids: Vec::new(),
+                    },
+                )
+                .await;
+                let got = link.events_through(events.len() as i64).await;
+                assert_eq!(got.len() as i64, events.len() as i64 - after_seq, "{fold} from {after_seq}");
+                assert!(link.skipped.iter().all(|k| !matches!(k, sync_response::Kind::Account(_))));
+            }
+        }
     }
 }
