@@ -60,6 +60,12 @@ struct Args {
     reads_per_sec: f64,
     #[arg(long, default_value = ".tmp/population-report.json")]
     out: String,
+    /// Each app trains (`training.rs`): a workout started at a random
+    /// moment within `--start-within` seconds, done at a real cadence.
+    #[arg(long)]
+    train: bool,
+    #[arg(long, default_value_t = 600.0)]
+    start_within: f64,
 }
 
 fn token(n: usize) -> String {
@@ -82,6 +88,13 @@ struct Shared {
     connected: AtomicUsize,
     beats: AtomicUsize,
     stop: watch::Receiver<bool>,
+    /// The account every seeded user holds, as the server sends it whole:
+    /// what each training phone starts from.
+    template: Option<schlift_core::account::Account>,
+    started: AtomicUsize,
+    sets: AtomicUsize,
+    ended: AtomicUsize,
+    pushed: AtomicUsize,
 }
 
 /// One app: open, heartbeat until told to stop or reopen.
@@ -90,6 +103,17 @@ async fn app(shared: Arc<Shared>, n: usize, mut reopen: mpsc::Receiver<bool>) {
     let mut rng = rand::rngs::StdRng::seed_from_u64(n as u64);
     let mut stop = shared.stop.clone();
     let mut from_nothing = false;
+    // Training: the phone, where the server's placed events have it, and
+    // when the person acts next.
+    let mut phone = shared
+        .template
+        .clone()
+        .map(|account| schlift_load::training::Phone::new(account, n as u64));
+    let (mut held_seq, mut held_id) = (shared.args.head, shared.args.last_id.clone());
+    let mut next_action = phone.as_ref().map(|_| {
+        tokio::time::Instant::now()
+            + Duration::from_secs_f64(rng.gen_range(0.0..shared.args.start_within.max(1.0)))
+    });
     loop {
         if *stop.borrow() {
             return;
@@ -103,10 +127,13 @@ async fn app(shared: Arc<Shared>, n: usize, mut reopen: mpsc::Receiver<bool>) {
             }
         } else {
             SyncOpen {
-                after_seq: shared.args.head,
+                after_seq: held_seq,
                 fold: schlift_core::FOLD.to_string(),
-                pending_ids: Vec::new(),
-                last_id: shared.args.last_id.clone(),
+                pending_ids: phone
+                    .as_ref()
+                    .map(|p| p.unacked.keys().cloned().collect())
+                    .unwrap_or_default(),
+                last_id: held_id.clone(),
             }
         };
         let op = if from_nothing { "open.restore" } else { "open" };
@@ -141,13 +168,33 @@ async fn app(shared: Arc<Shared>, n: usize, mut reopen: mpsc::Receiver<bool>) {
         );
         let mut beat_sent: Option<Instant> = None;
         let again = loop {
+            let wake = next_action
+                .unwrap_or_else(|| tokio::time::Instant::now() + Duration::from_secs(86_400));
             tokio::select! {
                 message = down.message() => match message {
                     Ok(Some(message)) => {
+                        if first && matches!(message.kind, Some(sync_response::Kind::Events(_) | sync_response::Kind::Account(_))) {
+                            shared.metrics.record(op, opened.elapsed());
+                            first = false;
+                        }
                         match message.kind {
-                            Some(sync_response::Kind::Events(_) | sync_response::Kind::Account(_)) if first => {
-                                shared.metrics.record(op, opened.elapsed());
-                                first = false;
+                            Some(sync_response::Kind::Events(events)) => {
+                                if let Some(phone) = phone.as_mut() {
+                                    let placed = if events.packed.is_empty() {
+                                        Vec::new()
+                                    } else {
+                                        schlift_core::sync::unpack(&events.packed).unwrap_or_default()
+                                    };
+                                    for event in placed {
+                                        if let Some(sent) = phone.unacked.remove(&event.id) {
+                                            shared.metrics.record("ack", sent.elapsed());
+                                        }
+                                        held_seq = held_seq.max(event.seq);
+                                        if event.seq == held_seq {
+                                            held_id = event.id;
+                                        }
+                                    }
+                                }
                             }
                             Some(sync_response::Kind::Head(_)) => {
                                 if let Some(sent) = beat_sent.take() {
@@ -168,6 +215,36 @@ async fn app(shared: Arc<Shared>, n: usize, mut reopen: mpsc::Receiver<bool>) {
                     shared.beats.fetch_add(1, Ordering::Relaxed);
                     if up.send(SyncRequest { kind: Some(sync_request::Kind::Heartbeat(Heartbeat {})) }).await.is_err() {
                         break true;
+                    }
+                }
+                _ = tokio::time::sleep_until(wake), if next_action.is_some() => {
+                    let Some(phone) = phone.as_mut() else { break false };
+                    let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_secs() as i64);
+                    match phone.act(&mut rng, now) {
+                        Ok(done) => {
+                            match done.what {
+                                "start" => { shared.started.fetch_add(1, Ordering::Relaxed); }
+                                "set done" => { shared.sets.fetch_add(1, Ordering::Relaxed); }
+                                "end" => { shared.ended.fetch_add(1, Ordering::Relaxed); }
+                                _ => {}
+                            }
+                            next_action = done.next_in.map(|s| tokio::time::Instant::now() + Duration::from_secs_f64(s));
+                            if !done.events.is_empty() {
+                                let at = Instant::now();
+                                for event in &done.events {
+                                    phone.unacked.insert(event.id.clone(), at);
+                                }
+                                shared.pushed.fetch_add(done.events.len(), Ordering::Relaxed);
+                                let packed = schlift_core::sync::pack(&done.events);
+                                if up.send(SyncRequest { kind: Some(sync_request::Kind::Events(packed)) }).await.is_err() {
+                                    break true;
+                                }
+                            }
+                        }
+                        Err(error) => {
+                            shared.metrics.error("train", error);
+                            next_action = None;
+                        }
                     }
                 }
                 restore = reopen.recv() => {
@@ -198,6 +275,13 @@ async fn main() {
         channels.push(endpoint.connect_lazy());
     }
     let (stop_tx, stop) = watch::channel(false);
+    // Training: the account every seeded user holds, as a new phone gets
+    // it (the server sends it whole), once.
+    let template = if args.train {
+        Some(fetch_account(&channels[0], args.from).await)
+    } else {
+        None
+    };
     let shared = Arc::new(Shared {
         args: args.clone(),
         metrics: Metrics::default(),
@@ -205,6 +289,11 @@ async fn main() {
         connected: AtomicUsize::new(0),
         beats: AtomicUsize::new(0),
         stop,
+        template,
+        started: AtomicUsize::new(0),
+        sets: AtomicUsize::new(0),
+        ended: AtomicUsize::new(0),
+        pushed: AtomicUsize::new(0),
     });
     let started = Instant::now();
     let mut reopeners = Vec::with_capacity(args.count);
@@ -230,6 +319,7 @@ async fn main() {
         let shared = shared.clone();
         tokio::spawn(async move {
             let mut last_beats = 0;
+            let (mut last_sets, mut last_pushed) = (0, 0);
             let mut every = tokio::time::interval(Duration::from_secs(10));
             every.tick().await;
             loop {
@@ -262,6 +352,21 @@ async fn main() {
                     p("web.read"),
                 );
                 last_beats = beats;
+                if shared.args.train {
+                    let (sets, pushed) = (
+                        shared.sets.load(Ordering::Relaxed),
+                        shared.pushed.load(Ordering::Relaxed),
+                    );
+                    println!(
+                        "        training: started {} ended {} | sets/s {:.0} events/s {:.0} | ack {}",
+                        shared.started.load(Ordering::Relaxed),
+                        shared.ended.load(Ordering::Relaxed),
+                        (sets - last_sets) as f64 / 10.0,
+                        (pushed - last_pushed) as f64 / 10.0,
+                        p("ack"),
+                    );
+                    (last_sets, last_pushed) = (sets, pushed);
+                }
             }
         })
     };
@@ -330,4 +435,37 @@ async fn main() {
 
 fn apps_spawn(shared: Arc<Shared>, n: usize, reopen: mpsc::Receiver<bool>) {
     tokio::spawn(app(shared, n, reopen));
+}
+
+/// The account seeded user `n` holds, as the server sends a new phone it.
+async fn fetch_account(channel: &Channel, n: usize) -> schlift_core::account::Account {
+    let (up, rx) = mpsc::channel::<SyncRequest>(1);
+    up.send(SyncRequest {
+        kind: Some(sync_request::Kind::Open(SyncOpen {
+            after_seq: 0,
+            fold: schlift_core::FOLD.to_string(),
+            ..Default::default()
+        })),
+    })
+    .await
+    .expect("open");
+    let mut down = SyncServiceClient::new(channel.clone())
+        .sync(authed(&token(n), ReceiverStream::new(rx)))
+        .await
+        .expect("sync")
+        .into_inner();
+    while let Some(message) = down.message().await.expect("stream") {
+        if let Some(sync_response::Kind::Account(state)) = message.kind {
+            let (mut account, _) =
+                schlift_core::snapshot::restore(&state.snapshot).expect("the account reads");
+            account.without_heart_rate = false;
+            println!(
+                "the seeded account: {} workouts, seq {}",
+                account.workouts.len(),
+                state.seq
+            );
+            return account;
+        }
+    }
+    panic!("no account sent")
 }
