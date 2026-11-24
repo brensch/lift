@@ -610,6 +610,14 @@ async fn v10(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
              PRIMARY KEY (user_id, file)
          ) WITHOUT ROWID;
          CREATE INDEX IF NOT EXISTS event_files_file ON event_files(file);
+         -- Which file holds each workout's heart rate: fetched by workout.
+         CREATE TABLE IF NOT EXISTS heart_rate_files (
+             user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+             workout_id TEXT NOT NULL,
+             file TEXT NOT NULL,
+             PRIMARY KEY (user_id, workout_id)
+         ) WITHOUT ROWID;
+         CREATE INDEX IF NOT EXISTS heart_rate_files_file ON heart_rate_files(file);
          CREATE TABLE IF NOT EXISTS account_snapshots (
              user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
              -- The last event folded into it.

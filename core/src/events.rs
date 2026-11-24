@@ -398,40 +398,99 @@ pub struct WorkoutEnded {
 pub struct HeartRateRecorded {
     pub workout_id: String,
     pub start_ms: i64,
+    /// The readings as written before `packed`: each gap from the one
+    /// before (ms), and every reading's bpm. Empty in one that is packed.
     pub gaps_ms: Vec<u32>,
     pub bpm: Vec<u16>,
+    /// The same, packed: the gaps and each bpm's change from the one before
+    /// as varints (zigzag for the changes), zstd compressed, base64. About a
+    /// byte a reading where the arrays were several: a workout's heart rate
+    /// is most of what a phone sends, and the server stores this as it
+    /// comes.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub packed: String,
 }
 
+fn varint(out: &mut Vec<u8>, mut value: u64) {
+    while value >= 0x80 {
+        out.push((value as u8) | 0x80);
+        value >>= 7;
+    }
+    out.push(value as u8);
+}
+
+fn read_varint(bytes: &[u8], at: &mut usize) -> Option<u64> {
+    let mut value = 0u64;
+    for shift in (0..64).step_by(7) {
+        let byte = *bytes.get(*at)?;
+        *at += 1;
+        value |= u64::from(byte & 0x7f) << shift;
+        if byte & 0x80 == 0 {
+            return Some(value);
+        }
+    }
+    None
+}
+
+/// The most readings a packed series may unpack to: a reading a second for
+/// over a day, as a push allows.
+const MAX_PACKED_READINGS: usize = 100_000;
+
 impl HeartRateRecorded {
-    /// The readings as recorded: sorted, one per time, bpm rounded.
+    /// The readings as recorded: sorted, one per time, bpm rounded, packed.
     pub fn new(workout_id: &str, samples: &[WorkoutHeartRatePoint]) -> Self {
         let mut samples = samples.to_vec();
         samples.sort_by_key(|s| s.sampled_at);
         samples.dedup_by_key(|s| s.sampled_at);
         let start_ms = samples.first().map_or(0, |s| s.sampled_at);
+        let gaps: Vec<u32> = samples
+            .windows(2)
+            .map(|w| u32::try_from(w[1].sampled_at - w[0].sampled_at).unwrap_or(u32::MAX))
+            .collect();
+        let bpm: Vec<u16> = samples
+            .iter()
+            .map(|s| s.bpm.round().clamp(0.0, f32::from(u16::MAX)) as u16)
+            .collect();
         Self {
             workout_id: workout_id.to_string(),
             start_ms,
-            gaps_ms: samples
-                .windows(2)
-                .map(|w| u32::try_from(w[1].sampled_at - w[0].sampled_at).unwrap_or(u32::MAX))
-                .collect(),
-            bpm: samples
-                .iter()
-                .map(|s| s.bpm.round().clamp(0.0, f32::from(u16::MAX)) as u16)
-                .collect(),
+            gaps_ms: Vec::new(),
+            bpm: Vec::new(),
+            packed: pack_readings(&gaps, &bpm),
         }
     }
 
-    /// The readings again, or None when the gaps don't match the bpms.
+    /// The gaps and bpm, from the arrays or unpacked; None if they don't
+    /// make a series.
+    pub fn readings(&self) -> Option<(Vec<u32>, Vec<u16>)> {
+        if self.packed.is_empty() {
+            return Some((self.gaps_ms.clone(), self.bpm.clone()));
+        }
+        unpack_readings(&self.packed)
+    }
+
+    /// How many readings it holds, without unpacking more than the count.
+    pub fn len(&self) -> usize {
+        if self.packed.is_empty() {
+            return self.bpm.len();
+        }
+        self.readings().map_or(0, |(_, bpm)| bpm.len())
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// The readings, at their times; None if they don't read.
     pub fn samples(&self) -> Option<Vec<WorkoutHeartRatePoint>> {
-        if self.gaps_ms.len() + 1 != self.bpm.len() && !self.bpm.is_empty() {
+        let (gaps_ms, bpm) = self.readings()?;
+        if gaps_ms.len() + 1 != bpm.len() && !bpm.is_empty() {
             return None;
         }
         let mut at = self.start_ms;
-        let gaps = std::iter::once(0).chain(self.gaps_ms.iter().copied());
+        let gaps = std::iter::once(0).chain(gaps_ms.iter().copied());
         Some(
-            gaps.zip(&self.bpm)
+            gaps.zip(&bpm)
                 .map(|(gap, &bpm)| {
                     at = at.saturating_add(i64::from(gap));
                     WorkoutHeartRatePoint {
@@ -442,6 +501,57 @@ impl HeartRateRecorded {
                 .collect(),
         )
     }
+}
+
+/// A series packed: its length, the gaps, then each bpm's change (zigzag),
+/// all varints; zstd; base64.
+fn pack_readings(gaps: &[u32], bpm: &[u16]) -> String {
+    use base64::Engine;
+    let mut raw = Vec::with_capacity(bpm.len() * 2 + 8);
+    varint(&mut raw, bpm.len() as u64);
+    for gap in gaps {
+        varint(&mut raw, u64::from(*gap));
+    }
+    let mut last = 0i32;
+    for b in bpm {
+        let change = i32::from(*b) - last;
+        last = i32::from(*b);
+        varint(&mut raw, ((change << 1) ^ (change >> 31)) as u32 as u64);
+    }
+    let compressed = zstd::encode_all(raw.as_slice(), 3).expect("compressing to memory");
+    base64::engine::general_purpose::STANDARD.encode(compressed)
+}
+
+fn unpack_readings(packed: &str) -> Option<(Vec<u32>, Vec<u16>)> {
+    use base64::Engine;
+    use std::io::Read;
+    let compressed = base64::engine::general_purpose::STANDARD
+        .decode(packed)
+        .ok()?;
+    let mut raw = Vec::new();
+    zstd::Decoder::new(compressed.as_slice())
+        .ok()?
+        .take((MAX_PACKED_READINGS * 12) as u64)
+        .read_to_end(&mut raw)
+        .ok()?;
+    let mut at = 0;
+    let count = usize::try_from(read_varint(&raw, &mut at)?).ok()?;
+    if count > MAX_PACKED_READINGS {
+        return None;
+    }
+    let mut gaps = Vec::with_capacity(count.saturating_sub(1));
+    for _ in 1..count.max(1) {
+        gaps.push(u32::try_from(read_varint(&raw, &mut at)?).ok()?);
+    }
+    let mut bpm = Vec::with_capacity(count);
+    let mut last = 0i32;
+    for _ in 0..count {
+        let z = u32::try_from(read_varint(&raw, &mut at)?).ok()?;
+        let change = ((z >> 1) as i32) ^ -((z & 1) as i32);
+        last += change;
+        bpm.push(u16::try_from(last).ok()?);
+    }
+    Some((gaps, bpm))
 }
 
 /// The account's program, whole, as validated when it was set: every
@@ -617,14 +727,17 @@ mod tests {
             ],
         );
         assert_eq!(recorded.start_ms, 1_000);
-        assert_eq!(recorded.gaps_ms, vec![500, 1_500]);
-        assert_eq!(recorded.bpm, vec![98, 176, 121]);
+        assert_eq!(recorded.readings().unwrap().0, vec![500, 1_500]);
+        assert_eq!(recorded.readings().unwrap().1, vec![98, 176, 121]);
         assert_eq!(
             recorded.samples().unwrap(),
             vec![point(1_000, 98.0), point(1_500, 176.0), point(3_000, 121.0)]
         );
+        // The old array form, gaps and readings that don't match.
         let broken = HeartRateRecorded {
             gaps_ms: vec![1],
+            bpm: vec![98, 176, 121],
+            packed: String::new(),
             ..recorded
         };
         assert_eq!(broken.samples(), None);

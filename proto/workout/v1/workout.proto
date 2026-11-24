@@ -1440,6 +1440,10 @@ service WorkoutService {
   rpc ListWorkoutSummaries(ListWorkoutSummariesRequest) returns (ListWorkoutSummariesResponse);
   // Per-exercise progress series, everything precomputed.
   rpc GetExerciseProgress(GetExerciseProgressRequest) returns (GetExerciseProgressResponse);
+  // A finished workout's heart rate, by its id, as the server stores it:
+  // for a phone that doesn't hold it (one restored from the account whole,
+  // which leaves heart rate out), and the website.
+  rpc GetWorkoutHeartRate(GetWorkoutHeartRateRequest) returns (GetWorkoutHeartRateResponse);
 }
 
 message GetUserRequest {

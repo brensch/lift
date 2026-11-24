@@ -1,0 +1,342 @@
+//! Compaction: the batch files a busy hour makes (one every couple of
+//! seconds) merged into one file for the hour once it has closed, and an
+//! hour's files into one for the day once the day has. The events are the
+//! same, byte for byte; only the files that hold them change. So an
+//! account's events after a day sit in one file per day, read straight
+//! there by row group, and DuckDB has a few files a day to read, not
+//! thousands.
+//!
+//! A merge never edits: it streams the inputs (each sorted by account) into
+//! a new file, sorted the same, at a higher zstd level (it's off the hot
+//! path), syncs it, checks it holds as many rows as they did, then points
+//! the index at it in one transaction; the inputs are deleted a minute
+//! later, once anything reading them has finished. A crash anywhere leaves
+//! either the inputs indexed or the output: a stray temporary file is
+//! removed at start, an output the index doesn't name is a merge to do
+//! again (and is removed when it is). One merge at a time, at low priority.
+
+use std::cmp::Reverse;
+use std::collections::{BTreeMap, BinaryHeap};
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::Duration;
+
+use super::files::{self, Beats, EventsWriter, Row, RowCursor};
+use super::Ledger;
+use crate::db::DbResult;
+
+/// How often compaction looks for closed hours and days.
+const EVERY: Duration = Duration::from_secs(300);
+
+/// How long merged inputs stay after the index stops naming them.
+const GRACE: Duration = Duration::from_secs(60);
+
+/// zstd's level for merged files: written once, read for years.
+const LEVEL: i32 = 9;
+
+pub fn run(ledger: &Arc<Ledger>) {
+    let ledger = Arc::downgrade(ledger);
+    tokio::spawn(async move {
+        loop {
+            tokio::time::sleep(EVERY).await;
+            let Some(this) = ledger.upgrade() else { return };
+            if let Err(error) = compact(&this, now_ms()).await {
+                tracing::warn!(%error, "compacting the ledger's files; tried again later");
+            }
+        }
+    });
+}
+
+fn now_ms() -> i64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_millis() as i64)
+}
+
+/// What to merge: for each closed hour with more than its one merged file,
+/// its files; for each closed day with more than one, its files.
+fn plan(listing: &[String], now_ms: i64) -> Vec<(PathBuf, Vec<String>)> {
+    let hour_closed = files::partition(now_ms - 3_600_000);
+    let day_closed = files::partition(now_ms - 86_400_000 - 3_600_000);
+    let (closed_date, closed_hour) = files::partition_of(&hour_closed.join("x").to_string_lossy());
+    let (day_date, _) = files::partition_of(&day_closed.join("x").to_string_lossy());
+    let mut hours: BTreeMap<(String, String), Vec<String>> = BTreeMap::new();
+    let mut days: BTreeMap<String, Vec<String>> = BTreeMap::new();
+    for file in listing {
+        let (Some(date), hour) = files::partition_of(file) else {
+            continue;
+        };
+        match hour {
+            Some(hour) => {
+                // Hours up to the one that closed an hour ago.
+                if (date.as_str(), hour.as_str())
+                    <= (
+                        closed_date.as_deref().unwrap_or(""),
+                        closed_hour.as_deref().unwrap_or(""),
+                    )
+                {
+                    hours
+                        .entry((date.clone(), hour))
+                        .or_default()
+                        .push(file.clone());
+                }
+                if Some(date.as_str()) <= day_date.as_deref() {
+                    days.entry(date).or_default().push(file.clone());
+                }
+            }
+            None => {
+                if Some(date.as_str()) <= day_date.as_deref() {
+                    days.entry(date).or_default().push(file.clone());
+                }
+            }
+        }
+    }
+    let stamp = now_ms;
+    let mut merges = Vec::new();
+    for (date, files) in days {
+        if files.len() > 1 {
+            merges.push((
+                PathBuf::from(format!("date={date}/d-{stamp:013}.parquet")),
+                files,
+            ));
+        }
+    }
+    for ((date, hour), files) in hours {
+        // A day merge takes the hour's files too.
+        if merges.iter().any(|(_, f)| f.contains(&files[0])) {
+            continue;
+        }
+        if files.len() > 1 {
+            merges.push((
+                PathBuf::from(format!("date={date}/hour={hour}/h-{stamp:013}.parquet")),
+                files,
+            ));
+        }
+    }
+    merges
+}
+
+/// One pass: every closed hour and day merged.
+pub async fn compact(ledger: &Ledger, now_ms: i64) -> DbResult<()> {
+    let events_dir = ledger.events_dir();
+    let listing = {
+        let dir = events_dir.clone();
+        tokio::task::spawn_blocking(move || files::list(&dir)).await??
+    };
+    for (output, inputs) in plan(&listing, now_ms) {
+        merge_events(ledger, &output, &inputs).await?;
+    }
+    let beats_dir = ledger.beats_dir();
+    let listing = {
+        let dir = beats_dir.clone();
+        tokio::task::spawn_blocking(move || files::list(&dir)).await??
+    };
+    for (output, inputs) in plan(&listing, now_ms) {
+        merge_beats(ledger, &output, &inputs).await?;
+    }
+    Ok(())
+}
+
+/// A row from one input, ordered for the merge: by account, then seq.
+struct Next(Row, usize);
+
+impl PartialEq for Next {
+    fn eq(&self, other: &Self) -> bool {
+        (&self.0.user_id, self.0.seq) == (&other.0.user_id, other.0.seq)
+    }
+}
+impl Eq for Next {}
+impl PartialOrd for Next {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+impl Ord for Next {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        (&self.0.user_id, self.0.seq, self.1).cmp(&(&other.0.user_id, other.0.seq, other.1))
+    }
+}
+
+/// Stream `inputs` (each sorted by account then seq) into `output`, sorted
+/// the same; the rows written, and what each account has in it.
+fn merge_rows(
+    dir: &Path,
+    inputs: &[String],
+    output: &Path,
+) -> std::io::Result<(i64, Vec<files::Span>)> {
+    let mut cursors: Vec<RowCursor> = inputs
+        .iter()
+        .map(|f| RowCursor::open(&dir.join(f)))
+        .collect::<Result<_, _>>()?;
+    let mut heap = BinaryHeap::new();
+    for (i, cursor) in cursors.iter_mut().enumerate() {
+        if let Some(row) = cursor.next_row()? {
+            heap.push(Reverse(Next(row, i)));
+        }
+    }
+    let mut writer = EventsWriter::create(&dir.join(output), LEVEL)?;
+    let mut spans: Vec<files::Span> = Vec::new();
+    let mut last: Option<(String, i64)> = None;
+    while let Some(Reverse(Next(row, i))) = heap.pop() {
+        if let Some(next) = cursors[i].next_row()? {
+            heap.push(Reverse(Next(next, i)));
+        }
+        // The same event in two inputs (a merge redone): once.
+        if last.as_ref() == Some(&(row.user_id.clone(), row.seq)) {
+            continue;
+        }
+        last = Some((row.user_id.clone(), row.seq));
+        match spans.last_mut() {
+            Some(span) if span.user_id == row.user_id => {
+                span.max_seq = row.seq;
+                span.events += 1;
+            }
+            _ => spans.push(files::Span {
+                user_id: row.user_id.clone(),
+                min_seq: row.seq,
+                max_seq: row.seq,
+                events: 1,
+            }),
+        }
+        writer.push(row)?;
+    }
+    Ok((writer.finish()?, spans))
+}
+
+async fn merge_events(ledger: &Ledger, output: &Path, inputs: &[String]) -> DbResult<()> {
+    let dir = ledger.events_dir();
+    let (counted, written, spans) = {
+        let (dir, inputs, output) = (dir.clone(), inputs.to_vec(), output.to_path_buf());
+        tokio::task::spawn_blocking(move || -> DbResult<_> {
+            let counted: i64 = inputs
+                .iter()
+                .map(|f| files::row_count(&dir.join(f)))
+                .sum::<std::io::Result<i64>>()?;
+            let (written, spans) = merge_rows(&dir, &inputs, &output)?;
+            Ok((counted, written, spans))
+        })
+        .await??
+    };
+    if written != counted {
+        let _ = std::fs::remove_file(dir.join(output));
+        return Err(format!(
+            "merging into {}: {written} rows written, {counted} read",
+            output.display()
+        )
+        .into());
+    }
+    let output = output.to_string_lossy().into_owned();
+    let mut tx = ledger.write_pool.begin().await?;
+    sqlx::query("DELETE FROM event_files WHERE file IN (SELECT value FROM json_each(?))")
+        .bind(serde_json::to_string(inputs)?)
+        .execute(&mut *tx)
+        .await?;
+    let rows: Vec<(&str, &str, i64, i64, i64)> = spans
+        .iter()
+        .map(|s| {
+            (
+                output.as_str(),
+                s.user_id.as_str(),
+                s.min_seq,
+                s.max_seq,
+                s.events,
+            )
+        })
+        .collect();
+    sqlx::query(
+        "INSERT OR IGNORE INTO event_files (file, user_id, min_seq, max_seq, events)
+         SELECT value ->> 0, value ->> 1, value ->> 2, value ->> 3, value ->> 4
+         FROM json_each(?) WHERE EXISTS (SELECT 1 FROM users WHERE id = value ->> 1)",
+    )
+    .bind(serde_json::to_string(&rows)?)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    tracing::info!(file = %output, inputs = inputs.len(), rows = written, "events compacted");
+    delete_later(dir, inputs.to_vec());
+    Ok(())
+}
+
+async fn merge_beats(ledger: &Ledger, output: &Path, inputs: &[String]) -> DbResult<()> {
+    let dir = ledger.beats_dir();
+    let (counted, written) = {
+        let (dir, inputs, output) = (dir.clone(), inputs.to_vec(), output.to_path_buf());
+        tokio::task::spawn_blocking(move || -> DbResult<(usize, usize)> {
+            // A day's heart rate is one row a workout: small enough to sort
+            // whole.
+            let mut beats: Vec<Beats> = Vec::new();
+            for input in &inputs {
+                beats.extend(files::read_all_beats(&dir.join(input), None)?);
+            }
+            let counted = beats.len();
+            beats.sort_by(|a, b| (&a.user_id, &a.workout_id).cmp(&(&b.user_id, &b.workout_id)));
+            beats.dedup_by(|a, b| a.user_id == b.user_id && a.workout_id == b.workout_id);
+            let written = beats.len();
+            files::write_beats(&dir.join(&output), &beats, LEVEL)?;
+            Ok((counted, written))
+        })
+        .await??
+    };
+    let output = output.to_string_lossy().into_owned();
+    let mut tx = ledger.write_pool.begin().await?;
+    sqlx::query(
+        "UPDATE heart_rate_files SET file = ? WHERE file IN (SELECT value FROM json_each(?))",
+    )
+    .bind(&output)
+    .bind(serde_json::to_string(inputs)?)
+    .execute(&mut *tx)
+    .await?;
+    tx.commit().await?;
+    tracing::info!(file = %output, inputs = inputs.len(), counted, workouts = written, "heart rate compacted");
+    delete_later(dir, inputs.to_vec());
+    Ok(())
+}
+
+/// Merged inputs go once anything reading them has had time to finish.
+fn delete_later(dir: PathBuf, inputs: Vec<String>) {
+    tokio::spawn(async move {
+        tokio::time::sleep(if cfg!(test) { Duration::ZERO } else { GRACE }).await;
+        for input in inputs {
+            let _ = std::fs::remove_file(dir.join(input));
+        }
+    });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn closed_hours_and_days_are_planned_open_ones_left() {
+        // 2026-11-24 06:30 UTC.
+        let now = 1_795_501_800_000;
+        let listing: Vec<String> = [
+            "date=2026-11-24/hour=06/b-1-0.parquet", // this hour: left
+            "date=2026-11-24/hour=06/b-2-0.parquet",
+            "date=2026-11-24/hour=04/b-3-0.parquet", // closed: merged
+            "date=2026-11-24/hour=04/b-4-0.parquet",
+            "date=2026-11-24/hour=03/h-5.parquet", // merged already, alone: left
+            "date=2026-11-22/hour=10/h-6.parquet", // a closed day: merged whole
+            "date=2026-11-22/hour=11/h-7.parquet",
+        ]
+        .map(String::from)
+        .to_vec();
+        let merges = plan(&listing, now);
+        let outputs: Vec<String> = merges
+            .iter()
+            .map(|(o, _)| o.to_string_lossy().into_owned())
+            .collect();
+        assert!(
+            outputs.iter().any(|o| o.starts_with("date=2026-11-22/d-")),
+            "{outputs:?}"
+        );
+        assert!(
+            outputs
+                .iter()
+                .any(|o| o.starts_with("date=2026-11-24/hour=04/h-")),
+            "{outputs:?}"
+        );
+        assert_eq!(merges.len(), 2, "{outputs:?}");
+        assert!(merges.iter().all(|(_, inputs)| inputs.len() == 2));
+    }
+}

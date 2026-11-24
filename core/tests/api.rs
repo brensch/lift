@@ -3379,7 +3379,7 @@ mod heart_rate_fold {
         );
 
         let mut bad = HeartRateRecorded::new(&started.id, &[at(1_000, 100.0)]);
-        bad.gaps_ms.push(5);
+        bad.packed = "not packed readings".to_string();
         let mut account = app.account.clone();
         assert!(matches!(
             account.apply(&event("bad", Fact::HeartRateRecorded(bad))),
