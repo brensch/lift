@@ -32,8 +32,20 @@ if [[ ! -f "${INSTALL_ROOT}/shared/schlift.env" ]]; then
 	echo "created ${INSTALL_ROOT}/shared/schlift.env from example; edit it before first start"
 fi
 
+# The copy of Caddy's certificates for the apps' own TLS listeners
+# (deploy/schlift-tls-sync.*): run on every renewal, and at boot.
+DEV_INSTALL_ROOT="${DEV_INSTALL_ROOT:-/opt/schlift-dev}"
+install -m 0755 "${REPO_ROOT}/deploy/schlift-tls-sync.sh" "${INSTALL_ROOT}/shared/schlift-tls-sync.sh"
+sed \
+	-e "s#__INSTALL_ROOT__#${INSTALL_ROOT}#g" \
+	-e "s#__DEV_INSTALL_ROOT__#${DEV_INSTALL_ROOT}#g" \
+	-e "s#__LIFT_USER__#${LIFT_USER}#g" \
+	"${REPO_ROOT}/deploy/schlift-tls-sync.service" >/etc/systemd/system/schlift-tls-sync.service
+install -m 0644 "${REPO_ROOT}/deploy/schlift-tls-sync.path" /etc/systemd/system/schlift-tls-sync.path
+
 systemctl daemon-reload
-systemctl enable schlift.service
+systemctl enable schlift.service schlift-tls-sync.service schlift-tls-sync.path
+systemctl start schlift-tls-sync.service schlift-tls-sync.path
 
 echo "installed ${UNIT_PATH}"
 echo "shared state lives under ${INSTALL_ROOT}/shared"

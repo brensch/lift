@@ -24,6 +24,19 @@
     }
 }
 
+# What an app from before the apps' own listener is told when it calls the
+# backend here: the phones' gRPC goes straight to the server's TLS listener
+# (schlift.com:8443, src/tls.rs) now, so native gRPC on 443 is an app to
+# update. Answered as the server's version gate answers (grpc-status 9,
+# FAILED_PRECONDITION, app_update_required): a trailers-only response, which
+# the app shows as its update prompt.
+(update_required) {
+    header Content-Type application/grpc
+    header Grpc-Status 9
+    header Grpc-Message app_update_required
+    respond 200
+}
+
 schlift.com {
     encode zstd gzip
 
@@ -40,13 +53,23 @@ schlift.com {
         import backend 127.0.0.1:50051
     }
 
-    # gRPC-Web → Rust backend (all POST to /workout.v1.* service paths)
+    # gRPC-Web (the website) → Rust backend
+    @grpcweb {
+        method POST
+        path /workout.v1.*
+        header Content-Type application/grpc-web*
+    }
+    handle @grpcweb {
+        import backend 127.0.0.1:50051
+    }
+
+    # Native gRPC here is an app from before its own listener: update.
     @grpc {
         method POST
         path /workout.v1.*
     }
     handle @grpc {
-        import backend 127.0.0.1:50051
+        import update_required
     }
 
     # Redirect old paths
@@ -87,12 +110,23 @@ dev.schlift.com {
         import backend 127.0.0.1:50052
     }
 
+    # gRPC-Web (the website) → Rust backend
+    @grpcweb {
+        method POST
+        path /workout.v1.*
+        header Content-Type application/grpc-web*
+    }
+    handle @grpcweb {
+        import backend 127.0.0.1:50052
+    }
+
+    # Native gRPC here is an app from before its own listener: update.
     @grpc {
         method POST
         path /workout.v1.*
     }
     handle @grpc {
-        import backend 127.0.0.1:50052
+        import update_required
     }
 
     # The website built from the commit the dev backend runs

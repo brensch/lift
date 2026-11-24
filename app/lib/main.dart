@@ -58,8 +58,10 @@ import 'widgets/session_expired_banner.dart';
 
 // Configure server address. Debug builds default to localhost, but can be
 // overridden with --dart-define=SERVER_HOST=... and --dart-define=SERVER_PORT=...
+// A release talks to the server's own TLS listener (8443; 8444 for the dev
+// backend), not through Caddy on 443, which serves the website.
 const _defaultServerHost = kReleaseMode ? 'schlift.com' : 'localhost';
-const _defaultServerPort = kReleaseMode ? '443' : '50051';
+const _defaultServerPort = kReleaseMode ? '8443' : '50051';
 const serverHost = String.fromEnvironment(
   'SERVER_HOST',
   defaultValue: _defaultServerHost,

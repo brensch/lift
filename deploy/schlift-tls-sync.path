@@ -1,0 +1,11 @@
+# A renewal by Caddy rewrites the domain's files: copy them again.
+[Unit]
+Description=Watch Caddy's certificates for the Schlift backends
+
+[Path]
+PathChanged=/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/schlift.com/schlift.com.crt
+PathChanged=/var/lib/caddy/.local/share/caddy/certificates/acme-v02.api.letsencrypt.org-directory/dev.schlift.com/dev.schlift.com.crt
+Unit=schlift-tls-sync.service
+
+[Install]
+WantedBy=multi-user.target

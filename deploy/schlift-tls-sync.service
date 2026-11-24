@@ -1,0 +1,12 @@
+# Copies Caddy's certificates for the backends' own TLS listeners
+# (deploy/schlift-tls-sync.sh). Started by schlift-tls-sync.path and at boot.
+[Unit]
+Description=Copy Caddy's certificates for the Schlift backends
+After=caddy.service
+
+[Service]
+Type=oneshot
+ExecStart=__INSTALL_ROOT__/shared/schlift-tls-sync.sh schlift.com __INSTALL_ROOT__/shared/tls __LIFT_USER__ dev.schlift.com __DEV_INSTALL_ROOT__/shared/tls __LIFT_USER__
+
+[Install]
+WantedBy=multi-user.target

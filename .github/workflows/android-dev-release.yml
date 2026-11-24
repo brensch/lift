@@ -102,7 +102,7 @@ jobs:
           flutter build apk --release \
             --dart-define=GIT_HASH=$(git rev-parse --short HEAD) \
             --dart-define=SERVER_HOST=dev.schlift.com \
-            --dart-define=SERVER_PORT=443
+            --dart-define=SERVER_PORT=8444
           cp build/app/outputs/flutter-apk/app-release.apk "${GITHUB_WORKSPACE}/schlift-dev.apk"
 
       - name: Print APK signing cert (for assetlinks cross-check)
