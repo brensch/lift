@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
 import 'package:grpc/grpc.dart';
 import '../gen/workout/v1/account.pbgrpc.dart';
-import '../gen/workout/v1/workout.pbgrpc.dart' show UserServiceClient;
+import '../gen/workout/v1/workout.pbgrpc.dart'
+    show UserServiceClient, WorkoutServiceClient;
 import '../gen/workout/v1/group.pbgrpc.dart';
 import '../gen/workout/v1/auth.pbgrpc.dart';
 import '../gen/workout/v1/analytics.pbgrpc.dart';
@@ -171,6 +172,7 @@ class GrpcClient {
   late ClientChannel channel;
   late SyncServiceClient syncService;
   late UserServiceClient userService;
+  late WorkoutServiceClient workoutService;
   late MultiplayerServiceClient multiplayerService;
   late AuthServiceClient authService;
   late AnalyticsServiceClient analyticsService;
@@ -214,6 +216,7 @@ class GrpcClient {
     );
     syncService = SyncServiceClient(channel, interceptors: _interceptors);
     userService = UserServiceClient(channel, interceptors: _interceptors);
+    workoutService = WorkoutServiceClient(channel, interceptors: _interceptors);
     multiplayerService = MultiplayerServiceClient(
       channel,
       interceptors: _interceptors,

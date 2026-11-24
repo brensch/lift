@@ -378,6 +378,20 @@ async fn events_move_in_from_sqlite_with_their_snapshots() {
         db.events_after("u", 0, i64::MAX).await.unwrap().len(),
         events.len()
     );
+    // Its heart rate, by workout, as written since.
+    let workout = events[0].id.clone();
+    let beats = db.workout_heart_rate("u", &workout).await.unwrap().unwrap();
+    assert_eq!(
+        beats.t_ms,
+        phone
+            .account
+            .workout(&workout)
+            .unwrap()
+            .heart_rate
+            .iter()
+            .map(|s| s.sampled_at)
+            .collect::<Vec<_>>()
+    );
     let table: i64 =
         sqlx::query_scalar("SELECT COUNT(*) FROM sqlite_master WHERE name = 'account_events'")
             .fetch_one(&db.read_pool)
