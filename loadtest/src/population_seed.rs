@@ -54,6 +54,13 @@ struct Args {
     /// Weeks of history every account holds (three workouts a week).
     #[arg(long, default_value_t = 4)]
     weeks: u32,
+    /// Every this many accounts, one holds `--long-weeks` of history
+    /// instead (0: none): the long-standing users, with their larger
+    /// snapshots.
+    #[arg(long, default_value_t = 10)]
+    long_every: usize,
+    #[arg(long, default_value_t = 52)]
+    long_weeks: u32,
     /// Accounts written per transaction and per file.
     #[arg(long, default_value_t = 20_000)]
     batch: usize,
@@ -103,6 +110,48 @@ fn template(weeks: u32) -> Vec<Event> {
     }
     let _ = std::fs::remove_dir_all(&dir);
     events
+}
+
+/// One history accounts are seeded with, as the ledger stores it.
+struct Kind {
+    weeks: u32,
+    events: Vec<Event>,
+    json: Vec<String>,
+    head: i64,
+    last_id: String,
+    workouts: usize,
+    snapshot: Vec<u8>,
+    recent: String,
+}
+
+impl Kind {
+    fn new(weeks: u32) -> Self {
+        let events = template(weeks);
+        let json = events
+            .iter()
+            .map(|e| serde_json::to_string(e).expect("event"))
+            .collect();
+        let head = events.len() as i64;
+        let last_id = events.last().map(|e| e.id.clone()).unwrap_or_default();
+        let account = Account::fold_without_heart_rate(&events);
+        let recent: Vec<&str> = events
+            .iter()
+            .rev()
+            .take(2_000)
+            .rev()
+            .map(|e| e.id.as_str())
+            .collect();
+        Self {
+            weeks,
+            json,
+            head,
+            last_id,
+            workouts: account.workouts.len(),
+            snapshot: schlift_core::snapshot::snapshot(&account, head),
+            recent: serde_json::to_string(&recent).expect("ids"),
+            events,
+        }
+    }
 }
 
 fn schema() -> Arc<Schema> {
@@ -168,30 +217,22 @@ fn main() {
         return;
     }
     let started = Instant::now();
-    let events = template(args.weeks);
-    let json: Vec<String> = events
-        .iter()
-        .map(|e| serde_json::to_string(e).expect("event"))
-        .collect();
-    let head = events.len() as i64;
-    let last_id = events.last().map(|e| e.id.clone()).unwrap_or_default();
-    let account = Account::fold_without_heart_rate(&events);
-    let snapshot = schlift_core::snapshot::snapshot(&account, head);
-    let recent: Vec<&str> = events
-        .iter()
-        .rev()
-        .take(2_000)
-        .rev()
-        .map(|e| e.id.as_str())
-        .collect();
-    let recent = serde_json::to_string(&recent).expect("ids");
-    println!(
-        "template: {} events ({} workouts), snapshot {} KB, built in {:.1}s",
-        events.len(),
-        account.workouts.len(),
-        snapshot.len() / 1000,
-        started.elapsed().as_secs_f64()
-    );
+    let short = Kind::new(args.weeks);
+    let long = (args.long_every > 0).then(|| Kind::new(args.long_weeks));
+    for kind in std::iter::once(&short).chain(&long) {
+        println!(
+            "template: {} weeks, {} events ({} workouts), snapshot {} KB, built in {:.1}s",
+            kind.weeks,
+            kind.events.len(),
+            kind.workouts,
+            kind.snapshot.len() / 1000,
+            started.elapsed().as_secs_f64()
+        );
+    }
+    let kind_of = |i: usize| match &long {
+        Some(long) if i.is_multiple_of(args.long_every) => long,
+        _ => &short,
+    };
 
     let events_dir = args.data.join("events");
     std::fs::create_dir_all(&events_dir).expect("events dir");
@@ -204,9 +245,19 @@ fn main() {
     let mut part = 0;
     while n < args.users {
         let end = (n + args.batch).min(args.users);
-        let users: Vec<String> = (n..end).map(user_id).collect();
-        let file = format!("0000000001000-population-{part:06}.parquet");
-        write_file(&events_dir.join(&file), &users, &events, &json);
+        let mut files = Vec::new();
+        for (k, kind) in std::iter::once(&short).chain(&long).enumerate() {
+            let users: Vec<String> = (n..end)
+                .filter(|&i| std::ptr::eq(kind_of(i), kind))
+                .map(user_id)
+                .collect();
+            if users.is_empty() {
+                continue;
+            }
+            let file = format!("0000000001000-population-{part:06}-{k}.parquet");
+            write_file(&events_dir.join(&file), &users, &kind.events, &kind.json);
+            files.push((file, kind));
+        }
         let tx = db.transaction().expect("tx");
         {
             let mut user = tx
@@ -233,8 +284,14 @@ fn main() {
                      VALUES (?, ?, 1, ?, ?)",
                 )
                 .expect("index");
-            for (k, id) in users.iter().enumerate() {
-                let i = n + k;
+            for i in n..end {
+                let id = &user_id(i);
+                let kind = kind_of(i);
+                let file = &files
+                    .iter()
+                    .find(|(_, k)| std::ptr::eq(*k, kind))
+                    .expect("its file")
+                    .0;
                 user.execute(params![
                     id,
                     format!("p{i}"),
@@ -247,14 +304,16 @@ fn main() {
                     .expect("login");
                 snap.execute(params![
                     id,
-                    head,
+                    kind.head,
                     schlift_core::FOLD,
-                    snapshot,
-                    recent,
+                    kind.snapshot,
+                    kind.recent,
                     created
                 ])
                 .expect("snapshot");
-                index.execute(params![file, id, head, head]).expect("index");
+                index
+                    .execute(params![file, id, kind.head, kind.head])
+                    .expect("index");
             }
         }
         tx.commit().expect("commit");
@@ -264,7 +323,13 @@ fn main() {
             println!("{n} accounts in {:.0}s", started.elapsed().as_secs_f64());
         }
     }
-    println!("head {head} last_id {last_id}");
+    println!("head {} last_id {}", short.head, short.last_id);
+    if let Some(long) = &long {
+        println!(
+            "long every {} head {} last_id {}",
+            args.long_every, long.head, long.last_id
+        );
+    }
 }
 
 /// The seeded snapshots read by this build's rules, or the process fails
