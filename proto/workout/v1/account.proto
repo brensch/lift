@@ -82,6 +82,11 @@ message SyncOpen {
   // ones the server holds by the snapshot it sends are named in it, so the
   // device lets them go instead of folding them again on top.
   repeated string pending_ids = 3;
+  // The id of the event at after_seq: a server that holds another there
+  // (restored from an older backup, and placed others since) sends the
+  // account whole, so the device doesn't fold the server's events onto a
+  // history that parted from it.
+  string last_id = 4;
 }
 
 message SyncResponse {
@@ -126,6 +131,8 @@ message AccountState {
   // Of the device's pending ids (SyncOpen), those in it already: placed
   // before it was folded.
   repeated string placed_ids = 3;
+  // The id of the event at seq: what the device opens with next time.
+  string last_id = 4;
 }
 
 message Events {

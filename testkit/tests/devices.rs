@@ -65,6 +65,34 @@ impl Device {
         self.sent = 0;
         let after = self.store.opens_after().unwrap() as usize;
         let head = server.log.len();
+        // As the server opens a stream (src/server/sync.rs): new, far
+        // behind, ahead, or parted from its history (a restore), the
+        // account whole, and which of the device's waiting events it holds.
+        let parted =
+            after > 0 && after <= head && server.log[after - 1].id != self.store.confirmed_id();
+        if after > head || head > 0 && (after == 0 || parted || head - after > 500) {
+            let snapshot = schlift_core::snapshot::snapshot(
+                &Account::fold_without_heart_rate(&server.log),
+                head as i64,
+            );
+            let held: Vec<String> = self
+                .store
+                .pending_ids()
+                .unwrap()
+                .into_iter()
+                .filter(|id| server.held.contains(id))
+                .collect();
+            self.store
+                .receive_account(
+                    &snapshot,
+                    head as i64,
+                    server.log.last().map_or("", |e| e.id.as_str()),
+                    &held,
+                )
+                .unwrap();
+            self.connected = true;
+            return true;
+        }
         let events = server
             .log
             .get(after..upto.clamp((after + 1).min(head), head))
@@ -136,9 +164,10 @@ fn store_reads(store: &mut Store, now: i64) -> Vec<Vec<u8>> {
     out
 }
 
-/// The account a device's file folds to: what it holds, then what waits.
+/// The account a device's file folds to: what it holds placed, then what
+/// waits.
 fn folded(store: &Store) -> Account {
-    let mut account = Account::fold(&store.events().unwrap());
+    let mut account = store.confirmed_account().clone();
     for event in store.pending().unwrap() {
         account.replay(&event);
     }
@@ -174,13 +203,28 @@ fn run(seed: u64) {
     // Every event a device recorded: none may be lost.
     let mut recorded: HashSet<String> = HashSet::new();
 
+    let mut lost: HashSet<String> = HashSet::new();
     for step in 0..STEPS {
         let n = rng.gen_range(0..DEVICES);
         now += rng.gen_range(60..20_000);
         let roll = rng.gen_range(0..20);
         if roll == 0 {
             // The server restored from an older backup: every stream ends.
-            server.restore(rng.gen_range(0..=server.log.len()));
+            // What it loses that no device still waits to have placed is
+            // gone (the server's backups are what keep it); the rest comes
+            // again.
+            let kept = rng.gen_range(0..=server.log.len());
+            let waiting: HashSet<String> = devices
+                .iter()
+                .flat_map(|d| d.store.pending_ids().unwrap())
+                .collect();
+            lost.extend(
+                server.log[kept..]
+                    .iter()
+                    .map(|e| e.id.clone())
+                    .filter(|id| !waiting.contains(id)),
+            );
+            server.restore(kept);
             for device in &mut devices {
                 device.connected = false;
             }
@@ -266,7 +310,16 @@ fn run(seed: u64) {
     let expected = reads(&account, now);
     for (n, device) in devices.iter_mut().enumerate() {
         assert_eq!(device.store.pending_count().unwrap(), 0, "device {n}");
-        assert_eq!(device.store.events().unwrap(), server.log, "device {n}");
+        assert_eq!(
+            device.store.confirmed().unwrap(),
+            server.log.len() as i64,
+            "device {n}"
+        );
+        assert!(
+            without_heart_rate(device.store.confirmed_account())
+                == Account::fold_without_heart_rate(&server.log),
+            "device {n} holds the server's account placed (seed {seed})"
+        );
         assert!(
             store_reads(&mut device.store, now) == expected,
             "device {n} differs from the server's account (seed {seed})"
@@ -274,9 +327,10 @@ fn run(seed: u64) {
     }
     let placed: HashSet<String> = server.log.iter().map(|e| e.id.clone()).collect();
     assert_eq!(placed.len(), server.log.len(), "each event once");
+    let kept: HashSet<String> = recorded.difference(&lost).cloned().collect();
     assert!(
-        recorded.is_subset(&placed),
-        "an event a device recorded was lost (seed {seed})"
+        kept.is_subset(&placed),
+        "an event a device recorded and still had waiting was lost (seed {seed})"
     );
     assert!(
         account.workouts.len() > 1,
@@ -292,4 +346,14 @@ fn devices_syncing_in_any_order_agree() {
     for seed in 0..seeds {
         run(seed);
     }
+}
+
+/// The account as the server folds it: heart rate left out.
+fn without_heart_rate(account: &Account) -> Account {
+    let mut account = account.clone();
+    account.without_heart_rate = true;
+    for workout in &mut account.workouts {
+        workout.heart_rate.clear();
+    }
+    account
 }

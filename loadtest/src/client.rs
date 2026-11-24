@@ -15,7 +15,6 @@ use schlift::workout::v1::sync_service_client::SyncServiceClient;
 use schlift::workout::v1::workout_mutation::Mutation;
 use schlift::workout::v1::workout_service_client::WorkoutServiceClient;
 use schlift::workout::v1::*;
-use schlift_core::events::Event;
 use schlift_native::store::Store;
 use schlift_testkit::{Lifter, Move};
 use std::collections::VecDeque;
@@ -47,7 +46,10 @@ pub enum Role {
 pub struct Outcome {
     pub username: String,
     pub token: String,
-    pub events: Vec<Event>,
+    /// The account as the server placed it, held on this client (heart
+    /// rate aside, as the server folds it), and the last seq it holds.
+    pub account: schlift_core::account::Account,
+    pub seq: i64,
 }
 
 pub struct Client {
@@ -139,11 +141,14 @@ impl Client {
             self.web_reads().await?;
         }
         self.drain().await?;
-        let events = self.store()?.events()?;
+        let store = self.store()?;
+        let account = without_heart_rate(store.confirmed_account());
+        let seq = store.confirmed()?;
         Ok(Outcome {
             username: self.username,
             token: self.token,
-            events,
+            account,
+            seq,
         })
     }
 
@@ -291,9 +296,16 @@ impl Client {
     async fn dial(&mut self) -> Result<(), String> {
         let metrics = self.metrics.clone();
         let (up, rx) = mpsc::channel::<SyncRequest>(64);
-        let confirmed = self.store()?.confirmed()?;
+        let confirmed = self.store()?.opens_after()?;
+        let pending_ids = self.store()?.pending_ids()?;
+        let last_id = self.store()?.confirmed_id().to_string();
         up.send(SyncRequest {
-            kind: Some(sync_request::Kind::AfterSeq(confirmed)),
+            kind: Some(sync_request::Kind::Open(SyncOpen {
+                after_seq: confirmed,
+                fold: schlift_core::FOLD.to_string(),
+                pending_ids,
+                last_id,
+            })),
         })
         .await
         .map_err(|_| "sync stream closed".to_string())?;
@@ -335,6 +347,20 @@ impl Client {
     /// back, or a resend), or anything else, which is only counted.
     fn heard(&mut self, message: SyncResponse) -> Result<(), String> {
         match message.kind {
+            // The account whole, as a phone far behind or new is sent it.
+            Some(sync_response::Kind::Account(state)) => {
+                let metrics = self.metrics.clone();
+                self.head = state.seq;
+                let store = self.store()?;
+                metrics.time_sync("core.receive_account", || {
+                    store.receive_account(
+                        &state.snapshot,
+                        state.seq,
+                        &state.last_id,
+                        &state.placed_ids,
+                    )
+                })?;
+            }
             Some(sync_response::Kind::Events(events)) => {
                 let metrics = self.metrics.clone();
                 let placed = if events.packed.is_empty() {
@@ -673,4 +699,16 @@ fn now_unix() -> i64 {
         .duration_since(UNIX_EPOCH)
         .map(|d| d.as_secs() as i64)
         .unwrap_or(0)
+}
+
+/// The account as the server folds it: heart rate left out.
+pub fn without_heart_rate(
+    account: &schlift_core::account::Account,
+) -> schlift_core::account::Account {
+    let mut account = account.clone();
+    account.without_heart_rate = true;
+    for workout in &mut account.workouts {
+        workout.heart_rate.clear();
+    }
+    account
 }

@@ -96,9 +96,43 @@ class LocalCore {
   /// The last seq this file holds.
   Future<int> confirmed() => native.confirmed(handle: _handle);
 
-  /// What a Sync stream opens with: a seq before the last this file holds,
-  /// so the server's first event shows whether their histories agree.
+  /// What a Sync stream opens with: the last seq this file holds placed
+  /// (0 while its account is by rules from before an update).
   Future<int> opensAfter() => native.opensAfter(handle: _handle);
+
+  /// The rules this app folds accounts by, sent when a stream opens.
+  static Future<String> foldRules() => native.foldRules();
+
+  /// The id of the last event the server placed that this file holds.
+  Future<String> confirmedId() => native.confirmedId(handle: _handle);
+
+  /// The ids of what waits for the server, sent when a stream opens.
+  Future<List<String>> pendingIds() => native.pendingIds(handle: _handle);
+
+  /// When the oldest event waiting for the server was recorded (Unix
+  /// seconds), or 0 if none waits.
+  Future<int> oldestPendingAt() => native.oldestPendingAt(handle: _handle);
+
+  /// The account whole from the server, as of [seq], and which of this
+  /// phone's waiting events it holds already.
+  Future<void> receiveAccount(
+    List<int> snapshot,
+    int seq,
+    String lastId,
+    List<String> placedIds,
+  ) async {
+    try {
+      await native.receiveAccount(
+        handle: _handle,
+        snapshot: snapshot,
+        seq: seq,
+        lastId: lastId,
+        placedIds: placedIds,
+      );
+    } catch (e) {
+      throw CoreException.from(e);
+    }
+  }
 
   /// What this phone recorded that the server hasn't placed, after the
   /// pending event numbered [after] (the last one this stream sent): packed

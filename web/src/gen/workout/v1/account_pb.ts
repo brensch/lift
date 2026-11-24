@@ -14,7 +14,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file workout/v1/account.proto.
  */
 export const file_workout_v1_account: GenFile = /*@__PURE__*/
-  fileDesc("Chh3b3Jrb3V0L3YxL2FjY291bnQucHJvdG8SCndvcmtvdXQudjEihAEKDUltcG9ydEhpc3RvcnkSLQoId29ya291dHMYASADKAsyGy53b3Jrb3V0LnYxLkltcG9ydGVkV29ya291dBI0ChBzdGFydGluZ193ZWlnaHRzGAMgAygLMhoud29ya291dC52MS5FeGVyY2lzZVdlaWdodEoECAIQA1IIdHJhY2tlcnMiFwoVSW1wb3J0SGlzdG9yeVJlc3BvbnNlIoACCg9JbXBvcnRlZFdvcmtvdXQSJAoHd29ya291dBgBIAEoCzITLndvcmtvdXQudjEuV29ya291dBIuCg1wcm9wb3NlZF9zZXRzGAIgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNldBIwCg5jb21wbGV0ZWRfc2V0cxgDIAMoCzIYLndvcmtvdXQudjEuQ29tcGxldGVkU2V0EjUKCmhlYXJ0X3JhdGUYBCADKAsyIS53b3Jrb3V0LnYxLldvcmtvdXRIZWFydFJhdGVQb2ludBIuCg1leGVyY2lzZV9sb2dzGAUgAygLMhcud29ya291dC52MS5FeGVyY2lzZUxvZyJuCgtTeW5jUmVxdWVzdBITCglhZnRlcl9zZXEYAyABKANIABIQCgZldmVudHMYBCABKAxIABIqCgloZWFydGJlYXQYAiABKAsyFS53b3Jrb3V0LnYxLkhlYXJ0YmVhdEgAQgYKBGtpbmRKBAgBEAIiCwoJSGVhcnRiZWF0IvwBCgxTeW5jUmVzcG9uc2USJAoGZXZlbnRzGAUgASgLMhIud29ya291dC52MS5FdmVudHNIABIOCgRoZWFkGAEgASgDSAASJgoHc2Vzc2lvbhgGIAEoCzITLndvcmtvdXQudjEuU2Vzc2lvbkgAEjMKDnBhcnRuZXJfZXZlbnRzGAcgASgLMhkud29ya291dC52MS5QYXJ0bmVyRXZlbnRzSAASPAoNam9pbl9yZXF1ZXN0cxgDIAEoCzIjLndvcmtvdXQudjEuR2V0Sm9pblJlcXVlc3RzUmVzcG9uc2VIAEIGCgRraW5kSgQIAhADSgQIBBAFUgdsaWJyYXJ5Ij8KDVBhcnRuZXJFdmVudHMSDwoHdXNlcl9pZBgBIAEoCRIOCgZwYWNrZWQYAiABKAwSDQoFd2hvbGUYAyABKAgiJgoGRXZlbnRzEg4KBnBhY2tlZBgBIAEoDBIMCgRoZWFkGAIgASgDMkwKC1N5bmNTZXJ2aWNlEj0KBFN5bmMSFy53b3Jrb3V0LnYxLlN5bmNSZXF1ZXN0Ghgud29ya291dC52MS5TeW5jUmVzcG9uc2UoATABYgZwcm90bzM", [file_workout_v1_group, file_workout_v1_workout]);
+  fileDesc("Chh3b3Jrb3V0L3YxL2FjY291bnQucHJvdG8SCndvcmtvdXQudjEihAEKDUltcG9ydEhpc3RvcnkSLQoId29ya291dHMYASADKAsyGy53b3Jrb3V0LnYxLkltcG9ydGVkV29ya291dBI0ChBzdGFydGluZ193ZWlnaHRzGAMgAygLMhoud29ya291dC52MS5FeGVyY2lzZVdlaWdodEoECAIQA1IIdHJhY2tlcnMiFwoVSW1wb3J0SGlzdG9yeVJlc3BvbnNlIoACCg9JbXBvcnRlZFdvcmtvdXQSJAoHd29ya291dBgBIAEoCzITLndvcmtvdXQudjEuV29ya291dBIuCg1wcm9wb3NlZF9zZXRzGAIgAygLMhcud29ya291dC52MS5Qcm9wb3NlZFNldBIwCg5jb21wbGV0ZWRfc2V0cxgDIAMoCzIYLndvcmtvdXQudjEuQ29tcGxldGVkU2V0EjUKCmhlYXJ0X3JhdGUYBCADKAsyIS53b3Jrb3V0LnYxLldvcmtvdXRIZWFydFJhdGVQb2ludBIuCg1leGVyY2lzZV9sb2dzGAUgAygLMhcud29ya291dC52MS5FeGVyY2lzZUxvZyKUAQoLU3luY1JlcXVlc3QSEwoJYWZ0ZXJfc2VxGAMgASgDSAASJAoEb3BlbhgFIAEoCzIULndvcmtvdXQudjEuU3luY09wZW5IABIQCgZldmVudHMYBCABKAxIABIqCgloZWFydGJlYXQYAiABKAsyFS53b3Jrb3V0LnYxLkhlYXJ0YmVhdEgAQgYKBGtpbmRKBAgBEAIiCwoJSGVhcnRiZWF0IlEKCFN5bmNPcGVuEhEKCWFmdGVyX3NlcRgBIAEoAxIMCgRmb2xkGAIgASgJEhMKC3BlbmRpbmdfaWRzGAMgAygJEg8KB2xhc3RfaWQYBCABKAkiqQIKDFN5bmNSZXNwb25zZRIkCgZldmVudHMYBSABKAsyEi53b3Jrb3V0LnYxLkV2ZW50c0gAEg4KBGhlYWQYASABKANIABImCgdzZXNzaW9uGAYgASgLMhMud29ya291dC52MS5TZXNzaW9uSAASMwoOcGFydG5lcl9ldmVudHMYByABKAsyGS53b3Jrb3V0LnYxLlBhcnRuZXJFdmVudHNIABI8Cg1qb2luX3JlcXVlc3RzGAMgASgLMiMud29ya291dC52MS5HZXRKb2luUmVxdWVzdHNSZXNwb25zZUgAEisKB2FjY291bnQYCCABKAsyGC53b3Jrb3V0LnYxLkFjY291bnRTdGF0ZUgAQgYKBGtpbmRKBAgCEANKBAgEEAVSB2xpYnJhcnkiPwoNUGFydG5lckV2ZW50cxIPCgd1c2VyX2lkGAEgASgJEg4KBnBhY2tlZBgCIAEoDBINCgV3aG9sZRgDIAEoCCJSCgxBY2NvdW50U3RhdGUSEAoIc25hcHNob3QYASABKAwSCwoDc2VxGAIgASgDEhIKCnBsYWNlZF9pZHMYAyADKAkSDwoHbGFzdF9pZBgEIAEoCSImCgZFdmVudHMSDgoGcGFja2VkGAEgASgMEgwKBGhlYWQYAiABKAMyTAoLU3luY1NlcnZpY2USPQoEU3luYxIXLndvcmtvdXQudjEuU3luY1JlcXVlc3QaGC53b3Jrb3V0LnYxLlN5bmNSZXNwb25zZSgBMAFiBnByb3RvMw", [file_workout_v1_group, file_workout_v1_workout]);
 
 /**
  * History brought in from elsewhere, as it was: finished workouts, and the
@@ -104,11 +104,20 @@ export type SyncRequest = Message<"workout.v1.SyncRequest"> & {
   kind: {
     /**
      * First, and only first: the last seq the device holds, 0 for none.
+     * An app from before `open` sends this; it is sent events only.
      *
      * @generated from field: int64 after_seq = 3;
      */
     value: bigint;
     case: "afterSeq";
+  } | {
+    /**
+     * First, and only first: where the device is (see SyncOpen).
+     *
+     * @generated from field: workout.v1.SyncOpen open = 5;
+     */
+    value: SyncOpen;
+    case: "open";
   } | {
     /**
      * The device's own events not yet given a place, oldest first: a
@@ -149,6 +158,56 @@ export type Heartbeat = Message<"workout.v1.Heartbeat"> & {
  */
 export const HeartbeatSchema: GenMessage<Heartbeat> = /*@__PURE__*/
   messageDesc(file_workout_v1_account, 4);
+
+/**
+ * How a device opens its stream: the last seq it holds, the rules it folds
+ * by, and the events it has waiting to be placed. The server sends what
+ * costs least to make it current: nothing, the events it lacks, or (far
+ * behind, new, or on rules the server's snapshot is by) the account whole
+ * (`AccountState`), then events from there.
+ *
+ * @generated from message workout.v1.SyncOpen
+ */
+export type SyncOpen = Message<"workout.v1.SyncOpen"> & {
+  /**
+   * @generated from field: int64 after_seq = 1;
+   */
+  afterSeq: bigint;
+
+  /**
+   * schlift_core::FOLD: a snapshot is only sent to a device folding by the
+   * same rules; one on others is sent events and folds them itself.
+   *
+   * @generated from field: string fold = 2;
+   */
+  fold: string;
+
+  /**
+   * The device's events not yet heard back placed, by id: of these, the
+   * ones the server holds by the snapshot it sends are named in it, so the
+   * device lets them go instead of folding them again on top.
+   *
+   * @generated from field: repeated string pending_ids = 3;
+   */
+  pendingIds: string[];
+
+  /**
+   * The id of the event at after_seq: a server that holds another there
+   * (restored from an older backup, and placed others since) sends the
+   * account whole, so the device doesn't fold the server's events onto a
+   * history that parted from it.
+   *
+   * @generated from field: string last_id = 4;
+   */
+  lastId: string;
+};
+
+/**
+ * Describes the message workout.v1.SyncOpen.
+ * Use `create(SyncOpenSchema)` to create a new message.
+ */
+export const SyncOpenSchema: GenMessage<SyncOpen> = /*@__PURE__*/
+  messageDesc(file_workout_v1_account, 5);
 
 /**
  * @generated from message workout.v1.SyncResponse
@@ -198,6 +257,15 @@ export type SyncResponse = Message<"workout.v1.SyncResponse"> & {
      */
     value: GetJoinRequestsResponse;
     case: "joinRequests";
+  } | {
+    /**
+     * The account whole, folded by the server as of a seq: sent on opening
+     * to a device far behind or new (see SyncOpen), before any events.
+     *
+     * @generated from field: workout.v1.AccountState account = 8;
+     */
+    value: AccountState;
+    case: "account";
   } | { case: undefined; value?: undefined };
 };
 
@@ -206,7 +274,7 @@ export type SyncResponse = Message<"workout.v1.SyncResponse"> & {
  * Use `create(SyncResponseSchema)` to create a new message.
  */
 export const SyncResponseSchema: GenMessage<SyncResponse> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 5);
+  messageDesc(file_workout_v1_account, 6);
 
 /**
  * @generated from message workout.v1.PartnerEvents
@@ -239,7 +307,49 @@ export type PartnerEvents = Message<"workout.v1.PartnerEvents"> & {
  * Use `create(PartnerEventsSchema)` to create a new message.
  */
 export const PartnerEventsSchema: GenMessage<PartnerEvents> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 6);
+  messageDesc(file_workout_v1_account, 7);
+
+/**
+ * @generated from message workout.v1.AccountState
+ */
+export type AccountState = Message<"workout.v1.AccountState"> & {
+  /**
+   * schlift_core::snapshot: an AccountSnapshot, zstd compressed, without
+   * heart rate.
+   *
+   * @generated from field: bytes snapshot = 1;
+   */
+  snapshot: Uint8Array;
+
+  /**
+   * The last event folded into it: events after it follow.
+   *
+   * @generated from field: int64 seq = 2;
+   */
+  seq: bigint;
+
+  /**
+   * Of the device's pending ids (SyncOpen), those in it already: placed
+   * before it was folded.
+   *
+   * @generated from field: repeated string placed_ids = 3;
+   */
+  placedIds: string[];
+
+  /**
+   * The id of the event at seq: what the device opens with next time.
+   *
+   * @generated from field: string last_id = 4;
+   */
+  lastId: string;
+};
+
+/**
+ * Describes the message workout.v1.AccountState.
+ * Use `create(AccountStateSchema)` to create a new message.
+ */
+export const AccountStateSchema: GenMessage<AccountState> = /*@__PURE__*/
+  messageDesc(file_workout_v1_account, 8);
 
 /**
  * @generated from message workout.v1.Events
@@ -265,7 +375,7 @@ export type Events = Message<"workout.v1.Events"> & {
  * Use `create(EventsSchema)` to create a new message.
  */
 export const EventsSchema: GenMessage<Events> = /*@__PURE__*/
-  messageDesc(file_workout_v1_account, 7);
+  messageDesc(file_workout_v1_account, 9);
 
 /**
  * @generated from service workout.v1.SyncService

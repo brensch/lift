@@ -40,14 +40,49 @@ Future<(Uint8List, bool)> call({
 Future<PlatformInt64> confirmed({required int handle}) =>
     RustLib.instance.api.crateApiConfirmed(handle: handle);
 
-/// What the Sync stream opens with: a seq before the last the file holds,
-/// so the server's first event shows whether the histories agree.
+/// What the Sync stream opens with: the last seq the file holds placed (0
+/// while its account is by rules from before an update, so the server sends
+/// it whole).
 Future<PlatformInt64> opensAfter({required int handle}) =>
     RustLib.instance.api.crateApiOpensAfter(handle: handle);
 
-/// Bring in the export at `path`: what in it the file lacks is added, in
-/// its places where its history carries on from the file's, otherwise to
-/// wait to be placed; nothing is removed. Returns how many events it added.
+/// The rules this app folds accounts by: sent when the stream opens, so the
+/// server only sends an account whole to an app that folds the same.
+Future<String> foldRules() => RustLib.instance.api.crateApiFoldRules();
+
+/// The ids of what waits for the server, sent when the stream opens.
+Future<List<String>> pendingIds({required int handle}) =>
+    RustLib.instance.api.crateApiPendingIds(handle: handle);
+
+/// When the oldest event waiting for the server was recorded (Unix
+/// seconds), or 0 if none waits.
+Future<PlatformInt64> oldestPendingAt({required int handle}) =>
+    RustLib.instance.api.crateApiOldestPendingAt(handle: handle);
+
+/// The account whole from the server, as of `seq`, and which of this
+/// device's pending events it holds already. The account changes under the
+/// app.
+Future<void> receiveAccount({
+  required int handle,
+  required List<int> snapshot,
+  required PlatformInt64 seq,
+  required String lastId,
+  required List<String> placedIds,
+}) => RustLib.instance.api.crateApiReceiveAccount(
+  handle: handle,
+  snapshot: snapshot,
+  seq: seq,
+  lastId: lastId,
+  placedIds: placedIds,
+);
+
+/// The id of the last event the server placed that the file holds: sent
+/// when the stream opens.
+Future<String> confirmedId({required int handle}) =>
+    RustLib.instance.api.crateApiConfirmedId(handle: handle);
+
+/// Bring in the export at `path`: what in it the file lacks waits to be
+/// placed (the server skips what it holds); nothing is removed. Returns how many events it added.
 Future<PlatformInt64> importFile({required int handle, required String path}) =>
     RustLib.instance.api.crateApiImportFile(handle: handle, path: path);
 
