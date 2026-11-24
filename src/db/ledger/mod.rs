@@ -272,12 +272,17 @@ impl Ledger {
         let every = self.timing.batch_every;
         tokio::spawn(async move {
             let mut swept = Instant::now();
+            // At a fixed rate: a write that took a while is followed by the
+            // next at once, not by a whole interval more (an end would wait
+            // up to twice the interval for its ack).
+            let mut tick = tokio::time::interval(every);
+            tick.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);
             loop {
                 let Some(this) = ledger.upgrade() else { return };
                 let wake = this.wake.clone();
                 drop(this);
                 tokio::select! {
-                    _ = tokio::time::sleep(every) => {}
+                    _ = tick.tick() => {}
                     _ = wake.notified() => {}
                 }
                 let Some(this) = ledger.upgrade() else { return };
