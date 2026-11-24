@@ -99,8 +99,11 @@ impl Timing {
 /// is told are placed.
 const RECENT_IDS: usize = 2_000;
 
+/// Snapshots one statement reads, of a batch's: the rest are read beside it.
+const SNAPSHOTS_PER_READ: usize = 250;
+
 /// Accounts written in one batch at most.
-const ACCOUNTS_PER_BATCH: usize = 20_000;
+const ACCOUNTS_PER_BATCH: usize = 5_000;
 
 /// One account, in memory.
 #[derive(Default)]
@@ -663,17 +666,28 @@ impl Ledger {
         // query; accounts whose snapshot is by other rules are folded again
         // from the files (after a release changed them).
         let ids: Vec<&str> = taken.iter().map(|t| t.0.as_str()).collect();
-        let saved: HashMap<String, (Vec<u8>, String, String)> =
-            sqlx::query_as::<_, (String, Vec<u8>, String, String)>(
-                "SELECT s.user_id, s.state, s.recent_ids, s.fold FROM account_snapshots s
-             WHERE s.user_id IN (SELECT value FROM json_each(?))",
-            )
-            .bind(serde_json::to_string(&ids)?)
-            .fetch_all(&self.read_pool)
-            .await?
-            .into_iter()
-            .map(|(u, state, recent, fold)| (u, (state, recent, fold)))
-            .collect();
+        // Read in pieces at once: a cold snapshot is a few random page reads,
+        // which the disk serves many of together but one statement asks for
+        // one at a time (20k accounts in one statement: a minute).
+        let mut reads = tokio::task::JoinSet::new();
+        for chunk in ids.chunks(SNAPSHOTS_PER_READ) {
+            let (pool, chunk) = (self.read_pool.clone(), serde_json::to_string(chunk)?);
+            reads.spawn(async move {
+                sqlx::query_as::<_, (String, Vec<u8>, String, String)>(
+                    "SELECT s.user_id, s.state, s.recent_ids, s.fold
+                     FROM json_each(?) j CROSS JOIN account_snapshots s ON s.user_id = j.value",
+                )
+                .bind(chunk)
+                .fetch_all(&pool)
+                .await
+            });
+        }
+        let mut saved: HashMap<String, (Vec<u8>, String, String)> = HashMap::new();
+        while let Some(read) = reads.join_next().await {
+            for (u, state, recent, fold) in read?? {
+                saved.insert(u, (state, recent, fold));
+            }
+        }
         // Each account's base: its stored snapshot (read in `place`), an
         // empty account, or (by other rules) folded again from the files.
         let mut bases: Vec<(Option<Account>, Vec<String>)> = Vec::with_capacity(taken.len());
@@ -1061,62 +1075,46 @@ impl Ledger {
 
     // ── The index and the files ──
 
-    /// Files the index lacks (written, then a crash before they were
-    /// indexed) are indexed from their contents. Only the newest few can be
-    /// (a batch indexes its file before the next is written).
+    /// Files no index names are set aside (`files::ORPHANED`), never read:
+    /// a batch's files are indexed in the transaction that writes its
+    /// snapshots, so one the index lacks is a write that never committed
+    /// (its events were never acked, and the phones send them again), and
+    /// compaction's are a merge to redo or inputs already merged. Half
+    /// written files go.
     async fn reconcile(&self) -> DbResult<()> {
-        let dir = self.events_dir();
-        let mut on_disk = tokio::task::spawn_blocking(move || files::list(&dir)).await??;
-        let keep = on_disk.len().saturating_sub(100);
-        on_disk.drain(..keep);
-        let mut lacking = Vec::new();
-        for file in on_disk {
-            let indexed: bool =
-                sqlx::query_scalar("SELECT EXISTS (SELECT 1 FROM event_files WHERE file = ?)")
-                    .bind(&file)
-                    .fetch_one(&self.read_pool)
-                    .await?;
-            if !indexed {
-                lacking.push(file);
-            }
-        }
-        if lacking.is_empty() {
-            return Ok(());
-        }
-        let dir = self.events_dir();
-        let spans =
-            tokio::task::spawn_blocking(move || -> DbResult<Vec<(String, Vec<files::Span>)>> {
-                lacking
-                    .into_iter()
-                    .map(|f| Ok((f.clone(), files::read_spans(&dir.join(&f))?)))
-                    .collect()
+        for (dir, indexed) in [
+            (self.events_dir(), "SELECT DISTINCT file FROM event_files"),
+            (
+                self.beats_dir(),
+                "SELECT DISTINCT file FROM heart_rate_files",
+            ),
+        ] {
+            let named: HashSet<String> = sqlx::query_scalar(indexed)
+                .fetch_all(&self.read_pool)
+                .await?
+                .into_iter()
+                .collect();
+            let moved = tokio::task::spawn_blocking(move || -> std::io::Result<usize> {
+                files::clear_temporary(&dir)?;
+                let mut moved = 0;
+                for file in files::list(&dir)? {
+                    if named.contains(&file) {
+                        continue;
+                    }
+                    let to = dir.join(files::ORPHANED).join(&file);
+                    if let Some(parent) = to.parent() {
+                        std::fs::create_dir_all(parent)?;
+                    }
+                    std::fs::rename(dir.join(&file), to)?;
+                    moved += 1;
+                }
+                Ok(moved)
             })
             .await??;
-        tracing::warn!(files = spans.len(), "indexing event files the index lacked");
-        let mut tx = self.write_pool.begin().await?;
-        for (file, spans) in spans {
-            let rows: Vec<(&str, &str, i64, i64, i64)> = spans
-                .iter()
-                .map(|s| {
-                    (
-                        file.as_str(),
-                        s.user_id.as_str(),
-                        s.min_seq,
-                        s.max_seq,
-                        s.events,
-                    )
-                })
-                .collect();
-            sqlx::query(
-                "INSERT OR IGNORE INTO event_files (file, user_id, min_seq, max_seq, events)
-                 SELECT value ->> 0, value ->> 1, value ->> 2, value ->> 3, value ->> 4
-                 FROM json_each(?) WHERE EXISTS (SELECT 1 FROM users WHERE id = value ->> 1)",
-            )
-            .bind(serde_json::to_string(&rows)?)
-            .execute(&mut *tx)
-            .await?;
+            if moved > 0 {
+                tracing::warn!(files = moved, "set aside files no index names");
+            }
         }
-        tx.commit().await?;
         Ok(())
     }
 
