@@ -35,7 +35,11 @@ const SNAPSHOT_WHEN_BEHIND: i64 = EVENTS_PER_MESSAGE;
 /// login is still good: an expired login sends nothing more after this.
 /// (Signing out and deleting the account are told at once, as
 /// `Change::SignedOut`.) Short in tests, so expiry can be seen.
-const RECHECK_SIGNED_IN: Duration = Duration::from_secs(if cfg!(test) { 1 } else { 60 });
+/// Besides at its login's expiry, a stream checks it is still signed in at
+/// least this often: signing out and deletion are told to it at once, so
+/// this only bounds how long anything else that ends a login goes unseen.
+/// Every open app's stream does it, so not often. Short in tests.
+const RECHECK_SIGNED_IN: Duration = Duration::from_secs(if cfg!(test) { 1 } else { 1800 });
 
 // What one event in a push may hold (the batch's size and event count are
 // limited as it is decoded, in schlift_core::sync). Far above anything a
@@ -136,6 +140,7 @@ impl SyncService for ServerSyncService {
                 last_session: None,
                 last_requests: None,
                 checked: Instant::now(),
+                valid_until: i64::MAX,
                 caught_up: Default::default(),
             };
             if let Err(error) = stream.run(inbound, changes).await {
@@ -190,6 +195,8 @@ struct Stream {
     last_requests: Option<GetJoinRequestsResponse>,
     /// When the login was last found good.
     checked: Instant,
+    /// When its login expires (Unix seconds), as last checked.
+    valid_until: i64,
     /// The ids of the events this stream sent the device as it caught up:
     /// placed already, so the device's push of one (it lost the ack, and
     /// pushed before it heard them all) is turned away here, however far
@@ -305,7 +312,7 @@ impl Stream {
             // more: not the account's other devices' events, nor a
             // partner's. (Signing out is heard at once, as a change, unless
             // the stream fell behind and missed it.)
-            let stale = self.checked.elapsed() > RECHECK_SIGNED_IN;
+            let stale = self.signed_in_stale();
             if matches!(woke, Woke::Mine(Err(_))) || (stale && !matches!(woke, Woke::Up(_))) {
                 self.ensure_signed_in().await?;
             }
@@ -396,24 +403,33 @@ impl Stream {
             .map_err(|_| Closed)
     }
 
+    /// Due a check that its login is still good: past its expiry, or not
+    /// checked for `RECHECK_SIGNED_IN`.
+    fn signed_in_stale(&self) -> bool {
+        self.checked.elapsed() > RECHECK_SIGNED_IN || now_unix() >= self.valid_until
+    }
+
     /// Ends the stream once its session is signed out, expired or deleted.
     async fn ensure_signed_in(&mut self) -> ServerResult<()> {
         let signed_in = self
             .db
-            .validate_auth_session(&self.token)
+            .validate_auth_session_until(&self.token)
             .await
             .map_err(internal_error)?;
-        if signed_in.as_ref() != Some(&self.user_id) {
-            return Err(Status::unauthenticated("Invalid session token").into());
+        match signed_in {
+            Some((user_id, until)) if user_id == self.user_id => {
+                self.checked = Instant::now();
+                self.valid_until = until;
+                Ok(())
+            }
+            _ => Err(Status::unauthenticated("Invalid session token").into()),
         }
-        self.checked = Instant::now();
-        Ok(())
     }
 
     /// The device's own events (placed, stored, and sent back down with
     /// everyone else's) or a heartbeat (answered with the head).
     async fn receive(&mut self, up: SyncRequest) -> ServerResult<Result<(), Closed>> {
-        if self.checked.elapsed() > RECHECK_SIGNED_IN {
+        if self.signed_in_stale() {
             self.ensure_signed_in().await?;
         }
         match up.kind {
