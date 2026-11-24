@@ -2,6 +2,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     tonic_build::configure()
         .build_server(true)
         .build_client(true)
+        // Small buffers to start (src/codec.rs): a million idle streams.
+        .codec_path("crate::codec::LeanCodec")
         // The messages come from schlift-core; only the services are
         // generated here, typed against them.
         .extern_path(".workout.v1", "::schlift_core::pb")

@@ -4,7 +4,6 @@
 //! every write pushes what the server hasn't acknowledged, a heartbeat goes
 //! up every few seconds, and the server's head acknowledges.
 
-use schlift_load::metrics::Metrics;
 use crate::server::ORIGIN;
 use crate::Profile;
 use prost::Message;
@@ -15,6 +14,7 @@ use schlift::workout::v1::sync_service_client::SyncServiceClient;
 use schlift::workout::v1::workout_mutation::Mutation;
 use schlift::workout::v1::workout_service_client::WorkoutServiceClient;
 use schlift::workout::v1::*;
+use schlift_load::metrics::Metrics;
 use schlift_native::store::Store;
 use schlift_testkit::{Lifter, Move};
 use std::collections::VecDeque;
@@ -55,8 +55,9 @@ pub struct Outcome {
 /// Each grouped client's pushed workout events, by id, and when they went
 /// up: the first partner to hear one records how long it took
 /// (`partner.seen`), the time from a set done to a partner's phone having it.
-static SENT_TO_PARTNERS: std::sync::LazyLock<std::sync::Mutex<std::collections::HashMap<String, Instant>>> =
-    std::sync::LazyLock::new(Default::default);
+static SENT_TO_PARTNERS: std::sync::LazyLock<
+    std::sync::Mutex<std::collections::HashMap<String, Instant>>,
+> = std::sync::LazyLock::new(Default::default);
 
 pub struct Client {
     /// In a group: its pushes are timed to its partners (`SENT_TO_PARTNERS`).

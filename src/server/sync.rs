@@ -119,7 +119,9 @@ impl SyncService for ServerSyncService {
         info!(rpc = "Sync", %user_id, "open");
         // Watching before the first send, so nothing between is missed.
         let changes = self.db.watch(Topic::User(user_id.clone()));
-        let (tx, rx) = mpsc::channel(16);
+        // Boxed: the channel's slots are allocated up front, 32 of them,
+        // and a response is 176 bytes; a million idle streams hold the slots.
+        let (tx, rx) = mpsc::channel::<Box<SyncResult>>(16);
         let db = self.db.clone();
         tokio::spawn(async move {
             let mut stream = Stream {
@@ -137,11 +139,29 @@ impl SyncService for ServerSyncService {
                 caught_up: Default::default(),
             };
             if let Err(error) = stream.run(inbound, changes).await {
-                let _ = stream.tx.send(Err(error.into())).await;
+                let _ = stream.tx.send(Box::new(Err(error.into()))).await;
             }
             info!(rpc = "Sync", user_id = %stream.user_id, "closed");
         });
-        Ok(Response::new(Box::pin(ReceiverStream::new(rx))))
+        Ok(Response::new(Box::pin(Unboxed(ReceiverStream::new(rx)))))
+    }
+}
+
+/// A stream's responses, out of the boxes they were queued in.
+struct Unboxed(ReceiverStream<Box<SyncResult>>);
+
+impl futures_util::Stream for Unboxed {
+    type Item = SyncResult;
+
+    fn poll_next(
+        mut self: Pin<&mut Self>,
+        cx: &mut std::task::Context<'_>,
+    ) -> std::task::Poll<Option<SyncResult>> {
+        match futures_util::StreamExt::poll_next_unpin(&mut self.0, cx) {
+            std::task::Poll::Ready(Some(queued)) => std::task::Poll::Ready(Some(*queued)),
+            std::task::Poll::Ready(None) => std::task::Poll::Ready(None),
+            std::task::Poll::Pending => std::task::Poll::Pending,
+        }
     }
 }
 
@@ -153,7 +173,7 @@ struct Stream {
     /// soon as a sign-out or deletion is told, and otherwise at most
     /// `RECHECK_SIGNED_IN` before anything is taken or sent.
     token: String,
-    tx: mpsc::Sender<SyncResult>,
+    tx: mpsc::Sender<Box<SyncResult>>,
     /// The session the user's pointer named when the session was last sent,
     /// and its changes: the only session whose changes concern this stream.
     session: Option<(String, broadcast::Receiver<Change>)>,
@@ -371,7 +391,7 @@ impl Stream {
 
     async fn send(&self, kind: sync_response::Kind) -> Result<(), Closed> {
         self.tx
-            .send(Ok(SyncResponse { kind: Some(kind) }))
+            .send(Box::new(Ok(SyncResponse { kind: Some(kind) })))
             .await
             .map_err(|_| Closed)
     }

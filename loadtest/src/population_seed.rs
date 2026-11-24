@@ -75,8 +75,12 @@ fn now() -> i64 {
 fn template(weeks: u32) -> Vec<Event> {
     let dir = std::env::temp_dir().join(format!("population-template-{}", std::process::id()));
     std::fs::create_dir_all(&dir).expect("temp dir");
-    let mut store =
-        Store::open(&dir.join("t.sqlite"), "00000000-0000-4000-8000-ffffffffffff", "").expect("store");
+    let mut store = Store::open(
+        &dir.join("t.sqlite"),
+        "00000000-0000-4000-8000-ffffffffffff",
+        "",
+    )
+    .expect("store");
     let until = now() - 86_400;
     let begin = until - i64::from(weeks) * 7 * 86_400 - 86_400;
     onboard(&mut store, begin).expect("onboard");
@@ -135,7 +139,11 @@ fn write_file(path: &Path, users: &[String], events: &[Event], json: &[String]) 
     let file = std::fs::File::create(path).expect("create");
     let mut writer = ArrowWriter::try_new(file, schema(), Some(props)).expect("writer");
     writer.write(&batch).expect("write");
-    writer.into_inner().expect("close").sync_all().expect("sync");
+    writer
+        .into_inner()
+        .expect("close")
+        .sync_all()
+        .expect("sync");
 }
 
 fn main() {
@@ -150,7 +158,13 @@ fn main() {
     let last_id = events.last().map(|e| e.id.clone()).unwrap_or_default();
     let account = Account::fold_without_heart_rate(&events);
     let snapshot = schlift_core::snapshot::snapshot(&account, head);
-    let recent: Vec<&str> = events.iter().rev().take(2_000).rev().map(|e| e.id.as_str()).collect();
+    let recent: Vec<&str> = events
+        .iter()
+        .rev()
+        .take(2_000)
+        .rev()
+        .map(|e| e.id.as_str())
+        .collect();
     let recent = serde_json::to_string(&recent).expect("ids");
     println!(
         "template: {} events ({} workouts), snapshot {} KB, built in {:.1}s",
@@ -202,13 +216,25 @@ fn main() {
                 .expect("index");
             for (k, id) in users.iter().enumerate() {
                 let i = n + k;
-                user.execute(params![id, format!("p{i}"), format!("invite-{i:012}"), created])
-                    .expect("user");
+                user.execute(params![
+                    id,
+                    format!("p{i}"),
+                    format!("invite-{i:012}"),
+                    created
+                ])
+                .expect("user");
                 login
                     .execute(params![token_hash(&token(i)), id, expires])
                     .expect("login");
-                snap.execute(params![id, head, schlift_core::FOLD, snapshot, recent, created])
-                    .expect("snapshot");
+                snap.execute(params![
+                    id,
+                    head,
+                    schlift_core::FOLD,
+                    snapshot,
+                    recent,
+                    created
+                ])
+                .expect("snapshot");
                 index.execute(params![file, id, head, head]).expect("index");
             }
         }
@@ -216,10 +242,7 @@ fn main() {
         n = end;
         part += 1;
         if part % 10 == 0 || n == args.users {
-            println!(
-                "{n} accounts in {:.0}s",
-                started.elapsed().as_secs_f64()
-            );
+            println!("{n} accounts in {:.0}s", started.elapsed().as_secs_f64());
         }
     }
     println!("head {head} last_id {last_id}");

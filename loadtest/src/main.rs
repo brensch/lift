@@ -9,10 +9,10 @@ mod server;
 
 use clap::Parser;
 use client::{Client, Outcome, Role};
-use schlift_load::metrics::{Metrics, OpSummary};
 use schlift::workout::v1::sync_service_client::SyncServiceClient;
 use schlift::workout::v1::{sync_request, sync_response, SyncRequest};
 use schlift_core::events::Event;
+use schlift_load::metrics::{Metrics, OpSummary};
 use serde::{Deserialize, Serialize};
 use server::{Server, Usage};
 use std::collections::BTreeMap;
