@@ -62,7 +62,14 @@ impl ServerDb {
         let write_pool = SqlitePoolOptions::new()
             .max_connections(1)
             .acquire_slow_threshold(std::time::Duration::from_secs(60))
-            .connect_with(options.clone().pragma("wal_autocheckpoint", "0"))
+            .connect_with(
+                options
+                    .clone()
+                    .pragma("wal_autocheckpoint", "0")
+                    // Cut back to this once checkpointed: a burst of writes
+                    // leaves the WAL long otherwise (568 MB after one).
+                    .pragma("journal_size_limit", (64 << 20).to_string()),
+            )
             .await?;
         let read_pool = SqlitePoolOptions::new()
             .max_connections(16)
