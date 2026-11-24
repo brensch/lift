@@ -113,10 +113,12 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
         tx.commit().await?;
     }
     // A step that moves events (as v6 did) leaves snapshots folded from the
-    // events as they were: any step run clears them, and they are folded
-    // again as accounts are read.
+    // events as they were: any step run marks them by no rules, so each is
+    // folded again from the event files when next used. Never deleted: an
+    // account's head is its snapshot's seq, and a phone that opened on an
+    // account with none would be sent it empty.
     if version > 0 && version < LATEST {
-        sqlx::query("DELETE FROM account_snapshots")
+        sqlx::query("UPDATE account_snapshots SET fold = ''")
             .execute(pool)
             .await?;
     }
