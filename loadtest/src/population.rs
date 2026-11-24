@@ -40,6 +40,14 @@ struct Args {
     head: i64,
     #[arg(long)]
     last_id: String,
+    /// Every this many accounts holds the long history (seed-population's
+    /// `long every`), ending at `--long-head` and `--long-last-id`.
+    #[arg(long, default_value_t = 0)]
+    long_every: usize,
+    #[arg(long, default_value_t = 0)]
+    long_head: i64,
+    #[arg(long, default_value = "")]
+    long_last_id: String,
     /// Connections the streams share, as Caddy's to the server are.
     #[arg(long, default_value_t = 1_000)]
     connections: usize,
@@ -66,6 +74,10 @@ struct Args {
     train: bool,
     #[arg(long, default_value_t = 600.0)]
     start_within: f64,
+    /// Of sets done, the share followed by a question to the person's
+    /// assistant (an account read, folded with what the phone just sent).
+    #[arg(long, default_value_t = 0.05)]
+    ask_per_set: f64,
 }
 
 fn token(n: usize) -> String {
@@ -109,7 +121,14 @@ async fn app(shared: Arc<Shared>, n: usize, mut reopen: mpsc::Receiver<bool>) {
         .template
         .clone()
         .map(|account| schlift_load::training::Phone::new(account, n as u64));
-    let (mut held_seq, mut held_id) = (shared.args.head, shared.args.last_id.clone());
+    let args = &shared.args;
+    let (mut held_seq, mut held_id) = if args.long_every > 0 && n.is_multiple_of(args.long_every) {
+        (args.long_head, args.long_last_id.clone())
+    } else {
+        (args.head, args.last_id.clone())
+    };
+    // The end of its workout, sent: timed until placed.
+    let mut ended_ids = std::collections::HashSet::<String>::new();
     let mut next_action = phone.as_ref().map(|_| {
         tokio::time::Instant::now()
             + Duration::from_secs_f64(rng.gen_range(0.0..shared.args.start_within.max(1.0)))
@@ -187,13 +206,31 @@ async fn app(shared: Arc<Shared>, n: usize, mut reopen: mpsc::Receiver<bool>) {
                                     };
                                     for event in placed {
                                         if let Some(sent) = phone.unacked.remove(&event.id) {
-                                            shared.metrics.record("ack", sent.elapsed());
+                                            // Timed from the end: the rest
+                                            // were held for it, as designed.
+                                            if ended_ids.remove(&event.id) {
+                                                shared.metrics.record("ack.end", sent.elapsed());
+                                            }
                                         }
                                         held_seq = held_seq.max(event.seq);
                                         if event.seq == held_seq {
                                             held_id = event.id;
                                         }
                                     }
+                                }
+                            }
+                            Some(sync_response::Kind::Account(state)) => {
+                                // Whole (behind, or told its pending were
+                                // written while it was away).
+                                if let Some(phone) = phone.as_mut() {
+                                    for id in &state.placed_ids {
+                                        phone.unacked.remove(id);
+                                        ended_ids.remove(id);
+                                    }
+                                }
+                                if state.seq >= held_seq {
+                                    held_seq = state.seq;
+                                    held_id = state.last_id;
                                 }
                             }
                             Some(sync_response::Kind::Head(_)) => {
@@ -224,8 +261,16 @@ async fn app(shared: Arc<Shared>, n: usize, mut reopen: mpsc::Receiver<bool>) {
                         Ok(done) => {
                             match done.what {
                                 "start" => { shared.started.fetch_add(1, Ordering::Relaxed); }
-                                "set done" => { shared.sets.fetch_add(1, Ordering::Relaxed); }
-                                "end" => { shared.ended.fetch_add(1, Ordering::Relaxed); }
+                                "set done" => {
+                                    shared.sets.fetch_add(1, Ordering::Relaxed);
+                                    if rng.gen_bool(shared.args.ask_per_set.clamp(0.0, 1.0)) {
+                                        ask(&shared, &channel, n);
+                                    }
+                                }
+                                "end" => {
+                                    shared.ended.fetch_add(1, Ordering::Relaxed);
+                                    ended_ids.extend(done.events.iter().map(|e| e.id.clone()));
+                                }
                                 _ => {}
                             }
                             next_action = done.next_in.map(|s| tokio::time::Instant::now() + Duration::from_secs_f64(s));
@@ -278,7 +323,7 @@ async fn main() {
     // Training: the account every seeded user holds, as a new phone gets
     // it (the server sends it whole), once.
     let template = if args.train {
-        Some(fetch_account(&channels[0], args.from).await)
+        Some(fetch_account(&channels[0], args.from + 1).await)
     } else {
         None
     };
@@ -358,12 +403,13 @@ async fn main() {
                         shared.pushed.load(Ordering::Relaxed),
                     );
                     println!(
-                        "        training: started {} ended {} | sets/s {:.0} events/s {:.0} | ack {}",
+                        "        training: started {} ended {} | sets/s {:.0} events/s {:.0} | end acked {} | ask {}",
                         shared.started.load(Ordering::Relaxed),
                         shared.ended.load(Ordering::Relaxed),
                         (sets - last_sets) as f64 / 10.0,
                         (pushed - last_pushed) as f64 / 10.0,
-                        p("ack"),
+                        p("ack.end"),
+                        p("ask.mid-set"),
                     );
                     (last_sets, last_pushed) = (sets, pushed);
                 }
@@ -431,6 +477,22 @@ async fn main() {
     )
     .expect("report");
     println!("{}", serde_json::to_string_pretty(&report).expect("json"));
+}
+
+/// A question to the person's assistant mid-set: the account read as it is
+/// now, the set just sent folded in (the same read the MCP's tools make).
+fn ask(shared: &Arc<Shared>, channel: &Channel, n: usize) {
+    let (shared, channel) = (shared.clone(), channel.clone());
+    tokio::spawn(async move {
+        let _ = shared
+            .metrics
+            .time(
+                "ask.mid-set",
+                WorkoutServiceClient::new(channel)
+                    .list_workout_summaries(authed(&token(n), ListWorkoutSummariesRequest {})),
+            )
+            .await;
+    });
 }
 
 fn apps_spawn(shared: Arc<Shared>, n: usize, reopen: mpsc::Receiver<bool>) {

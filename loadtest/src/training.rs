@@ -6,8 +6,8 @@
 //! next, the ramp's questions answered as they come, ended when the plan
 //! runs out. Every write goes through the phone's own core (`Call`, as the
 //! app's store makes it) and its events go up the Sync stream at once, as
-//! the app pushes them; each is timed until the server sends it back placed
-//! (its ack, with the next flush).
+//! the app pushes them. The server holds a workout until it ends and places
+//! it then: the end's ack is timed. The heart rate goes up with the end.
 
 use std::collections::HashMap;
 use std::time::Instant;
@@ -185,15 +185,37 @@ impl Phone {
                     })
                 }
                 Move::End => {
-                    let (_, events): (EndWorkoutResponse, _) = self.call(
+                    let (_, mut events): (EndWorkoutResponse, _) = self.call(
                         rng,
                         "EndWorkout",
                         EndWorkoutRequest {
-                            workout_id: id,
+                            workout_id: id.clone(),
                             ended_at: now,
                         },
                         now,
                     )?;
+                    // Its heart rate, recorded once it has ended, as the
+                    // app's store does: a reading every 5 s, as a watch
+                    // gives.
+                    let start = self
+                        .account
+                        .workout(&id)
+                        .map_or(now, |r| r.workout.start_time);
+                    let mut bpm = 95.0_f32;
+                    let samples: Vec<WorkoutHeartRatePoint> = (start * 1000..now * 1000)
+                        .step_by(5_000)
+                        .map(|sampled_at| {
+                            bpm = (bpm + rng.gen_range(-6.0..6.5)).clamp(70.0, 185.0);
+                            WorkoutHeartRatePoint {
+                                sampled_at,
+                                bpm: bpm.round(),
+                            }
+                        })
+                        .collect();
+                    let mut call = Call::new(&mut self.account, now, event_id(rng));
+                    call.record_heart_rate(&id, &samples)
+                        .map_err(|e| e.to_string())?;
+                    events.append(&mut call.events);
                     Ok(Done {
                         events,
                         what: "end",
