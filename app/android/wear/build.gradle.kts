@@ -98,6 +98,13 @@ dependencies {
     implementation("androidx.core:core-ktx:1.15.0")
     implementation("androidx.activity:activity-compose:1.10.1")
 
+    // A transitive dependency drags in kotlin-stdlib 1.9.21 (AIKIDO-2026-550292).
+    // Pin it to the Kotlin plugin's own version, past the patched 2.1.0.
+    constraints {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.20") {
+            because("AIKIDO-2026-550292: kotlin-stdlib must be >= 2.1.0")
+        }
+    }
     implementation("androidx.wear.compose:compose-material:1.4.1")
     implementation("androidx.wear.compose:compose-foundation:1.4.1")
     implementation("androidx.compose.material:material-icons-core:1.7.8")

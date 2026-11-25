@@ -99,6 +99,13 @@ android {
 }
 
 dependencies {
+    // A transitive dependency drags in kotlin-stdlib 1.9.21 (AIKIDO-2026-550292).
+    // Pin it to the Kotlin plugin's own version, past the patched 2.1.0.
+    constraints {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.20") {
+            because("AIKIDO-2026-550292: kotlin-stdlib must be >= 2.1.0")
+        }
+    }
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("com.google.android.gms:play-services-wearable:19.0.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
