@@ -294,6 +294,10 @@ mod edits {
         assert!(fails(json!([{"remove": "exercises[squat]"}]))
             .message
             .contains("built-in"));
+        // Removing a built-in by its index is refused the same way.
+        assert!(fails(json!([{"remove": "exercises[0]"}]))
+            .message
+            .contains("built-in"));
         assert!(fails(json!([{"set": "x", "value": 1, "remove": "y"}]))
             .message
             .contains("exactly one"));

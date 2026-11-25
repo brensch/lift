@@ -41,6 +41,9 @@ pub struct Call<'a> {
 const MAX_MOTIVATION_CHARS: usize = 500;
 /// The longest note a program is set with.
 const MAX_NOTE_CHARS: usize = 300;
+/// How many suggestions one account may hold unanswered at once, so an
+/// editor can't grow the account's durable log without bound.
+const MAX_WAITING_SUGGESTIONS: usize = 50;
 
 /// Who set a program from the app.
 pub const AUTHOR_APP: &str = "app";
@@ -361,6 +364,21 @@ impl<'a> Call<'a> {
     /// program as it is or make one with an error: nobody is asked about a
     /// change that can't be made. Returns the suggestion's id.
     pub fn suggest_program(&mut self, suggested: ProgramSuggested) -> Result<String, CoreError> {
+        // An editor (a person, or their assistant) can only have so many
+        // suggestions waiting unanswered on an account: otherwise one could
+        // pile up suggestions without bound and grow the account's durable
+        // log. Answering or declining the ones already waiting makes room.
+        let waiting = self
+            .account
+            .suggestions
+            .iter()
+            .filter(|s| s.answer.is_none())
+            .count();
+        if waiting >= MAX_WAITING_SUGGESTIONS {
+            return Err(CoreError::InvalidArgument(format!(
+                "there are already {MAX_WAITING_SUGGESTIONS} suggestions waiting to be answered"
+            )));
+        }
         let problems = suggestion_problems(self.account, &suggested.edits);
         if let Some(problem) = problems {
             return Err(CoreError::InvalidArgument(problem));

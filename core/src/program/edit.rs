@@ -253,6 +253,18 @@ fn remove(doc: &mut Value, segs: &[Seg], builtin: &BTreeSet<String>) -> Result<(
             if *i >= list.len() {
                 return Err(format!("{here}: the list has {}", list.len()));
             }
+            // The same guard as removing by name: a built-in exercise can't be
+            // removed by its index either.
+            if in_exercises {
+                let key = list[*i].get(name_field(list)).and_then(Value::as_str);
+                if let Some(key) = key {
+                    if builtin.contains(key) {
+                        return Err(format!(
+                            "{here}: a built-in exercise ({key:?}) can't be removed; leave it out of the workouts instead"
+                        ));
+                    }
+                }
+            }
             list.remove(*i);
         }
         (Seg::Field(_), _) => return Err(format!("{here}: its parent is not an object")),

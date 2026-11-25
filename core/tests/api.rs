@@ -4708,6 +4708,30 @@ mod suggestions {
     }
 
     #[test]
+    fn an_editor_cant_pile_up_unanswered_suggestions() {
+        let mut app = App::new();
+        onboard(&mut app, WeightUnit::Lb);
+        // 50 may wait at once; the 51st is refused until one is answered.
+        for i in 0..50 {
+            suggest(&mut app, arms(), &format!("try {i}")).unwrap();
+        }
+        let full = suggest(&mut app, arms(), "one too many");
+        assert!(
+            matches!(full, Err(CoreError::InvalidArgument(_))),
+            "the 51st waiting suggestion is refused"
+        );
+        // Declining one makes room for another.
+        let id = app.view().get_suggestions().suggestions[0].id.clone();
+        app.call()
+            .answer_suggestion(AnswerSuggestionRequest {
+                suggestion_id: id,
+                accept: false,
+            })
+            .unwrap();
+        suggest(&mut app, arms(), "now there is room").unwrap();
+    }
+
+    #[test]
     fn a_declined_suggestion_changes_nothing() {
         let mut app = App::new();
         onboard(&mut app, WeightUnit::Lb);
