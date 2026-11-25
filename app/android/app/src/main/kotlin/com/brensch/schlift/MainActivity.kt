@@ -153,6 +153,11 @@ class MainActivity : FlutterFragmentActivity() {
                     }
                 }
 
+                "clearSnapshot" -> {
+                    WearBridgeManager.clearSnapshot()
+                    result.success(null)
+                }
+
                 "isWatchAppOpenOnWatch" -> {
                     result.success(WearBridgeManager.isWatchAppOpenOnWatch())
                 }

@@ -201,6 +201,10 @@ class WearableSyncCoordinator {
     final workoutId = _workoutProvider.workout?.id;
     _pendingIntents.clear();
     _pendingSensorBatches.clear();
+    // Forget the held snapshot so the watch can't be answered with this
+    // account's workout after sign-out; the next account republishes afresh.
+    _lastPublishedSnapshotKey = null;
+    await _bridgeService.clearSnapshot();
     if (workoutId == null) return;
     await _tellWatchEnded(workoutId);
   }

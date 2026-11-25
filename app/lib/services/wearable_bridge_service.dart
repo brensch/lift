@@ -6,6 +6,10 @@ abstract class WearableBridgeService {
   Stream<WearSensorBatch> get sensorBatchStream;
 
   Future<void> publishSnapshot(WearWorkoutSnapshot snapshot);
+
+  /// Forget the snapshot held for the watch, on sign-out, so the watch is
+  /// never answered with the previous account's workout.
+  Future<void> clearSnapshot();
   Future<bool> openWatchApp();
 
   /// Tell the watch to end the given workout's tracking session. The phone cannot end the
@@ -43,6 +47,9 @@ class NoopWearableBridgeService implements WearableBridgeService {
 
   @override
   Future<void> publishSnapshot(WearWorkoutSnapshot snapshot) async {}
+
+  @override
+  Future<void> clearSnapshot() async {}
 
   @override
   Future<void> endWatchWorkout(String workoutId) async {}
