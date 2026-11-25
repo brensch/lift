@@ -32,6 +32,12 @@ object WearBridgeManager {
     const val WEAR_APP_CAPABILITY = "lift_wear_companion"
     private const val WATCH_UI_HEARTBEAT_TTL_MS = 8_000L
 
+    // The backlog held for a Dart listener is bounded: a watch (or anything
+    // posing as one) that floods messages while nothing is listening can't
+    // grow these without end and exhaust the phone app.
+    private const val MAX_PENDING_INTENTS = 256
+    private const val MAX_PENDING_SENSORS = 512
+
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val mainHandler = Handler(Looper.getMainLooper())
     private val intentSinkRef = AtomicReference<EventChannel.EventSink?>(null)
@@ -81,6 +87,19 @@ object WearBridgeManager {
                 runCatching { messageClient.sendMessage(node.id, PHONE_TO_WEAR_SNAPSHOT_PATH, bytes).await() }
                     .onFailure { Log.e("SchliftWearBridge", "Failed snapshot send to node=${node.id}", it) }
             }
+        }
+    }
+
+    /**
+     * Forget the held snapshot and any queued payloads. Called on sign-out so
+     * a watch reconnecting (or asking for a snapshot) is never answered with
+     * the previous account's workout.
+     */
+    fun clearSnapshot() {
+        lastSnapshotBytes.set(null)
+        synchronized(sinkLock) {
+            pendingIntentPayloads.clear()
+            pendingSensorPayloads.clear()
         }
     }
 
@@ -231,6 +250,10 @@ object WearBridgeManager {
         synchronized(sinkLock) {
             val sink = intentSinkRef.get()
             if (sink == null) {
+                // Drop the oldest once full, so the backlog stays bounded.
+                while (pendingIntentPayloads.size >= MAX_PENDING_INTENTS) {
+                    if (pendingIntentPayloads.poll() == null) break
+                }
                 pendingIntentPayloads.add(bytes)
                 return
             }
@@ -249,7 +272,18 @@ object WearBridgeManager {
         synchronized(sinkLock) {
             val sink = sensorSinkRef.get()
             if (sink == null) {
-                if (batchId.isNotBlank()) pendingSensorPayloads[batchId] = bytes
+                if (batchId.isNotBlank()) {
+                    // Evict the oldest batch once full, so the backlog is bounded.
+                    while (pendingSensorPayloads.size >= MAX_PENDING_SENSORS &&
+                        !pendingSensorPayloads.containsKey(batchId)
+                    ) {
+                        val oldest = pendingSensorPayloads.keys.iterator()
+                        if (!oldest.hasNext()) break
+                        oldest.next()
+                        oldest.remove()
+                    }
+                    pendingSensorPayloads[batchId] = bytes
+                }
                 return false
             }
             mainHandler.post { sink.success(bytes) }

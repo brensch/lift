@@ -370,10 +370,11 @@ async fn an_assistant_connects_and_sets_a_program() {
     };
     let (status, _, fresh) = send(&mcp, refresh_with(&refresh)).await;
     assert_eq!(status, StatusCode::OK);
+    // Reusing the spent token is refused; a retry this quick doesn't revoke.
     let (status, _, _) = send(&mcp, refresh_with(&refresh)).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 
-    // Revoked: every token stops working.
+    // Revoked by the person: every token stops working.
     let grant = mcp.db.assistant_grants("u1").await.unwrap().remove(0);
     mcp.db
         .revoke_assistant("u1", &grant.grant_id)

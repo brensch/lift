@@ -201,8 +201,15 @@ class WearableSyncCoordinator {
     final workoutId = _workoutProvider.workout?.id;
     _pendingIntents.clear();
     _pendingSensorBatches.clear();
-    if (workoutId == null) return;
-    await _tellWatchEnded(workoutId);
+    // Tell the watch the workout ended first (this sets the once-only guard
+    // synchronously, before any await, so a concurrent provider.clear() can't
+    // end it a second time), then forget the held snapshot so a watch can't be
+    // answered with this account's workout after sign-out.
+    if (workoutId != null) {
+      await _tellWatchEnded(workoutId);
+    }
+    _lastPublishedSnapshotKey = null;
+    await _bridgeService.clearSnapshot();
   }
 
   /// An ALL_DONE snapshot with no End action is what both watches read as

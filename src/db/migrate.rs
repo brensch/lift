@@ -112,6 +112,22 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 11 {
+        let mut tx = pool.begin().await?;
+        v11(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 11")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
+    if version < 12 {
+        let mut tx = pool.begin().await?;
+        v12(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 12")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     // A step that moves events (as v6 did) leaves snapshots folded from the
     // events as they were: any step run marks them by no rules, so each is
     // folded again from the event files when next used. Never deleted: an
@@ -126,7 +142,7 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
 }
 
 /// The version the steps above bring a database to: a new step moves it.
-const LATEST: i64 = 10;
+const LATEST: i64 = 12;
 
 /// A login token as stored: its SHA-256, so the table never holds a token
 /// that would let someone in.
@@ -643,6 +659,58 @@ async fn v10(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
     )
     .execute(&mut **tx)
     .await?;
+    Ok(())
+}
+
+/// Erasing a deleted account's events from the files.
+///
+/// Deleting the user cascades its index (`event_files`, `heart_rate_files`)
+/// and its snapshot away, so nothing can read the account any more — but the
+/// rows themselves sit on in the shared Parquet until a file is rewritten.
+///
+/// - `purged_accounts`: the ids of deleted accounts. A merge drops their rows
+///   (they are no longer in `users`), so recompaction erases them. Kept for
+///   good; the set is small and a lookup is cheap, and it guards against a
+///   stray old file ever being read again.
+/// - `purge_files`: the files that held a just-deleted account, captured from
+///   the index before the cascade took it. A purge pass rewrites each so even
+///   files normal compaction would never revisit lose the rows, then clears
+///   the row.
+async fn v11(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS purged_accounts (
+             user_id TEXT PRIMARY KEY
+         ) WITHOUT ROWID;
+         CREATE TABLE IF NOT EXISTS purge_files (
+             file TEXT NOT NULL,
+             kind TEXT NOT NULL,
+             -- Which deleted account's rows this file still holds, so a
+             -- tombstone can be dropped once its files are all scrubbed.
+             user_id TEXT NOT NULL,
+             PRIMARY KEY (file, kind, user_id)
+         ) WITHOUT ROWID;",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
+/// When a refresh token was rotated away, so a reuse of it can tell a
+/// near-simultaneous retry (benign) from a later reuse (a leak).
+async fn v12(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    // ADD COLUMN isn't idempotent the way CREATE TABLE IF NOT EXISTS is, so
+    // only add it when it isn't already there (a step may run on a schema that
+    // already has it).
+    let has: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) > 0 FROM pragma_table_info('assistant_tokens') WHERE name = 'used_at'",
+    )
+    .fetch_one(&mut **tx)
+    .await?;
+    if !has {
+        sqlx::query("ALTER TABLE assistant_tokens ADD COLUMN used_at INTEGER NOT NULL DEFAULT 0")
+            .execute(&mut **tx)
+            .await?;
+    }
     Ok(())
 }
 

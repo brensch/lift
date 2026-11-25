@@ -601,4 +601,7 @@ class _SandboxCore implements CoreSource {
 
   @override
   Future<LocalCore> get ready => _account.then((account) => account.core);
+
+  @override
+  int get generation => 0;
 }

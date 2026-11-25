@@ -35,6 +35,11 @@ class PlatformWearableBridgeService implements WearableBridgeService {
   }
 
   @override
+  Future<void> clearSnapshot() async {
+    await _methods.invokeMethod<void>('clearSnapshot');
+  }
+
+  @override
   Future<bool> openWatchApp() async {
     final opened = await _methods.invokeMethod<bool>('openWatchApp');
     return opened ?? false;

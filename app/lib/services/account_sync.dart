@@ -49,9 +49,13 @@ class AccountSync extends ChangeNotifier
   String? _userId;
   Completer<LocalCore> _ready = Completer<LocalCore>();
   StreamSubscription<void>? _writesSub;
+  int _accountGen = 0;
 
   @override
   Future<LocalCore> get ready => _ready.future;
+
+  @override
+  int get generation => _accountGen;
 
   /// The open account, or null before sign-in.
   LocalCore? get core => _core;
@@ -209,18 +213,45 @@ class AccountSync extends ChangeNotifier
     return zipped;
   }
 
+  /// The biggest an imported account is allowed to unzip to. A real export is
+  /// at most a handful of megabytes; the cap only stops a crafted file (a
+  /// "zip bomb") from expanding without bound and filling the device.
+  static const _maxImportBytes = 256 * 1024 * 1024;
+
   /// [path] as a plain SQLite file: a gzipped export is unzipped beside the
-  /// others in the temp directory first.
+  /// others in the temp directory first, up to [_maxImportBytes].
   static Future<String> _unzipped(String path) async {
     final head = await File(path).openRead(0, 2).expand((b) => b).toList();
     if (head.length < 2 || head[0] != 0x1f || head[1] != 0x8b) return path;
     final dir = await getTemporaryDirectory();
     final out = File('${dir.path}/schlift-import.sqlite');
-    await File(path).openRead().transform(gzip.decoder).pipe(out.openWrite());
+    final sink = out.openWrite();
+    var written = 0;
+    try {
+      await for (final chunk in File(path).openRead().transform(gzip.decoder)) {
+        written += chunk.length;
+        if (written > _maxImportBytes) {
+          throw const FormatException(
+            'the file unzips to more than is allowed',
+          );
+        }
+        sink.add(chunk);
+      }
+      await sink.close();
+    } catch (_) {
+      // Closing a faulted sink can itself throw; the delete is what matters.
+      try {
+        await sink.close();
+      } catch (_) {}
+      if (await out.exists()) await out.delete();
+      rethrow;
+    }
     return out.path;
   }
 
   Future<void> signOut() async {
+    // Leaving the account: anything still in flight for it is now stale.
+    _accountGen++;
     _userId = null;
     _hangUp();
     _redial?.cancel();

@@ -5,3 +5,8 @@
 - Usernames can't hold invisible characters, so nobody can pose as someone else with a name that looks the same, and a burst of failed sign-ins from one place is slowed down.
 - Security tune-up across the app, watch and server: patched the building blocks they are made of and closed off ways the service could be abused. Nothing changes in how you use them.
 - The app and watch work on the latest Android devices (the ones with larger memory pages); older builds could crash on them.
+- Deleting your account now scrubs your workouts and heart-rate data from the server for good, not just from view.
+- A sign-in that was already under way when a passkey is removed no longer goes through; the removed key stops working right away.
+- Importing an account copy is safer: a tampered file that would balloon in size is refused, and switching accounts never shows the previous account's data by mistake.
+- On the watch: signing out clears the workout the phone had shared, so a watch can never show the previous account's session, and the phone bounds what it holds from the watch so a flood of messages can't exhaust it.
+- If an AI assistant's refresh token is used after it was already replaced (a sign it leaked), its access is cut off and it has to be reconnected.

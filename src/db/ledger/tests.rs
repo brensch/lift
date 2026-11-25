@@ -448,6 +448,87 @@ async fn compaction_changes_the_files_and_nothing_else() {
     assert_eq!(files::list(&db.ledger.events_dir()).unwrap(), after);
 }
 
+/// Deleting an account leaves it unreadable at once (its index and snapshot
+/// cascade away); compaction then erases its rows from the shared files,
+/// while another account in the same files is untouched.
+#[tokio::test]
+async fn a_deleted_accounts_rows_leave_the_files_on_compaction() {
+    let dir = dir();
+    let db = open(&dir, holding()).await;
+    db.create_user_with_id("v", "v").await.unwrap();
+    let mut up = Phone::new();
+    let mut vp = Phone::new();
+    let mut u_all = Vec::new();
+    let mut v_all = Vec::new();
+    for n in 0..3 {
+        let ue = up.workout(now_unix() - 4 * 3600 + n * 1000, 1, true);
+        u_all.extend(ue.clone());
+        db.buffer_events("u", ue, true).await.unwrap();
+        let ve = vp.workout(now_unix() - 4 * 3600 + n * 1000, 1, true);
+        v_all.extend(ve.clone());
+        db.buffer_events("v", ve, true).await.unwrap();
+    }
+    db.flush().await.unwrap();
+    // Both accounts' rows share the batch files.
+    assert!(!db.events_after("u", 0, i64::MAX).await.unwrap().is_empty());
+
+    db.delete_user_account_and_data("u").await.unwrap();
+    // Unreadable at once: no index, nothing to read.
+    assert!(db.events_after("u", 0, i64::MAX).await.unwrap().is_empty());
+    let tombstoned: i64 =
+        sqlx::query_scalar("SELECT count(*) FROM purged_accounts WHERE user_id = 'u'")
+            .fetch_one(&db.read_pool)
+            .await
+            .unwrap();
+    assert_eq!(tombstoned, 1);
+
+    // Two days on so the hours and day close: the merge drops u's rows, and
+    // the purge pass sweeps any file it missed.
+    compact::compact(&db.ledger, now_ms() + 2 * 86_400_000)
+        .await
+        .unwrap();
+    tokio::time::sleep(Duration::from_millis(50)).await;
+
+    // u is gone from every events file; v is whole.
+    for file in files::list(&db.ledger.events_dir()).unwrap() {
+        let path = db.ledger.events_dir().join(&file);
+        let u_rows = files::read_rows(&path, Some("u")).unwrap();
+        assert!(
+            u_rows.is_empty(),
+            "u still in {file}: {} rows",
+            u_rows.len()
+        );
+    }
+    assert_eq!(
+        db.events_after("v", 0, i64::MAX)
+            .await
+            .unwrap()
+            .iter()
+            .map(|e| e.id.clone())
+            .collect::<Vec<_>>(),
+        v_all.iter().map(|e| e.id.clone()).collect::<Vec<_>>()
+    );
+    // u's heart rate is gone from the files too.
+    for file in files::list(&db.ledger.beats_dir()).unwrap() {
+        let path = db.ledger.beats_dir().join(&file);
+        assert!(files::read_all_beats(&path, Some("u")).unwrap().is_empty());
+    }
+    // The worklist drained, and with it the tombstone (nothing left to scrub).
+    let pending: i64 = sqlx::query_scalar("SELECT count(*) FROM purge_files")
+        .fetch_one(&db.read_pool)
+        .await
+        .unwrap();
+    assert_eq!(pending, 0, "every captured file was rewritten");
+    let tombstones: i64 = sqlx::query_scalar("SELECT count(*) FROM purged_accounts")
+        .fetch_one(&db.read_pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        tombstones, 0,
+        "the tombstone is dropped once scrubbing is done"
+    );
+}
+
 /// A workout whose start was written before the rest (a server stopped
 /// mid-workout writes what it holds): after the restart its sets are still
 /// held for its end, not written one by one as other writes are.

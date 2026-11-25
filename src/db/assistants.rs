@@ -17,6 +17,11 @@ pub const CODE_SECONDS: i64 = 10 * 60;
 pub const ACCESS_SECONDS: i64 = 60 * 60;
 /// How long a refresh token lasts unused; each use replaces it.
 pub const REFRESH_SECONDS: i64 = 60 * 24 * 3600;
+/// A just-rotated refresh token presented again within this long is taken for
+/// a retry of the same request (a lost response, a background+foreground
+/// race), not a leak: it is refused but the grant stands. Past it, a reuse is
+/// treated as a leak and revokes the grant.
+const REUSE_GRACE: i64 = 2 * 60;
 /// The most clients one registration source can leave lying about: past
 /// this, the oldest never used are dropped.
 pub const MAX_CLIENTS: i64 = 10_000;
@@ -233,29 +238,58 @@ impl ServerDb {
         refresh_token: &str,
         client_id: &str,
     ) -> DbResult<Option<Tokens>> {
+        let hash = token_hash(refresh_token);
+        let now = now_unix();
+        // Rotate a live refresh token: mark it used (kept, not deleted, so a
+        // later reuse is caught), stamp when, and issue a fresh pair.
         let grant_id: Option<String> = sqlx::query_scalar(
-            "DELETE FROM assistant_tokens
+            "UPDATE assistant_tokens SET kind = 'refresh_used', used_at = ?
              WHERE token_hash = ? AND kind = 'refresh' AND expires_at > ?
                AND grant_id IN (SELECT grant_id FROM assistant_grants WHERE client_id = ?)
              RETURNING grant_id",
         )
-        .bind(token_hash(refresh_token))
-        .bind(now_unix())
+        .bind(now)
+        .bind(&hash)
+        .bind(now)
         .bind(client_id)
         .fetch_optional(&self.write_pool)
         .await?;
-        let Some(grant_id) = grant_id else {
-            return Ok(None);
-        };
-        let scope: Option<String> =
-            sqlx::query_scalar("SELECT scope FROM assistant_grants WHERE grant_id = ?")
-                .bind(&grant_id)
-                .fetch_optional(&self.write_pool)
-                .await?;
-        match scope {
-            Some(scope) => Ok(Some(self.issue_assistant_tokens(&grant_id, &scope).await?)),
-            None => Ok(None),
+        if let Some(grant_id) = grant_id {
+            let scope: Option<String> =
+                sqlx::query_scalar("SELECT scope FROM assistant_grants WHERE grant_id = ?")
+                    .bind(&grant_id)
+                    .fetch_optional(&self.write_pool)
+                    .await?;
+            return match scope {
+                Some(scope) => Ok(Some(self.issue_assistant_tokens(&grant_id, &scope).await?)),
+                None => Ok(None),
+            };
         }
+        // Not live. If it is a refresh token already rotated away, when it was
+        // rotated tells a retry from a leak: within the grace it is a retry of
+        // the same request (refused, grant stands); past it the real client
+        // holds the current token, so presenting the old one means it leaked —
+        // revoke the whole grant (cascading its tokens) and make them consent
+        // again.
+        let reused: Option<(String, i64)> = sqlx::query_as(
+            "SELECT grant_id, used_at FROM assistant_tokens
+             WHERE token_hash = ? AND kind = 'refresh_used'
+               AND grant_id IN (SELECT grant_id FROM assistant_grants WHERE client_id = ?)",
+        )
+        .bind(&hash)
+        .bind(client_id)
+        .fetch_optional(&self.write_pool)
+        .await?;
+        if let Some((grant_id, used_at)) = reused {
+            if now - used_at >= REUSE_GRACE {
+                sqlx::query("DELETE FROM assistant_grants WHERE grant_id = ?")
+                    .bind(&grant_id)
+                    .execute(&self.write_pool)
+                    .await?;
+                tracing::warn!(%grant_id, "assistant refresh token reused; grant revoked");
+            }
+        }
+        Ok(None)
     }
 
     /// Whose an access token is, and what its grant is called: None when
@@ -437,13 +471,6 @@ mod tests {
             .await
             .unwrap()
             .unwrap();
-        assert_eq!(
-            db.refresh_assistant(&tokens.refresh_token, &client.client_id)
-                .await
-                .unwrap(),
-            None,
-            "a refresh token is spent"
-        );
 
         let grants = db.assistant_grants("u1").await.unwrap();
         assert_eq!(grants.len(), 1);
@@ -462,5 +489,64 @@ mod tests {
             None
         );
         assert!(db.assistant_grants("u1").await.unwrap().is_empty());
+    }
+
+    /// Reusing a refresh token that was already rotated away is a sign it
+    /// leaked: the grant is revoked, so neither the real client nor whoever
+    /// has the stolen token keeps access.
+    #[tokio::test]
+    async fn a_reused_refresh_token_revokes_the_grant() {
+        let db = db().await;
+        let client = db
+            .register_assistant("Claude", &["https://claude.ai/cb".into()])
+            .await
+            .unwrap();
+        let code = db.issue_assistant_code(&consent(&client)).await.unwrap();
+        let taken = db.take_assistant_code(&code).await.unwrap().unwrap();
+        let tokens = db.grant_assistant(&taken).await.unwrap();
+
+        // Rotate once: the old token is now spent, the new one works.
+        let next = db
+            .refresh_assistant(&tokens.refresh_token, &client.client_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(db.assistant_grants("u1").await.unwrap().len(), 1);
+
+        // Present the spent token again right away: refused, but a retry this
+        // quick is not taken for a leak, so the grant stands.
+        assert_eq!(
+            db.refresh_assistant(&tokens.refresh_token, &client.client_id)
+                .await
+                .unwrap(),
+            None,
+            "a reused refresh token is refused"
+        );
+        assert_eq!(
+            db.assistant_grants("u1").await.unwrap().len(),
+            1,
+            "a quick retry does not revoke"
+        );
+
+        // Age the spent token past the grace: now a reuse is a leak.
+        sqlx::query(
+            "UPDATE assistant_tokens SET used_at = used_at - ? WHERE kind = 'refresh_used'",
+        )
+        .bind(super::REUSE_GRACE + 1)
+        .execute(&db.write_pool)
+        .await
+        .unwrap();
+        assert_eq!(
+            db.refresh_assistant(&tokens.refresh_token, &client.client_id)
+                .await
+                .unwrap(),
+            None
+        );
+        assert!(
+            db.assistant_grants("u1").await.unwrap().is_empty(),
+            "a later reuse revokes the whole grant"
+        );
+        // The token handed out before the reuse no longer works either.
+        assert_eq!(db.assistant_access(&next.access_token).await.unwrap(), None);
     }
 }

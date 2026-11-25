@@ -208,6 +208,29 @@ impl ServerDb {
         // On the one write connection: a push already under way lands
         // before it (and goes with it), one after finds no account.
         let mut tx = self.write_pool.begin().await?;
+        // Record the account as purged and note the files that hold its
+        // events, read from the index before the cascade takes it. Deleting
+        // the user makes the account unreadable (its snapshot and index go);
+        // the purge pass later rewrites these files so the rows themselves
+        // leave the shared Parquet.
+        sqlx::query("INSERT OR IGNORE INTO purged_accounts (user_id) VALUES (?)")
+            .bind(user_id)
+            .execute(&mut *tx)
+            .await?;
+        sqlx::query(
+            "INSERT OR IGNORE INTO purge_files (file, kind, user_id)
+             SELECT DISTINCT file, 'events', user_id FROM event_files WHERE user_id = ?",
+        )
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
+        sqlx::query(
+            "INSERT OR IGNORE INTO purge_files (file, kind, user_id)
+             SELECT DISTINCT file, 'beats', user_id FROM heart_rate_files WHERE user_id = ?",
+        )
+        .bind(user_id)
+        .execute(&mut *tx)
+        .await?;
         sqlx::query("DELETE FROM users WHERE id = ?")
             .bind(user_id)
             .execute(&mut *tx)
@@ -569,7 +592,10 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-            if has {
+            // `purged_accounts` and `purge_files` hold the id of a DELETED
+            // account so the ledger can keep scrubbing its rows; their user_id
+            // must outlive the user, so they deliberately have no cascade.
+            if has && table != "purged_accounts" && table != "purge_files" {
                 out.push(table);
             }
         }

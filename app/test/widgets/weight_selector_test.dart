@@ -20,6 +20,9 @@ import 'package:schlift/widgets/common/weight_selector.dart';
 class _NoAccount implements CoreSource {
   @override
   Future<LocalCore> get ready => Completer<LocalCore>().future;
+
+  @override
+  int get generation => 0;
 }
 
 void main() {
