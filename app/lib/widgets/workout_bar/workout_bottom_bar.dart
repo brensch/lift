@@ -197,9 +197,14 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         final justDone = justDoneId.isEmpty || justDoneId == wp.questionSetId
             ? null
             : wp.proposedSetById(justDoneId);
-        final allDone = you.proposedSet == null;
-        // While a set waits on its Easy/Hard answer, the band asks it rather
-        // than showing the state: nothing is "Ready" until it's answered.
+        // A set is still held in the banner -- through its Easy/Hard answer, or
+        // the orange "one less" countdown after it. Until it is behind you the
+        // workout has not moved on: nothing is up next, no first-time card, and
+        // it is not "all done" even if this was the last set.
+        final held = !ended && wp.askingSetId.isNotEmpty;
+        final allDone = you.proposedSet == null && !held;
+        // While the held set is being answered, the band asks the question
+        // rather than showing the state: nothing is "Ready" until it's answered.
         final asking = !ended && wp.questionSetId.isNotEmpty;
 
         return GestureDetector(
@@ -376,11 +381,10 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         onEdit: ended || editBlock == null
                             ? null
                             : () => editExercise(context, wp, editBlock),
-                        // Not while a just-done set is still held in the
-                        // banner (its orange countdown): the first-time card
-                        // must wait until that set is behind you.
+                        // Not while a set is still held in the banner: the
+                        // first-time card waits until that set is behind you.
                         firstTime:
-                            justDone == null &&
+                            !held &&
                             you.proposedSet != null &&
                             wp.firstTimeSetIds.contains(you.proposedSet!.id),
                         question: wp.questionSetId.isEmpty || ended

@@ -50,18 +50,15 @@ class SectionWorkout {
 
   /// Your workout, live: taps start, finish and correct sets.
   factory SectionWorkout.mine(WorkoutProvider wp) {
-    final next = wp.doneTargetSet;
     // A just-done set is held in the banner through its Easy/Hard answer or
-    // the orange "one less" countdown. While it is, nothing is up next: a
-    // question must be answered first, and a first-time set must not light up
-    // (its card would show before the countdown finishes).
-    final heldDone = wp.askingSetId.isNotEmpty;
-    final nextFirstTime = next != null && wp.firstTimeSetIds.contains(next.id);
-    final hideNext = wp.questionSetId.isNotEmpty || (heldDone && nextFirstTime);
+    // the orange "one less" countdown after it. While it is, the workout has
+    // not moved on: nothing is up next, so no circle is highlighted until that
+    // set is behind you.
+    final held = wp.askingSetId.isNotEmpty;
     return SectionWorkout(
       completedSets: wp.completedSets,
       liftingSetId: wp.workout?.liftingSetId ?? '',
-      nextSetId: hideNext ? null : next?.id,
+      nextSetId: held ? null : wp.doneTargetSet?.id,
       questionSetId: wp.questionSetId,
       state: stateAt(wp.stateSnapshot, wp.now.millisecondsSinceEpoch ~/ 1000),
       passedWarmupIds: {
