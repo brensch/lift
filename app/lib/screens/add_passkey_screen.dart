@@ -5,7 +5,7 @@ import 'package:passkeys/exceptions.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/copy.dart';
-import '../providers/auth_provider.dart' show formatAuthError;
+import '../providers/auth_provider.dart' show AuthProvider, formatAuthError;
 import '../services/auth_service.dart';
 import '../theme/theme_spec.dart';
 
@@ -19,6 +19,9 @@ class AddPasskeyScreen extends StatefulWidget {
 class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
   final _nameController = TextEditingController();
   bool _isSubmitting = false;
+  // Step one re-proves the passkey; only then does step two (naming and adding
+  // the new passkey) show. A held session alone can't enrol a new credential.
+  bool _unlocked = false;
   String? _error;
 
   @override
@@ -27,21 +30,36 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  Future<void> _unlock() async {
+    setState(() {
+      _isSubmitting = true;
+      _error = null;
+    });
+    try {
+      await context.read<AuthProvider>().reauthenticate();
+      if (!mounted) return;
+      setState(() => _unlocked = true);
+    } on PasskeyAuthCancelledException {
+      return;
+    } catch (e) {
+      if (mounted) setState(() => _error = formatAuthError(e));
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  Future<void> _add() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
       setState(() => _error = copy.addPasskey.nameRequired);
       return;
     }
-
     setState(() {
       _isSubmitting = true;
       _error = null;
     });
-
     try {
-      final authService = context.read<AuthService>();
-      await authService.addPasskey(name);
+      await context.read<AuthService>().addPasskey(name);
       if (!mounted) return;
       context.pop(true);
     } on PasskeyAuthCancelledException {
@@ -64,21 +82,22 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
           padding: const EdgeInsets.all(16),
           children: [
             Text(
-              copy.addPasskey.body,
+              _unlocked ? copy.addPasskey.body : copy.addPasskey.unlockBody,
               style: TextStyle(color: colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              autofocus: true,
-              enabled: !_isSubmitting,
-              decoration: InputDecoration(
-                labelText: copy.addPasskey.name,
-                hintText: copy.addPasskey.nameHint,
+            if (_unlocked)
+              TextField(
+                controller: _nameController,
+                autofocus: true,
+                enabled: !_isSubmitting,
+                decoration: InputDecoration(
+                  labelText: copy.addPasskey.name,
+                  hintText: copy.addPasskey.nameHint,
+                ),
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _add(),
               ),
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _submit(),
-            ),
             if (_error != null) ...[
               const SizedBox(height: 12),
               Container(
@@ -98,9 +117,13 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
             ],
             const SizedBox(height: 16),
             FilledButton(
-              onPressed: _isSubmitting ? null : _submit,
+              onPressed: _isSubmitting ? null : (_unlocked ? _add : _unlock),
               child: Text(
-                _isSubmitting ? copy.addPasskey.adding : copy.addPasskey.submit,
+                _isSubmitting
+                    ? copy.addPasskey.adding
+                    : (_unlocked
+                          ? copy.addPasskey.submit
+                          : copy.addPasskey.unlockButton),
               ),
             ),
           ],

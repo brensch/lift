@@ -265,12 +265,15 @@ impl ServerDb {
             .bind(now)
             .execute(&mut *tx)
             .await?;
-        sqlx::query("INSERT INTO logins (token_hash, user_id, expires_at) VALUES (?, ?, ?)")
-            .bind(token_hash(&token))
-            .bind(user_id)
-            .bind(now + LOGIN_SECONDS)
-            .execute(&mut *tx)
-            .await?;
+        sqlx::query(
+            "INSERT INTO logins (token_hash, user_id, expires_at, created_at) VALUES (?, ?, ?, ?)",
+        )
+        .bind(token_hash(&token))
+        .bind(user_id)
+        .bind(now + LOGIN_SECONDS)
+        .bind(now)
+        .execute(&mut *tx)
+        .await?;
         tx.commit().await?;
         Ok(token)
     }
@@ -314,6 +317,20 @@ impl ServerDb {
             return Ok(Some((user_id, now + LOGIN_SECONDS)));
         }
         Ok(Some((user_id, expires_at)))
+    }
+
+    /// The user a valid login belongs to, with when the login was created —
+    /// for the sensitive actions that require a recently-proved passkey
+    /// (`authed_fresh_user_id`). None if the login is unknown or expired.
+    pub async fn login_user_and_created(&self, token: &str) -> DbResult<Option<(String, i64)>> {
+        let now = now_unix();
+        Ok(sqlx::query_as(
+            "SELECT user_id, created_at FROM logins WHERE token_hash = ? AND expires_at > ?",
+        )
+        .bind(token_hash(token))
+        .bind(now)
+        .fetch_optional(&self.read_pool)
+        .await?)
     }
 
     /// When one of the user's logins was last used, to within a day (a
@@ -544,6 +561,32 @@ mod tests {
             .unwrap();
         assert_eq!(db.validate_auth_session(&token).await.unwrap(), None);
         assert!(expiry().await < now_unix());
+    }
+
+    /// A login remembers when it was minted, for the step-up on sensitive
+    /// actions (`authed_fresh_user_id`): the server allows them only on a
+    /// recently-created login.
+    #[tokio::test]
+    async fn a_login_remembers_when_it_was_created() {
+        let db = temp_db().await;
+        db.create_user_with_id("u", "u").await.unwrap();
+        let token = db.create_auth_session("u").await.unwrap();
+        let (user, created) = db.login_user_and_created(&token).await.unwrap().unwrap();
+        assert_eq!(user, "u");
+        assert!((now_unix() - created).abs() <= 2, "stamped at creation");
+        // Aged: still returned (the freshness call is the server's), old time.
+        sqlx::query("UPDATE logins SET created_at = ? WHERE token_hash = ?")
+            .bind(now_unix() - 10 * 60)
+            .bind(token_hash(&token))
+            .execute(&db.write_pool)
+            .await
+            .unwrap();
+        let (_, old) = db.login_user_and_created(&token).await.unwrap().unwrap();
+        assert!(
+            now_unix() - old >= 10 * 60,
+            "an old login reports its old age"
+        );
+        assert!(db.login_user_and_created("nope").await.unwrap().is_none());
     }
 
     #[tokio::test]

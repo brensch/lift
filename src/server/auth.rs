@@ -362,7 +362,7 @@ impl AuthService for ServerAuthService {
         &self,
         request: Request<AddPasskeyStartRequest>,
     ) -> Result<Response<AddPasskeyStartResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
+        let user_id = authed_fresh_user_id(&request, &self.db).await?;
         info!(rpc = "AddPasskeyStart", %user_id, "request");
         let user = self
             .db
@@ -462,7 +462,7 @@ impl AuthService for ServerAuthService {
         &self,
         request: Request<DeleteAccountRequest>,
     ) -> Result<Response<DeleteAccountResponse>, Status> {
-        let user_id = authed_user_id(&request, &self.db).await?;
+        let user_id = authed_fresh_user_id(&request, &self.db).await?;
         info!(rpc = "DeleteAccount", %user_id, "request");
         self.db
             .delete_user_account_and_data(&user_id)

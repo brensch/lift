@@ -161,6 +161,22 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Re-prove the passkey to mint a fresh session, as a step-up right before a
+  /// sensitive action (adding a passkey). Unlike [passkeyLogin] this rethrows,
+  /// so the caller can abort the action if the person cancels or it fails.
+  Future<void> reauthenticate() async {
+    final expected = _userId;
+    final response = await _authService.passkeyLogin();
+    // The step-up must be the SAME account. A passkey for a different account
+    // (mis-picked, or offered by a password manager) must not quietly switch
+    // who is signed in and act on the wrong account.
+    if (expected != null && response.userId != expected) {
+      throw Exception('That passkey is for a different account.');
+    }
+    await _saveSession(response);
+    notifyListeners();
+  }
+
   /// Signs out of this phone at once; the server is told after, best
   /// effort, so a bad connection doesn't hold it up.
   Future<void> logout() async {

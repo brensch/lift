@@ -97,6 +97,38 @@ pub(super) async fn authed_user_id<T>(request: &Request<T>, db: &ServerDb) -> Se
         })
 }
 
+/// How recently the person must have proved a passkey for a sensitive action.
+/// The app re-runs the passkey ceremony (which mints a fresh login) right
+/// before adding a passkey or deleting the account, so this only has to cover
+/// the moment between that and the call.
+const STEP_UP_SECONDS: i64 = 5 * 60;
+
+/// The user, but only when their login was minted recently — a step-up for the
+/// sensitive actions (adding a passkey, deleting the account). A held session
+/// token alone is not enough; the app re-proves the passkey first. A valid but
+/// stale login returns `failed_precondition` so the app knows to re-prove,
+/// told apart from an outright-invalid token (`unauthenticated`).
+pub(super) async fn authed_fresh_user_id<T>(
+    request: &Request<T>,
+    db: &ServerDb,
+) -> ServerResult<String> {
+    check_app_version(request)?;
+    let token = session_token(request).ok_or_else(|| {
+        tracing::warn!(rpc_auth = "missing_token", "auth failed: no session token");
+        Status::unauthenticated("Missing session token")
+    })?;
+    let (user_id, created_at) = db
+        .login_user_and_created(token)
+        .await
+        .map_err(internal_error)?
+        .ok_or_else(|| Status::unauthenticated("Invalid session token"))?;
+    if now_unix() - created_at > STEP_UP_SECONDS {
+        tracing::info!(rpc_auth = "stale_for_step_up", %user_id, "step-up needed");
+        return Err(Status::failed_precondition("Reauthenticate to continue").into());
+    }
+    Ok(user_id)
+}
+
 /// The admin gate. Like `authed_user_id` this is not middleware: every admin
 /// handler calls it at the top. Being an admin is on the user's row
 /// (`users.admin_since`), so a re-registered username never inherits it.
