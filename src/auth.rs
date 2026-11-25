@@ -125,9 +125,6 @@ fn refused(what: &str, error: WebauthnError) -> Refusal {
 /// The credential id as a passkey's own JSON spells it (base64url): what
 /// `passkeys.credential_id` holds.
 pub fn credential_key(id: &CredentialID) -> String {
-    // webauthn-rs 0.6 made CredentialID raw bytes; 0.5 serialized it as a
-    // base64url JSON string. Encode the same URL-safe, unpadded base64 so
-    // passkeys.credential_id keeps its format and existing rows still match.
     let bytes: &[u8] = id.as_ref();
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
 }
@@ -830,10 +827,7 @@ fn client_data(cred: &PublicKeyCredential) -> (Option<String>, Option<String>) {
     (field("challenge"), field("origin"))
 }
 
+/// The challenge as base64url, for the `issued_challenge` diagnostic log field.
 fn encode_challenge(challenge: &[u8]) -> String {
-    // webauthn-rs 0.6 exposes the challenge as raw bytes (0.5 wrapped it in
-    // Base64UrlSafeData, which serialized as URL-safe unpadded base64). Produce
-    // that same string so it still matches the challenge the client echoes back
-    // in clientDataJSON.
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(challenge)
 }
