@@ -321,6 +321,43 @@ async fn a_snapshot_by_other_rules_is_folded_again_from_the_files() {
 }
 
 #[tokio::test]
+async fn a_refold_on_open_saves_the_snapshot_under_the_new_fold() {
+    // A fold change (any deploy bumps schlift_core::FOLD) leaves every snapshot
+    // stale. The first open re-folds from the files; it must then save that so
+    // the next open reads the snapshot, not the files, again.
+    let dir = dir();
+    let db = open(&dir, holding()).await;
+    let mut phone = Phone::new();
+    let events = phone.workout(now_unix() - 3600, 2, true);
+    db.buffer_events("u", events.clone(), true).await.unwrap();
+    written(&db, events.len() as i64).await;
+    let pool = sqlx::SqlitePool::connect(&format!("sqlite://{}/server.sqlite", dir.display()))
+        .await
+        .unwrap();
+    sqlx::query("UPDATE account_snapshots SET fold = 'an older core'")
+        .execute(&pool)
+        .await
+        .unwrap();
+    // The open re-folds the stale snapshot and writes it back with this fold.
+    let (state, _, _) = db.snapshot_now("u").await.unwrap();
+    assert_eq!(
+        schlift_core::snapshot::restore(&state).unwrap().0,
+        Account::fold_without_heart_rate(&events),
+    );
+    let saved: String =
+        sqlx::query_scalar("SELECT fold FROM account_snapshots WHERE user_id = 'u'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+    assert_eq!(
+        saved,
+        schlift_core::FOLD,
+        "the re-fold was saved under the current fold, so the next open won't read the files"
+    );
+    pool.close().await;
+}
+
+#[tokio::test]
 async fn a_push_to_an_account_that_isnt_there_fails() {
     let db = open(&dir(), holding()).await;
     let mut phone = Phone::new();
