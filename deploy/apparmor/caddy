@@ -32,6 +32,8 @@ profile caddy /usr/bin/caddy flags=(attach_disconnected) {
   /opt/schlift-dev/web/ r,
   /opt/schlift-dev/web/** r,
 
+  # systemd readiness/notify socket (Type=notify).
+  /run/systemd/notify w,
   # The Go runtime reads its cgroup memory limit (GOMEMLIMIT) and machine id.
   /etc/machine-id r,
   @{sys}/fs/cgroup/** r,
