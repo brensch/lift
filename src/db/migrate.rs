@@ -112,6 +112,14 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 11 {
+        let mut tx = pool.begin().await?;
+        v11(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 11")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     // A step that moves events (as v6 did) leaves snapshots folded from the
     // events as they were: any step run marks them by no rules, so each is
     // folded again from the event files when next used. Never deleted: an
@@ -126,7 +134,7 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
 }
 
 /// The version the steps above bring a database to: a new step moves it.
-const LATEST: i64 = 10;
+const LATEST: i64 = 11;
 
 /// A login token as stored: its SHA-256, so the table never holds a token
 /// that would let someone in.
@@ -640,6 +648,36 @@ async fn v10(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
              -- schlift_core::snapshot, without heart rate.
              state BLOB NOT NULL
          );",
+    )
+    .execute(&mut **tx)
+    .await?;
+    Ok(())
+}
+
+/// Erasing a deleted account's events from the files.
+///
+/// Deleting the user cascades its index (`event_files`, `heart_rate_files`)
+/// and its snapshot away, so nothing can read the account any more — but the
+/// rows themselves sit on in the shared Parquet until a file is rewritten.
+///
+/// - `purged_accounts`: the ids of deleted accounts. A merge drops their rows
+///   (they are no longer in `users`), so recompaction erases them. Kept for
+///   good; the set is small and a lookup is cheap, and it guards against a
+///   stray old file ever being read again.
+/// - `purge_files`: the files that held a just-deleted account, captured from
+///   the index before the cascade took it. A purge pass rewrites each so even
+///   files normal compaction would never revisit lose the rows, then clears
+///   the row.
+async fn v11(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS purged_accounts (
+             user_id TEXT PRIMARY KEY
+         ) WITHOUT ROWID;
+         CREATE TABLE IF NOT EXISTS purge_files (
+             file TEXT NOT NULL,
+             kind TEXT NOT NULL,
+             PRIMARY KEY (file, kind)
+         ) WITHOUT ROWID;",
     )
     .execute(&mut **tx)
     .await?;

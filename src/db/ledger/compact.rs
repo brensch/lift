@@ -16,7 +16,7 @@
 //! again (and is removed when it is). One merge at a time, at low priority.
 
 use std::cmp::Reverse;
-use std::collections::{BTreeMap, BinaryHeap};
+use std::collections::{BTreeMap, BinaryHeap, HashSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
@@ -116,7 +116,29 @@ fn plan(listing: &[String], now_ms: i64) -> Vec<(PathBuf, Vec<String>)> {
     merges
 }
 
-/// One pass: every closed hour and day merged.
+/// The ids of accounts that have been deleted: a merge drops their rows.
+async fn purged(ledger: &Ledger) -> DbResult<HashSet<String>> {
+    Ok(
+        sqlx::query_scalar::<_, String>("SELECT user_id FROM purged_accounts")
+            .fetch_all(&ledger.read_pool)
+            .await?
+            .into_iter()
+            .collect(),
+    )
+}
+
+/// An output path in the same partition as `file`, stamped to be unique.
+fn rewrite_output(file: &str, stamp: i64) -> Option<PathBuf> {
+    let (date, hour) = files::partition_of(file);
+    let date = date?;
+    Some(match hour {
+        Some(hour) => PathBuf::from(format!("date={date}/hour={hour}/h-{stamp:013}.parquet")),
+        None => PathBuf::from(format!("date={date}/d-{stamp:013}.parquet")),
+    })
+}
+
+/// One pass: every closed hour and day merged, then deleted accounts' rows
+/// erased from the files that still hold them.
 pub async fn compact(ledger: &Ledger, now_ms: i64) -> DbResult<()> {
     let events_dir = ledger.events_dir();
     let listing = {
@@ -133,6 +155,45 @@ pub async fn compact(ledger: &Ledger, now_ms: i64) -> DbResult<()> {
     };
     for (output, inputs) in plan(&listing, now_ms) {
         merge_beats(ledger, &output, &inputs).await?;
+    }
+    purge(ledger, now_ms).await?;
+    Ok(())
+}
+
+/// Rewrite every file a deleted account left rows in, dropping them, so the
+/// rows leave the shared files even where normal compaction would never
+/// revisit. Merging a file (above) clears its `purge_files` row; the rest are
+/// the files only a deletion marked, rewritten one at a time here.
+async fn purge(ledger: &Ledger, now_ms: i64) -> DbResult<()> {
+    for (kind, dir) in [
+        ("events", ledger.events_dir()),
+        ("beats", ledger.beats_dir()),
+    ] {
+        let files: Vec<String> =
+            sqlx::query_scalar("SELECT file FROM purge_files WHERE kind = ? ORDER BY file")
+                .bind(kind)
+                .fetch_all(&ledger.read_pool)
+                .await?;
+        for (i, file) in files.iter().enumerate() {
+            if !dir.join(file).exists() {
+                // Already merged away: the rows are gone with the file.
+                sqlx::query("DELETE FROM purge_files WHERE file = ? AND kind = ?")
+                    .bind(file)
+                    .bind(kind)
+                    .execute(&ledger.write_pool)
+                    .await?;
+                continue;
+            }
+            let Some(output) = rewrite_output(file, now_ms + i as i64) else {
+                continue;
+            };
+            let inputs = [file.clone()];
+            if kind == "events" {
+                merge_events(ledger, &output, &inputs).await?;
+            } else {
+                merge_beats(ledger, &output, &inputs).await?;
+            }
+        }
     }
     Ok(())
 }
@@ -163,7 +224,8 @@ fn merge_rows(
     dir: &Path,
     inputs: &[String],
     output: &Path,
-) -> std::io::Result<(i64, Vec<files::Span>)> {
+    purged: &HashSet<String>,
+) -> std::io::Result<(i64, Vec<files::Span>, i64)> {
     let mut cursors: Vec<RowCursor> = inputs
         .iter()
         .map(|f| RowCursor::open(&dir.join(f)))
@@ -177,6 +239,7 @@ fn merge_rows(
     let mut writer = EventsWriter::create(&dir.join(output), LEVEL)?;
     let mut spans: Vec<files::Span> = Vec::new();
     let mut last: Option<(String, i64)> = None;
+    let mut dropped: i64 = 0;
     while let Some(Reverse(Next(row, i))) = heap.pop() {
         if let Some(next) = cursors[i].next_row()? {
             heap.push(Reverse(Next(next, i)));
@@ -186,6 +249,11 @@ fn merge_rows(
             continue;
         }
         last = Some((row.user_id.clone(), row.seq));
+        // A deleted account's rows leave the files here.
+        if purged.contains(&row.user_id) {
+            dropped += 1;
+            continue;
+        }
         match spans.last_mut() {
             Some(span) if span.user_id == row.user_id => {
                 span.max_seq = row.seq;
@@ -200,30 +268,37 @@ fn merge_rows(
         }
         writer.push(row)?;
     }
-    Ok((writer.finish()?, spans))
+    Ok((writer.finish()?, spans, dropped))
 }
 
 async fn merge_events(ledger: &Ledger, output: &Path, inputs: &[String]) -> DbResult<()> {
     let dir = ledger.events_dir();
-    let (counted, written, spans) = {
+    let purged = purged(ledger).await?;
+    let (counted, written, spans, dropped) = {
         let (dir, inputs, output) = (dir.clone(), inputs.to_vec(), output.to_path_buf());
         tokio::task::spawn_blocking(move || -> DbResult<_> {
             let counted: i64 = inputs
                 .iter()
                 .map(|f| files::row_count(&dir.join(f)))
                 .sum::<std::io::Result<i64>>()?;
-            let (written, spans) = merge_rows(&dir, &inputs, &output)?;
-            Ok((counted, written, spans))
+            let (written, spans, dropped) = merge_rows(&dir, &inputs, &output, &purged)?;
+            Ok((counted, written, spans, dropped))
         })
         .await??
     };
-    if written != counted {
+    if written + dropped != counted {
         let _ = std::fs::remove_file(dir.join(output));
         return Err(format!(
-            "merging into {}: {written} rows written, {counted} read",
+            "merging into {}: {written} written + {dropped} dropped, {counted} read",
             output.display()
         )
         .into());
+    }
+    // A purged account's rows left with this merge (dropped), or there were
+    // none left to drop: either way these inputs no longer need purging.
+    if written == 0 {
+        // Nothing survived: don't leave an empty file or index it.
+        let _ = std::fs::remove_file(dir.join(output));
     }
     let output = output.to_string_lossy().into_owned();
     let mut tx = ledger.write_pool.begin().await?;
@@ -251,29 +326,42 @@ async fn merge_events(ledger: &Ledger, output: &Path, inputs: &[String]) -> DbRe
     .bind(serde_json::to_string(&rows)?)
     .execute(&mut *tx)
     .await?;
+    sqlx::query(
+        "DELETE FROM purge_files WHERE kind = 'events'
+             AND file IN (SELECT value FROM json_each(?))",
+    )
+    .bind(serde_json::to_string(inputs)?)
+    .execute(&mut *tx)
+    .await?;
     tx.commit().await?;
-    tracing::info!(file = %output, inputs = inputs.len(), rows = written, "events compacted");
+    tracing::info!(file = %output, inputs = inputs.len(), rows = written, dropped, "events compacted");
     delete_later(dir, inputs.to_vec());
     Ok(())
 }
 
 async fn merge_beats(ledger: &Ledger, output: &Path, inputs: &[String]) -> DbResult<()> {
     let dir = ledger.beats_dir();
-    let (counted, written) = {
+    let purged = purged(ledger).await?;
+    let written = {
         let (dir, inputs, output) = (dir.clone(), inputs.to_vec(), output.to_path_buf());
-        tokio::task::spawn_blocking(move || -> DbResult<(usize, usize)> {
+        tokio::task::spawn_blocking(move || -> DbResult<usize> {
             // A day's heart rate is one row a workout: small enough to sort
             // whole.
             let mut beats: Vec<Beats> = Vec::new();
             for input in &inputs {
                 beats.extend(files::read_all_beats(&dir.join(input), None)?);
             }
-            let counted = beats.len();
+            // A deleted account's heart rate leaves the files here.
+            beats.retain(|b| !purged.contains(&b.user_id));
             beats.sort_by(|a, b| (&a.user_id, &a.workout_id).cmp(&(&b.user_id, &b.workout_id)));
             beats.dedup_by(|a, b| a.user_id == b.user_id && a.workout_id == b.workout_id);
             let written = beats.len();
-            files::write_beats(&dir.join(&output), &beats, LEVEL)?;
-            Ok((counted, written))
+            if written == 0 {
+                let _ = std::fs::remove_file(dir.join(&output));
+            } else {
+                files::write_beats(&dir.join(&output), &beats, LEVEL)?;
+            }
+            Ok(written)
         })
         .await??
     };
@@ -286,8 +374,15 @@ async fn merge_beats(ledger: &Ledger, output: &Path, inputs: &[String]) -> DbRes
     .bind(serde_json::to_string(inputs)?)
     .execute(&mut *tx)
     .await?;
+    sqlx::query(
+        "DELETE FROM purge_files WHERE kind = 'beats'
+             AND file IN (SELECT value FROM json_each(?))",
+    )
+    .bind(serde_json::to_string(inputs)?)
+    .execute(&mut *tx)
+    .await?;
     tx.commit().await?;
-    tracing::info!(file = %output, inputs = inputs.len(), counted, workouts = written, "heart rate compacted");
+    tracing::info!(file = %output, inputs = inputs.len(), workouts = written, "heart rate compacted");
     delete_later(dir, inputs.to_vec());
     Ok(())
 }
