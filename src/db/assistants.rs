@@ -233,29 +233,53 @@ impl ServerDb {
         refresh_token: &str,
         client_id: &str,
     ) -> DbResult<Option<Tokens>> {
+        let hash = token_hash(refresh_token);
+        // Rotate a live refresh token: mark it used (kept, not deleted, so a
+        // later reuse is caught) and issue a fresh pair.
         let grant_id: Option<String> = sqlx::query_scalar(
-            "DELETE FROM assistant_tokens
+            "UPDATE assistant_tokens SET kind = 'refresh_used'
              WHERE token_hash = ? AND kind = 'refresh' AND expires_at > ?
                AND grant_id IN (SELECT grant_id FROM assistant_grants WHERE client_id = ?)
              RETURNING grant_id",
         )
-        .bind(token_hash(refresh_token))
+        .bind(&hash)
         .bind(now_unix())
         .bind(client_id)
         .fetch_optional(&self.write_pool)
         .await?;
-        let Some(grant_id) = grant_id else {
-            return Ok(None);
-        };
-        let scope: Option<String> =
-            sqlx::query_scalar("SELECT scope FROM assistant_grants WHERE grant_id = ?")
-                .bind(&grant_id)
-                .fetch_optional(&self.write_pool)
-                .await?;
-        match scope {
-            Some(scope) => Ok(Some(self.issue_assistant_tokens(&grant_id, &scope).await?)),
-            None => Ok(None),
+        if let Some(grant_id) = grant_id {
+            let scope: Option<String> =
+                sqlx::query_scalar("SELECT scope FROM assistant_grants WHERE grant_id = ?")
+                    .bind(&grant_id)
+                    .fetch_optional(&self.write_pool)
+                    .await?;
+            return match scope {
+                Some(scope) => Ok(Some(self.issue_assistant_tokens(&grant_id, &scope).await?)),
+                None => Ok(None),
+            };
         }
+        // Not live. If it is a refresh token already rotated away, presenting
+        // it means it leaked — the real client holds the current one — so
+        // revoke the whole grant (cascading its tokens) and make them consent
+        // again. The cost is that a retry after a lost response forces a fresh
+        // consent, which is rare and the safe side to err on.
+        let reused: Option<String> = sqlx::query_scalar(
+            "SELECT grant_id FROM assistant_tokens
+             WHERE token_hash = ? AND kind = 'refresh_used'
+               AND grant_id IN (SELECT grant_id FROM assistant_grants WHERE client_id = ?)",
+        )
+        .bind(&hash)
+        .bind(client_id)
+        .fetch_optional(&self.write_pool)
+        .await?;
+        if let Some(grant_id) = reused {
+            sqlx::query("DELETE FROM assistant_grants WHERE grant_id = ?")
+                .bind(&grant_id)
+                .execute(&self.write_pool)
+                .await?;
+            tracing::warn!(%grant_id, "assistant refresh token reused; grant revoked");
+        }
+        Ok(None)
     }
 
     /// Whose an access token is, and what its grant is called: None when
@@ -437,13 +461,6 @@ mod tests {
             .await
             .unwrap()
             .unwrap();
-        assert_eq!(
-            db.refresh_assistant(&tokens.refresh_token, &client.client_id)
-                .await
-                .unwrap(),
-            None,
-            "a refresh token is spent"
-        );
 
         let grants = db.assistant_grants("u1").await.unwrap();
         assert_eq!(grants.len(), 1);
@@ -462,5 +479,49 @@ mod tests {
             None
         );
         assert!(db.assistant_grants("u1").await.unwrap().is_empty());
+    }
+
+    /// Reusing a refresh token that was already rotated away is a sign it
+    /// leaked: the grant is revoked, so neither the real client nor whoever
+    /// has the stolen token keeps access.
+    #[tokio::test]
+    async fn a_reused_refresh_token_revokes_the_grant() {
+        let db = db().await;
+        let client = db
+            .register_assistant("Claude", &["https://claude.ai/cb".into()])
+            .await
+            .unwrap();
+        let code = db.issue_assistant_code(&consent(&client)).await.unwrap();
+        let taken = db.take_assistant_code(&code).await.unwrap().unwrap();
+        let tokens = db.grant_assistant(&taken).await.unwrap();
+
+        // Rotate once: the old token is now spent, the new one works.
+        let next = db
+            .refresh_assistant(&tokens.refresh_token, &client.client_id)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(db.assistant_grants("u1").await.unwrap().len(), 1);
+
+        // Present the spent token again: the grant is revoked.
+        assert_eq!(
+            db.refresh_assistant(&tokens.refresh_token, &client.client_id)
+                .await
+                .unwrap(),
+            None,
+            "a reused refresh token is refused"
+        );
+        assert!(
+            db.assistant_grants("u1").await.unwrap().is_empty(),
+            "and the whole grant is revoked"
+        );
+        // The token handed out before the reuse no longer works either.
+        assert_eq!(db.assistant_access(&next.access_token).await.unwrap(), None);
+        assert_eq!(
+            db.refresh_assistant(&next.refresh_token, &client.client_id)
+                .await
+                .unwrap(),
+            None
+        );
     }
 }

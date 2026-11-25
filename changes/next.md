@@ -9,3 +9,4 @@
 - A sign-in that was already under way when a passkey is removed no longer goes through; the removed key stops working right away.
 - Importing an account copy is safer: a tampered file that would balloon in size is refused, and switching accounts never shows the previous account's data by mistake.
 - On the watch: signing out clears the workout the phone had shared, so a watch can never show the previous account's session, and the phone bounds what it holds from the watch so a flood of messages can't exhaust it.
+- If an AI assistant's refresh token is used after it was already replaced (a sign it leaked), its access is cut off and it has to be reconnected.
