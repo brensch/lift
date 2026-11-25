@@ -23,18 +23,11 @@ export function DeleteAccountPage() {
     setStatus(null);
 
     try {
-      let token: string;
-
-      if (user) {
-        token = user.sessionToken;
-      } else {
-        // Need to authenticate first
-        setStatus({
-          text: "Authenticating with passkey...",
-          type: "info",
-        });
-        token = (await login()).sessionToken;
-      }
+      // Always re-prove the passkey right before this irreversible action,
+      // even when already signed in: the server requires a recently-proved
+      // login, so a held session token alone can't delete the account.
+      setStatus({ text: "Confirm with your passkey…", type: "info" });
+      const token = (await login()).sessionToken;
 
       setStatus({ text: "Deleting your account data...", type: "info" });
 
@@ -75,7 +68,7 @@ export function DeleteAccountPage() {
         {!deleted && (
           <p className="text-muted leading-relaxed">
             {user
-              ? `Signed in as ${user.username}. Click below to permanently delete your account.`
+              ? `Signed in as ${user.username}. You'll confirm with your passkey, then your account is permanently deleted.`
               : "You'll authenticate with a passkey to prove account ownership, then your data will be deleted."}
           </p>
         )}

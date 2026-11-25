@@ -5,7 +5,7 @@ import 'package:passkeys/exceptions.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/copy.dart';
-import '../providers/auth_provider.dart' show formatAuthError;
+import '../providers/auth_provider.dart' show AuthProvider, formatAuthError;
 import '../services/auth_service.dart';
 import '../theme/theme_spec.dart';
 
@@ -41,6 +41,11 @@ class _AddPasskeyScreenState extends State<AddPasskeyScreen> {
 
     try {
       final authService = context.read<AuthService>();
+      // Step-up: re-prove the passkey right before adding one, so a held
+      // session alone can't enrol a new credential. The server requires a
+      // recently-proved login for AddPasskeyStart.
+      await context.read<AuthProvider>().reauthenticate();
+      if (!mounted) return;
       await authService.addPasskey(name);
       if (!mounted) return;
       context.pop(true);

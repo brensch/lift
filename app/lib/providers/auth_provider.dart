@@ -161,6 +161,14 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Re-prove the passkey to mint a fresh session, as a step-up right before a
+  /// sensitive action (adding a passkey). Unlike [passkeyLogin] this rethrows,
+  /// so the caller can abort the action if the person cancels or it fails.
+  Future<void> reauthenticate() async {
+    final response = await _authService.passkeyLogin();
+    await _saveSession(response);
+  }
+
   /// Signs out of this phone at once; the server is told after, best
   /// effort, so a bad connection doesn't hold it up.
   Future<void> logout() async {

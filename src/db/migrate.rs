@@ -128,6 +128,14 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 13 {
+        let mut tx = pool.begin().await?;
+        v13(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 13")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     // A step that moves events (as v6 did) leaves snapshots folded from the
     // events as they were: any step run marks them by no rules, so each is
     // folded again from the event files when next used. Never deleted: an
@@ -142,7 +150,7 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
 }
 
 /// The version the steps above bring a database to: a new step moves it.
-const LATEST: i64 = 12;
+const LATEST: i64 = 13;
 
 /// A login token as stored: its SHA-256, so the table never holds a token
 /// that would let someone in.
@@ -710,6 +718,23 @@ async fn v12(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
     .await?;
     if !has {
         sqlx::query("ALTER TABLE assistant_tokens ADD COLUMN used_at INTEGER NOT NULL DEFAULT 0")
+            .execute(&mut **tx)
+            .await?;
+    }
+    Ok(())
+}
+
+/// When a login was created, so a sensitive action (adding a passkey,
+/// deleting the account) can require one minted recently — the app re-proves
+/// the passkey right before it.
+async fn v13(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    let has: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) > 0 FROM pragma_table_info('logins') WHERE name = 'created_at'",
+    )
+    .fetch_one(&mut **tx)
+    .await?;
+    if !has {
+        sqlx::query("ALTER TABLE logins ADD COLUMN created_at INTEGER NOT NULL DEFAULT 0")
             .execute(&mut **tx)
             .await?;
     }
