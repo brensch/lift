@@ -31,6 +31,9 @@ val wearVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0
 android {
     namespace = "com.brensch.schlift.wear"
     compileSdk = 36
+    // Match the phone module: r28+ aligns any bundled native library to 16 KB
+    // pages, so the watch build never trips Play's 16 KB-device warning.
+    ndkVersion = "28.2.13676358"
 
     defaultConfig {
         applicationId = "com.brensch.schlift"

@@ -28,7 +28,10 @@ if (isReleaseTask && !keystorePropertiesFile.exists()) {
 android {
     namespace = "com.brensch.schlift"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    // Pinned to r28+, which aligns native libraries (the Rust core and any
+    // other .so) to 16 KB pages. Flutter's default NDK is older and triggers
+    // Play's "built with an older NDK, may crash on 16 KB devices" warning.
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
