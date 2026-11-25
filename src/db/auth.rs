@@ -592,7 +592,11 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-            if has {
+            // `purged_accounts` is the one table whose user_id must OUTLIVE the
+            // user: it tombstones a deleted account so the ledger keeps
+            // dropping its rows. So it deliberately has no cascade, and the
+            // deleted id deliberately stays.
+            if has && table != "purged_accounts" {
                 out.push(table);
             }
         }
