@@ -27,6 +27,9 @@ profile schlift /opt/schlift*/releases/*/schlift flags=(attach_disconnected) {
   /opt/schlift*/shared/ r,
   /opt/schlift*/shared/** rwlk,
 
+  # The runtime reads its cgroup limits and the machine id.
+  /etc/machine-id r,
+  @{sys}/fs/cgroup/** r,
   # Reading its own process info; harmless system reads.
   owner /proc/*/cgroup r,
   owner /proc/*/mountinfo r,
