@@ -6,7 +6,7 @@ After=caddy.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/lib/schlift/schlift-tls-sync.sh schlift.com __INSTALL_ROOT__/shared/tls __LIFT_USER__ dev.schlift.com __DEV_INSTALL_ROOT__/shared/tls __LIFT_USER__
+ExecStart=/usr/local/lib/schlift/schlift-tls-sync.sh schlift.com __INSTALL_ROOT__/shared/tls __LIFT_USER__ dev.schlift.com __DEV_INSTALL_ROOT__/shared/tls __DEV_LIFT_USER__
 
 [Install]
 WantedBy=multi-user.target

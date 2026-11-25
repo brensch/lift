@@ -16,8 +16,12 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 INSTALL_ROOT="${INSTALL_ROOT:-/opt/schlift-dev}"
-LIFT_USER="${LIFT_USER:-opc}"
+# The dev backend runs as its own unprivileged user, apart from prod's, so a
+# dev compromise can't reach prod's data or secrets.
+LIFT_USER="${LIFT_USER:-schlift-dev}"
 LIFT_GROUP="${LIFT_GROUP:-${LIFT_USER}}"
+getent passwd "${LIFT_USER}" >/dev/null 2>&1 ||
+	useradd --system --no-create-home --shell /usr/sbin/nologin "${LIFT_USER}"
 SERVICE_NAME="schlift-dev.service"
 UNIT_PATH="/etc/systemd/system/${SERVICE_NAME}"
 HEALTHCHECK_PORT="${HEALTHCHECK_PORT:-50052}"

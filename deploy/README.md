@@ -43,7 +43,13 @@ sudo ./deploy/setup-prod-env.sh
 deploy/puller/install.sh <ssh-host-of-the-box> --token
 ```
 
-4. Trigger the `Backend Deploy` workflow once.
+4. Harden the box (fail2ban + AppArmor):
+
+```bash
+sudo scripts/harden_box.sh
+```
+
+5. Trigger the `Backend Deploy` workflow once.
 
 To change the agent or the scripts it runs, edit them here and re-run
 `deploy/puller/install.sh <ssh-host-of-the-box>` (keeps the token). Fine-grained tokens expire;
@@ -63,6 +69,28 @@ Use `schlift.com` as the shared RP ID and origin to keep Android app association
 
 For iOS passkeys, the backend serves `/.well-known/apple-app-site-association` and `/apple-app-site-association`.
 Set `APPLE_TEAM_ID` for the default `TEAMID.com.brensch.schlift` app identifier, or set `APPLE_APP_IDS` to a comma-separated list if you need multiple Apple app identifiers.
+
+## Hardening
+
+The box is confined in layers, all captured here as code:
+
+- **systemd sandbox** (`deploy/schlift.service`): `ProtectSystem=strict`, an
+  empty `CapabilityBoundingSet=`, `ReadWritePaths` limited to the instance's
+  `shared/`, `RestrictAddressFamilies`, `NoNewPrivileges`, and the rest. A
+  compromised backend can't write the box, gain privileges or reach the kernel.
+- **Separate dev and prod identities**: the dev backend runs as its own
+  unprivileged `schlift-dev` user and prod's `shared/` is `0750`, so a dev
+  compromise can't read prod's data or secrets. The puller's preflight runs an
+  untrusted release candidate as that same per-environment user, never prod's.
+  Set up by `install_schlift_service.sh` and `deploy_schlift_dev.sh`.
+- **fail2ban** (`deploy/fail2ban/jail.local`): bans hosts hammering SSH. Login
+  is key-only anyway; this sheds scanning noise.
+- **AppArmor** (`deploy/apparmor/{schlift,caddy}`): a path-based MAC layer on
+  the backend and Caddy. `harden_box.sh` loads them in **complain** mode (logs,
+  blocks nothing); after a clean `journalctl -g 'apparmor.*DENIED'` over real
+  traffic, `sudo aa-enforce /etc/apparmor.d/schlift /etc/apparmor.d/caddy`.
+
+Re-run `sudo scripts/harden_box.sh` any time to reapply fail2ban and AppArmor.
 
 ## TLS / Reverse Proxy
 

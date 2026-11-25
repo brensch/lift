@@ -12,10 +12,19 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 INSTALL_ROOT="${INSTALL_ROOT:-/opt/schlift}"
 LIFT_USER="${LIFT_USER:-opc}"
 LIFT_GROUP="${LIFT_GROUP:-${LIFT_USER}}"
+# The dev backend's own user, so the cert sync hands dev's certificates to it,
+# not to prod's user.
+DEV_LIFT_USER="${DEV_LIFT_USER:-schlift-dev}"
+getent passwd "${LIFT_USER}" >/dev/null 2>&1 ||
+	useradd --system --no-create-home --shell /usr/sbin/nologin "${LIFT_USER}"
+getent passwd "${DEV_LIFT_USER}" >/dev/null 2>&1 ||
+	useradd --system --no-create-home --shell /usr/sbin/nologin "${DEV_LIFT_USER}"
 UNIT_PATH="/etc/systemd/system/schlift.service"
 TMP_UNIT="$(mktemp)"
 mkdir -p "${INSTALL_ROOT}/releases" "${INSTALL_ROOT}/shared/data"
+# Prod's shared dir holds its data and secrets: only its own user may enter it.
 chown -R "${LIFT_USER}:${LIFT_GROUP}" "${INSTALL_ROOT}"
+chmod 750 "${INSTALL_ROOT}/shared"
 
 sed \
 	-e "s#__INSTALL_ROOT__#${INSTALL_ROOT}#g" \
@@ -43,6 +52,7 @@ rm -f "${INSTALL_ROOT}/shared/schlift-tls-sync.sh"
 sed \
 	-e "s#__INSTALL_ROOT__#${INSTALL_ROOT}#g" \
 	-e "s#__DEV_INSTALL_ROOT__#${DEV_INSTALL_ROOT}#g" \
+	-e "s#__DEV_LIFT_USER__#${DEV_LIFT_USER}#g" \
 	-e "s#__LIFT_USER__#${LIFT_USER}#g" \
 	"${REPO_ROOT}/deploy/schlift-tls-sync.service" >/etc/systemd/system/schlift-tls-sync.service
 install -m 0644 "${REPO_ROOT}/deploy/schlift-tls-sync.path" /etc/systemd/system/schlift-tls-sync.path

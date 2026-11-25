@@ -1,0 +1,13 @@
+# Ban hosts that hammer SSH. Login is key-only (PasswordAuthentication no), so
+# this is mostly to shed scanning noise and slow a persistent prober, not a
+# password defence. Installed to /etc/fail2ban/jail.local.
+[DEFAULT]
+bantime = 1h
+findtime = 10m
+maxretry = 5
+# Never ban the loopback or the box's own metadata range.
+ignoreip = 127.0.0.1/8 ::1
+
+[sshd]
+enabled = true
+mode = aggressive
