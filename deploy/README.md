@@ -43,7 +43,7 @@ sudo ./deploy/setup-prod-env.sh
 deploy/puller/install.sh <ssh-host-of-the-box> --token
 ```
 
-4. Harden the box (fail2ban + AppArmor):
+4. Harden the box (fail2ban):
 
 ```bash
 sudo scripts/harden_box.sh
