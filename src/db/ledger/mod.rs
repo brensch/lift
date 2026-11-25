@@ -1230,9 +1230,37 @@ impl Ledger {
             }
         }
         let (account, seq) = self.base(user_id, false).await?;
+        let active = account.active_workout_id.clone();
         let state =
             tokio::task::spawn_blocking(move || schlift_core::snapshot::snapshot(&account, seq))
                 .await?;
+        // Save the re-fold we just paid for, so the next open reads the
+        // snapshot instead of the files again (a fold change — any deploy —
+        // leaves every snapshot stale until it's rewritten). Only the fold and
+        // the state it produced change; seq, last_id and recent_ids are the
+        // events, not the rules. Guarded to this same stale row — its seq with
+        // an older fold — so a newer write placed meanwhile is never clobbered,
+        // and a row already current is left alone.
+        let saved = sqlx::query(
+            "UPDATE account_snapshots
+                SET state = ?2, fold = ?3, active_workout = ?4, updated_at = ?5
+              WHERE user_id = ?1 AND seq = ?6 AND fold <> ?3",
+        )
+        .bind(user_id)
+        .bind(&state)
+        .bind(schlift_core::FOLD)
+        .bind(&active)
+        .bind(now_unix())
+        .bind(seq)
+        .execute(&self.write_pool)
+        .await
+        .map(|r| r.rows_affected())
+        .unwrap_or(0);
+        if saved > 0 {
+            // The files won't be read again for this account this session; a
+            // reload after a sweep reads the now-current snapshot by its fold.
+            log.lock().await.snapshot_ours = true;
+        }
         Ok((state, seq, last_id))
     }
 
