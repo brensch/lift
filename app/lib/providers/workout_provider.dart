@@ -69,7 +69,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _askedTimer;
 
   /// How long the banner keeps a set just done, from the last tap on it.
-  static const oneLessWindow = Duration(seconds: 5);
+  static const oneLessWindow = Duration(milliseconds: 2500);
 
   /// The timed set whose end has been cued, so it rings once.
   String? _timedSetCued;

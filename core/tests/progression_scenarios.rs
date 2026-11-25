@@ -155,7 +155,8 @@ impl App {
 /// How a scripted lifter answers a full rung's "how many more?".
 #[derive(Clone, Copy, PartialEq)]
 enum Answers {
-    /// Never: the ramp climbs the usual rungs.
+    /// A lifter who doesn't engage with the question: answers "a couple left"
+    /// each time, climbing the usual rungs.
     Never,
     /// One of the three ranges, truthfully from the true max.
     Ranges,
@@ -1121,15 +1122,18 @@ impl<'a> Runner<'a> {
                 }),
             );
             let rest_until = rest_after(&done, &next.id).unwrap_or(t);
-            if next.calibration && self.sc.answers != Answers::Never {
+            if next.calibration {
                 let asked = self.app.workout(t, &id).rung_question_set_id;
                 if asked == next.id {
                     let jump = (self.sc.answers == Answers::Jumps)
                         .then(|| self.jump_lb(ex, next.target_weight, reps))
                         .flatten();
-                    let reps_left = match jump {
-                        Some(_) => RepsLeft::Unspecified,
-                        None => self.reps_left(ex, next.target_weight, reps),
+                    let reps_left = match (self.sc.answers, jump) {
+                        (_, Some(_)) => RepsLeft::Unspecified,
+                        // A lifter who doesn't engage still has to answer now;
+                        // a conservative "a couple left" climbs the usual rung.
+                        (Answers::Never, None) => RepsLeft::TwoToFour,
+                        (_, None) => self.reps_left(ex, next.target_weight, reps),
                     };
                     self.mutate(
                         t + 5,

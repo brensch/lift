@@ -11,3 +11,5 @@
 - On the watch: signing out clears the workout the phone had shared, so a watch can never show the previous account's session, and the phone bounds what it holds from the watch so a flood of messages can't exhaust it.
 - If an AI assistant's refresh token is used after it was already replaced (a sign it leaked), its access is cut off and it has to be reconnected.
 - Behind the scenes, the app, watch, website and server moved to the latest build tools and libraries, so everything stays current, fast and secure. Nothing changes in how you use them.
+- When a new lift is finding your starting weight, each ramp set now waits for you to say how it went: the next set doesn't load until you tap Easy or Hard. Easy takes a bigger jump up and a short 30-second rest; Hard gives you your normal rest before the next try.
+- After a set, the countdown ring on its circle fills twice as fast, and it no longer shows while the "how was that?" question is up — the circle is still tappable there to take a rep off, so a ring would have been misleading.

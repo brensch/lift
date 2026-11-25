@@ -1279,8 +1279,9 @@ mod weight_log {
     /// before it: a set short of its reps caps the max an answer implied.
     #[test]
     fn fewer_reps_on_a_rung_never_plan_heavier() {
+        // Every way to answer a full rung (a bare completion no longer climbs
+        // on its own — the rung waits for one of these).
         let answers = [
-            (RepsLeft::Unspecified, 0.0),
             (RepsLeft::TwoToFour, 0.0),
             (RepsLeft::FivePlus, 0.0),
             (RepsLeft::Unspecified, 40.0),
@@ -1366,7 +1367,16 @@ mod weight_log {
         let started = start(&mut app, &["squat"]);
         let rung1 = started.proposed_sets[0].clone();
         assert!(rung1.calibration);
-        let state = apply(&mut app, complete(&rung1, 5, NOW + 100));
+        apply(&mut app, complete(&rung1, 5, NOW + 100));
+        let state = apply(
+            &mut app,
+            Mutation::AnswerRung(AnswerRungRequest {
+                workout_id: started.id.clone(),
+                proposed_set_id: rung1.id.clone(),
+                reps_left: RepsLeft::FivePlus as i32,
+                jump_lb: 0.0,
+            }),
+        );
         assert_eq!(causes(&state), vec![WeightChangeCause::CalibrationStep]);
         let rung2 = state.proposed_sets[1].clone();
         let state = apply(&mut app, complete(&rung2, 3, NOW + 300));
@@ -1559,12 +1569,24 @@ mod calibration {
         let state = app
             .call()
             .append_workout_mutations(AppendWorkoutMutationsRequest {
-                mutations: vec![complete(&rung1, NOW + 100, 5)],
+                mutations: vec![
+                    complete(&rung1, NOW + 100, 5),
+                    mutation(Mutation::AnswerRung(AnswerRungRequest {
+                        workout_id: rung1.workout_id.clone(),
+                        proposed_set_id: rung1.id.clone(),
+                        reps_left: RepsLeft::FivePlus as i32,
+                        jump_lb: 0.0,
+                    })),
+                ],
             })
             .unwrap()
             .workout_state
             .unwrap();
-        assert_eq!(state.completed_sets[0].rest_until, NOW + 190);
+        assert_eq!(
+            state.completed_sets[0].rest_until,
+            NOW + 130,
+            "easy rests 30 s"
+        );
         let rung2 = state.proposed_sets[1].clone();
         assert!(rung2.calibration);
         assert_eq!(rung2.target_weight, 50.0);
@@ -1644,18 +1666,18 @@ mod calibration {
         };
         let state = batch(&mut app, done(&rung1, 5));
         assert_eq!(state.rung_question_set_id, rung1.id);
-        // Easy (5+): the next rung is re-planned, never under the usual
-        // one, keeping its id.
-        let rung2 = state.proposed_sets[1].clone();
+        assert_eq!(
+            state.proposed_sets.len(),
+            1,
+            "nothing loads until it is answered"
+        );
+        // Easy (5+): the answer loads the next rung.
         let state = batch(&mut app, answer(&rung1, RepsLeft::FivePlus));
-        assert!(state.proposed_sets[1].target_weight >= rung2.target_weight);
+        let rung2 = state.proposed_sets[1].clone();
+        assert!(rung2.calibration, "the next rung loaded");
         assert!(
             state.rung_question_set_id.is_empty(),
             "the question is closed"
-        );
-        assert_eq!(
-            state.proposed_sets[1].id, rung2.id,
-            "the next rung keeps its id"
         );
         let state = batch(&mut app, done(&rung2, 5));
         assert_eq!(state.rung_question_set_id, rung2.id);
@@ -2621,8 +2643,7 @@ fn a_discarded_workout_is_gone() {
 /// One set of `started` done at `at`; returns it as recorded.
 fn one_set(app: &mut App, started: &StartWorkoutResponse, at: i64) -> CompletedSet {
     let set = started.next_up_set.clone().unwrap();
-    let state = app
-        .call()
+    app.call()
         .append_workout_mutations(AppendWorkoutMutationsRequest {
             mutations: vec![mutation(Mutation::CompleteSet(CompleteSetRequest {
                 workout_id: started.id.clone(),
@@ -2630,6 +2651,19 @@ fn one_set(app: &mut App, started: &StartWorkoutResponse, at: i64) -> CompletedS
                 actual_reps: set.target_reps,
                 actual_weight: set.target_weight,
                 completed_at: at,
+            }))],
+        })
+        .unwrap();
+    // A full calibration rung waits for its answer before it rests and the ramp
+    // goes on; answer Easy (a no-op for a non-rung set).
+    let state = app
+        .call()
+        .append_workout_mutations(AppendWorkoutMutationsRequest {
+            mutations: vec![mutation(Mutation::AnswerRung(AnswerRungRequest {
+                workout_id: started.id.clone(),
+                proposed_set_id: set.id.clone(),
+                reps_left: RepsLeft::FivePlus as i32,
+                jump_lb: 0.0,
             }))],
         })
         .unwrap()
@@ -2810,7 +2844,15 @@ mod refused_writes {
         let rung1 = started.proposed_sets[0].clone();
         let state = batch(
             &mut app,
-            vec![complete_set(&rung1, 5, rung1.target_weight, NOW + 100)],
+            vec![
+                complete_set(&rung1, 5, rung1.target_weight, NOW + 100),
+                mutation(Mutation::AnswerRung(AnswerRungRequest {
+                    workout_id: started.id.clone(),
+                    proposed_set_id: rung1.id.clone(),
+                    reps_left: RepsLeft::FivePlus as i32,
+                    jump_lb: 0.0,
+                })),
+            ],
         )
         .workout_state
         .unwrap();
