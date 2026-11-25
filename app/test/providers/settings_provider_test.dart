@@ -2,7 +2,7 @@
 /// and fills in what the account never recorded (plate colours, mostly).
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schlift/gen/workout/v1/settings.pb.dart';
 import 'package:schlift/logic/weight_units.dart';

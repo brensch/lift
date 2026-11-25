@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show ValueListenable;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/toast.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/copy.dart';

@@ -19,9 +19,12 @@ pluginManagement {
 
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
-    id("com.android.application") version "8.11.1" apply false
-    id("org.jetbrains.kotlin.android") version "2.2.20" apply false
-    id("org.jetbrains.kotlin.plugin.compose") version "2.2.20" apply false
+    id("com.android.application") version "9.3.1" apply false
+    // Declared so KGP stays on the buildscript classpath (it aligns
+    // org.jetbrains:annotations for AGP); modules do NOT apply it — AGP 9's
+    // Built-in Kotlin compiles the app. The Compose compiler plugin follows.
+    id("org.jetbrains.kotlin.android") version "2.4.21" apply false
+    id("org.jetbrains.kotlin.plugin.compose") version "2.4.21" apply false
 }
 
 include(":app")

@@ -1,5 +1,5 @@
 import 'dart:async' show unawaited;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../gen/copy.dart';
 import '../theme/theme_spec.dart';
 import 'app_logger.dart';

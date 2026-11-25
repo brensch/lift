@@ -128,7 +128,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credential = await navigator.credentials.get({ publicKey });
       } catch (err) {
         if (err instanceof DOMException && err.name === "NotAllowedError") {
-          throw new Error("Passkey prompt was cancelled or timed out.");
+          throw new Error("Passkey prompt was cancelled or timed out.", {
+            cause: err,
+          });
         }
         throw err;
       }

@@ -1,8 +1,10 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("org.jetbrains.kotlin.android")
+    // AGP 9 Built-in Kotlin manages Kotlin; only the Compose compiler plugin
+    // is still applied explicitly.
     id("org.jetbrains.kotlin.plugin.compose")
 }
 
@@ -30,7 +32,7 @@ val wearVersionName = localProperties.getProperty("flutter.versionName") ?: "1.0
 
 android {
     namespace = "com.brensch.schlift.wear"
-    compileSdk = 36
+    compileSdk = 37
     // Match the phone module: r28+ aligns any bundled native library to 16 KB
     // pages, so the watch build never trips Play's 16 KB-device warning.
     ndkVersion = "28.2.13676358"
@@ -72,12 +74,8 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     buildFeatures {
@@ -104,7 +102,7 @@ dependencies {
     // A transitive dependency drags in kotlin-stdlib 1.9.21 (AIKIDO-2026-550292).
     // Pin it to the Kotlin plugin's own version, past the patched 2.1.0.
     constraints {
-        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.20") {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.4.21") {
             because("AIKIDO-2026-550292: kotlin-stdlib must be >= 2.1.0")
         }
     }
@@ -120,4 +118,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-guava:1.8.1")
     implementation("com.google.protobuf:protobuf-javalite:4.30.2")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_21
+    }
 }

@@ -1,7 +1,7 @@
 /// Throwing a workout away: the prompt that asks first.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../gen/copy.dart';
 import 'confirm_dialog.dart';
 

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../gen/workout/v1/settings.pb.dart';
 import '../logic/user_profile.dart';
 import '../logic/weight_units.dart';

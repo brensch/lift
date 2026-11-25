@@ -4,7 +4,7 @@ library;
 
 import 'dart:math';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../logic/user_profile.dart';
 import '../../../logic/whimsical_emojis.dart';

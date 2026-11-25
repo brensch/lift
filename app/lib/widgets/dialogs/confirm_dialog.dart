@@ -2,7 +2,7 @@
 /// back.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../theme/theme_spec.dart';
 
 /// Whether the person confirmed. Dismissing the dialog counts as no.

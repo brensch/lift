@@ -1,7 +1,7 @@
 /// Shakes its child horizontally on demand. Generic attention effect.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 class HorizontalShaker extends StatefulWidget {
   final Widget child;

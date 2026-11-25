@@ -239,20 +239,22 @@ impl ServerDb {
 
     /// The request, whatever its state.
     pub async fn recovery(&self, request_id: &str) -> DbResult<Option<Recovery>> {
-        let row = sqlx::query(&format!("{RECOVERY_SELECT} WHERE r.request_id = ?"))
-            .bind(now_unix())
-            .bind(request_id)
-            .fetch_optional(&self.read_pool)
-            .await?;
+        let row = sqlx::query(sqlx::AssertSqlSafe(format!(
+            "{RECOVERY_SELECT} WHERE r.request_id = ?"
+        )))
+        .bind(now_unix())
+        .bind(request_id)
+        .fetch_optional(&self.read_pool)
+        .await?;
         Ok(row.as_ref().map(recovery_from))
     }
 
     /// The waiting request that came with `code`, however it was typed.
     pub async fn recovery_by_code(&self, code: &str) -> DbResult<Option<Recovery>> {
         let now = now_unix();
-        let row = sqlx::query(&format!(
+        let row = sqlx::query(sqlx::AssertSqlSafe(format!(
             "{RECOVERY_SELECT} WHERE r.code = ? AND r.status = 'pending' AND r.created_at > ?"
-        ))
+        )))
         .bind(now)
         .bind(stored_code(code))
         .bind(now - RECOVERY_TTL_SECONDS)
@@ -278,10 +280,10 @@ impl ServerDb {
     /// Requests waiting to get into the user's account, newest first.
     pub async fn recoveries_waiting_for(&self, user_id: &str) -> DbResult<Vec<Recovery>> {
         let now = now_unix();
-        let rows = sqlx::query(&format!(
+        let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
             "{RECOVERY_SELECT} WHERE r.user_id = ? AND r.status = 'pending' AND r.created_at > ?
              ORDER BY r.created_at DESC"
-        ))
+        )))
         .bind(now)
         .bind(user_id)
         .bind(now - RECOVERY_TTL_SECONDS)
@@ -294,12 +296,12 @@ impl ServerDb {
     /// oldest first, then the decided, newest first.
     pub async fn list_recoveries(&self) -> DbResult<Vec<Recovery>> {
         let now = now_unix();
-        let rows = sqlx::query(&format!(
+        let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
             "{RECOVERY_SELECT} WHERE r.status != 'pending' OR r.created_at > ?
              ORDER BY r.status != 'pending',
                       CASE WHEN r.status = 'pending' THEN r.created_at ELSE -r.decided_at END
              LIMIT 200"
-        ))
+        )))
         .bind(now)
         .bind(now - RECOVERY_TTL_SECONDS)
         .fetch_all(&self.read_pool)
@@ -367,10 +369,12 @@ impl ServerDb {
         }
         if remove_others {
             for table in ["passkeys", "logins"] {
-                sqlx::query(&format!("DELETE FROM {table} WHERE user_id = ?"))
-                    .bind(&user_id)
-                    .execute(&mut *tx)
-                    .await?;
+                sqlx::query(sqlx::AssertSqlSafe(format!(
+                    "DELETE FROM {table} WHERE user_id = ?"
+                )))
+                .bind(&user_id)
+                .execute(&mut *tx)
+                .await?;
             }
         }
         sqlx::query(

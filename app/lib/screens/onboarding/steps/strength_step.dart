@@ -4,7 +4,7 @@
 /// fits on a bar in the user's unit. Words and creatures in app/copy.yaml.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../gen/copy.dart';
 import '../../../gen/workout/v1/settings.pb.dart';

@@ -74,7 +74,7 @@ pub struct Client {
     channel: Channel,
     metrics: Arc<Metrics>,
     profile: Profile,
-    passkey: WebauthnAuthenticator<SoftPasskey>,
+    passkey: SoftPasskey,
     store: Option<Store>,
     up: Option<mpsc::Sender<SyncRequest>>,
     /// What the server sends, handed over by the stream's reader.
@@ -107,7 +107,7 @@ impl Client {
             channel,
             metrics,
             profile,
-            passkey: WebauthnAuthenticator::new(SoftPasskey::new(true)),
+            passkey: SoftPasskey::new(true),
             store: None,
             up: None,
             down: None,

@@ -5,21 +5,35 @@ edition = "2021"
 
 [dependencies]
 schlift-core = { path = "core" }
-tonic = "0.12.3"
-tonic-web = "0.12.3"
-prost = "0.13.4"
-tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread", "signal"] }
-futures-util = "0.3.31"
-sqlx = { version = "0.8.2", features = ["runtime-tokio", "sqlite"] }
-uuid = { version = "1.11.0", features = ["v4", "fast-rng"] }
-tower-http = { version = "0.6.2", features = ["cors"] }
-axum = "0.7.9"
-http = "1.2.0"
-tokio-stream = "0.1.17"
-webauthn-rs = { version = "0.5", features = ["conditional-ui"] }
+# Upgrading tonic is costly and worth doing deliberately, not for its own sake:
+# 0.14 split prost support into tonic-prost / tonic-prost-build, and we carry a
+# custom codec (src/codec.rs — tiny per-stream buffers so a million idle Sync
+# streams don't each hold 8 KB) that depends on tonic's ProstCodec internals,
+# wired into every generated service via codec_path in build.rs. A major bump
+# means reworking the codec and regenerating. The 0.13/0.14 changelogs show no
+# throughput, latency or per-stream-memory win — only stability fixes and new
+# config knobs — so bump only when a CVE or feature needs it, and keep
+# tonic / tonic-web / tonic-prost / tonic-prost-build in lockstep.
+tonic = "0.14.9"
+tonic-web = "0.14.9"
+tonic-prost = "0.14.9"
+prost = "0.14.6"
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "signal"] }
+futures-util = "0.3.34"
+sqlx = { version = "0.9.1", features = ["runtime-tokio", "sqlite"] }
+uuid = { version = "1.29.3", features = ["v4", "fast-rng"] }
+tower-http = { version = "0.7.1", features = ["cors"] }
+axum = "0.8.9"
+http = "1.5.0"
+tokio-stream = "0.1.19"
+webauthn-rs = { version = "0.6", features = ["conditional-ui"] }
 serde_json = "1"
 url = "2"
 sha2 = "0.10"
+# URL-safe base64 for the WebAuthn challenge echo check (src/auth.rs);
+# webauthn-rs 0.6 hands challenges back as raw bytes. Aligned with the
+# version webauthn-rs itself uses.
+base64 = "0.22"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 # The apps' own TLS listener (src/tls.rs): the certificate Caddy renews.
@@ -28,20 +42,21 @@ rustls-pemfile = "2"
 hyper-util = { version = "0.1", features = ["server-auto", "tokio", "service"] }
 tower = { version = "0.5", features = ["util"] }
 # The event log: each flush is one Parquet file (src/ledger).
-parquet = { version = "54", default-features = false, features = ["arrow", "zstd"] }
-arrow-array = "54"
-arrow-schema = "54"
+parquet = { version = "60", default-features = false, features = ["arrow", "zstd"] }
+arrow-array = "60"
+arrow-schema = "60"
 
 [dev-dependencies]
 http-body-util = "0.1"
 # A software passkey, to run the WebAuthn ceremonies in tests.
-webauthn-authenticator-rs = { version = "0.5", default-features = false, features = ["softpasskey"] }
+webauthn-authenticator-rs = { version = "0.6", default-features = false, features = ["softpasskey"] }
 
 [features]
 test-auth = []
 
 [build-dependencies]
-tonic-build = "0.12.3"
+# 0.14: prost codegen lives in tonic-prost-build (pulls tonic-build itself).
+tonic-prost-build = "0.14.9"
 
 [workspace]
 members = ["core", "app/native", "loadtest", "testkit"]
@@ -50,4 +65,4 @@ members = ["core", "app/native", "loadtest", "testkit"]
 # (glibc's arenas kept a burst of workouts' memory, 4 GB, after it was
 # freed).
 [target.'cfg(not(target_env = "msvc"))'.dependencies]
-tikv-jemallocator = "0.6"
+tikv-jemallocator = "0.7"

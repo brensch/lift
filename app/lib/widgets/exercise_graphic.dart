@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../theme/theme_spec.dart';
 import 'exercise_art/registry.dart';

@@ -924,17 +924,18 @@ mod auth_attempt_tests {
 #[cfg(test)]
 mod ceremony_tests {
     use super::*;
+    use base64::prelude::*;
     use sqlx::Row;
     use url::Url;
     use webauthn_authenticator_rs::softpasskey::SoftPasskey;
     use webauthn_authenticator_rs::WebauthnAuthenticator;
     use webauthn_rs::prelude::{CreationChallengeResponse, RequestChallengeResponse};
 
-    type Device = WebauthnAuthenticator<SoftPasskey>;
+    type Device = SoftPasskey;
 
     fn device() -> Device {
         // Claims user verification, which passkeys require.
-        WebauthnAuthenticator::new(SoftPasskey::new(true))
+        SoftPasskey::new(true)
     }
 
     async fn service() -> ServerAuthService {
@@ -1180,8 +1181,6 @@ mod ceremony_tests {
     /// manager to drop it.
     #[tokio::test]
     async fn a_passkey_no_account_holds_is_said_to_be_unknown() {
-        use webauthn_rs::prelude::Base64UrlSafeData;
-
         let svc = service().await;
         let mut phone = device();
         let (_, ann) = sign_up(&svc, &mut phone, "ann").await;
@@ -1200,7 +1199,7 @@ mod ceremony_tests {
             serde_json::from_str(&sign(&mut phone, &by_name.options_json)).unwrap();
         let handle = Uuid::parse_str(&ann.user_id).unwrap().as_bytes().to_vec();
         answer["response"]["userHandle"] =
-            serde_json::to_value(Base64UrlSafeData::from(handle)).unwrap();
+            serde_json::to_value(BASE64_URL_SAFE_NO_PAD.encode(&handle)).unwrap();
         let usernameless = || async {
             let start = svc
                 .login_start(Request::new(LoginStartRequest { username: None }))
@@ -1247,7 +1246,7 @@ mod ceremony_tests {
     #[tokio::test]
     async fn an_unverified_passkey_is_refused_as_such() {
         let svc = service().await;
-        let mut unverifying: Device = WebauthnAuthenticator::new(SoftPasskey::new(false));
+        let mut unverifying: Device = SoftPasskey::new(false);
         let start = svc
             .register_start(Request::new(RegisterStartRequest {
                 username: "ann".to_string(),
@@ -1368,7 +1367,7 @@ mod ceremony_tests {
             serde_json::from_str(&sign(&mut new_phone, &by_name_options.1)).unwrap();
         let handle = Uuid::parse_str(&ann.user_id).unwrap().as_bytes().to_vec();
         answer["response"]["userHandle"] =
-            serde_json::to_value(webauthn_rs::prelude::Base64UrlSafeData::from(handle)).unwrap();
+            serde_json::to_value(BASE64_URL_SAFE_NO_PAD.encode(&handle)).unwrap();
         let waiting_sign_in = svc
             .login_finish(Request::new(LoginFinishRequest {
                 challenge_id: by_name_options.0,

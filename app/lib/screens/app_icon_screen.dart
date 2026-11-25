@@ -4,7 +4,7 @@
 /// makes it the phone's icon.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../gen/copy.dart';
 import '../services/app_icon.dart';

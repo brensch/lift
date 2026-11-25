@@ -10,3 +10,4 @@
 - Importing an account copy is safer: a tampered file that would balloon in size is refused, and switching accounts never shows the previous account's data by mistake.
 - On the watch: signing out clears the workout the phone had shared, so a watch can never show the previous account's session, and the phone bounds what it holds from the watch so a flood of messages can't exhaust it.
 - If an AI assistant's refresh token is used after it was already replaced (a sign it leaked), its access is cut off and it has to be reconnected.
+- Behind the scenes, the app, watch, website and server moved to the latest build tools and libraries, so everything stays current, fast and secure. Nothing changes in how you use them.

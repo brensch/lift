@@ -2,7 +2,7 @@
 /// weren't saved asks first, however it's closed, a drag down included.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schlift/gen/copy.dart';
 import 'package:schlift/gen/workout/v1/settings.pbenum.dart';

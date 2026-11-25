@@ -108,7 +108,7 @@ fn other(error: impl std::fmt::Display) -> io::Error {
 fn props(level: i32) -> io::Result<WriterProperties> {
     Ok(WriterProperties::builder()
         .set_compression(Compression::ZSTD(ZstdLevel::try_new(level).map_err(other)?))
-        .set_max_row_group_size(ROWS_PER_GROUP)
+        .set_max_row_group_row_count(Some(ROWS_PER_GROUP))
         .build())
 }
 

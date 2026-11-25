@@ -2,7 +2,7 @@
 /// that opens the train-together sheet, with how many are in the session.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../gen/copy.dart';
 import '../theme/app_icons.dart';

@@ -19,7 +19,8 @@
     "erasableSyntaxOnly": false,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "baseUrl": ".",
+    // TypeScript 7 removed `baseUrl`; `paths` now resolve relative to this
+    // tsconfig, so the "@/*" -> "./src/*" mapping needs no baseUrl.
     "paths": {
       "@/*": ["./src/*"]
     }

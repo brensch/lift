@@ -12,7 +12,7 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../tutorial/tutorial_seen.dart';
 import '../../tutorial/tutorial_target.dart';

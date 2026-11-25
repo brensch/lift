@@ -39,7 +39,7 @@ impl ServerDb {
     async fn accounts(&self, only: Option<&str>) -> DbResult<Vec<AccountRow>> {
         const LATEST_VIEW: &str =
             "FROM page_views v WHERE v.user_id = u.id ORDER BY v.entered_at_ms DESC LIMIT 1";
-        let rows = sqlx::query(&format!(
+        let rows = sqlx::query(sqlx::AssertSqlSafe(format!(
             "SELECT u.id, u.username, u.created_at, u.admin_since IS NOT NULL AS is_admin,
                     (SELECT COUNT(*) FROM passkeys p WHERE p.user_id = u.id) AS passkeys,
                     (SELECT COUNT(*) FROM logins l WHERE l.user_id = u.id AND l.expires_at > ?)
@@ -50,7 +50,7 @@ impl ServerDb {
                     COALESCE((SELECT SUM(f.events) FROM event_files f WHERE f.user_id = u.id), 0)
                         AS events
              FROM users u WHERE ? IS NULL OR u.id = ? ORDER BY u.created_at DESC LIMIT ?"
-        ))
+        )))
         .bind(now_unix())
         .bind(only)
         .bind(only)

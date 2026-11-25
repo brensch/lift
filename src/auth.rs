@@ -1,3 +1,4 @@
+use base64::Engine;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Instant;
@@ -124,10 +125,11 @@ fn refused(what: &str, error: WebauthnError) -> Refusal {
 /// The credential id as a passkey's own JSON spells it (base64url): what
 /// `passkeys.credential_id` holds.
 pub fn credential_key(id: &CredentialID) -> String {
-    serde_json::to_value(id)
-        .ok()
-        .and_then(|v| v.as_str().map(str::to_string))
-        .unwrap_or_default()
+    // webauthn-rs 0.6 made CredentialID raw bytes; 0.5 serialized it as a
+    // base64url JSON string. Encode the same URL-safe, unpadded base64 so
+    // passkeys.credential_id keeps its format and existing rows still match.
+    let bytes: &[u8] = id.as_ref();
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
 }
 
 enum AuthChallengeState {
@@ -618,11 +620,15 @@ impl AuthState {
                 // passkey that is gone, or for a sign-up that never
                 // finished: said apart from a bad signature, so the app can
                 // tell the passkey manager to drop it.
+                // webauthn-rs 0.6's finish_discoverable_authentication_v2 takes
+                // the single credential the response names (v1 took the whole
+                // set and matched internally), so find the account passkey whose
+                // id the device presented.
                 let presented: &[u8] = cred.raw_id.as_ref();
-                if !passkeys.iter().any(|pk| {
-                    let held: &[u8] = pk.cred_id().as_ref();
-                    held == presented
-                }) {
+                let matched = passkeys
+                    .into_iter()
+                    .find(|pk| pk.cred_id().as_ref() as &[u8] == presented);
+                let Some(passkey) = matched else {
                     // It may be one made at /recover and still waiting
                     // (for this account, or for a name nobody holds): then
                     // this is its maker, back for their code.
@@ -642,23 +648,25 @@ impl AuthState {
                     };
                     // Only for a signature the held passkey really made.
                     self.webauthn
-                        .finish_discoverable_authentication(
+                        .finish_discoverable_authentication_v2(
                             cred,
                             auth_state,
-                            &[DiscoverableKey::from(passkey)],
+                            DiscoverableKey::from(passkey),
                         )
                         .map_err(failed)?;
                     return Ok(SignIn::AwaitingApproval { request_id });
-                }
+                };
 
-                let discoverable_keys: Vec<DiscoverableKey> =
-                    passkeys.into_iter().map(DiscoverableKey::from).collect();
                 let result = self
                     .webauthn
-                    .finish_discoverable_authentication(cred, auth_state, &discoverable_keys)
+                    .finish_discoverable_authentication_v2(
+                        cred,
+                        auth_state,
+                        DiscoverableKey::from(passkey),
+                    )
                     .map_err(failed)?;
-                // The discoverable path already matched the credential against
-                // a fresh read of the account's passkeys above.
+                // The discoverable path matched the credential against a fresh
+                // read of the account's passkeys above.
                 (result, user_id, true)
             }
             AuthChallengeState::Passkey { state, user_id } => {
@@ -822,9 +830,10 @@ fn client_data(cred: &PublicKeyCredential) -> (Option<String>, Option<String>) {
     (field("challenge"), field("origin"))
 }
 
-fn encode_challenge(challenge: &Base64UrlSafeData) -> String {
-    serde_json::to_string(challenge)
-        .unwrap_or_else(|_| "\"<serialization-failed>\"".to_string())
-        .trim_matches('"')
-        .to_string()
+fn encode_challenge(challenge: &[u8]) -> String {
+    // webauthn-rs 0.6 exposes the challenge as raw bytes (0.5 wrapped it in
+    // Base64UrlSafeData, which serialized as URL-safe unpadded base64). Produce
+    // that same string so it still matches the challenge the client echoes back
+    // in clientDataJSON.
+    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(challenge)
 }

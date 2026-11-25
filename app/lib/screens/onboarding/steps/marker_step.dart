@@ -1,7 +1,7 @@
 /// Onboarding step 1: pick a profile emoji and colour.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../gen/copy.dart';
 import '../../../logic/user_profile.dart';

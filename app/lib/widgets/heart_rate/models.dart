@@ -5,7 +5,7 @@ library;
 import 'dart:math';
 
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../gen/workout/v1/wearable.pb.dart';
 import '../../gen/workout/v1/workout.pb.dart';
