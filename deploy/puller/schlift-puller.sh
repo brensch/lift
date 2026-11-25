@@ -26,6 +26,13 @@ ENVIRONMENTS="${ENVIRONMENTS:-production dev dev-apk}"
 
 log() { printf '%s %s\n' "$(date -u +%FT%TZ)" "$*"; }
 
+# A locked-down system account for a backend to run as: no login, no home, no
+# shell. Idempotent, so every deploy can call it.
+ensure_service_user() { # ensure_service_user NAME
+	getent passwd "$1" >/dev/null 2>&1 ||
+		useradd --system --no-create-home --shell /usr/sbin/nologin "$1"
+}
+
 [[ "${EUID}" -eq 0 ]] || {
 	echo "run as root" >&2
 	exit 1
@@ -83,8 +90,8 @@ fetch_artifacts() { # fetch_artifacts RUN_ID DEST NAME...
 
 # Start a build on a spare port against a consistent copy of the live database:
 # its migrations must apply and its health check must pass before anything live changes.
-preflight() { # preflight BINARY INSTALL_ROOT PORT
-	local bin="$1" root="$2" port="$3" dir
+preflight() { # preflight BINARY INSTALL_ROOT PORT [USER]
+	local bin="$1" root="$2" port="$3" user="${4:-opc}" dir
 	# Under /opt, not /var/tmp: with SELinux enforcing (e.g. Oracle Linux) a service may not
 	# execute files labelled tmp_t, which is what /var/tmp gives them.
 	mkdir -p "${HERE}/work"
@@ -99,7 +106,9 @@ src.backup(dst)  # consistent snapshot even while the live server writes
 dst.close(); src.close()
 PY
 	fi
-	# The build sits in a root-only download folder; the preflight runs it as opc.
+	# The build sits in a root-only download folder; the preflight runs it as
+	# the target environment's own service user, so an untrusted release
+	# candidate (dev's especially) can't touch another environment's files.
 	install -m 0755 "${bin}" "${dir}/schlift"
 	bin="${dir}/schlift"
 	# The live env file, with its PORT and DATA_DIR replaced by the spare port and
@@ -114,7 +123,7 @@ PY
 		printf 'PORT=%s\nDATA_DIR=%s\n' "${port}" "${dir}/data"
 	} >"${envfile}"
 	chmod 600 "${envfile}"
-	chown -R opc:opc "${dir}"
+	chown -R "${user}:${user}" "${dir}"
 	# A transient unit with the live unit's user: systemd reads the env file exactly
 	# as it does for the real service.
 	local unit ok=0
@@ -122,7 +131,7 @@ PY
 	systemctl stop "${unit}" 2>/dev/null || true
 	systemctl reset-failed "${unit}" 2>/dev/null || true
 	systemd-run --quiet --collect --unit="${unit}" \
-		-p User=opc -p Group=opc -p WorkingDirectory="${dir}" \
+		-p User="${user}" -p Group="${user}" -p WorkingDirectory="${dir}" \
 		-p EnvironmentFile="${envfile}" "${bin}"
 	local inv
 	inv="$(systemctl show -p InvocationID --value "${unit}")"
@@ -168,7 +177,7 @@ deploy_one() { # deploy_one ENV DEPLOYMENT_JSON WORKDIR
 		local a="${work}/backend-linux-arm64"
 		[[ -f "${a}/schlift.sha256" ]] && (cd "${a}" && sha256sum -c --quiet schlift.sha256)
 		chmod 755 "${a}/schlift"
-		preflight "${a}/schlift" /opt/schlift 50061
+		preflight "${a}/schlift" /opt/schlift 50061 opc
 		apply_caddyfile "${a}/Caddyfile"
 		ARTIFACT_DIR="${a}" WEB_DIR="${work}/web-dist" RELEASE_ID="${rid}" \
 			"${HERE}/scripts/deploy_schlift_release.sh"
@@ -177,8 +186,12 @@ deploy_one() { # deploy_one ENV DEPLOYMENT_JSON WORKDIR
 		local a="${work}/dev-backend-linux-arm64"
 		[[ -f "${a}/schlift.sha256" ]] && (cd "${a}" && sha256sum -c --quiet schlift.sha256)
 		chmod 755 "${a}/schlift"
-		preflight "${a}/schlift" /opt/schlift-dev 50062
-		ARTIFACT_DIR="${a}" RELEASE_ID="${rid}" "${HERE}/scripts/deploy_schlift_dev.sh"
+		# The dev backend runs as its own unprivileged user, kept apart from
+		# prod's: a dev compromise can't read prod's data or secrets.
+		ensure_service_user schlift-dev
+		preflight "${a}/schlift" /opt/schlift-dev 50062 schlift-dev
+		LIFT_USER=schlift-dev ARTIFACT_DIR="${a}" RELEASE_ID="${rid}" \
+			"${HERE}/scripts/deploy_schlift_dev.sh"
 		;;
 	dev-apk)
 		install -m 0644 "${work}/schlift-dev-apk/schlift-dev.apk" /opt/schlift/web/schlift-dev.apk
