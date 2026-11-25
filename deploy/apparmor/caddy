@@ -32,6 +32,9 @@ profile caddy /usr/bin/caddy flags=(attach_disconnected) {
   /opt/schlift-dev/web/ r,
   /opt/schlift-dev/web/** r,
 
+  owner /proc/*/cgroup r,
+  owner /proc/*/mountinfo r,
+  owner /proc/*/mounts r,
   owner /proc/*/stat r,
   owner /proc/*/task/*/comm rw,
 

@@ -28,6 +28,9 @@ profile schlift /opt/schlift*/releases/*/schlift flags=(attach_disconnected) {
   /opt/schlift*/shared/** rwlk,
 
   # Reading its own process info; harmless system reads.
+  owner /proc/*/cgroup r,
+  owner /proc/*/mountinfo r,
+  owner /proc/*/mounts r,
   owner /proc/*/stat r,
   owner /proc/*/task/*/comm rw,
   /sys/kernel/mm/transparent_hugepage/enabled r,
