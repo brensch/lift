@@ -203,7 +203,8 @@ class StatusBox extends StatelessWidget {
     );
 
     // No set in front of them (choosing, or all done): the band says it
-    // all.
+    // all. A set being asked about is still a set here (hidden behind its
+    // question), so the answer always has a row to live in.
     final Widget? body;
     if (set == null) {
       body = null;

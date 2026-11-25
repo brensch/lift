@@ -206,6 +206,10 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         // While the held set is being answered, the band asks the question
         // rather than showing the state: nothing is "Ready" until it's answered.
         final asking = !ended && wp.questionSetId.isNotEmpty;
+        // The set being asked about: present but hidden behind its question, so
+        // the answer always has a row — even on the last set, where there is no
+        // next set to stand in for it.
+        final questioned = asking ? wp.proposedSetById(wp.questionSetId) : null;
 
         return GestureDetector(
           // The banner is the way back to where you're up to: the workout
@@ -366,9 +370,10 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         upNext: iAmNext,
                         timerText: you.timerText,
                         restLeft: you.restLeft,
-                        // A set just done stays a moment, its circle there
-                        // to tap reps off before the next set comes up.
-                        set: justDone ?? you.proposedSet,
+                        // A set just done stays a moment, its circle there to
+                        // tap reps off before the next set comes up; a set being
+                        // asked about anchors the row behind its question.
+                        set: justDone ?? questioned ?? you.proposedSet,
                         plan: wp.proposedSets,
                         circle: justDone != null
                             ? JustDoneCircle(setId: justDone.id)
