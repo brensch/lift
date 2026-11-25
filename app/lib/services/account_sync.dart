@@ -231,7 +231,9 @@ class AccountSync extends ChangeNotifier
       await for (final chunk in File(path).openRead().transform(gzip.decoder)) {
         written += chunk.length;
         if (written > _maxImportBytes) {
-          throw const FormatException('the file unzips to more than is allowed');
+          throw const FormatException(
+            'the file unzips to more than is allowed',
+          );
         }
         sink.add(chunk);
       }
