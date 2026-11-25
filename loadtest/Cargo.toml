@@ -29,12 +29,12 @@ schlift-core = { path = "../core" }
 schlift_native = { path = "../app/native" }
 schlift-testkit = { path = "../testkit" }
 # TLS to reach a server behind Caddy, as phones do.
-tonic = { version = "0.12.3", features = ["tls-webpki-roots"] }
-prost = "0.13.4"
-tokio = { version = "1.42.0", features = ["macros", "rt-multi-thread", "time", "process", "sync", "net", "io-util", "fs"] }
-tokio-stream = "0.1.17"
-webauthn-authenticator-rs = { version = "0.5", default-features = false, features = ["softpasskey"] }
-webauthn-rs-proto = "0.5"
+tonic = { version = "0.14.9", features = ["tls-webpki-roots"] }
+prost = "0.14.6"
+tokio = { version = "1.54.1", features = ["macros", "rt-multi-thread", "time", "process", "sync", "net", "io-util", "fs"] }
+tokio-stream = "0.1.19"
+webauthn-authenticator-rs = { version = "0.6", default-features = false, features = ["softpasskey"] }
+webauthn-rs-proto = "0.6"
 url = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -43,6 +43,6 @@ clap = { version = "4.5", features = ["derive"] }
 rand = "0.8"
 rusqlite = { version = "0.32", features = ["bundled"] }
 sha2 = "0.10"
-parquet = { version = "54", default-features = false, features = ["arrow", "zstd"] }
-arrow-array = "54"
-arrow-schema = "54"
+parquet = { version = "60", default-features = false, features = ["arrow", "zstd"] }
+arrow-array = "60"
+arrow-schema = "60"

@@ -252,9 +252,11 @@ async fn v1(tx: &mut Transaction<'_, Sqlite>) -> DbResult<bool> {
             "auth_attempts",
         ] {
             if table_exists(tx, table).await? {
-                sqlx::query(&format!("ALTER TABLE {table} RENAME TO v0_{table}"))
-                    .execute(&mut **tx)
-                    .await?;
+                sqlx::query(sqlx::AssertSqlSafe(format!(
+                    "ALTER TABLE {table} RENAME TO v0_{table}"
+                )))
+                .execute(&mut **tx)
+                .await?;
             }
         }
     }
@@ -368,7 +370,7 @@ async fn v1(tx: &mut Transaction<'_, Sqlite>) -> DbResult<bool> {
         "user_message_events",
         "user_settings_current",
     ] {
-        sqlx::query(&format!("DROP TABLE IF EXISTS {table}"))
+        sqlx::query(sqlx::AssertSqlSafe(format!("DROP TABLE IF EXISTS {table}")))
             .execute(&mut **tx)
             .await?;
     }

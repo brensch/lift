@@ -296,14 +296,21 @@ pub fn apply_complete_set_to_active(
     } else {
         0
     };
-    let rest_until = rest_until(
-        &workout_ref.program,
-        &proposed,
-        is_final_set_of_exercise,
-        started_at,
-        ended_at,
-        req.actual_reps,
-    );
+    // A full calibration rung holds its rest until the "how was that" answer
+    // sets it (apply_answer_rung_to_active): Easy a short 30 s, Hard the usual.
+    let awaits_answer = proposed.calibration && req.actual_reps >= proposed.target_reps;
+    let rest_until = if awaits_answer {
+        0
+    } else {
+        rest_until(
+            &workout_ref.program,
+            &proposed,
+            is_final_set_of_exercise,
+            started_at,
+            ended_at,
+            req.actual_reps,
+        )
+    };
     workout_ref.workout.lifting_set_id.clear();
     workout_ref.workout.lifting_started_at = 0;
     let completed_set_id = ids.new_id();
@@ -319,8 +326,10 @@ pub fn apply_complete_set_to_active(
         reps_left: RepsLeft::Unspecified as i32,
         jump_lb: 0.0,
     });
-    // A calibration rung settles the moment it's done (`would_append`).
-    if proposed.calibration {
+    // A calibration rung settles when done (`would_append`) — but a full rung
+    // waits for its answer first, so the next rung never loads into the workout
+    // before the person says how it went.
+    if proposed.calibration && !awaits_answer {
         settle_rung(workout_ref, &completed_set_id, unit, ended_at);
     }
     apply_on_miss(workout_ref, &req.proposed_set_id, unit, ended_at);
@@ -577,10 +586,12 @@ fn settle_rung(
     planning::insert_sets_after(workout_ref, &rung.id, appended);
 }
 
-/// A rung's reps were corrected (a rep tapped off after Done): take back
-/// what it appended, and its log entry, and settle it again. Only while
-/// what is pending for the exercise is exactly that append — once one of
-/// those sets is done, or the weight was typed, the plan stands.
+/// Recompute what a calibration rung leads to, after its reps or its answer
+/// changed: take back what it appended and settle it afresh — unless it's a
+/// full rung still waiting for its "how was that" answer, which appends
+/// nothing (the ramp holds there). Only while what is pending for the
+/// exercise is exactly that append (empty while it awaits its answer); once a
+/// set after it is done or the weight was typed, the plan stands.
 fn resettle_rung(
     workout_ref: &mut WorkoutRecord,
     completed_set_id: &str,
@@ -591,19 +602,43 @@ fn resettle_rung(
         return;
     };
     let ours = appended_ids(completed_set_id);
+    // A set this rung appended is lifted or done: the plan was built on it, so
+    // it stands.
+    if append_lifted(workout_ref, &ours) {
+        return;
+    }
     let done = done_set_ids(&workout_ref.completed_sets);
     let pending: Vec<&ProposedSet> = workout_ref
         .proposed_sets
         .iter()
         .filter(|s| s.exercise == rung.exercise && !s.cancelled && !done.contains(s.id.as_str()))
         .collect();
-    if pending.is_empty()
-        || !pending.iter().all(|s| ours.contains(&s.id))
-        || !take_back_append(workout_ref, completed_set_id)
-    {
+    if !pending.iter().all(|s| ours.contains(&s.id)) {
         return;
     }
-    settle_rung(workout_ref, completed_set_id, unit, at);
+    if !pending.is_empty() && !take_back_append(workout_ref, completed_set_id) {
+        return;
+    }
+    if !rung_awaits_answer(workout_ref, completed_set_id) {
+        settle_rung(workout_ref, completed_set_id, unit, at);
+    }
+}
+
+/// A full calibration rung with no answer yet: the ramp holds here (nothing
+/// appended) until the person says how it went — Easy or Hard.
+fn rung_awaits_answer(workout_ref: &WorkoutRecord, completed_set_id: &str) -> bool {
+    let Some(rung) = rung_of(workout_ref, completed_set_id) else {
+        return false;
+    };
+    workout_ref
+        .completed_sets
+        .iter()
+        .find(|c| c.id == completed_set_id && c.ended_at != 0)
+        .is_some_and(|done| {
+            done.actual_reps >= rung.target_reps
+                && done.reps_left == RepsLeft::Unspecified as i32
+                && done.jump_lb == 0.0
+        })
 }
 
 /// The ramp set whose "how many more could you have done?" is open, as a
@@ -630,16 +665,13 @@ pub fn rung_question(workout_ref: &WorkoutRecord) -> Option<String> {
     {
         return None;
     }
-    let next = derived_id(&last.id, 0);
-    let mut pending = workout_ref
+    // The rung hasn't settled yet (nothing appended after it), so the lift has
+    // nothing pending: the ramp waits here for the answer.
+    let nothing_pending = !workout_ref
         .proposed_sets
         .iter()
-        .filter(|s| s.exercise == rung.exercise && !s.cancelled && !done.contains(s.id.as_str()));
-    let only_next = pending
-        .next()
-        .is_some_and(|s| s.id == next && s.calibration)
-        && pending.next().is_none();
-    only_next.then_some(rung.id)
+        .any(|s| s.exercise == rung.exercise && !s.cancelled && !done.contains(s.id.as_str()));
+    nothing_pending.then_some(rung.id)
 }
 
 /// The set whose effort question is open: the last set done, if it has an
@@ -749,7 +781,39 @@ pub fn apply_answer_rung_to_active(
     done.reps_left = req.reps_left;
     done.jump_lb = req.jump_lb;
     let completed_set_id = done.id.clone();
+    // The answer drives the ramp now: append what it calls for, then set the
+    // rest it earns — a short 30 s when it was easy (five-plus reps in
+    // reserve), otherwise the lift's usual rest.
     resettle_rung(workout_ref, &completed_set_id, unit, at);
+    set_rung_rest(workout_ref, &completed_set_id, req.reps_left);
+}
+
+/// A just-answered calibration rung's rest: 30 s when it was easy (five-plus
+/// reps in reserve), otherwise the lift's usual rest.
+fn set_rung_rest(workout_ref: &mut WorkoutRecord, completed_set_id: &str, reps_left: i32) {
+    let Some(rung) = rung_of(workout_ref, completed_set_id) else {
+        return;
+    };
+    let Some((started_at, ended_at)) = workout_ref
+        .completed_sets
+        .iter()
+        .find(|c| c.id == completed_set_id)
+        .map(|c| (c.started_at, c.ended_at))
+    else {
+        return;
+    };
+    let rest_until = if reps_left == RepsLeft::FivePlus as i32 {
+        ended_at + 30
+    } else {
+        usual_rest_until(&workout_ref.program, &rung, false, started_at, ended_at)
+    };
+    if let Some(done) = workout_ref
+        .completed_sets
+        .iter_mut()
+        .find(|c| c.id == completed_set_id)
+    {
+        done.rest_until = rest_until;
+    }
 }
 
 /// Whether `jump_lb` is a jump a rung lifted at `lifted` lb can be
@@ -1669,26 +1733,28 @@ mod tests {
     fn a_full_rung_climbs_ahead_of_the_next_exercise() {
         let mut active = ramp_workout(45.0);
         complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         let done = done_id(&active, "c1");
         let next = &active.proposed_sets[1];
         assert!(next.calibration, "another rung");
-        assert_eq!(next.target_weight, 50.0, "one bar step beats 10% at 45");
+        assert_eq!(next.target_weight, 50.0, "easy climbs");
         assert_eq!(next.id, uuid5(&done, 0), "derived from the done set");
         assert_eq!(
             active.proposed_sets[2].id, "b1",
             "spliced in ahead of bench"
         );
         assert_eq!(
-            active.completed_sets[0].rest_until, 2_090,
-            "a rung rests its own 90 s"
+            active.completed_sets[0].rest_until, 2_030,
+            "easy rests 30 s"
         );
     }
 
     #[test]
-    fn a_big_rung_climbs_ten_percent() {
+    fn a_big_rung_climbs_on_easy() {
         let mut active = ramp_workout(200.0);
         complete(&mut active, "c1", 5, 2_000);
-        assert_eq!(active.proposed_sets[1].target_weight, 220.0);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
+        assert_eq!(active.proposed_sets[1].target_weight, 235.0);
     }
 
     /// A miss ends the ramp: the missed rung, a set to failure, gives the
@@ -1697,8 +1763,9 @@ mod tests {
     fn a_miss_settles_from_the_max_the_rung_shows() {
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         let rung2 = active.proposed_sets[1].id.clone();
-        assert_eq!(active.proposed_sets[1].target_weight, 110.0);
+        assert_eq!(active.proposed_sets[1].target_weight, 115.0);
         complete(&mut active, &rung2, 4, 2_200);
         let done2 = done_id(&active, &rung2);
         let working: Vec<&ProposedSet> = squat_sets(&active)
@@ -1706,10 +1773,9 @@ mod tests {
             .filter(|s| !s.calibration)
             .collect();
         assert_eq!(working.len(), 3, "the decision's sets");
-        // 110 × 4 to failure shows 124.7; the heaviest it covers at 5 is
-        // 101, so 100 × 5.
+        // 115 × 4 to failure shows a higher max; it settles to 105 × 5.
         for (n, set) in working.iter().enumerate() {
-            assert_eq!((set.target_weight, set.target_reps), (100.0, 5));
+            assert_eq!((set.target_weight, set.target_reps), (105.0, 5));
             assert_eq!(set.id, uuid5(&done2, n));
             assert_eq!(set.rest_seconds, 180);
         }
@@ -1717,8 +1783,8 @@ mod tests {
         assert_eq!(
             causes(&active),
             vec![
-                (WeightChangeCause::CalibrationStep, 100.0, 110.0),
-                (WeightChangeCause::CalibrationSettled, 110.0, 100.0),
+                (WeightChangeCause::CalibrationStep, 100.0, 115.0),
+                (WeightChangeCause::CalibrationSettled, 115.0, 105.0),
             ]
         );
     }
@@ -1753,6 +1819,7 @@ mod tests {
                 .unwrap()
                 .clone();
             complete(&mut active, &rung.id, 5, at);
+            answer(&mut active, &rung.id, RepsLeft::FivePlus);
             at += 200;
         }
         let rungs: Vec<f32> = squat_sets(&active)
@@ -1762,7 +1829,9 @@ mod tests {
             .collect();
         assert_eq!(rungs.len(), Program::builtin().calibration.max_rungs);
         let top = *rungs.last().unwrap();
-        let max = Program::builtin().estimate.shown_max(top, 5, 1.0, 1, false);
+        // The last rung was answered Easy (five-plus reps left), so it settles
+        // from that reserve, not a full rung's.
+        let max = Program::builtin().estimate.shown_max(top, 5, 8.0, 1, false);
         let (weight, reps) = Program::builtin().choose(
             "squat",
             max,
@@ -1895,10 +1964,11 @@ mod tests {
         let rung2 = pending_rung(&active).unwrap();
         complete(&mut active, &rung2.id, 5, 2_200);
         assert_eq!(rung_question(&active).as_deref(), Some(rung2.id.as_str()));
+        answer(&mut active, &rung2.id, RepsLeft::FivePlus);
         assert_eq!(
             pending_rung(&active).unwrap().target_weight,
-            175.0,
-            "160 + 10%, loadable"
+            190.0,
+            "easy climbs from 160"
         );
     }
 
@@ -1946,17 +2016,19 @@ mod tests {
     fn a_step_down_stays_over_a_full_rung() {
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         let rung2 = pending_rung(&active).unwrap();
-        assert_eq!(rung2.target_weight, 110.0);
+        assert_eq!(rung2.target_weight, 115.0);
         complete(&mut active, &rung2.id, 2, 2_200);
         assert_eq!(
             pending_rung(&active).unwrap().target_weight,
             105.0,
-            "not 0.8 × 110 = 85: over the 100 done in full"
+            "steps down but stays over the 100 done in full"
         );
 
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         let rung2 = pending_rung(&active).unwrap();
         adjust(&mut active, "squat", 105.0);
         let rung2 = squat_sets(&active)
@@ -2066,26 +2138,29 @@ mod tests {
     /// Tapping a rep off a rung after Done (the way a miss is recorded)
     /// settles it again — while nothing after it has been lifted.
     #[test]
-    fn tapping_a_rep_off_a_rung_resettles_it() {
+    fn tapping_a_rep_off_a_rung_settles_it() {
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 5, 2_000);
-        assert_eq!(squat_plan(&active), vec![(110.0, true)]);
+        assert_eq!(squat_plan(&active), vec![], "waits for its answer");
         let done = done_id(&active, "c1");
+        // Tapping a rep off records a miss: the ramp settles from it.
         edit(&mut active, &done, 4, 100.0);
         assert_eq!(squat_plan(&active), vec![(90.0, false); 3]);
         assert_eq!(
             causes(&active),
             vec![(WeightChangeCause::CalibrationSettled, 100.0, 90.0)],
-            "the step it took back is gone from the log"
         );
+        // Back to a full rung: it waits for its answer again.
         edit(&mut active, &done, 5, 100.0);
-        assert_eq!(squat_plan(&active), vec![(110.0, true)], "and back");
+        assert_eq!(squat_plan(&active), vec![], "waits again");
+        assert_eq!(rung_question(&active).as_deref(), Some("c1"), "asks again");
     }
 
     #[test]
     fn a_rung_stands_once_a_set_after_it_is_lifted() {
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         let rung2 = active.proposed_sets[1].id.clone();
         complete(&mut active, &rung2, 5, 2_200);
         let plan = squat_plan(&active);
@@ -2118,6 +2193,7 @@ mod tests {
     fn typing_a_weight_mid_ramp_moves_the_pending_rung() {
         let mut active = ramp_workout(45.0);
         complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         let pending_rung = active.proposed_sets[1].id.clone();
         assert!(active.proposed_sets[1].calibration);
 
@@ -2201,6 +2277,8 @@ mod tests {
     fn an_undone_rung_takes_back_its_append() {
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
+        assert_eq!(squat_plan(&active), vec![(115.0, true)], "climbed on easy");
         let done = done_id(&active, "c1");
         apply_delete_completed_set_to_active(
             &mut active,
@@ -2214,7 +2292,8 @@ mod tests {
         assert_eq!(squat_plan(&active), Vec::<(f32, bool)>::new());
         assert!(causes(&active).is_empty(), "and its log entry");
         complete(&mut active, "c1", 5, 2_100);
-        assert_eq!(squat_plan(&active), vec![(110.0, true)]);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
+        assert_eq!(squat_plan(&active), vec![(115.0, true)], "appends once");
     }
 
     // ── How many more could you have done? ──────────────────────────────────
@@ -2267,6 +2346,7 @@ mod tests {
         let rung2 = squat_sets(&active)[1].id.clone();
         complete(&mut active, &rung2, 5, 2_200);
         assert_eq!(rung_question(&active).as_deref(), Some(rung2.as_str()));
+        answer(&mut active, &rung2, RepsLeft::FivePlus);
         assert!(squat_plan(&active)[1].1, "a third rung");
 
         // Too small to load: still one step up.
@@ -2335,6 +2415,7 @@ mod tests {
         // The next rung started: too late.
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         let rung2 = squat_sets(&active)[1].id.clone();
         start(&mut active, &rung2, 2_100);
         let before = active.clone();
@@ -2473,10 +2554,17 @@ mod tests {
     }
 
     #[test]
-    fn unanswered_climbs_the_usual_rung() {
+    fn a_full_rung_waits_for_its_answer_then_climbs() {
         let mut active = ramp_workout(450.0);
         complete(&mut active, "c1", 5, 2_000);
-        assert_eq!(squat_plan(&active), vec![(495.0, true)]);
+        // Nothing loads into the workout until the rung is answered.
+        assert_eq!(squat_plan(&active), vec![], "the rung waits for its answer");
+        answer(&mut active, "c1", RepsLeft::FivePlus);
+        assert_eq!(
+            squat_plan(&active),
+            vec![(535.0, true)],
+            "easy climbs bigger"
+        );
     }
 
     /// An answered rung, then a miss on the rung after it: the miss
@@ -2513,6 +2601,7 @@ mod tests {
         // A rung after it done: the first rung's question is gone.
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         let rung2 = squat_sets(&active)[1].id.clone();
         complete(&mut active, &rung2, 5, 2_200);
         let before = active.clone();
@@ -2526,6 +2615,7 @@ mod tests {
         // The next rung started: the weight is on the bar.
         let mut active = ramp_workout(100.0);
         complete(&mut active, "c1", 5, 2_000);
+        answer(&mut active, "c1", RepsLeft::FivePlus);
         let rung2 = squat_sets(&active)[1].id.clone();
         start(&mut active, &rung2, 2_100);
         assert_eq!(rung_question(&active), None);
@@ -2549,13 +2639,13 @@ mod tests {
         assert_eq!(active, before, "a miss");
     }
 
-    /// The sixth rung settles the ramp on its own: no question.
+    /// The sixth rung asks like any other; answering it settles the ramp.
     #[test]
-    fn the_sixth_rung_does_not_ask() {
+    fn the_sixth_rung_asks_before_settling() {
         let mut active = ramp_workout(100.0);
         let mut at = 2_000;
-        for _ in 0..Program::builtin().calibration.max_rungs {
-            let rung = squat_sets(&active)
+        fn next_rung(active: &WorkoutRecord) -> String {
+            squat_sets(active)
                 .into_iter()
                 .find(|s| {
                     s.calibration
@@ -2566,11 +2656,23 @@ mod tests {
                 })
                 .unwrap()
                 .id
-                .clone();
+                .clone()
+        }
+        for _ in 0..Program::builtin().calibration.max_rungs - 1 {
+            let rung = next_rung(&active);
             complete(&mut active, &rung, 5, at);
+            answer(&mut active, &rung, RepsLeft::FivePlus);
             at += 200;
         }
-        assert_eq!(rung_question(&active), None);
+        let sixth = next_rung(&active);
+        complete(&mut active, &sixth, 5, at);
+        assert_eq!(
+            rung_question(&active).as_deref(),
+            Some(sixth.as_str()),
+            "the last rung asks too"
+        );
+        answer(&mut active, &sixth, RepsLeft::FivePlus);
+        assert_eq!(rung_question(&active), None, "answered, and settled");
     }
 
     /// A rung answered, then corrected to a miss: the answer goes with it.
@@ -2586,7 +2688,7 @@ mod tests {
             RepsLeft::Unspecified as i32
         );
         edit(&mut active, &done, 5, 450.0);
-        assert_eq!(squat_plan(&active), vec![(495.0, true)], "unanswered again");
+        assert_eq!(squat_plan(&active), vec![], "waits for its answer again");
         assert_eq!(rung_question(&active).as_deref(), Some("c1"), "asks again");
     }
 }

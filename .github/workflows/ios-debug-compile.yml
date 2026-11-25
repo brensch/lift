@@ -19,7 +19,7 @@ permissions:
 
 env:
   # Keep equal to FLUTTER_VERSION in .github/workflows/tests.yml.
-  FLUTTER_VERSION: "3.44.8"
+  FLUTTER_VERSION: "3.50.1"
 
 jobs:
   ios-debug-compile:

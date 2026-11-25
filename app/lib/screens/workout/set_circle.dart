@@ -3,7 +3,7 @@
 /// done (every rep), and once more for each rep you missed.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../theme/theme_spec.dart';
 

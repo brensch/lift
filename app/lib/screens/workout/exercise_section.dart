@@ -12,15 +12,17 @@
 /// circles draw up under the header and back down from it.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
+import '../../gen/workout/v1/wearable.pb.dart' show QuickAnswer;
 import '../../logic/exercise_blocks.dart';
 import '../../logic/exercises.dart';
 import '../../theme/app_icons.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/workout_provider.dart';
 import '../../logic/set_labels.dart';
 import '../../theme/theme_spec.dart';
 import 'section_workout.dart';
@@ -135,6 +137,9 @@ class _ExerciseSectionState extends State<ExerciseSection> {
 
     final nextId = w.nextSetId;
     final liftingId = w.liftingSetId;
+    // The just-done set waiting on its Easy/Hard answer: when it's one of
+    // this exercise's, its row carries the inline answer buttons.
+    final askingId = w.questionSetId;
 
     Widget circle(ProposedSet set) => LiveSetCircle(
       key: ValueKey('set-circle-${set.id}'),
@@ -374,6 +379,12 @@ class _ExerciseSectionState extends State<ExerciseSection> {
                         : copy.workout.workingLabel,
                     follow: followIn(working),
                     ids: [for (final s in working) s.id],
+                    trailing:
+                        wp != null &&
+                            askingId.isNotEmpty &&
+                            working.any((s) => s.id == askingId)
+                        ? _AnswerButtons(wp: wp, setId: askingId)
+                        : null,
                     children: captioned(working),
                   ),
                   if (drops.isNotEmpty)
@@ -536,6 +547,42 @@ class _SkipButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Easy / Hard at the end of the row whose set just asked "how was that?":
+/// the same answer the banner offers, in reach of the set it is about so you
+/// needn't look down to the banner. A miss (a rep tapped off the circle) or
+/// the banner answer closes it just the same.
+class _AnswerButtons extends StatelessWidget {
+  final WorkoutProvider wp;
+  final String setId;
+
+  const _AnswerButtons({required this.wp, required this.setId});
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.tokens;
+    final w = copy.workout;
+    Widget button(QuickAnswer answer, String label) => FilledButton(
+      onPressed: () => wp.answerQuick(setId, answer),
+      style: FilledButton.styleFrom(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        minimumSize: const Size(0, SetCircle.diameter),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(fontSize: t.size.body, fontWeight: t.weight.heavy),
+      ),
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        button(QuickAnswer.QUICK_ANSWER_EASY, w.quickEasy),
+        const SizedBox(width: _circleGap),
+        button(QuickAnswer.QUICK_ANSWER_HARD, w.quickHard),
+      ],
     );
   }
 }

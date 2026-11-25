@@ -100,6 +100,8 @@ void main() {
       first.targetReps,
       first.targetWeight,
     );
+    // A full rung waits for its answer before the next one loads.
+    await h.provider.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_EASY);
     await h.provider.startSet(h.provider.doneTargetSet!.id);
     WearStatusCard card() => WearableSnapshotBuilder.build(
       workoutProvider: h.provider,

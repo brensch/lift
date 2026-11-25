@@ -8,7 +8,7 @@ edition = "2021"
 # app both link it, so every rule has one implementation.
 
 [dependencies]
-prost = "0.13.4"
+prost = "0.14.6"
 uuid = { version = "1.11.0", features = ["v5"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -23,6 +23,6 @@ rand = "0.8"
 uuid = { version = "1.11.0", features = ["v4"] }
 
 [build-dependencies]
-prost-build = "0.13.4"
+prost-build = "0.14.6"
 # Hashes what decides how accounts fold (build.rs).
 sha2 = "0.10"

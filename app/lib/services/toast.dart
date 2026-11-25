@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// The app's messenger: the one place a short message is shown from, so it
 /// can be said from a provider with no context of its own. The app's

@@ -3,7 +3,7 @@
 /// core treats an empty choice as "give me the defaults".
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../gen/copy.dart';
 import '../../../gen/workout/v1/workout.pb.dart';

@@ -199,7 +199,7 @@ fn write_file(path: &Path, users: &[String], events: &[Event], json: &[String]) 
     .expect("batch");
     let props = WriterProperties::builder()
         .set_compression(Compression::ZSTD(ZstdLevel::try_new(3).expect("level")))
-        .set_max_row_group_size(8_192)
+        .set_max_row_group_row_count(Some(8_192))
         .build();
     let file = std::fs::File::create(path).expect("create");
     let mut writer = ArrowWriter::try_new(file, schema(), Some(props)).expect("writer");

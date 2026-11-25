@@ -8,7 +8,7 @@
 /// weight × reps. Tap a partner's to see their workout.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../gen/copy.dart';
@@ -203,7 +203,8 @@ class StatusBox extends StatelessWidget {
     );
 
     // No set in front of them (choosing, or all done): the band says it
-    // all.
+    // all. A set being asked about is still a set here (hidden behind its
+    // question), so the answer always has a row to live in.
     final Widget? body;
     if (set == null) {
       body = null;

@@ -8,7 +8,7 @@
 library;
 
 import 'package:flutter/foundation.dart' show listEquals;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../gen/workout/v1/settings.pb.dart' show WeightUnit;

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:schlift/gen/copy.dart';
 import 'package:schlift/gen/workout/v1/settings.pb.dart';
@@ -127,10 +127,8 @@ void main() {
     }
     final plan = h.provider.templatePlanFor(b.id)!;
     expect(plan.estimatedSeconds, plan.maxSeconds);
-    expect(
-      plan.plans.map((p) => p.decision.sets).toSet(),
-      {5},
-      reason: 'every lift at its most sets',
-    );
+    expect(plan.plans.map((p) => p.decision.sets).toSet(), {
+      5,
+    }, reason: 'every lift at its most sets');
   });
 }

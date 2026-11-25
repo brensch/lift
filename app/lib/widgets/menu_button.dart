@@ -4,7 +4,7 @@
 /// one row, the pages the menu opens at the end of their title bar.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../theme/app_icons.dart';
 

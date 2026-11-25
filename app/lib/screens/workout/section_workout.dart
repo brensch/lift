@@ -16,8 +16,13 @@ class SectionWorkout {
   /// The set being lifted, or empty.
   final String liftingSetId;
 
-  /// The set up next, if any.
+  /// The set up next, if any. Empty while a question is open: nothing is
+  /// "up next" until it's answered.
   final String? nextSetId;
+
+  /// The Easy/Hard question open on a just-done set, or '': while it's up,
+  /// that set shows the inline answer and no next set is highlighted.
+  final String questionSetId;
 
   /// The workout's state on this clock: colours the up-next ring.
   final WorkoutState state;
@@ -36,6 +41,7 @@ class SectionWorkout {
     required this.completedSets,
     required this.liftingSetId,
     required this.nextSetId,
+    required this.questionSetId,
     required this.state,
     required this.passedWarmupIds,
     required this.firstTimeSetIds,
@@ -43,18 +49,26 @@ class SectionWorkout {
   });
 
   /// Your workout, live: taps start, finish and correct sets.
-  factory SectionWorkout.mine(WorkoutProvider wp) => SectionWorkout(
-    completedSets: wp.completedSets,
-    liftingSetId: wp.workout?.liftingSetId ?? '',
-    nextSetId: wp.doneTargetSet?.id,
-    state: stateAt(wp.stateSnapshot, wp.now.millisecondsSinceEpoch ~/ 1000),
-    passedWarmupIds: {
-      for (final s in wp.proposedSets)
-        if (wp.isPassedWarmup(s)) s.id,
-    },
-    firstTimeSetIds: wp.firstTimeSetIds,
-    actions: wp.isWorkoutEnded ? null : wp,
-  );
+  factory SectionWorkout.mine(WorkoutProvider wp) {
+    // A just-done set is held in the banner through its Easy/Hard answer or
+    // the orange "one less" countdown after it. While it is, the workout has
+    // not moved on: nothing is up next, so no circle is highlighted until that
+    // set is behind you.
+    final held = wp.askingSetId.isNotEmpty;
+    return SectionWorkout(
+      completedSets: wp.completedSets,
+      liftingSetId: wp.workout?.liftingSetId ?? '',
+      nextSetId: held ? null : wp.doneTargetSet?.id,
+      questionSetId: wp.questionSetId,
+      state: stateAt(wp.stateSnapshot, wp.now.millisecondsSinceEpoch ~/ 1000),
+      passedWarmupIds: {
+        for (final s in wp.proposedSets)
+          if (wp.isPassedWarmup(s)) s.id,
+      },
+      firstTimeSetIds: wp.firstTimeSetIds,
+      actions: wp.isWorkoutEnded ? null : wp,
+    );
+  }
 
   /// A session partner's workout, to look at.
   factory SectionWorkout.of(ParticipantStatus p) {
@@ -64,6 +78,8 @@ class SectionWorkout {
       completedSets: p.completedSets,
       liftingSetId: p.hasActiveWorkout() ? p.activeWorkout.liftingSetId : '',
       nextSetId: shownSet(snapshot, p.hasNextUpSet() ? p.nextUpSet : null)?.id,
+      // A partner's status carries no open question for you to answer.
+      questionSetId: '',
       state: stateAt(snapshot, nowUnix),
       passedWarmupIds: p.passedWarmupIds.toSet(),
       firstTimeSetIds: p.firstTimeSetIds.toSet(),

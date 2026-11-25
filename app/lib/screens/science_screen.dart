@@ -4,7 +4,7 @@
 library;
 
 import '../widgets/common/flat.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../gen/copy.dart';
 import '../theme/theme_spec.dart';

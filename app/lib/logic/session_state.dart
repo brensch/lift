@@ -3,7 +3,7 @@
 /// No Flutter imports.
 library;
 
-import 'package:flutter/material.dart' show Color;
+import 'package:material_ui/material_ui.dart' show Color;
 import '../theme/theme_spec.dart';
 import 'dart:math';
 

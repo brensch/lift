@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' hide PageView;
+import 'package:material_ui/material_ui.dart' hide PageView;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:schlift/services/page_tracker.dart';

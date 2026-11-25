@@ -1,7 +1,7 @@
 /// Setup: bodyweight, for calories. Optional. Words in app/copy.yaml.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../gen/copy.dart';
 import '../../../gen/workout/v1/settings.pb.dart';

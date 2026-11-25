@@ -1,9 +1,10 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.util.Properties
 
 plugins {
     id("com.android.application")
-    id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    // Kotlin is no longer applied as a plugin: AGP 9's Built-in Kotlin manages
+    // it (android.builtInKotlin=true). The Flutter Gradle Plugin comes last.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
@@ -27,7 +28,9 @@ if (isReleaseTask && !keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.brensch.schlift"
-    compileSdk = flutter.compileSdkVersion
+    // A transitive AndroidX dependency (androidx.core 1.19.0) requires
+    // compiling against API 37; Flutter 3.50's default is still 36.
+    compileSdk = 37
     // Pinned to r28+, which aligns native libraries (the Rust core and any
     // other .so) to 16 KB pages. Flutter's default NDK is older and triggers
     // Play's "built with an older NDK, may crash on 16 KB devices" warning.
@@ -35,12 +38,8 @@ android {
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     defaultConfig {
@@ -105,7 +104,7 @@ dependencies {
     // A transitive dependency drags in kotlin-stdlib 1.9.21 (AIKIDO-2026-550292).
     // Pin it to the Kotlin plugin's own version, past the patched 2.1.0.
     constraints {
-        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.2.20") {
+        implementation("org.jetbrains.kotlin:kotlin-stdlib:2.4.21") {
             because("AIKIDO-2026-550292: kotlin-stdlib must be >= 2.1.0")
         }
     }
@@ -118,4 +117,10 @@ dependencies {
 
 flutter {
     source = "../.."
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget = JvmTarget.JVM_21
+    }
 }

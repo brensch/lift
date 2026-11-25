@@ -110,10 +110,10 @@ impl ServerDb {
     }
 
     async fn stamp_left(&self, session_id: &str, user_id: &str, set: &str) -> DbResult<()> {
-        sqlx::query(&format!(
+        sqlx::query(sqlx::AssertSqlSafe(format!(
             "UPDATE session_members SET {set}
              WHERE session_id = ?2 AND user_id = ?3 AND left_at = 0"
-        ))
+        )))
         .bind(now_unix())
         .bind(session_id)
         .bind(user_id)

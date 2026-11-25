@@ -13,6 +13,12 @@ analyzer:
   exclude:
     # Generated protobuf bindings — regenerate with `make proto-dart`, never edit.
     - lib/gen/**
+    - build/**
+    - android/**
+    - ios/**
+    - windows/**
+    - macos/**
+    - linux/**
   errors:
     # Keep `flutter analyze` clean so CI can gate on it.
     todo: ignore

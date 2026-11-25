@@ -153,18 +153,20 @@ impl ServerDb {
     }
 
     pub async fn get_user(&self, user_id: &str) -> DbResult<Option<User>> {
-        let row = sqlx::query(&format!("SELECT {USER_COLUMNS} FROM users WHERE id = ?"))
-            .bind(user_id)
-            .fetch_optional(&self.read_pool)
-            .await?;
+        let row = sqlx::query(sqlx::AssertSqlSafe(format!(
+            "SELECT {USER_COLUMNS} FROM users WHERE id = ?"
+        )))
+        .bind(user_id)
+        .fetch_optional(&self.read_pool)
+        .await?;
         Ok(row.as_ref().map(user_from))
     }
 
     /// The user holding `username`, whatever its case.
     pub async fn get_user_by_name(&self, username: &str) -> DbResult<Option<User>> {
-        let row = sqlx::query(&format!(
+        let row = sqlx::query(sqlx::AssertSqlSafe(format!(
             "SELECT {USER_COLUMNS} FROM users WHERE username = ?"
-        ))
+        )))
         .bind(username.trim())
         .fetch_optional(&self.read_pool)
         .await?;
@@ -679,11 +681,13 @@ mod tests {
     }
 
     async fn rows(db: &ServerDb, table: &str, u: &str) -> i64 {
-        sqlx::query_scalar(&format!("SELECT COUNT(*) FROM {table} WHERE user_id = ?"))
-            .bind(u)
-            .fetch_one(&db.read_pool)
-            .await
-            .unwrap()
+        sqlx::query_scalar(sqlx::AssertSqlSafe(format!(
+            "SELECT COUNT(*) FROM {table} WHERE user_id = ?"
+        )))
+        .bind(u)
+        .fetch_one(&db.read_pool)
+        .await
+        .unwrap()
     }
 
     #[tokio::test]

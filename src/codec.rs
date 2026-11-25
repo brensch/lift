@@ -7,7 +7,10 @@
 use std::marker::PhantomData;
 
 use prost::Message;
-use tonic::codec::{BufferSettings, Codec, ProstCodec};
+// tonic 0.14 moved the prost codec itself into tonic-prost; BufferSettings and
+// the Codec trait stayed in tonic::codec.
+use tonic::codec::{BufferSettings, Codec};
+use tonic_prost::ProstCodec;
 
 /// Bytes a stream's buffers start at, each way.
 const START: usize = 256;

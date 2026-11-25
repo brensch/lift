@@ -1,3 +1,4 @@
+use axum::serve::ListenerExt;
 use axum::{routing::get, Json};
 use http::{header::HeaderName, Method};
 use schlift::workout::v1::{
@@ -8,6 +9,7 @@ use schlift::workout::v1::{
     user_service_server::UserServiceServer, workout_service_server::WorkoutServiceServer,
 };
 use std::net::SocketAddr;
+use tonic_web::GrpcWebLayer;
 use tower_http::cors::{Any, CorsLayer};
 
 #[cfg(not(target_env = "msvc"))]
@@ -100,57 +102,45 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         ]);
 
     let mcp = mcp::Mcp::new(server_db.clone());
-    let grpc_router = tonic::service::Routes::new(tonic_web::enable(WorkoutServiceServer::new(
-        ServerWorkoutService {
+    let grpc_router =
+        tonic::service::Routes::new(WorkoutServiceServer::new(ServerWorkoutService {
             db: server_db.clone(),
-        },
-    )))
-    .add_service(tonic_web::enable(UserServiceServer::new(
-        ServerUserService {
+        }))
+        .add_service(UserServiceServer::new(ServerUserService {
             db: server_db.clone(),
-        },
-    )))
-    .add_service(tonic_web::enable(MultiplayerServiceServer::new(
-        ServerMultiplayerService {
+        }))
+        .add_service(MultiplayerServiceServer::new(ServerMultiplayerService {
             db: server_db.clone(),
-        },
-    )))
-    .add_service(tonic_web::enable(AuthServiceServer::new(
-        ServerAuthService {
+        }))
+        .add_service(AuthServiceServer::new(ServerAuthService {
             db: server_db.clone(),
             auth_state: auth_state.clone(),
-        },
-    )))
-    .add_service(tonic_web::enable(
-        SyncServiceServer::new(ServerSyncService {
+        }))
+        .add_service(
+            SyncServiceServer::new(ServerSyncService {
+                db: server_db.clone(),
+            })
+            // A push may unpack to schlift_core::sync's limit; packed, it is
+            // smaller still. (Phones push in pieces well under this.)
+            .max_decoding_message_size(16 << 20),
+        )
+        .add_service(SettingsServiceServer::new(ServerSettingsService {
             db: server_db.clone(),
-        })
-        // A push may unpack to schlift_core::sync's limit; packed, it is
-        // smaller still. (Phones push in pieces well under this.)
-        .max_decoding_message_size(16 << 20),
-    ))
-    .add_service(tonic_web::enable(SettingsServiceServer::new(
-        ServerSettingsService {
+        }))
+        .add_service(AnalyticsServiceServer::new(ServerAnalyticsService {
             db: server_db.clone(),
-        },
-    )))
-    .add_service(tonic_web::enable(AnalyticsServiceServer::new(
-        ServerAnalyticsService {
+        }))
+        .add_service(AdminServiceServer::new(ServerAdminService {
             db: server_db.clone(),
-        },
-    )))
-    .add_service(tonic_web::enable(AdminServiceServer::new(
-        ServerAdminService {
-            db: server_db.clone(),
-        },
-    )))
-    .add_service(tonic_web::enable(AssistantServiceServer::new(
-        ServerAssistantService {
+        }))
+        .add_service(AssistantServiceServer::new(ServerAssistantService {
             db: server_db.clone(),
             mcp: mcp.clone(),
-        },
-    )))
-    .into_axum_router();
+        }))
+        .into_axum_router()
+        // tonic-web 0.14 removed per-service `enable`; apply grpc-web translation
+        // to the whole gRPC router as a single layer instead.
+        .layer(GrpcWebLayer::new());
 
     let app = axum::Router::new()
         .route("/api/health", get(|| async { "ok" }))
@@ -169,7 +159,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     println!("Server listening on {} (gRPC-Web)", addr);
 
-    let listener = tokio::net::TcpListener::bind(addr).await?;
+    let listener = tokio::net::TcpListener::bind(addr).await?.tap_io(|tcp| {
+        // axum 0.8 dropped Serve::tcp_nodelay; set it per accepted connection.
+        // Without it a small RPC response can stall on the ~40ms delayed-ACK timer.
+        let _ = tcp.set_nodelay(true);
+    });
 
     // A deploy restarts this process with SIGTERM. Stop accepting (Caddy holds
     // and retries new requests until the next process listens), let requests
@@ -197,9 +191,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
     )
-    // Disable Nagle: without this every small RPC response can stall on the
-    // ~40ms TCP delayed-ACK timer.
-    .tcp_nodelay(true)
     .with_graceful_shutdown(async move {
         let _ = stop.wait_for(|s| *s).await;
     });

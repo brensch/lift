@@ -6,7 +6,7 @@
 /// set just done. No dialog, so the watch asks it the same way.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
@@ -47,22 +47,16 @@ class QuickQuestion extends StatelessWidget {
         ),
       ),
     );
+    // The prompt itself is on the status band above; this row is the answer.
     return Row(
       children: [
-        Text(
-          w.quickQuestion,
-          style: TextStyle(
-            fontSize: t.size.subtitle,
-            fontWeight: t.weight.medium,
-            color: t.muted,
-          ),
-        ),
-        const SizedBox(width: 10),
         answer(QuickAnswer.QUICK_ANSWER_EASY, w.quickEasy),
         const SizedBox(width: 6),
         answer(QuickAnswer.QUICK_ANSWER_HARD, w.quickHard),
         const SizedBox(width: 10),
-        JustDoneCircle(setId: setId),
+        // No countdown ring while the question is up: the circle stays tappable
+        // to take a rep off until it's answered, so a ring would mislead.
+        JustDoneCircle(setId: setId, countdown: false),
       ],
     );
   }
@@ -75,7 +69,11 @@ class QuickQuestion extends StatelessWidget {
 class JustDoneCircle extends StatelessWidget {
   final String setId;
 
-  const JustDoneCircle({super.key, required this.setId});
+  /// Whether to draw the countdown ring that runs down to [askingUntil]. The
+  /// "how was that" question turns it off (the circle stays tappable there).
+  final bool countdown;
+
+  const JustDoneCircle({super.key, required this.setId, this.countdown = true});
 
   @override
   Widget build(BuildContext context) {
@@ -83,17 +81,16 @@ class JustDoneCircle extends StatelessWidget {
     final set = wp.proposedSetById(setId);
     if (set == null) return const SizedBox.shrink();
     final reps = wp.askingReps;
-    return _Countdown(
-      until: wp.askingUntil,
-      child: SetCircle(
-        number: reps,
-        state: LiveSetCircle.setCircleState(SectionWorkout.mine(wp), set),
-        text: needsLabel(set) ? repsLabel(set, reps, done: true) : null,
-        onTap: reps > 0 || set.amrap
-            ? () => wp.answerQuick(setId, QuickAnswer.QUICK_ANSWER_ONE_LESS)
-            : null,
-      ),
+    final circle = SetCircle(
+      number: reps,
+      state: LiveSetCircle.setCircleState(SectionWorkout.mine(wp), set),
+      text: needsLabel(set) ? repsLabel(set, reps, done: true) : null,
+      onTap: reps > 0 || set.amrap
+          ? () => wp.answerQuick(setId, QuickAnswer.QUICK_ANSWER_ONE_LESS)
+          : null,
     );
+    if (!countdown) return circle;
+    return _Countdown(until: wp.askingUntil, child: circle);
   }
 }
 

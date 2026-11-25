@@ -3,7 +3,7 @@
 /// sits with the exercise it is about, under its name.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
 import '../../gen/copy.dart';
@@ -18,6 +18,12 @@ import '../../theme/theme_spec.dart';
 
 /// The first workout's coaching: what the stage on show wants of you.
 String _hint(WorkoutProvider wp, int nowUnix) {
+  // A set is waiting on its Easy/Hard answer: ask for that, not for the next
+  // set — there isn't one until it's answered.
+  if (wp.questionSetId.isNotEmpty) return copy.workout.hints.answer;
+  // A just-done set still held in its orange countdown: you can tap reps off
+  // it, and the workout hasn't moved on, so it isn't "all done" yet either.
+  if (wp.askingSetId.isNotEmpty) return copy.workout.hints.resting;
   final state = stateAt(wp.stateSnapshot, nowUnix);
   if (state == WorkoutState.WORKOUT_STATE_ALL_DONE ||
       wp.doneTargetSet == null) {

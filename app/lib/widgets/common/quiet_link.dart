@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../../theme/theme_spec.dart';
 
 /// A rare, one-way action (ending or throwing away a workout): a quiet,

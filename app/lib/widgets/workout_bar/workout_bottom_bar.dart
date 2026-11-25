@@ -7,7 +7,7 @@
 library;
 
 import 'package:fixnum/fixnum.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -197,7 +197,19 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
         final justDone = justDoneId.isEmpty || justDoneId == wp.questionSetId
             ? null
             : wp.proposedSetById(justDoneId);
-        final allDone = you.proposedSet == null;
+        // A set is still held in the banner -- through its Easy/Hard answer, or
+        // the orange "one less" countdown after it. Until it is behind you the
+        // workout has not moved on: nothing is up next, no first-time card, and
+        // it is not "all done" even if this was the last set.
+        final held = !ended && wp.askingSetId.isNotEmpty;
+        final allDone = you.proposedSet == null && !held;
+        // While the held set is being answered, the band asks the question
+        // rather than showing the state: nothing is "Ready" until it's answered.
+        final asking = !ended && wp.questionSetId.isNotEmpty;
+        // The set being asked about: present but hidden behind its question, so
+        // the answer always has a row — even on the last set, where there is no
+        // next set to stand in for it.
+        final questioned = asking ? wp.proposedSetById(wp.questionSetId) : null;
 
         return GestureDetector(
           // The banner is the way back to where you're up to: the workout
@@ -351,14 +363,17 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                       child: StatusBox(
                         emoji: normalizedProfileEmoji(auth.profileEmoji),
                         profileColor: profileColorFromHex(auth.profileColorHex),
-                        stateLabel: you.stateLabel,
-                        stateColor: you.stateColor,
+                        stateLabel: asking
+                            ? copy.workout.quickQuestion
+                            : you.stateLabel,
+                        stateColor: asking ? t.yapping : you.stateColor,
                         upNext: iAmNext,
                         timerText: you.timerText,
                         restLeft: you.restLeft,
-                        // A set just done stays a moment, its circle there
-                        // to tap reps off before the next set comes up.
-                        set: justDone ?? you.proposedSet,
+                        // A set just done stays a moment, its circle there to
+                        // tap reps off before the next set comes up; a set being
+                        // asked about anchors the row behind its question.
+                        set: justDone ?? questioned ?? you.proposedSet,
                         plan: wp.proposedSets,
                         circle: justDone != null
                             ? JustDoneCircle(setId: justDone.id)
@@ -371,7 +386,10 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         onEdit: ended || editBlock == null
                             ? null
                             : () => editExercise(context, wp, editBlock),
+                        // Not while a set is still held in the banner: the
+                        // first-time card waits until that set is behind you.
                         firstTime:
+                            !held &&
                             you.proposedSet != null &&
                             wp.firstTimeSetIds.contains(you.proposedSet!.id),
                         question: wp.questionSetId.isEmpty || ended

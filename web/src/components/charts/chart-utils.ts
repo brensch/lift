@@ -95,7 +95,7 @@ export function timeTicks(
   const start = new Date(minS * 1000);
   const end = new Date(maxS * 1000);
   const months: { value: number; label: string }[] = [];
-  const cursor = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+  let cursor = new Date(start.getFullYear(), start.getMonth() + 1, 1);
   while (cursor <= end) {
     months.push({
       value: cursor.getTime() / 1000,
@@ -104,7 +104,9 @@ export function timeTicks(
           ? `${MONTHS[0]} '${String(cursor.getFullYear() % 100).padStart(2, "0")}`
           : MONTHS[cursor.getMonth()],
     });
-    cursor.setMonth(cursor.getMonth() + 1);
+    // Reassign (not setMonth in place) so the loop's advance is visible; the
+    // day-1 constructor rolls the year over at December just like setMonth did.
+    cursor = new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1);
   }
   if (months.length <= maxTicks) return months;
   const stride = Math.ceil(months.length / maxTicks);

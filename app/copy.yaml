@@ -369,6 +369,7 @@ workout:
     resting: Missed reps? Tap that circle once for each.
     yapping: Rest is over. Tap the next circle to start.
     all_done: That's everything. End the workout when you're ready.
+    answer: Tap Easy or Hard to load the next set.
 
 # The plan: what each lift is given when a workout starts, and why. Home's
 # workout card, the template editor, the live workout when a lift comes up,

@@ -1,7 +1,7 @@
 /// Onboarding step 1: choose pounds or kilograms.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 import '../../../gen/copy.dart';
 import 'dart:async';

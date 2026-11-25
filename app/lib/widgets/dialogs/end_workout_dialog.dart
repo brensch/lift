@@ -1,7 +1,7 @@
 /// Ending a workout: the confirmation dialog and the flow that ends it and opens the summary.
 library;
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../gen/copy.dart';

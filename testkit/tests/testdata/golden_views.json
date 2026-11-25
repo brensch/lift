@@ -9262,9 +9262,9 @@
             }
           ],
           "lifting_seconds": 640,
-          "resting_seconds": 2010,
+          "resting_seconds": 1950,
           "total_volume": 3715.0,
-          "yapping_seconds": 240
+          "yapping_seconds": 300
         },
         "workout": {
           "end_time": 1782848223,
@@ -9311,9 +9311,9 @@
             }
           ],
           "lifting_seconds": 720,
-          "resting_seconds": 2160,
+          "resting_seconds": 1980,
           "total_volume": 4075.0,
-          "yapping_seconds": 240
+          "yapping_seconds": 420
         },
         "workout": {
           "end_time": 1782673069,

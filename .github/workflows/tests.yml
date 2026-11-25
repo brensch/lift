@@ -20,7 +20,7 @@ env:
   # dart format's output changes between SDK releases, so the version that
   # formats the code has to be the version that checks it. Bump this together
   # with the local SDK, and re-run `scripts/lint.sh fmt dart` when you do.
-  FLUTTER_VERSION: "3.44.8"
+  FLUTTER_VERSION: "3.50.1"
 
 jobs:
   # Store text is committed: release-notes/<version>.md (read by
@@ -306,7 +306,7 @@ jobs:
         working-directory: web
         run: npm ci --no-audit --no-fund
 
-      - name: Format check (prettier), lint (eslint) and typecheck (tsc)
+      - name: Format check (prettier), lint (oxlint) and typecheck (tsc)
         run: scripts/lint.sh check web
 
       - name: Test

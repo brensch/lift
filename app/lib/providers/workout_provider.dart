@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show ValueListenable;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import '../services/toast.dart';
 import 'package:fixnum/fixnum.dart';
 import '../gen/copy.dart';
@@ -69,7 +69,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   Timer? _askedTimer;
 
   /// How long the banner keeps a set just done, from the last tap on it.
-  static const oneLessWindow = Duration(seconds: 5);
+  static const oneLessWindow = Duration(milliseconds: 1250);
 
   /// The timed set whose end has been cued, so it rings once.
   String? _timedSetCued;
