@@ -513,12 +513,20 @@ async fn a_deleted_accounts_rows_leave_the_files_on_compaction() {
         let path = db.ledger.beats_dir().join(&file);
         assert!(files::read_all_beats(&path, Some("u")).unwrap().is_empty());
     }
-    // The worklist drained.
+    // The worklist drained, and with it the tombstone (nothing left to scrub).
     let pending: i64 = sqlx::query_scalar("SELECT count(*) FROM purge_files")
         .fetch_one(&db.read_pool)
         .await
         .unwrap();
     assert_eq!(pending, 0, "every captured file was rewritten");
+    let tombstones: i64 = sqlx::query_scalar("SELECT count(*) FROM purged_accounts")
+        .fetch_one(&db.read_pool)
+        .await
+        .unwrap();
+    assert_eq!(
+        tombstones, 0,
+        "the tombstone is dropped once scrubbing is done"
+    );
 }
 
 /// A workout whose start was written before the rest (a server stopped

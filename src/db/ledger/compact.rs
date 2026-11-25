@@ -178,12 +178,13 @@ async fn purge(ledger: &Ledger, now_ms: i64) -> DbResult<()> {
         ("events", ledger.events_dir()),
         ("beats", ledger.beats_dir()),
     ] {
-        let files: Vec<String> =
-            sqlx::query_scalar("SELECT file FROM purge_files WHERE kind = ? ORDER BY file LIMIT ?")
-                .bind(kind)
-                .bind(MAX_PURGE_PER_PASS)
-                .fetch_all(&ledger.read_pool)
-                .await?;
+        let files: Vec<String> = sqlx::query_scalar(
+            "SELECT DISTINCT file FROM purge_files WHERE kind = ? ORDER BY file LIMIT ?",
+        )
+        .bind(kind)
+        .bind(MAX_PURGE_PER_PASS)
+        .fetch_all(&ledger.read_pool)
+        .await?;
         for (i, file) in files.iter().enumerate() {
             if !dir.join(file).exists() {
                 // Already merged away: the rows are gone with the file.
@@ -205,6 +206,15 @@ async fn purge(ledger: &Ledger, now_ms: i64) -> DbResult<()> {
             }
         }
     }
+    // A deleted account whose files are all scrubbed (whether here or by a
+    // normal merge) no longer needs its tombstone: drop it, so purged_accounts
+    // holds only accounts with scrubbing still to do and never grows without
+    // bound.
+    sqlx::query(
+        "DELETE FROM purged_accounts WHERE user_id NOT IN (SELECT user_id FROM purge_files)",
+    )
+    .execute(&ledger.write_pool)
+    .await?;
     Ok(())
 }
 

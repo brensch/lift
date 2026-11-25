@@ -218,15 +218,15 @@ impl ServerDb {
             .execute(&mut *tx)
             .await?;
         sqlx::query(
-            "INSERT OR IGNORE INTO purge_files (file, kind)
-             SELECT DISTINCT file, 'events' FROM event_files WHERE user_id = ?",
+            "INSERT OR IGNORE INTO purge_files (file, kind, user_id)
+             SELECT DISTINCT file, 'events', user_id FROM event_files WHERE user_id = ?",
         )
         .bind(user_id)
         .execute(&mut *tx)
         .await?;
         sqlx::query(
-            "INSERT OR IGNORE INTO purge_files (file, kind)
-             SELECT DISTINCT file, 'beats' FROM heart_rate_files WHERE user_id = ?",
+            "INSERT OR IGNORE INTO purge_files (file, kind, user_id)
+             SELECT DISTINCT file, 'beats', user_id FROM heart_rate_files WHERE user_id = ?",
         )
         .bind(user_id)
         .execute(&mut *tx)
@@ -592,11 +592,10 @@ mod tests {
             .fetch_one(&db.read_pool)
             .await
             .unwrap();
-            // `purged_accounts` is the one table whose user_id must OUTLIVE the
-            // user: it tombstones a deleted account so the ledger keeps
-            // dropping its rows. So it deliberately has no cascade, and the
-            // deleted id deliberately stays.
-            if has && table != "purged_accounts" {
+            // `purged_accounts` and `purge_files` hold the id of a DELETED
+            // account so the ledger can keep scrubbing its rows; their user_id
+            // must outlive the user, so they deliberately have no cascade.
+            if has && table != "purged_accounts" && table != "purge_files" {
                 out.push(table);
             }
         }

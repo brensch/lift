@@ -684,7 +684,10 @@ async fn v11(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
          CREATE TABLE IF NOT EXISTS purge_files (
              file TEXT NOT NULL,
              kind TEXT NOT NULL,
-             PRIMARY KEY (file, kind)
+             -- Which deleted account's rows this file still holds, so a
+             -- tombstone can be dropped once its files are all scrubbed.
+             user_id TEXT NOT NULL,
+             PRIMARY KEY (file, kind, user_id)
          ) WITHOUT ROWID;",
     )
     .execute(&mut **tx)
