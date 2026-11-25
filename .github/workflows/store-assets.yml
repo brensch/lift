@@ -54,7 +54,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Check listing text against store limits
         run: pip3 install --quiet pyyaml && python3 scripts/check_store_text.py
 
@@ -63,7 +65,9 @@ jobs:
     if: inputs.action != 'pull'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Install renderer
         run: |
           pip3 install --quiet playwright pyyaml
@@ -71,7 +75,7 @@ jobs:
       - name: Frame screenshots
         run: python3 scripts/frame_store_screenshots.py
       - name: Publish framed screenshots
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: store-screenshots
           path: store/screenshots/out/
@@ -83,8 +87,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4 (GHSA-cxww-7g56-2vh6)
         with:
           name: store-screenshots
           path: store/screenshots/out/
@@ -93,10 +99,13 @@ jobs:
       - name: Push Play listing
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          DRY_RUN_IN: ${{ inputs.dry_run }}
+          TEXT_ONLY_IN: ${{ inputs.text_only }}
         run: |
-          DRY_RUN=""; [ "${{ inputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
-          TEXT=""; [ "${{ inputs.text_only }}" = "true" ] && TEXT="--skip-images"
-          python3 scripts/store_listing_google_play.py push --package-name com.brensch.schlift $TEXT $DRY_RUN
+          args=(push --package-name com.brensch.schlift)
+          [ "$TEXT_ONLY_IN" = "true" ] && args+=(--skip-images)
+          [ "$DRY_RUN_IN" = "true" ] && args+=(--dry-run)
+          python3 scripts/store_listing_google_play.py "${args[@]}"
 
   ios:
     needs: render
@@ -104,8 +113,10 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4 (GHSA-cxww-7g56-2vh6)
         with:
           name: store-screenshots
           path: store/screenshots/out/
@@ -116,19 +127,26 @@ jobs:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+          DRY_RUN_IN: ${{ inputs.dry_run }}
+          TEXT_ONLY_IN: ${{ inputs.text_only }}
+          IOS_VERSION_IN: ${{ inputs.ios_version }}
+          IOS_REMOVE_IN: ${{ inputs.ios_remove_from_review }}
         run: |
-          DRY_RUN=""; [ "${{ inputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
-          VERSION=""; [ -n "${{ inputs.ios_version }}" ] && VERSION="--version ${{ inputs.ios_version }}"
-          REMOVE=""; [ "${{ inputs.ios_remove_from_review }}" = "true" ] && REMOVE="--remove-from-review"
-          TEXT=""; [ "${{ inputs.text_only }}" = "true" ] && TEXT="--skip-images"
-          python3 scripts/store_listing_app_store.py push --bundle-id com.brensch.schlift $VERSION $REMOVE $TEXT $DRY_RUN
+          args=(push --bundle-id com.brensch.schlift)
+          [ -n "$IOS_VERSION_IN" ] && args+=(--version "$IOS_VERSION_IN")
+          [ "$IOS_REMOVE_IN" = "true" ] && args+=(--remove-from-review)
+          [ "$TEXT_ONLY_IN" = "true" ] && args+=(--skip-images)
+          [ "$DRY_RUN_IN" = "true" ] && args+=(--dry-run)
+          python3 scripts/store_listing_app_store.py "${args[@]}"
 
   pull:
     needs: check
     if: inputs.action == 'pull' || inputs.action == 'inspect'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
       - name: Install store clients
         run: pip3 install --quiet pyyaml httplib2 google-api-python-client google-auth google-auth-httplib2 "pyjwt[crypto]"
       - name: Pull Play listing
@@ -144,11 +162,14 @@ jobs:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+          IOS_VERSION_IN: ${{ inputs.ios_version }}
+          ACTION_IN: ${{ inputs.action }}
         run: |
           mkdir -p pulled
-          VERSION=""; [ -n "${{ inputs.ios_version }}" ] && VERSION="--version ${{ inputs.ios_version }}"
-          python3 scripts/store_listing_app_store.py ${{ inputs.action }} --bundle-id com.brensch.schlift $VERSION | tee pulled/app-store.yaml
-      - uses: actions/upload-artifact@v4
+          args=("$ACTION_IN" --bundle-id com.brensch.schlift)
+          [ -n "$IOS_VERSION_IN" ] && args+=(--version "$IOS_VERSION_IN")
+          python3 scripts/store_listing_app_store.py "${args[@]}" | tee pulled/app-store.yaml
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: store-listing-pull
           path: pulled/

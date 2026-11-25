@@ -3,3 +3,5 @@
 - Your AI assistant can see the workout you're doing right now, up to the set you just finished.
 - On a new phone, your past workouts' heart rate charts show again.
 - Usernames can't hold invisible characters, so nobody can pose as someone else with a name that looks the same, and a burst of failed sign-ins from one place is slowed down.
+- Security tune-up across the app, watch and server: patched the building blocks they are made of and closed off ways the service could be abused. Nothing changes in how you use them.
+- The app and watch work on the latest Android devices (the ones with larger memory pages); older builds could crash on them.

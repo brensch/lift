@@ -58,10 +58,18 @@ jobs:
       dry_run: ${{ steps.resolve.outputs.dry_run }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Resolve inputs from tag or dispatch
         id: resolve
+        env:
+          VERSION_IN: ${{ inputs.version }}
+          PLATFORMS_IN: ${{ inputs.platforms }}
+          PLAY_ROLLOUT_IN: ${{ inputs.play_rollout }}
+          IOS_PHASED_IN: ${{ inputs.ios_phased_release }}
+          DRY_RUN_IN: ${{ inputs.dry_run }}
         run: |
           if [ "$GITHUB_EVENT_NAME" = "push" ]; then
             VERSION="${GITHUB_REF_NAME#prod-v}"
@@ -70,15 +78,17 @@ jobs:
             IOS_PHASED=false
             DRY_RUN=false
           else
-            VERSION="${{ inputs.version }}"
-            VERSION="${VERSION#v}"
-            PLATFORMS="${{ inputs.platforms }}"
-            PLAY_ROLLOUT="${{ inputs.play_rollout }}"
-            IOS_PHASED="${{ inputs.ios_phased_release }}"
-            DRY_RUN="${{ inputs.dry_run }}"
+            VERSION="${VERSION_IN#v}"
+            PLATFORMS="$PLATFORMS_IN"
+            PLAY_ROLLOUT="$PLAY_ROLLOUT_IN"
+            IOS_PHASED="$IOS_PHASED_IN"
+            DRY_RUN="$DRY_RUN_IN"
           fi
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Version must look like 0.10.1, got '$VERSION'"; exit 1
+          fi
+          if ! [[ "$PLAY_ROLLOUT" =~ ^(0?\.[0-9]+|1(\.0+)?)$ ]]; then
+            echo "play_rollout must be between 0 and 1, got '$PLAY_ROLLOUT'"; exit 1
           fi
           if [ ! -s "release-notes/${VERSION}.md" ]; then
             echo "Missing release-notes/${VERSION}.md — write the store release notes first."; exit 1
@@ -99,7 +109,9 @@ jobs:
     environment: production
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Install Google Play API client
         run: pip3 install --quiet httplib2 google-api-python-client google-auth google-auth-httplib2
@@ -107,20 +119,23 @@ jobs:
       - name: Promote phone + wear to production
         env:
           GOOGLE_PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+          PLAY_ROLLOUT: ${{ needs.resolve.outputs.play_rollout }}
+          DRY_RUN_IN: ${{ needs.resolve.outputs.dry_run }}
         run: |
           if [ -z "$GOOGLE_PLAY_SERVICE_ACCOUNT_JSON" ]; then
             echo "Missing secret: GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"; exit 1
           fi
-          DRY_RUN=""
-          [ "${{ needs.resolve.outputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
-          python3 scripts/promote_google_play.py \
-            --package-name com.brensch.schlift \
-            --version "${{ needs.resolve.outputs.version }}" \
-            --release-notes-file "release-notes/${{ needs.resolve.outputs.version }}.md" \
-            --user-fraction "${{ needs.resolve.outputs.play_rollout }}" \
-            --promote beta=production \
-            --promote "wear:beta watch=wear:production" \
-            $DRY_RUN
+          args=(
+            --package-name com.brensch.schlift
+            --version "$VERSION"
+            --release-notes-file "release-notes/${VERSION}.md"
+            --user-fraction "$PLAY_ROLLOUT"
+            --promote beta=production
+            --promote "wear:beta watch=wear:production"
+          )
+          [ "$DRY_RUN_IN" = "true" ] && args+=(--dry-run)
+          python3 scripts/promote_google_play.py "${args[@]}"
 
   ios:
     needs: resolve
@@ -129,7 +144,9 @@ jobs:
     environment: production
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
 
       - name: Install App Store Connect client
         run: pip3 install --quiet "pyjwt[crypto]"
@@ -139,13 +156,15 @@ jobs:
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY_BASE64 }}
+          VERSION: ${{ needs.resolve.outputs.version }}
+          DRY_RUN_IN: ${{ needs.resolve.outputs.dry_run }}
+          IOS_PHASED_IN: ${{ needs.resolve.outputs.ios_phased_release }}
         run: |
-          DRY_RUN=""
-          [ "${{ needs.resolve.outputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
-          PHASED=""
-          [ "${{ needs.resolve.outputs.ios_phased_release }}" = "true" ] && PHASED="--phased-release"
-          python3 scripts/promote_app_store.py \
-            --bundle-id com.brensch.schlift \
-            --version "${{ needs.resolve.outputs.version }}" \
-            --release-notes-file "release-notes/${{ needs.resolve.outputs.version }}.md" \
-            $PHASED $DRY_RUN
+          args=(
+            --bundle-id com.brensch.schlift
+            --version "$VERSION"
+            --release-notes-file "release-notes/${VERSION}.md"
+          )
+          [ "$IOS_PHASED_IN" = "true" ] && args+=(--phased-release)
+          [ "$DRY_RUN_IN" = "true" ] && args+=(--dry-run)
+          python3 scripts/promote_app_store.py "${args[@]}"
