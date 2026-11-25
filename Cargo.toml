@@ -5,15 +5,6 @@ edition = "2021"
 
 [dependencies]
 schlift-core = { path = "core" }
-# Upgrading tonic is costly and worth doing deliberately, not for its own sake:
-# 0.14 split prost support into tonic-prost / tonic-prost-build, and we carry a
-# custom codec (src/codec.rs — tiny per-stream buffers so a million idle Sync
-# streams don't each hold 8 KB) that depends on tonic's ProstCodec internals,
-# wired into every generated service via codec_path in build.rs. A major bump
-# means reworking the codec and regenerating. The 0.13/0.14 changelogs show no
-# throughput, latency or per-stream-memory win — only stability fixes and new
-# config knobs — so bump only when a CVE or feature needs it, and keep
-# tonic / tonic-web / tonic-prost / tonic-prost-build in lockstep.
 tonic = "0.14.9"
 tonic-web = "0.14.9"
 tonic-prost = "0.14.9"
@@ -30,9 +21,6 @@ webauthn-rs = { version = "0.6", features = ["conditional-ui"] }
 serde_json = "1"
 url = "2"
 sha2 = "0.10"
-# URL-safe base64 for the WebAuthn challenge echo check (src/auth.rs);
-# webauthn-rs 0.6 hands challenges back as raw bytes. Aligned with the
-# version webauthn-rs itself uses.
 base64 = "0.22"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
@@ -55,7 +43,6 @@ webauthn-authenticator-rs = { version = "0.6", default-features = false, feature
 test-auth = []
 
 [build-dependencies]
-# 0.14: prost codegen lives in tonic-prost-build (pulls tonic-build itself).
 tonic-prost-build = "0.14.9"
 
 [workspace]

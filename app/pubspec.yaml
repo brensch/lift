@@ -12,9 +12,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  # Flutter 3.50 deprecated package:flutter/material.dart in favour of the
-  # extracted material_ui package (the same Material widgets, now versioned
-  # separately from the SDK). Imports moved from flutter/material to this.
   material_ui: ^1.11.1
   grpc: ^5.1.0
   protobuf: ^6.0.0
