@@ -28,6 +28,12 @@ use crate::db::DbResult;
 /// How often compaction looks for closed hours and days.
 const EVERY: Duration = Duration::from_secs(300);
 
+/// The most files a single purge pass rewrites, per kind. Deleting one heavy
+/// account can flag hundreds of files; capping the work per pass spreads the
+/// rewrites over many passes (the account is already unreadable the moment it
+/// is deleted) so a deletion can never become one big burst of disk I/O.
+const MAX_PURGE_PER_PASS: i64 = 16;
+
 /// How long merged inputs stay after the index stops naming them.
 const GRACE: Duration = Duration::from_secs(60);
 
@@ -173,8 +179,9 @@ async fn purge(ledger: &Ledger, now_ms: i64) -> DbResult<()> {
         ("beats", ledger.beats_dir()),
     ] {
         let files: Vec<String> =
-            sqlx::query_scalar("SELECT file FROM purge_files WHERE kind = ? ORDER BY file")
+            sqlx::query_scalar("SELECT file FROM purge_files WHERE kind = ? ORDER BY file LIMIT ?")
                 .bind(kind)
+                .bind(MAX_PURGE_PER_PASS)
                 .fetch_all(&ledger.read_pool)
                 .await?;
         for (i, file) in files.iter().enumerate() {
