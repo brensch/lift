@@ -7,3 +7,4 @@
 - The app and watch work on the latest Android devices (the ones with larger memory pages); older builds could crash on them.
 - Deleting your account now scrubs your workouts and heart-rate data from the server for good, not just from view.
 - A sign-in that was already under way when a passkey is removed no longer goes through; the removed key stops working right away.
+- Importing an account copy is safer: a tampered file that would balloon in size is refused, and switching accounts never shows the previous account's data by mistake.

@@ -10,6 +10,19 @@ import 'local_core.dart';
 /// sandbox (the tutorial's in-memory account).
 abstract class CoreSource {
   Future<LocalCore> get ready;
+
+  /// Bumped on every account change (sign in or out). A call that sees it
+  /// move while it was in flight knows its answer is from an account that is
+  /// no longer open.
+  int get generation;
+}
+
+/// Thrown when the account changed while a core call was in flight, so the
+/// result belongs to an account that is no longer open.
+class StaleAccountError implements Exception {
+  const StaleAccountError();
+  @override
+  String toString() => 'the account changed before the result came back';
 }
 
 /// A [CoreSource] that is already open.
@@ -20,6 +33,9 @@ class FixedCore implements CoreSource {
 
   @override
   Future<LocalCore> get ready => Future.value(core);
+
+  @override
+  int get generation => 0;
 }
 
 /// The app's workout calls, answered by the core on this phone (see
@@ -34,7 +50,16 @@ class WorkoutServiceWrapper {
     String method,
     GeneratedMessage request,
     T Function(List<int>) parse,
-  ) async => (await _source.ready).call(method, request, parse);
+  ) async {
+    final generation = _source.generation;
+    final result = await (await _source.ready).call(method, request, parse);
+    // The account switched while this was in flight: its answer is from the
+    // account that is gone, not the one now open. Don't hand it back.
+    if (_source.generation != generation) {
+      throw const StaleAccountError();
+    }
+    return result;
+  }
 
   Future<StartWorkoutResponse> startWorkout(
     String name, {

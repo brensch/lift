@@ -403,4 +403,7 @@ void main() {
 class _NoAccount implements CoreSource {
   @override
   Future<LocalCore> get ready => Completer<LocalCore>().future;
+
+  @override
+  int get generation => 0;
 }
