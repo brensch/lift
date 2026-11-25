@@ -198,6 +198,9 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
             ? null
             : wp.proposedSetById(justDoneId);
         final allDone = you.proposedSet == null;
+        // While a set waits on its Easy/Hard answer, the band asks it rather
+        // than showing the state: nothing is "Ready" until it's answered.
+        final asking = !ended && wp.questionSetId.isNotEmpty;
 
         return GestureDetector(
           // The banner is the way back to where you're up to: the workout
@@ -351,8 +354,10 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                       child: StatusBox(
                         emoji: normalizedProfileEmoji(auth.profileEmoji),
                         profileColor: profileColorFromHex(auth.profileColorHex),
-                        stateLabel: you.stateLabel,
-                        stateColor: you.stateColor,
+                        stateLabel: asking
+                            ? copy.workout.quickQuestion
+                            : you.stateLabel,
+                        stateColor: asking ? t.yapping : you.stateColor,
                         upNext: iAmNext,
                         timerText: you.timerText,
                         restLeft: you.restLeft,

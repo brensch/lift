@@ -18,6 +18,9 @@ import '../../theme/theme_spec.dart';
 
 /// The first workout's coaching: what the stage on show wants of you.
 String _hint(WorkoutProvider wp, int nowUnix) {
+  // A set is waiting on its Easy/Hard answer: ask for that, not for the next
+  // set — there isn't one until it's answered.
+  if (wp.questionSetId.isNotEmpty) return copy.workout.hints.answer;
   final state = stateAt(wp.stateSnapshot, nowUnix);
   if (state == WorkoutState.WORKOUT_STATE_ALL_DONE ||
       wp.doneTargetSet == null) {

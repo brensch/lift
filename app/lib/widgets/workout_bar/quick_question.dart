@@ -47,17 +47,9 @@ class QuickQuestion extends StatelessWidget {
         ),
       ),
     );
+    // The prompt itself is on the status band above; this row is the answer.
     return Row(
       children: [
-        Text(
-          w.quickQuestion,
-          style: TextStyle(
-            fontSize: t.size.subtitle,
-            fontWeight: t.weight.medium,
-            color: t.muted,
-          ),
-        ),
-        const SizedBox(width: 10),
         answer(QuickAnswer.QUICK_ANSWER_EASY, w.quickEasy),
         const SizedBox(width: 6),
         answer(QuickAnswer.QUICK_ANSWER_HARD, w.quickHard),
