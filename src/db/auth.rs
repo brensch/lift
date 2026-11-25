@@ -291,20 +291,6 @@ impl ServerDb {
     /// The same, with when the login expires (after any slide): a stream
     /// checks it again then, not before (signing out, and deleting the
     /// account, are told to it at once).
-    /// The user a valid login belongs to, with when the login was created —
-    /// for the sensitive actions that require a recently-proved passkey
-    /// (`authed_fresh_user_id`). None if the login is unknown or expired.
-    pub async fn login_user_and_created(&self, token: &str) -> DbResult<Option<(String, i64)>> {
-        let now = now_unix();
-        Ok(sqlx::query_as(
-            "SELECT user_id, created_at FROM logins WHERE token_hash = ? AND expires_at > ?",
-        )
-        .bind(token_hash(token))
-        .bind(now)
-        .fetch_optional(&self.read_pool)
-        .await?)
-    }
-
     pub async fn validate_auth_session_until(
         &self,
         token: &str,
@@ -331,6 +317,20 @@ impl ServerDb {
             return Ok(Some((user_id, now + LOGIN_SECONDS)));
         }
         Ok(Some((user_id, expires_at)))
+    }
+
+    /// The user a valid login belongs to, with when the login was created —
+    /// for the sensitive actions that require a recently-proved passkey
+    /// (`authed_fresh_user_id`). None if the login is unknown or expired.
+    pub async fn login_user_and_created(&self, token: &str) -> DbResult<Option<(String, i64)>> {
+        let now = now_unix();
+        Ok(sqlx::query_as(
+            "SELECT user_id, created_at FROM logins WHERE token_hash = ? AND expires_at > ?",
+        )
+        .bind(token_hash(token))
+        .bind(now)
+        .fetch_optional(&self.read_pool)
+        .await?)
     }
 
     /// When one of the user's logins was last used, to within a day (a

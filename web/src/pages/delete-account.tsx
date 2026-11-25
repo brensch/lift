@@ -27,7 +27,13 @@ export function DeleteAccountPage() {
       // even when already signed in: the server requires a recently-proved
       // login, so a held session token alone can't delete the account.
       setStatus({ text: "Confirm with your passkey…", type: "info" });
-      const token = (await login()).sessionToken;
+      const proven = await login();
+      // The re-proof must be the account the page named — a passkey for a
+      // different account must not delete it by surprise.
+      if (user && proven.userId !== user.userId) {
+        throw new Error("That passkey is for a different account.");
+      }
+      const token = proven.sessionToken;
 
       setStatus({ text: "Deleting your account data...", type: "info" });
 

@@ -978,11 +978,13 @@ passkeys:
 # Passkeys → Add passkey. Placeholders.
 add_passkey:
   title: Add Passkey
+  unlock_body: Reauthenticate so I know it's really you (security rizz).
+  unlock_button: Unlock
   body: Give this passkey a name so you can recognize it later.
   name: Name
   name_hint: e.g. Work Phone
   name_required: Name is required.
-  submit: Continue
+  submit: Add passkey
   adding: Adding...
 
 # Settings → Plate colours: the page, and the colours a plate can be.

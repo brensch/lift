@@ -13,4 +13,4 @@
 - Behind the scenes, the app, watch, website and server moved to the latest build tools and libraries, so everything stays current, fast and secure. Nothing changes in how you use them.
 - When a new lift is finding your starting weight, each ramp set now waits for you to say how it went: the next set doesn't load until you tap Easy or Hard. Easy takes a bigger jump up and a short 30-second rest; Hard gives you your normal rest before the next try.
 - After a set, the countdown ring on its circle runs down much faster, so the banner moves on to the next set sooner, and it no longer shows while the "how was that?" question is up — the circle is still tappable there to take a rep off, so a ring would have been misleading.
-- Deleting your account or adding a passkey now asks you to confirm with your passkey first, so a stolen or forgotten-open session on its own can't do either.
+- Deleting your account or adding a passkey now asks you to confirm with your passkey first, so an old session left open on its own isn't enough to do either.
