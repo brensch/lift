@@ -309,28 +309,40 @@ fn forward(
             let started_at = clock;
             clock += SET_SECONDS;
             let mut call = Call::new(&mut sim, clock, next_id());
-            let done = call.append_workout_mutations(AppendWorkoutMutationsRequest {
-                mutations: vec![
-                    WorkoutMutation {
-                        mutation: Some(workout_mutation::Mutation::StartSet(StartSetRequest {
+            let mut mutations = vec![
+                WorkoutMutation {
+                    mutation: Some(workout_mutation::Mutation::StartSet(StartSetRequest {
+                        workout_id: workout_id.clone(),
+                        proposed_set_id: set.id.clone(),
+                        started_at,
+                    })),
+                },
+                WorkoutMutation {
+                    mutation: Some(workout_mutation::Mutation::CompleteSet(
+                        CompleteSetRequest {
                             workout_id: workout_id.clone(),
                             proposed_set_id: set.id.clone(),
-                            started_at,
-                        })),
-                    },
-                    WorkoutMutation {
-                        mutation: Some(workout_mutation::Mutation::CompleteSet(
-                            CompleteSetRequest {
-                                workout_id: workout_id.clone(),
-                                proposed_set_id: set.id.clone(),
-                                actual_reps: reps,
-                                actual_weight: set.target_weight,
-                                completed_at: clock,
-                            },
-                        )),
-                    },
-                ],
-            });
+                            actual_reps: reps,
+                            actual_weight: set.target_weight,
+                            completed_at: clock,
+                        },
+                    )),
+                },
+            ];
+            // A full calibration rung now waits for its answer before the next
+            // one loads; the scripted lifter answers "a couple left", the usual
+            // climb (a short rung settles on its own).
+            if set.calibration && reps >= set.target_reps {
+                mutations.push(WorkoutMutation {
+                    mutation: Some(workout_mutation::Mutation::AnswerRung(AnswerRungRequest {
+                        workout_id: workout_id.clone(),
+                        proposed_set_id: set.id.clone(),
+                        reps_left: RepsLeft::TwoToFour as i32,
+                        jump_lb: 0.0,
+                    })),
+                });
+            }
+            let done = call.append_workout_mutations(AppendWorkoutMutationsRequest { mutations });
             if done.is_err() {
                 break;
             }
