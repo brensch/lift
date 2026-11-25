@@ -296,6 +296,9 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
   String get _workoutId => _workout!.id;
 
   void _handleError(Object e) {
+    // The account switched while the call was in flight: the result was
+    // dropped on purpose, so there is nothing to show the person.
+    if (e is StaleAccountError) return;
     AppLogger.instance.error('Workout', 'core call failed', {
       'error': e.toString(),
     });
@@ -730,7 +733,7 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
       }
       _setHome(await _service.getHome(budgetMinutes: _budgetMinutes));
     } catch (e) {
-      _lastLoadError = cleanErrorMessage(e);
+      if (e is! StaleAccountError) _lastLoadError = cleanErrorMessage(e);
       _handleError(e);
     } finally {
       notifyListeners();

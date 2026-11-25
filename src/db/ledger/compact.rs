@@ -131,9 +131,12 @@ async fn purged(ledger: &Ledger) -> DbResult<HashSet<String>> {
 fn rewrite_output(file: &str, stamp: i64) -> Option<PathBuf> {
     let (date, hour) = files::partition_of(file);
     let date = date?;
+    // A distinct prefix ('p') from plan()'s merge outputs (d-/h-), so a purge
+    // rewrite can never land on the same path as a merge in the same run,
+    // whatever the stamps. Plan treats it like any other file in its partition.
     Some(match hour {
-        Some(hour) => PathBuf::from(format!("date={date}/hour={hour}/h-{stamp:013}.parquet")),
-        None => PathBuf::from(format!("date={date}/d-{stamp:013}.parquet")),
+        Some(hour) => PathBuf::from(format!("date={date}/hour={hour}/ph-{stamp:013}.parquet")),
+        None => PathBuf::from(format!("date={date}/pd-{stamp:013}.parquet")),
     })
 }
 
@@ -225,7 +228,7 @@ fn merge_rows(
     inputs: &[String],
     output: &Path,
     purged: &HashSet<String>,
-) -> std::io::Result<(i64, Vec<files::Span>, i64)> {
+) -> std::io::Result<(i64, Vec<files::Span>, i64, i64)> {
     let mut cursors: Vec<RowCursor> = inputs
         .iter()
         .map(|f| RowCursor::open(&dir.join(f)))
@@ -240,12 +243,15 @@ fn merge_rows(
     let mut spans: Vec<files::Span> = Vec::new();
     let mut last: Option<(String, i64)> = None;
     let mut dropped: i64 = 0;
+    let mut deduped: i64 = 0;
     while let Some(Reverse(Next(row, i))) = heap.pop() {
         if let Some(next) = cursors[i].next_row()? {
             heap.push(Reverse(Next(next, i)));
         }
-        // The same event in two inputs (a merge redone): once.
+        // The same event in two inputs (a merge redone): once. Counted so the
+        // row tally below still balances.
         if last.as_ref() == Some(&(row.user_id.clone(), row.seq)) {
+            deduped += 1;
             continue;
         }
         last = Some((row.user_id.clone(), row.seq));
@@ -268,28 +274,30 @@ fn merge_rows(
         }
         writer.push(row)?;
     }
-    Ok((writer.finish()?, spans, dropped))
+    Ok((writer.finish()?, spans, dropped, deduped))
 }
 
 async fn merge_events(ledger: &Ledger, output: &Path, inputs: &[String]) -> DbResult<()> {
     let dir = ledger.events_dir();
     let purged = purged(ledger).await?;
-    let (counted, written, spans, dropped) = {
+    let (counted, written, spans, dropped, deduped) = {
         let (dir, inputs, output) = (dir.clone(), inputs.to_vec(), output.to_path_buf());
         tokio::task::spawn_blocking(move || -> DbResult<_> {
             let counted: i64 = inputs
                 .iter()
                 .map(|f| files::row_count(&dir.join(f)))
                 .sum::<std::io::Result<i64>>()?;
-            let (written, spans, dropped) = merge_rows(&dir, &inputs, &output, &purged)?;
-            Ok((counted, written, spans, dropped))
+            let (written, spans, dropped, deduped) = merge_rows(&dir, &inputs, &output, &purged)?;
+            Ok((counted, written, spans, dropped, deduped))
         })
         .await??
     };
-    if written + dropped != counted {
+    // Every input row is accounted for: kept, dropped (purged), or a duplicate
+    // of one already taken (a re-merge).
+    if written + dropped + deduped != counted {
         let _ = std::fs::remove_file(dir.join(output));
         return Err(format!(
-            "merging into {}: {written} written + {dropped} dropped, {counted} read",
+            "merging into {}: {written} written + {dropped} dropped + {deduped} deduped, {counted} read",
             output.display()
         )
         .into());

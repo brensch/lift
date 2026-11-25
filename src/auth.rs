@@ -597,7 +597,7 @@ impl AuthState {
             }
         };
 
-        let (auth_result, user_id) = match pending.state {
+        let (auth_result, user_id, rechecked) = match pending.state {
             AuthChallengeState::Discoverable(auth_state) => {
                 let (user_uuid, _) = self
                     .webauthn
@@ -657,35 +657,38 @@ impl AuthState {
                     .webauthn
                     .finish_discoverable_authentication(cred, auth_state, &discoverable_keys)
                     .map_err(failed)?;
-                (result, user_id)
+                // The discoverable path already matched the credential against
+                // a fresh read of the account's passkeys above.
+                (result, user_id, true)
             }
             AuthChallengeState::Passkey { state, user_id } => {
                 let result = self
                     .webauthn
                     .finish_passkey_authentication(cred, &state)
                     .map_err(failed)?;
-                (result, user_id)
+                // The username path validates against the credentials fixed
+                // when the ceremony began, so it hasn't re-checked.
+                (result, user_id, false)
             }
         };
 
-        // The ceremony's state fixed the allowed credentials when it began.
-        // A passkey removed since (revoked, or the whole account deleted) must
-        // not still sign in, so re-check the one that signed is held now. The
-        // discoverable path checks this against a fresh read above; the
-        // username path validates against its start-time state, so without
-        // this it would miss a revocation that landed mid-ceremony.
-        let signed_with = credential_key(auth_result.cred_id());
-        let still_held = self
-            .db
-            .get_credentials_for_user(&user_id)
-            .await
-            .map_err(|e| internal("reading passkeys", e))?
-            .iter()
-            .filter_map(|json| serde_json::from_str::<Passkey>(json).ok())
-            .any(|pk| credential_key(pk.cred_id()) == signed_with);
-        if !still_held {
-            warn!(%challenge_id, %user_id, "sign-in with a passkey the account no longer holds");
-            return Err(Refusal::UnknownPasskey);
+        // A passkey removed since the ceremony began (revoked, or the whole
+        // account deleted) must not still sign in, so re-check the one that
+        // signed is held now — unless the path already did.
+        if !rechecked {
+            let signed_with = credential_key(auth_result.cred_id());
+            let still_held = self
+                .db
+                .get_credentials_for_user(&user_id)
+                .await
+                .map_err(|e| internal("reading passkeys", e))?
+                .iter()
+                .filter_map(|json| serde_json::from_str::<Passkey>(json).ok())
+                .any(|pk| credential_key(pk.cred_id()) == signed_with);
+            if !still_held {
+                warn!(%challenge_id, %user_id, "sign-in with a passkey the account no longer holds");
+                return Err(Refusal::UnknownPasskey);
+            }
         }
 
         self.update_credential_counter(&user_id, &auth_result).await;

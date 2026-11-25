@@ -237,7 +237,10 @@ class AccountSync extends ChangeNotifier
       }
       await sink.close();
     } catch (_) {
-      await sink.close();
+      // Closing a faulted sink can itself throw; the delete is what matters.
+      try {
+        await sink.close();
+      } catch (_) {}
       if (await out.exists()) await out.delete();
       rethrow;
     }

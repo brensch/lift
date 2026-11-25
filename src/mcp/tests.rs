@@ -370,12 +370,16 @@ async fn an_assistant_connects_and_sets_a_program() {
     };
     let (status, _, fresh) = send(&mcp, refresh_with(&refresh)).await;
     assert_eq!(status, StatusCode::OK);
-    // Reusing the spent refresh token is refused and revokes the grant.
+    // Reusing the spent token is refused; a retry this quick doesn't revoke.
     let (status, _, _) = send(&mcp, refresh_with(&refresh)).await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
-    assert!(mcp.db.assistant_grants("u1").await.unwrap().is_empty());
 
-    // The grant is gone, so even the token from the successful refresh is dead.
+    // Revoked by the person: every token stops working.
+    let grant = mcp.db.assistant_grants("u1").await.unwrap().remove(0);
+    mcp.db
+        .revoke_assistant("u1", &grant.grant_id)
+        .await
+        .unwrap();
     let token = fresh["access_token"].as_str().unwrap();
     let (status, _, _) = send(
         &mcp,

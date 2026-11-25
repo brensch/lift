@@ -120,6 +120,14 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
             .await?;
         tx.commit().await?;
     }
+    if version < 12 {
+        let mut tx = pool.begin().await?;
+        v12(&mut tx).await?;
+        sqlx::query("PRAGMA user_version = 12")
+            .execute(&mut *tx)
+            .await?;
+        tx.commit().await?;
+    }
     // A step that moves events (as v6 did) leaves snapshots folded from the
     // events as they were: any step run marks them by no rules, so each is
     // folded again from the event files when next used. Never deleted: an
@@ -134,7 +142,7 @@ pub(super) async fn migrate(pool: &Pool<Sqlite>) -> DbResult<()> {
 }
 
 /// The version the steps above bring a database to: a new step moves it.
-const LATEST: i64 = 11;
+const LATEST: i64 = 12;
 
 /// A login token as stored: its SHA-256, so the table never holds a token
 /// that would let someone in.
@@ -681,6 +689,25 @@ async fn v11(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
     )
     .execute(&mut **tx)
     .await?;
+    Ok(())
+}
+
+/// When a refresh token was rotated away, so a reuse of it can tell a
+/// near-simultaneous retry (benign) from a later reuse (a leak).
+async fn v12(tx: &mut Transaction<'_, Sqlite>) -> DbResult<()> {
+    // ADD COLUMN isn't idempotent the way CREATE TABLE IF NOT EXISTS is, so
+    // only add it when it isn't already there (a step may run on a schema that
+    // already has it).
+    let has: bool = sqlx::query_scalar(
+        "SELECT COUNT(*) > 0 FROM pragma_table_info('assistant_tokens') WHERE name = 'used_at'",
+    )
+    .fetch_one(&mut **tx)
+    .await?;
+    if !has {
+        sqlx::query("ALTER TABLE assistant_tokens ADD COLUMN used_at INTEGER NOT NULL DEFAULT 0")
+            .execute(&mut **tx)
+            .await?;
+    }
     Ok(())
 }
 
