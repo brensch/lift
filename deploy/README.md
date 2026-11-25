@@ -85,12 +85,8 @@ The box is confined in layers, all captured here as code:
   Set up by `install_schlift_service.sh` and `deploy_schlift_dev.sh`.
 - **fail2ban** (`deploy/fail2ban/jail.local`): bans hosts hammering SSH. Login
   is key-only anyway; this sheds scanning noise.
-- **AppArmor** (`deploy/apparmor/{schlift,caddy}`): a path-based MAC layer on
-  the backend and Caddy. `harden_box.sh` loads them in **complain** mode (logs,
-  blocks nothing); after a clean `journalctl -g 'apparmor.*DENIED'` over real
-  traffic, `sudo aa-enforce /etc/apparmor.d/schlift /etc/apparmor.d/caddy`.
 
-Re-run `sudo scripts/harden_box.sh` any time to reapply fail2ban and AppArmor.
+Re-run `sudo scripts/harden_box.sh` any time to reapply fail2ban.
 
 ## TLS / Reverse Proxy
 
