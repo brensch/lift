@@ -49,21 +49,29 @@ class SectionWorkout {
   });
 
   /// Your workout, live: taps start, finish and correct sets.
-  factory SectionWorkout.mine(WorkoutProvider wp) => SectionWorkout(
-    completedSets: wp.completedSets,
-    liftingSetId: wp.workout?.liftingSetId ?? '',
-    // While a question is open, nothing is up next: you answer Easy/Hard
-    // before the next set loads, so no circle is highlighted as ready.
-    nextSetId: wp.questionSetId.isNotEmpty ? null : wp.doneTargetSet?.id,
-    questionSetId: wp.questionSetId,
-    state: stateAt(wp.stateSnapshot, wp.now.millisecondsSinceEpoch ~/ 1000),
-    passedWarmupIds: {
-      for (final s in wp.proposedSets)
-        if (wp.isPassedWarmup(s)) s.id,
-    },
-    firstTimeSetIds: wp.firstTimeSetIds,
-    actions: wp.isWorkoutEnded ? null : wp,
-  );
+  factory SectionWorkout.mine(WorkoutProvider wp) {
+    final next = wp.doneTargetSet;
+    // A just-done set is held in the banner through its Easy/Hard answer or
+    // the orange "one less" countdown. While it is, nothing is up next: a
+    // question must be answered first, and a first-time set must not light up
+    // (its card would show before the countdown finishes).
+    final heldDone = wp.askingSetId.isNotEmpty;
+    final nextFirstTime = next != null && wp.firstTimeSetIds.contains(next.id);
+    final hideNext = wp.questionSetId.isNotEmpty || (heldDone && nextFirstTime);
+    return SectionWorkout(
+      completedSets: wp.completedSets,
+      liftingSetId: wp.workout?.liftingSetId ?? '',
+      nextSetId: hideNext ? null : next?.id,
+      questionSetId: wp.questionSetId,
+      state: stateAt(wp.stateSnapshot, wp.now.millisecondsSinceEpoch ~/ 1000),
+      passedWarmupIds: {
+        for (final s in wp.proposedSets)
+          if (wp.isPassedWarmup(s)) s.id,
+      },
+      firstTimeSetIds: wp.firstTimeSetIds,
+      actions: wp.isWorkoutEnded ? null : wp,
+    );
+  }
 
   /// A session partner's workout, to look at.
   factory SectionWorkout.of(ParticipantStatus p) {

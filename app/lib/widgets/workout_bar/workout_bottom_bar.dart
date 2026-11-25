@@ -376,7 +376,11 @@ class _WorkoutBottomBarState extends State<WorkoutBottomBar>
                         onEdit: ended || editBlock == null
                             ? null
                             : () => editExercise(context, wp, editBlock),
+                        // Not while a just-done set is still held in the
+                        // banner (its orange countdown): the first-time card
+                        // must wait until that set is behind you.
                         firstTime:
+                            justDone == null &&
                             you.proposedSet != null &&
                             wp.firstTimeSetIds.contains(you.proposedSet!.id),
                         question: wp.questionSetId.isEmpty || ended
