@@ -801,7 +801,13 @@ private fun WorkoutScreens(
             position = card.setLine,
             weight = card.weightText.ifEmpty { card.setText },
             unit = card.unitText,
-            reps = card.repsText,
+            // Asking: the reps the asked set logs, which a tap on the circle
+            // takes one off, as the phone's banner circle does.
+            reps =
+                question
+                    ?.answersList
+                    ?.firstOrNull { it.answer == Wearable.QuickAnswer.QUICK_ANSWER_ONE_LESS }
+                    ?.label ?: card.repsText,
             repState = inHand?.state ?: Wearable.WearCircleState.WEAR_CIRCLE_STATE_PENDING,
             bpm = latestBpm,
             // Dimmed, when rest ends in place of a ticking length.

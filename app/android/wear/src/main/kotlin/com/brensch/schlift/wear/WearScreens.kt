@@ -593,7 +593,7 @@ private fun WeightRow(
                                 .weight(1f)
                                 .fillMaxHeight()
                                 .clip(RoundedCornerShape(d * 0.03f))
-                                .background(WearPalette.Lifting)
+                                .background(WearPalette.Ready)
                                 .clickable(enabled = enabled) { onAnswer(answer.answer) },
                         contentAlignment = Alignment.Center,
                     ) {
@@ -661,7 +661,14 @@ private fun WeightRow(
                 modifier = Modifier.padding(horizontal = d * 0.02f),
             )
         }
-        val look = circleLook(face.repState, face.stageColor, c)
+        // Asking how it went, the circle is the phone's orange and a tap on
+        // it is a rep off: it reads as something to press.
+        val look =
+            if (face.answers.isNotEmpty() && !c.dim) {
+                CircleLook(WearPalette.Ready, WearPalette.Ready, WearPalette.OnDark)
+            } else {
+                circleLook(face.repState, face.stageColor, c)
+            }
         val outer = d * 0.187f
         Box(
             modifier =
