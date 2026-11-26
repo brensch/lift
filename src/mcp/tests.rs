@@ -283,7 +283,7 @@ async fn an_assistant_connects_and_sets_a_program() {
     program["name"] = "From Claude".into();
 
     let mut broken = program.clone();
-    broken["sets"]["max"] = 0.into();
+    broken["sets"]["per_lift"] = 0.into();
     let (_, _, checked) = send(&mcp, call("validate_program", json!({ "program": broken }))).await;
     assert_eq!(structured(&checked)["ok"], false);
     let (_, _, refused) = send(

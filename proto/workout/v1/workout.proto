@@ -159,6 +159,7 @@ enum PlanReasonKind {
   PLAN_REASON_KIND_USER_SET = 6;
   // This many sets: what the time budget fits, given to the lifts whose
   // muscles are furthest behind this week.
+  // No longer given: sets were the time budget's until it went.
   PLAN_REASON_KIND_SETS_FROM_TIME = 7;
   // The plan against the lift's last session, what the user sees move:
   // before/after are the weights (lb), reps_*/sets_* the reps and sets,

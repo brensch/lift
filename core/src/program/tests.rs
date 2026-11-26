@@ -53,7 +53,7 @@ fn names_resolve_and_numbers_are_in_range() {
     let mut v = default_json();
     v["exercises"][0]["class"] = "nope".into();
     v["classes"]["heavy"]["rep_high"] = 2.into();
-    v["sets"]["max"] = 1.into();
+    v["sets"]["per_lift"] = 0.into();
     v["equipment"]["plates"]["lb"] = serde_json::json!([45.0, 45.0]);
     v["workouts"] = serde_json::json!([
         {"id": "a", "name": "A", "exercises": ["squat", "squat", "nope"], "rotation": true, "notes": "", "from_library": ""}
@@ -62,7 +62,7 @@ fn names_resolve_and_numbers_are_in_range() {
     for path in [
         "exercises[squat].class",
         "classes.heavy.rep_high",
-        "sets.max",
+        "sets.per_lift",
         "equipment.plates.lb[1]",
         "workouts[a].exercises[1]",
         "workouts[a].exercises[2]",

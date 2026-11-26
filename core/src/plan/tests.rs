@@ -634,55 +634,17 @@ fn lift(ex: &str) -> Lift {
     }
 }
 
+/// A lift whose rule names no sets does the program's `per_lift`; a
+/// rule's or an override's sets are kept.
 #[test]
-fn sets_fill_the_budget_from_two_up_to_five() {
-    let costs = Costs::defaults(&builtin());
-    let none = BTreeMap::new();
-    let lifts = [lift("lateral_raise"), lift("barbell_curl")];
-    // 160 s a set, less the rest after a lift's last: 2 each + the
-    // move = 520 s. 60 min fills both to 5.
-    assert_eq!(allocate(&builtin(), &lifts, &costs, &none, 60), vec![5, 5]);
-    // 20 min = 1200 s: four more sets fit.
-    assert_eq!(allocate(&builtin(), &lifts, &costs, &none, 20), vec![4, 4]);
-    // 5 min doesn't fit 2 each: the floor stands, over the budget.
-    assert_eq!(allocate(&builtin(), &lifts, &costs, &none, 5), vec![2, 2]);
-    let over: f32 = lifts
-        .iter()
-        .enumerate()
-        .map(|(i, l)| lift_seconds(&costs, l, 2, i == 0))
-        .sum();
-    assert!(over > 300.0, "\"needs {} min\"", (over / 60.0).ceil());
-}
-
-#[test]
-fn the_lift_furthest_behind_gets_the_sets() {
-    let costs = Costs::defaults(&builtin());
-    let mut weekly = BTreeMap::new();
-    weekly.insert(Muscle::Shoulders, 9.0);
-    let lifts = [lift("lateral_raise"), lift("barbell_curl")];
-    assert_eq!(
-        allocate(&builtin(), &lifts, &costs, &weekly, 20),
-        vec![3, 5],
-        "biceps are behind; shoulders nearly at ten"
-    );
-    // Even, the earlier lift first.
-    let lifts = [lift("barbell_curl"), lift("lateral_raise")];
-    assert_eq!(
-        allocate(&builtin(), &lifts, &costs, &BTreeMap::new(), 12),
-        vec![3, 2]
-    );
-}
-
-#[test]
-fn override_sets_are_kept() {
-    let costs = Costs::defaults(&builtin());
+fn sets_are_the_programs_per_lift_unless_fixed() {
     let mut fixed = lift("lateral_raise");
     fixed.fixed_sets = Some(1);
     let lifts = [fixed, lift("barbell_curl")];
-    assert_eq!(
-        allocate(&builtin(), &lifts, &costs, &BTreeMap::new(), 60),
-        vec![1, 5]
-    );
+    assert_eq!(allocate(&builtin(), &lifts), vec![1, 3]);
+    let mut p = Program::clone(&builtin());
+    p.sets.per_lift = 5;
+    assert_eq!(allocate(&p, &lifts), vec![1, 5]);
 }
 
 /// Sets tapped through a second apart teach nothing: the defaults stay.

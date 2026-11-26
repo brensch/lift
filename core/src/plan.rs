@@ -29,10 +29,8 @@
 //! **The rule.** Each lift follows a progression of the program's (its own,
 //! or its class's): `estimated_max` plans from the walked max in the class's
 //! rep range; `fixed`, `linear`, `double`, `cycle` and `formula` as the
-//! guide describes. A rule that names no sets leaves them to the time
-//! budget: the program's minimum a lift, then one at a time up to its
-//! maximum, to the lift whose primary muscle is furthest below the weekly
-//! target, until the next would pass the budget.
+//! guide describes. A rule that names no sets does the program's
+//! `sets.per_lift`.
 //!
 //! **Why.** A plan's reasons lead with the comparison with the lift's last
 //! session — heavier, lighter, more reps, fewer, the same — and why in those
@@ -52,9 +50,8 @@ use crate::pb::{
 };
 use crate::program::formula::{Evaluator, Scope};
 use crate::program::{
-    Calibration, Estimate, Formula, GroupDef, Muscle, Program, Progression, Role, Scheme,
+    Calibration, Estimate, Formula, GroupDef, Program, Progression, Role, Scheme,
 };
-use crate::volume::weekly_sets;
 use crate::weight_units::AppWeightUnit;
 
 pub const DAY: i64 = 24 * 3600;
@@ -1466,63 +1463,13 @@ pub fn lift_seconds(costs: &Costs, lift: &Lift, sets: i32, first: bool) -> f32 {
     seconds
 }
 
-/// Each lift's sets: the program's minimum each (fixed ones as they are),
-/// then one at a time, up to its maximum, to the lift whose primary muscle
-/// is furthest below the weekly target counting what is given so far (ties
-/// to the earlier lift), until that lift's next set would pass the budget.
-/// `weekly` is the hard sets per muscle this week before the workout.
-pub fn allocate(
-    program: &Program,
-    lifts: &[Lift],
-    costs: &Costs,
-    weekly: &BTreeMap<Muscle, f32>,
-    budget_minutes: i32,
-) -> Vec<i32> {
-    let mut sets: Vec<i32> = lifts
+/// Each lift's sets: a rule's or an override's as they are, otherwise
+/// the program's `sets.per_lift`.
+pub fn allocate(program: &Program, lifts: &[Lift]) -> Vec<i32> {
+    lifts
         .iter()
-        .map(|l| l.fixed_sets.unwrap_or(program.sets.min))
-        .collect();
-    let mut total: f32 = lifts
-        .iter()
-        .zip(&sets)
-        .enumerate()
-        .map(|(i, (lift, n))| lift_seconds(costs, lift, *n, i == 0))
-        .sum();
-    let budget = budget_minutes as f32 * 60.0;
-    loop {
-        let behind = |i: usize| {
-            let Some(muscle) = program.primary_muscle(&lifts[i].exercise) else {
-                return f32::NEG_INFINITY;
-            };
-            let mut done = weekly.get(&muscle).copied().unwrap_or(0.0);
-            for (lift, n) in lifts.iter().zip(&sets) {
-                if let Some((_, c)) = program.credit(&lift.exercise).find(|(m, _)| *m == muscle) {
-                    done += *n as f32 * c;
-                }
-            }
-            program.volume.target_low as f32 - done
-        };
-        let mut pick: Option<(usize, f32)> = None;
-        for (i, lift) in lifts.iter().enumerate() {
-            if lift.fixed_sets.is_some() || sets[i] >= program.sets.max {
-                continue;
-            }
-            let deficit = behind(i);
-            if pick.is_none_or(|(_, best)| deficit > best) {
-                pick = Some((i, deficit));
-            }
-        }
-        let Some((i, _)) = pick else {
-            break;
-        };
-        let cost = costs.per_set(&lifts[i].class);
-        if total + cost > budget {
-            break;
-        }
-        sets[i] += 1;
-        total += cost;
-    }
-    sets
+        .map(|l| l.fixed_sets.unwrap_or(program.sets.per_lift))
+        .collect()
 }
 
 // ── The account's lifts, planned ──
@@ -1533,7 +1480,6 @@ pub struct Planner<'a> {
     account: &'a Account,
     program: &'a Program,
     sessions: HashMap<String, Vec<SessionOutcome>>,
-    weekly: BTreeMap<Muscle, f32>,
     costs: Costs,
     now: i64,
 }
@@ -1565,7 +1511,6 @@ impl<'a> Planner<'a> {
             account,
             program,
             sessions,
-            weekly: weekly_sets(program, &account.workouts, now),
             costs: Costs::learned(program, &account.workouts, now),
             now,
         }
@@ -1605,15 +1550,6 @@ impl<'a> Planner<'a> {
         }
     }
 
-    /// The budget asked for, or the program's default.
-    pub fn budget(&self, budget_minutes: i32) -> i32 {
-        if budget_minutes > 0 {
-            budget_minutes
-        } else {
-            self.program.sets.default_budget_minutes
-        }
-    }
-
     /// The decisions for `exercises` joining a workout whose lifts already
     /// planned are `planned` (they keep theirs), in `budget_minutes` (0 =
     /// the program's default). Exercises the program doesn't know are left
@@ -1624,7 +1560,6 @@ impl<'a> Planner<'a> {
         planned: &[ExerciseDecision],
         budget_minutes: i32,
     ) -> Vec<ExerciseDecision> {
-        let budget = self.budget(budget_minutes);
         let exercises: Vec<&String> = exercises
             .iter()
             .filter(|ex| self.program.knows(ex))
@@ -1632,7 +1567,7 @@ impl<'a> Planner<'a> {
         let walks: Vec<Walk> = exercises.iter().map(|ex| self.walk(ex)).collect();
         let lifts = self.lifts(&exercises, &walks, planned);
         let first_new = lifts.len() - exercises.len();
-        let sets = allocate(self.program, &lifts, &self.costs, &self.weekly, budget);
+        let sets = allocate(self.program, &lifts);
         exercises
             .iter()
             .zip(&walks)
@@ -1642,22 +1577,8 @@ impl<'a> Planner<'a> {
                 let inputs = self.inputs(ex, walk);
                 let mut d = plan_lift(&inputs, sets[i]);
                 shape_lift(&inputs, &mut d);
-                d.budget_minutes = budget;
+                d.budget_minutes = budget_minutes;
                 d.estimated_seconds = lift_seconds(&self.costs, &lifts[i], sets[i], i == 0) as i32;
-                if lifts[i].fixed_sets.is_none() {
-                    let muscle = self.program.primary_muscle(ex);
-                    d.reasons.push(PlanReason {
-                        kind: PlanReasonKind::SetsFromTime as i32,
-                        before: self.program.sets.min as f32,
-                        after: sets[i] as f32,
-                        budget_minutes: budget,
-                        muscle: muscle.map_or(0, |m| m.to_proto() as i32),
-                        weekly_sets: muscle
-                            .and_then(|m| self.weekly.get(&m).copied())
-                            .unwrap_or(0.0),
-                        ..Default::default()
-                    });
-                }
                 d
             })
             .collect()
@@ -1721,7 +1642,7 @@ impl<'a> Planner<'a> {
                 lift_seconds(
                     &self.costs,
                     lift,
-                    lift.fixed_sets.unwrap_or(self.program.sets.max),
+                    lift.fixed_sets.unwrap_or(self.program.sets.per_lift),
                     i == 0,
                 ) as i32
             })

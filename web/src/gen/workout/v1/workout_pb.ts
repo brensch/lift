@@ -4527,6 +4527,7 @@ export enum PlanReasonKind {
   /**
    * This many sets: what the time budget fits, given to the lifts whose
    * muscles are furthest behind this week.
+   * No longer given: sets were the time budget's until it went.
    *
    * @generated from enum value: PLAN_REASON_KIND_SETS_FROM_TIME = 7;
    */

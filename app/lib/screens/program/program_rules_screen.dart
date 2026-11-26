@@ -101,6 +101,16 @@ class _ProgramRulesScreenState extends State<ProgramRulesScreen> {
                       _choice('sequence', r.nextSequence, r.nextSequenceSub),
                       _choice('schedule', r.nextSchedule, r.nextScheduleSub),
                       if (_d['next'] == 'schedule') ..._week(),
+                      FlatHeading(r.setsHeading),
+                      NumberRow(
+                        label: r.setsPerLift,
+                        value: (_d['sets'] as Json)['per_lift'] as num? ?? 3,
+                        min: 1,
+                        max: 20,
+                        onChanged: (v) => setState(
+                          () => (_d['sets'] as Json)['per_lift'] = v,
+                        ),
+                      ),
                       ..._targetRows(),
                       ..._recoveryRows(),
                     ],

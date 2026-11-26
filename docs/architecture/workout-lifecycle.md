@@ -15,7 +15,7 @@ the server replays the same events with the same code when they sync. See
 
 ```mermaid
 graph LR
-    tmpl["Template<br/>exercises only"] -->|"StartWorkout: plan each lift<br/>(estimated max + time budget),<br/>decisions recorded on the event"| active["Active workout"]
+    tmpl["Template<br/>exercises only"] -->|"StartWorkout: plan each lift<br/>(estimated max, the program's sets),<br/>decisions recorded on the event"| active["Active workout"]
     active -->|"StartSet / CompleteSet<br/>EditCompletedSet, AdjustExerciseWeight<br/>(each weight change logged)"| active
     active -->|"EndWorkout"| done["Completed workout"]
     done -->|"the walk: every finished<br/>session, oldest first"| max["Estimated max<br/>per lift"]
@@ -41,7 +41,7 @@ Every training rule is one JSON document the account holds, its
 | `workouts` | The templates, in the user's order: `id`, name, exercise keys, `rotation` (in the rotation or a reserve), notes, `from_library` |
 | `classes` | Per class: rep range, rest, warmups, the progression its lifts follow |
 | `progressions` | Named rules, each of a kind (below) |
-| `estimate`, `time_off`, `sets`, `costs`, `warmups`, `calibration`, `volume`, `recovery`, `rotation_check`, `end_of_exercise_rest_seconds`, `equipment` | Every number the planner reads: the Epley divisor and reserve, the time-off cuts, the budget's sets and costs, the warmup ladder, the ramp, weekly volume targets, recovery windows, the rotation check, steps, openers, bar and plates |
+| `estimate`, `time_off`, `sets`, `costs`, `warmups`, `calibration`, `volume`, `recovery`, `rotation_check`, `end_of_exercise_rest_seconds`, `equipment` | Every number the planner reads: the Epley divisor and reserve, the time-off cuts, the sets per lift and the time costs, the warmup ladder, the ramp, weekly volume targets, recovery windows, the rotation check, steps, openers, bar and plates |
 
 What each field means is `core/programs/GUIDE.md`, written for whoever
 writes one (an assistant reads it with `read_guide`). The built-in program
@@ -55,12 +55,12 @@ stored between workouts.
 
 | Kind | Sets | Reps and weight |
 |---|---|---|
-| `estimated_max` | the time budget | from the walked max in the class's rep range (below) |
+| `estimated_max` | `sets.per_lift` | from the walked max in the class's rep range (below) |
 | `fixed` | given | given; never ramps |
-| `linear` | given, or the budget | fixed reps; a step (or `increment_lb`) heavier after every rep hit, the same after a miss, `deload_factor` of it after `deload_after_fails` misses in a row |
-| `double` | given, or the budget | reps climb one a session from `rep_low` to `rep_high` with every rep hit; past the top, a step heavier and back to `rep_low` |
+| `linear` | given, or `sets.per_lift` | fixed reps; a step (or `increment_lb`) heavier after every rep hit, the same after a miss, `deload_factor` of it after `deload_after_fails` misses in a row |
+| `double` | given, or `sets.per_lift` | reps climb one a session from `rep_low` to `rep_high` with every rep hit; past the top, a step heavier and back to `rep_low` |
 | `cycle` | per step | one step a session, round and round: sets × reps at a fraction of the max |
-| `formula` | an expression, or the budget | expressions over the last session, the max, days off and the like (`core/src/program/formula.rs`: deterministic f64, no loops, state, clock or I/O, limits on length and depth) |
+| `formula` | an expression, or `sets.per_lift` | expressions over the last session, the max, days off and the like (`core/src/program/formula.rs`: deterministic f64, no loops, state, clock or I/O, limits on length and depth) |
 
 For every kind, a loaded lift never done runs the calibration ramp first
 (but `fixed`), a bodyweight one starts at the bottom of its range, and an
@@ -182,24 +182,15 @@ A bodyweight lift never done starts at the bottom of its range.
 
 (The built-in program's `classes`; each exercise names its class.)
 
-**Sets come from the time budget** for a lift whose rule names none (the
-program's `sets`: 60 minutes by default, changed in 5-minute steps on Home
-before starting). Every lift gets 2 sets; then one
-set at a time, up to 5, to the lift whose primary muscle is furthest below
-10 hard sets this week counting the sets planned so far (ties to the
-earlier lift), until the lift that should get the next set doesn't fit
-(`allocate`). Sets a rule or an override names are kept as they are. If two sets
-each don't fit, Home says how long the workout needs instead.
+**Sets** for a lift whose rule names none are the program's
+`sets.per_lift` (3 built in); sets a rule or an override names are kept as
+they are (`allocate`). There is no time budget: the person does less when
+short on time, or asks their assistant. Home shows each workout's
+estimated length from the same costs.
 
-Each template plan also carries **the longest it gets** (`max_seconds`):
-the same costs with every lift whose sets are the budget's to give at 5,
-fixed sets as they are (`Planner::max_seconds`). When the budget is at or
-past it, more time buys nothing: Home's card says so beside the estimate
-and turns + off. The budget is shared by every template and is not moved
-when the selection changes; the card shows the selected template's cap.
 When a lift in the workout is never done, its ramp has no set length, so
 the card shows the calibration line (`copy.plan.calibration`) instead of
-the time control; the ramp is still costed as a lead-in for the other
+its length; the ramp is still costed as a lead-in for the other
 lifts' sets.
 
 What things cost (`costs`, read into `Costs`): a working set 40 s plus its class's rest, a

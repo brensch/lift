@@ -27,9 +27,6 @@ tutorial:
     - target: home_add
       title: Need more options?
       body: We're spoilt for choice in today's society. Continue being spoilt by browsing the lovingly curated set of workouts to add to your rotation, or make your own.
-    - target: home_time
-      title: I got your number(s)
-      body: You're working hard in the gym. I'm working hard crunching the numbers. What a team. Tell me how long you want to work out and on which workout template, I'll figure out the rest.
     - target: home_start
       title: Start
       body: Pressing Start is how you Start. Let's get schlifting!
@@ -408,17 +405,10 @@ workout:
 plan:
   # A schemed lift's drops after its runs ("1×5 @ 200 lb, +2 drops"). Placeholder.
   drops: "+{n} drops"
-  # Home's time control: "− 60 min +".
-  budget: "{min} min"
-  # In place of the time control when a lift in the workout is new.
+  # In place of the workout's length when a lift in it is new.
   calibration: "Calibration session due to new exercise. Go in and try your darndest."
-  # The workout's estimated length beside the time control.
+  # The workout's estimated length, on its card.
   estimate: "~{min} min"
-  # The same, when the budget is at or past what the workout can use
-  # (every lift at its most sets): + is off.
-  longest: "~{min} min · the longest it gets"
-  # When two sets a lift don't fit the time.
-  needs: "Needs {min} min"
   # A lift never done, loaded: its first set, where the ramp starts.
   ramp: "Ramp from {weight}"
   # Why the numbers are what they are. {max} is the estimated max (a rep
@@ -482,8 +472,8 @@ plan:
     weight: Weight
     reps: Reps
     sets: Sets
-    # The sets toggle off: the time budget decides.
-    sets_auto: From the time
+    # The sets toggle off: the programme's own number.
+    sets_auto: The programme's number
     save: Save
     remove: Let the plan decide
     # On a row with an override.
@@ -1070,8 +1060,8 @@ science:
       title: "Reps and weight"
       body: "I keep you at the weight you did last time, for as many reps as your max covers. Past the top of the range, the weight goes up a step. Under the bottom, it comes down to what you can do. So you add a rep a session, then a plate. More reps works about as well as more weight."
     - id: sets
-      title: "Sets: from your time"
-      body: "You tell me how long you have on the home screen. Sixty minutes unless you say otherwise. Every lift gets two sets. The rest go one at a time, five at most, to whichever muscle is furthest under ten sets this week. I time your sets and rests, and once I have ten of each I use yours instead of my guesses. If two sets each won't fit, I tell you how long it needs."
+      title: "Sets: three a lift"
+      body: "Every lift gets three working sets unless your programme says otherwise. Short on time? Do fewer, or ask your AI to change it. I time your sets and rests, and once I have ten of each I use yours instead of my guesses, so the length on each workout's card gets more accurate."
     - id: volume
       title: "Weekly volume: 10–20 sets per muscle"
       body: "Ten hard sets a week per muscle beats fewer. Past twenty you're mostly just tired. That's the band on the home screen."
@@ -1248,7 +1238,7 @@ rules:
   program_row: Progression
   program_row_sub: How each lift moves, its reps, rest and sets
   home_row: Programme rules
-  home_row_sub: How Home picks, your schedule, weekly targets, recovery
+  home_row_sub: How Home picks, your schedule, sets per lift, weekly targets, recovery
   save: Save
   saved: Saved
   failed: "Couldn't save: {error}"
@@ -1275,7 +1265,9 @@ rules:
   kind_formula: Custom formula
   kind_formula_sub: Written by an AI. Ask it to change this one.
   sets: Sets
-  sets_auto: Sets from your time
+  sets_auto: "Use the programme's default sets ({n})"
+  sets_heading: Sets
+  sets_per_lift: Sets per lift, unless a lift says otherwise
   reps: Reps
   rep_low: Fewest reps
   rep_high: Most reps

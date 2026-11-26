@@ -108,6 +108,7 @@ class PlanReasonKind extends $pb.ProtobufEnum {
 
   /// This many sets: what the time budget fits, given to the lifts whose
   /// muscles are furthest behind this week.
+  /// No longer given: sets were the time budget's until it went.
   static const PlanReasonKind PLAN_REASON_KIND_SETS_FROM_TIME =
       PlanReasonKind._(
           7, _omitEnumNames ? '' : 'PLAN_REASON_KIND_SETS_FROM_TIME');

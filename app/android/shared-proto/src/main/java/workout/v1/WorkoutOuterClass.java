@@ -323,6 +323,7 @@ public final class WorkoutOuterClass {
      * <pre>
      * This many sets: what the time budget fits, given to the lifts whose
      * muscles are furthest behind this week.
+     * No longer given: sets were the time budget's until it went.
      * </pre>
      *
      * <code>PLAN_REASON_KIND_SETS_FROM_TIME = 7;</code>
@@ -469,6 +470,7 @@ public final class WorkoutOuterClass {
      * <pre>
      * This many sets: what the time budget fits, given to the lifts whose
      * muscles are furthest behind this week.
+     * No longer given: sets were the time budget's until it went.
      * </pre>
      *
      * <code>PLAN_REASON_KIND_SETS_FROM_TIME = 7;</code>

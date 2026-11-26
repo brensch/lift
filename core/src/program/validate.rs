@@ -817,17 +817,7 @@ fn check_numbers(p: &Program, c: &mut Checker) {
         c.above(&format!("time_off[{i}].factor"), t.factor, 0.0, 1.0);
     }
     let s = &p.sets;
-    c.int(
-        "sets.default_budget_minutes",
-        s.default_budget_minutes.into(),
-        5,
-        300,
-    );
-    c.int("sets.min", s.min.into(), 1, 20);
-    c.int("sets.max", s.max.into(), 1, 20);
-    if s.max < s.min {
-        c.err("sets.max", "under sets.min");
-    }
+    c.int("sets.per_lift", s.per_lift.into(), 1, 20);
     c.int("sets.override_sets", s.override_sets.into(), 1, 20);
     let k = &p.costs;
     c.above("costs.set_seconds", k.set_seconds, 0.0, 3600.0);

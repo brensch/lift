@@ -500,12 +500,36 @@ pub struct TimeOff {
 /// How many working sets a lift gets from the time budget.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Sets {
-    pub default_budget_minutes: i32,
-    /// Every lift gets this many before any gets more.
-    pub min: i32,
-    pub max: i32,
+    /// The working sets of a lift whose rule names none. 3 in a program
+    /// from before it existed (which handed them out by a time budget).
+    #[serde(default = "three")]
+    pub per_lift: i32,
     /// An override that names no sets is held for this many.
     pub override_sets: i32,
+    /// No longer read: the time budget these sized sets by is gone. Kept
+    /// so stored programs read back as they were written.
+    #[serde(default = "sixty")]
+    pub default_budget_minutes: i32,
+    #[serde(default = "two")]
+    pub min: i32,
+    #[serde(default = "five")]
+    pub max: i32,
+}
+
+fn three() -> i32 {
+    3
+}
+
+fn sixty() -> i32 {
+    60
+}
+
+fn two() -> i32 {
+    2
+}
+
+fn five() -> i32 {
+    5
 }
 
 /// What a workout's parts cost until the user's own timings are learned.

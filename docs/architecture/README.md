@@ -10,7 +10,7 @@ built, it is called out explicitly under "Not implemented".
 | [local-first.md](local-first.md) | The account on the phone: events, the fold, the core's API, sync |
 | [backend.md](backend.md) | Rust module layout, the event store, DB access model, schema changes, RPC surface, the MCP server for assistants |
 | [data-model.md](data-model.md) | The event log, what an export contains, the server schema and its migrations |
-| [workout-lifecycle.md](workout-lifecycle.md) | The program, then template → planned at the start → completed: progressions, the estimated max, the time budget, decisions and their reasons, the set state machine, the weight log |
+| [workout-lifecycle.md](workout-lifecycle.md) | The program, then template → planned at the start → completed: progressions, the estimated max, sets per lift, decisions and their reasons, the set state machine, the weight log |
 | [multiplayer.md](multiplayer.md) | Sessions, invites, participant status over the Sync stream |
 | [app.md](app.md) | Flutter layer boundaries, providers, the core on the phone |
 | [wearable.md](wearable.md) | Watch ↔ phone protocol for Wear OS and watchOS |

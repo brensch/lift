@@ -235,8 +235,9 @@ class _LiftRulesScreenState extends State<LiftRulesScreen> {
           show: (v) => zeroAuto && v == 0 ? '—' : w(v),
           onChanged: (v) => set(k, poundsFromDisplayWeight(v.toDouble(), unit)),
         );
+    final perLift = (_doc!.doc['sets'] as Json)['per_lift'] as num? ?? 3;
     Widget sets() => SwitchRow(
-      label: r.setsAuto,
+      label: r.setsAuto.replaceAll('{n}', '$perLift'),
       value: rule['sets'] == null,
       onChanged: (auto) => set('sets', auto ? null : 3),
     );

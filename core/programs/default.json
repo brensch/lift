@@ -1119,9 +1119,7 @@
     }
   ],
   "sets": {
-    "default_budget_minutes": 60,
-    "min": 2,
-    "max": 5,
+    "per_lift": 3,
     "override_sets": 5
   },
   "costs": {

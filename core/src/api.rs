@@ -1147,7 +1147,9 @@ impl<'a> View<'a> {
     pub fn home_at(&self, budget_minutes: i32, utc_offset: i32) -> GetHomeResponse {
         let program = self.program();
         let planner = Planner::new(self.account, self.now);
-        let budget = planner.budget(budget_minutes);
+        // No longer sizes anything (sets are the program's); kept on the
+        // response for older apps.
+        let budget = budget_minutes;
         let plans = program
             .exercises
             .iter()

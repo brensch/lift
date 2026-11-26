@@ -290,8 +290,8 @@ These apply to every kind:
 - **Set by hand:** when the person types their own weight × reps for a
   lift, the next session is exactly that, and the progression carries on
   from it.
-- **Sets:** a progression that gives no `sets` (or `null`) leaves them to
-  the time budget (see `sets`).
+- **Sets:** a progression that gives no `sets` (or `null`) does
+  `sets.per_lift` (see `sets`).
 - **One rule, several lifts:** an exercise's `params` set its own values
   for numbers of the rule it follows, instead of a copy of the rule that
   differs in one number. For a `formula` a name is one of its `let` names,
@@ -329,7 +329,7 @@ its sessions with the Epley estimate (`estimate`):
 
 The plan stays at the last weight for as many reps as the max covers in the
 class's range. Past the top of the range it goes up one step. With time
-off, the max is cut (`time_off`). Sets come from the time budget.
+off, the max is cut (`time_off`). Sets are `sets.per_lift`.
 
 #### `fixed`
 
@@ -355,7 +355,7 @@ never change, or for a deload week.
   `deload_factor` of it, which must be over 0 and at most 1.
 - Time off cuts the weight by the `time_off` table.
 
-`sets` may be `null` to use the budget.
+`sets` may be `null` for `sets.per_lift`.
 
 #### `double`
 
@@ -400,7 +400,7 @@ Your own rule, as expressions:
 
 - `weight` is in pounds and is snapped to what loads.
 - `reps` is rounded and must come to 1–100.
-- `sets` is rounded to 1–20; `null` leaves it to the budget.
+- `sets` is rounded to 1–20; `null` is `sets.per_lift`.
 - `rest_seconds` is 0–1800; `null` uses the class's.
 - `note` (up to 300 characters) is shown beside the plan, so write it for
   the person.
@@ -473,7 +473,7 @@ A scheme is a list of `steps`, each some sets of one role, in order:
   max, and count `volume.partial_credit` of a set toward a muscle's week).
   The first step is a main one.
 - `count`: a number of sets (0 to 20), or `"rest"`: N less the numbered
-  main sets, so the time budget or the rule still sets the volume. At most
+  main sets, so the rule (or `sets.per_lift`) still sets the volume. At most
   one step takes the rest, and only a main one.
 - `reps` (optional): the number for each set (reps, seconds or metres, by
   the lift's measure). Without it, the rule's R.
@@ -535,16 +535,14 @@ cut to `factor`. The entry with the most `days` reached applies.
 
 ### `sets`
 
-How the time budget hands out working sets. The person picks a budget on
-Home before starting:
-
-- `default_budget_minutes`: the budget when they haven't picked one.
-- `min` and `max`: every lift whose sets are the budget's gets `min`. Then
-  one set at a time goes, up to `max`, to the lift whose primary muscle is
-  furthest below `volume.target_low` this week, until the next set won't
-  fit the budget.
+- `per_lift`: the working sets of a lift whose progression names none
+  (`estimated_max`, and `linear` or `double` with `sets: null`). 3 unless
+  you change it; give a rule its own `sets`, or a lift its own rule, for
+  more or fewer.
 - `override_sets`: a weight × reps the person set by hand without naming
   sets holds for this many.
+
+There is no time budget: a person short on time does less, or asks you.
 
 ### `costs`
 
