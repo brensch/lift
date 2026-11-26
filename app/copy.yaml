@@ -1237,7 +1237,7 @@ suggestions:
 # program by hand. Placeholders.
 connect_ai:
   title: Connect AI
-  peasant: Dog, don't do this by hand like a peasant. Just let AI do it.
+  peasant: Dawg, don't do this by hand like a peasant. Just let AI do it.
   peasant_button: Connect AI
 
 # Editing the program by hand, as much as an assistant can: each lift's
