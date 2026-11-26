@@ -753,7 +753,9 @@ template_editor:
   edit_title: Edit workout
   name_hint: Name, e.g. Push, Legs, Tuesday
   # The empty exercise list.
-  empty: Add exercises. Tap one to set how it progresses, its sets and rest, or your own weight. They follow the exercise everywhere.
+  empty: Add exercises. The pencil on each sets how it progresses, its sets and rest, or your own weight. They follow the exercise everywhere.
+  # The pencil on a lift's row: opens its settings.
+  edit_lift: Edit this lift
   add_exercises: Add exercises
   save: Save
   # Also the override sheet's failure. {error} is the reason.

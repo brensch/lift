@@ -2,8 +2,8 @@
 /// rotation the suggestion picks from, and an ordered exercise list. That
 /// is the whole thing — sets, reps and weight are planned, each
 /// row shows its next plan (the list planned as one workout in Home's
-/// budget, so it reads what Home's card reads), and tapping one opens the
-/// lift's settings (how it progresses, its group's reps and rest, its set
+/// budget, so it reads what Home's card reads), and its edit button opens
+/// the lift's settings (how it progresses, its group's reps and rest, its set
 /// layout, and your own numbers for it, an override), which apply in every
 /// template that contains it. A saved workout's supersets are a page of
 /// their own. Nothing here is recorded until Save.
@@ -259,7 +259,7 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                                   onRemove: () => _setExercises(
                                     List.of(_exercises)..removeAt(index),
                                   ),
-                                  onTap: () => showLiftRules(
+                                  onEdit: () => showLiftRules(
                                     context,
                                     exercise: exercise,
                                     onOverride: () => _editOverride(exercise),
@@ -340,7 +340,9 @@ class _ExerciseRow extends StatelessWidget {
   final ExercisePlan? plan;
   final WeightUnit unit;
   final VoidCallback onRemove;
-  final VoidCallback onTap;
+
+  /// Opens the lift's settings (its progression, sets and your weight).
+  final VoidCallback onEdit;
 
   const _ExerciseRow({
     super.key,
@@ -349,7 +351,7 @@ class _ExerciseRow extends StatelessWidget {
     required this.plan,
     required this.unit,
     required this.onRemove,
-    required this.onTap,
+    required this.onEdit,
   });
 
   @override
@@ -366,7 +368,6 @@ class _ExerciseRow extends StatelessWidget {
     return ListTile(
       contentPadding: const EdgeInsets.only(left: 4, right: 0),
       dense: true,
-      onTap: onTap,
       leading: ReorderableDragStartListener(
         index: index,
         child: Icon(AppIcons.drag, color: cs.onSurface.withValues(alpha: 0.4)),
@@ -381,9 +382,19 @@ class _ExerciseRow extends StatelessWidget {
       subtitle: detail.isEmpty
           ? null
           : Text(detail, style: TextStyle(fontSize: context.tokens.size.small)),
-      trailing: IconButton(
-        icon: const Icon(AppIcons.removeCircle, size: 20),
-        onPressed: onRemove,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: copy.templateEditor.editLift,
+            icon: const Icon(AppIcons.edit, size: 20),
+            onPressed: onEdit,
+          ),
+          IconButton(
+            icon: const Icon(AppIcons.removeCircle, size: 20),
+            onPressed: onRemove,
+          ),
+        ],
       ),
     );
   }
