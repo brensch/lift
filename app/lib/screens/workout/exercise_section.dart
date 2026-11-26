@@ -15,6 +15,7 @@ library;
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../widgets/common/marquee_text.dart';
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../gen/workout/v1/wearable.pb.dart' show QuickAnswer;
@@ -247,10 +248,11 @@ class _ExerciseSectionState extends State<ExerciseSection> {
                   child: Row(
                     children: [
                       Flexible(
-                        child: Text(
+                        // Too long for the row: the lift in hand scrolls
+                        // through its name now and then.
+                        child: MarqueeText(
                           exerciseName(m.exercise),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          active: widget.focused && !finished,
                           style: TextStyle(
                             fontSize: t.size.subtitle,
                             fontWeight: t.weight.bold,
