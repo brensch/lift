@@ -70,8 +70,11 @@ class _MarqueeTextState extends State<MarqueeText> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Measured in the style it's drawn in: the inherited one (the app's
+        // font) with this one over it.
+        final style = DefaultTextStyle.of(context).style.merge(widget.style);
         final painter = TextPainter(
-          text: TextSpan(text: widget.text, style: widget.style),
+          text: TextSpan(text: widget.text, style: style),
           maxLines: 1,
           textDirection: Directionality.of(context),
           textScaler: MediaQuery.textScalerOf(context),

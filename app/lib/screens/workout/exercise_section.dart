@@ -510,7 +510,11 @@ class _CircleRowState extends State<_CircleRow> {
             controller: _scroll,
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(4, _glow, _padding, _glow),
+            // From the top: a circle with a caption under it is taller than
+            // one without, and the answer buttons line up with the circles,
+            // not with circle and caption together.
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (var i = 0; i < widget.children.length; i++) ...[
                   if (i > 0) const SizedBox(width: _circleGap),
@@ -578,9 +582,12 @@ class _AnswerButtons extends StatelessWidget {
     final w = copy.workout;
     Widget button(QuickAnswer answer, String label) => FilledButton(
       onPressed: () => wp.answerQuick(setId, answer),
+      // Exactly a circle's height, so the row reads as one line.
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         minimumSize: const Size(0, SetCircle.diameter),
+        maximumSize: const Size(double.infinity, SetCircle.diameter),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       child: Text(
         label,
