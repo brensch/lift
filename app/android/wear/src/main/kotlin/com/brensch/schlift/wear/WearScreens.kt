@@ -661,11 +661,11 @@ private fun WeightRow(
                 modifier = Modifier.padding(horizontal = d * 0.02f),
             )
         }
-        // Asking how it went: the set just done, in the phone's orange ring,
-        // and a tap on it a rep off, as the phone's banner circle.
+        // Asking how it went, the circle is the phone's orange and a tap on
+        // it is a rep off: it reads as something to press.
         val look =
             if (face.answers.isNotEmpty() && !c.dim) {
-                CircleLook(c.text, WearPalette.Ready, c.ground)
+                CircleLook(WearPalette.Ready, WearPalette.Ready, WearPalette.OnDark)
             } else {
                 circleLook(face.repState, face.stageColor, c)
             }

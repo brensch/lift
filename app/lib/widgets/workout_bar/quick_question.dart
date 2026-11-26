@@ -54,8 +54,8 @@ class QuickQuestion extends StatelessWidget {
         const SizedBox(width: 6),
         answer(QuickAnswer.QUICK_ANSWER_HARD, w.quickHard),
         const SizedBox(width: 10),
-        // The ring held full while the question is up: the circle stays
-        // tappable to take a rep off until it's answered, with no deadline.
+        // No countdown ring while the question is up: the circle stays tappable
+        // to take a rep off until it's answered, so a ring would mislead.
         JustDoneCircle(setId: setId, countdown: false),
       ],
     );
@@ -69,9 +69,8 @@ class QuickQuestion extends StatelessWidget {
 class JustDoneCircle extends StatelessWidget {
   final String setId;
 
-  /// Whether the ring counts down to [askingUntil]. The "how was that"
-  /// question has no deadline: its ring is held full (the circle stays
-  /// tappable there until it's answered).
+  /// Whether to draw the countdown ring that runs down to [askingUntil]. The
+  /// "how was that" question turns it off (the circle stays tappable there).
   final bool countdown;
 
   const JustDoneCircle({super.key, required this.setId, this.countdown = true});
@@ -90,7 +89,7 @@ class JustDoneCircle extends StatelessWidget {
           ? () => wp.answerQuick(setId, QuickAnswer.QUICK_ANSWER_ONE_LESS)
           : null,
     );
-    if (!countdown) return _Countdown.full(child: circle);
+    if (!countdown) return circle;
     return _Countdown(until: wp.askingUntil, child: circle);
   }
 }
@@ -98,65 +97,46 @@ class JustDoneCircle extends StatelessWidget {
 /// A ring just outside the circle running down to [until], when the banner
 /// goes on to the next set; each tap sets a new [until] and the ring starts
 /// full again. It takes no room of its own, so nothing moves.
-/// Nothing while there's no window; [_Countdown.full], the ring held full.
+/// Nothing while there's no window.
 class _Countdown extends StatelessWidget {
   final DateTime? until;
   final Widget child;
-  final bool held;
 
-  const _Countdown({required this.until, required this.child}) : held = false;
-
-  const _Countdown.full({required this.child}) : until = null, held = true;
+  const _Countdown({required this.until, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    const width = SetCircle.outlineNext;
-    if (held) return _ring(context, width, child, value: 1);
     final end = until;
     if (end == null) return child;
     final total = WorkoutProvider.oneLessWindow.inMilliseconds;
     final left = end.difference(DateTime.now()).inMilliseconds.clamp(0, total);
-    return _ring(
-      context,
-      width,
-      child,
-      animated: TweenAnimationBuilder<double>(
-        key: ValueKey(end),
-        tween: Tween(begin: left / total, end: 0),
-        duration: Duration(milliseconds: left),
-        builder: (context, value, _) => _arc(context, width, value),
-      ),
+    // Just outside the circle's edge, as thick as the up-next ring: drawn
+    // over its surroundings, so it takes no room and nothing moves.
+    const width = SetCircle.outlineNext;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        child,
+        Positioned(
+          left: -width,
+          top: -width,
+          right: -width,
+          bottom: -width,
+          child: IgnorePointer(
+            child: TweenAnimationBuilder<double>(
+              key: ValueKey(end),
+              tween: Tween(begin: left / total, end: 0),
+              duration: Duration(milliseconds: left),
+              builder: (context, value, _) => CircularProgressIndicator(
+                value: value,
+                strokeWidth: width,
+                color: Theme.of(context).colorScheme.primary,
+                backgroundColor: Colors.transparent,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
-
-  /// [child] with a ring just outside its edge, as thick as the up-next
-  /// ring: drawn over its surroundings, so it takes no room and nothing
-  /// moves. [animated] draws it, or it's [value] full.
-  static Widget _ring(
-    BuildContext context,
-    double width,
-    Widget child, {
-    Widget? animated,
-    double value = 1,
-  }) => Stack(
-    clipBehavior: Clip.none,
-    children: [
-      child,
-      Positioned(
-        left: -width,
-        top: -width,
-        right: -width,
-        bottom: -width,
-        child: IgnorePointer(child: animated ?? _arc(context, width, value)),
-      ),
-    ],
-  );
-
-  static Widget _arc(BuildContext context, double width, double value) =>
-      CircularProgressIndicator(
-        value: value,
-        strokeWidth: width,
-        color: Theme.of(context).colorScheme.primary,
-        backgroundColor: Colors.transparent,
-      );
 }
