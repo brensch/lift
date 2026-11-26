@@ -10,6 +10,7 @@ import { waitingRecovery } from "@/lib/recovery";
 const publicNavItems = [
   { to: "/", label: "Home" },
   { to: "/routines", label: "Routines" },
+  { to: "/bot", label: "Bots" },
   { to: "/privacy", label: "Privacy" },
   { to: "/delete-account", label: "Delete Account" },
 ];

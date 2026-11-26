@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { CONTENT, site } from "@/content";
 import { FeatureArt } from "@/components/feature-art";
 import { MuscleTracker } from "@/components/muscle-tracker";
+import { BotChat } from "@/components/bot-chat";
 
 // The page has no copy of its own: every string is store/listing.yaml (see
 // src/content.ts). Layout only.
@@ -83,7 +84,10 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 }
 
 export function HomePage() {
-  const { about, testimonials, otherFeatures, screenshots, changelog } = CONTENT;
+  const { testimonials, otherFeatures, screenshots, changelog, botDemo } = CONTENT;
+  // The description's first paragraph is the pitch: the hero says it, the
+  // about section says the rest.
+  const [pitch, ...about] = CONTENT.about;
   const latest = changelog[0];
 
   return (
@@ -110,10 +114,10 @@ export function HomePage() {
           </p>
 
           <p
-            className="mt-4 text-lg md:text-xl text-muted max-w-md leading-relaxed opacity-0"
+            className="mt-4 text-lg md:text-xl text-muted max-w-xl leading-relaxed opacity-0"
             style={{ animation: "fade-in 0.8s ease-out 0.45s forwards" }}
           >
-            {CONTENT.promotionalText}
+            {pitch}
           </p>
 
           <div
@@ -137,6 +141,32 @@ export function HomePage() {
         >
           <ChevronDown size={20} className="text-muted/30 animate-bounce" />
         </div>
+      </section>
+
+      {/* The bot: connect it, and it writes the programme */}
+      <section className="max-w-5xl mx-auto px-5 py-24 w-full grid grid-cols-1 md:grid-cols-[1fr_1.15fr] gap-12 items-center">
+        <Reveal>
+          <Eyebrow>{site("bot_eyebrow")}</Eyebrow>
+          <h2 className="font-display text-3xl md:text-5xl font-bold tracking-tight m-0">
+            {site("bot_heading")}
+          </h2>
+          <p className="mt-5 text-lg text-muted leading-relaxed">{site("bot_text")}</p>
+          <div className="mt-8">
+            <Link to="/bot" className="no-underline">
+              <Button variant="primary" size="lg" className="group">
+                {site("bot_button")}
+                <ArrowRight
+                  size={16}
+                  className="ml-2 transition-transform group-hover:translate-x-0.5"
+                />
+              </Button>
+            </Link>
+          </div>
+          <p className="mt-4 text-sm text-muted/70">{site("bot_works_with")}</p>
+        </Reveal>
+        <Reveal delay={120}>
+          <BotChat title={botDemo.title} messages={botDemo.messages} />
+        </Reveal>
       </section>
 
       {/* Screenshots — the store slides, same captions */}

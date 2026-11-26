@@ -1,6 +1,7 @@
-/// Setup, five steps long: your marker, your unit, how strong you are
+/// Setup, six steps long: your marker, your unit, how strong you are
 /// (a slider that sets the starting weights), your bodyweight for calories,
-/// and the library templates you want to start with. Finishing calls
+/// a bot to write your program (optional), and the library templates you
+/// want to start with. Finishing calls
 /// CompleteOnboarding, which records the starting weights the slider picked
 /// and copies the chosen templates — after that the app is usable and
 /// nothing else is required, ever.
@@ -26,6 +27,7 @@ import '../../services/grpc_client.dart';
 import '../../services/user_service.dart';
 import '../../services/workout_service.dart';
 import '../../services/page_tracker.dart';
+import 'steps/bot_step.dart';
 import 'steps/marker_step.dart';
 import 'steps/strength_step.dart';
 import 'steps/templates_step.dart';
@@ -52,6 +54,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     '2-unit',
     '3-strength',
     '4-weight',
+    // Between 4 and 5 so the funnel keeps its old step names.
+    '4b-bot',
     '5-templates',
   ];
   bool _isSaving = false;
@@ -278,6 +282,14 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           setState(() => _step = 4);
         },
       ),
+      BotStep(
+        workouts: context.watch<WorkoutProvider>().templates,
+        onRefresh: context.read<WorkoutProvider>().refreshHome,
+        isSaving: _isSaving,
+        onBack: () => setState(() => _step = 3),
+        onSkip: () => setState(() => _step = 5),
+        onFinish: _finish,
+      ),
       TemplatesStep(
         library: _library,
         error: _libraryError,
@@ -286,7 +298,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           if (!_selectedLibraryIds.remove(id)) _selectedLibraryIds.add(id);
         }),
         isSaving: _isSaving,
-        onBack: () => setState(() => _step = 3),
+        onBack: () => setState(() => _step = 4),
         onFinish: _finish,
       ),
     ];
