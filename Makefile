@@ -50,7 +50,7 @@ define EXPORT_JAVA_HOME_FROM_JAVAC
 		export JAVA_HOME="$$(dirname "$$(dirname "$$JAVAC_REAL")")"; \
 		echo "Using JAVA_HOME=$$JAVA_HOME (from javac)"; \
 	else \
-		echo "javac not found. Install a full JDK (e.g. openjdk-17-jdk or openjdk-21-jdk)."; \
+		echo "javac not found. Install a full JDK, 21 or newer (e.g. openjdk-21-jdk)."; \
 		exit 1; \
 	fi; \
 	if [ ! -x "$$JAVA_HOME/bin/javac" ]; then \

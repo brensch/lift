@@ -247,9 +247,12 @@ used for dev login without a passkey. Production builds do not enable it and
 
 ## Java toolchain
 
-Use a full JDK, not a JRE. Java 17 lives at
-`/usr/lib/jvm/java-17-openjdk-amd64`. The Android Make targets derive
-`JAVA_HOME` from `javac`, avoiding the broken Java 21 JRE-only path.
+Use a full JDK, 21 or newer, not a JRE: the app and watch compile Java and
+Kotlin for 21 (`app/android/*/build.gradle.kts`), so 17 no longer builds
+them. `make install-deps` installs `openjdk-21-jdk`
+(`/usr/lib/jvm/java-21-openjdk-amd64`); a newer one works too. The Android
+Make targets derive `JAVA_HOME` from `javac`, avoiding JRE-only paths, and
+`make check-android-java` refuses anything older than 21.
 
 ```bash
 make android-sdk-check
