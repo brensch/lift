@@ -135,21 +135,23 @@ website:
 # name, then what it did). Shown in order, as if it were happening.
 bot_demo:
   title: Claude
+  # From a real run against Schlift's tools, trimmed.
   messages:
-    - you: Set up my programme. 4 days a week, about an hour. I want bigger shoulders and a stronger deadlift. Home gym, barbell, rack, dumbbells, pull-up bar.
+    - you: Set up my programme. 4 days a week, about an hour. I want bigger shoulders and a stronger deadlift. Home gym with a barbell, rack, dumbbells, bench and a pull-up bar.
     - tool: read_guide
-      text: Read how Schlift programs work
+      text: How Schlift programs work
     - tool: get_profile
-      text: Pounds, intermediate, no workouts yet
-    - tool: list_library
-      text: Looked at the ready-made splits
-    - bot: Going with an upper/lower split, twice each. Deadlift heavy on Monday with a lighter pull on Thursday, and extra shoulder work on both upper days.
+      text: "Est. maxes: deadlift 232, squat 246, OHP 143"
+    - tool: list_exercises
+      text: Only what your home gym can do
     - tool: simulate_program
-      text: Ran it forward 4 weeks
-    - bot: "Deadlift goes 225 → 265 lb over the month, overhead press 95 → 110. Rows and pulldowns keep your back up with all that pressing."
+      text: 4 days, 8 sessions ahead
+    - bot: "Week 1 deadlift comes out as 3×5 at 160, then a set of 5+ at 180. Speeding up the ramp on new lifts so your RDLs reach a real weight."
+    - tool: simulate_program
+      text: Checked every day comes up in the rotation
     - tool: set_program
-      text: "Upper A, Lower A, Upper B, Lower B"
-    - bot: Done. It's on your phone. Start with Upper A today and I'll bump the weights as you hit your reps.
+      text: "Upper/Lower 4x: Shoulders & Deadlift"
+    - bot: "Done, it's on your phone. Upper A (press), Lower B (squat), Upper B (bench), Lower A (deadlift). Deadlift runs a 4-week wave off your 232 lb max with an AMRAP last set, and shoulders get pressed and raised twice a week. Most sessions land at 40–55 minutes."
 
 # Screenshot slides in STORE order. File numbers are capture order
 # (app/integration_test/store_shots_test.dart), so they need not be sequential.
