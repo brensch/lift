@@ -27,12 +27,89 @@ program. Look with get_profile, get_progress, get_program and get_history \
 small named changes like {\"set\": \"classes.heavy.rest_seconds\", \"value\": 150} — \
 not by rewriting the document; when lifts differ only in a number, give one rule \
 and set each lift's `params`. simulate_program with the edits (lifts and summary \
-keep the output short) to see what it prescribes, then set_program with the same edits and a one-line note to the person. \
+keep the output short; maxes, your estimate of each new lift's one-rep max, make new \
+lifts' first sessions realistic) to see what it prescribes. It returns a `draft` id: simulate that draft with only further edits to try more, then set_program with the draft and a one-line note to the person. \
 Any set type is a program's: schemes lay out a lift's sets (top sets and back-offs, \
 pyramids, AMRAP, drops, myo-reps, clusters, EMOM, effort targets) and a workout's \
 groups make supersets and circuits; see the guide's `schemes`. Weights are always \
 pounds. When you are done, send_feedback: one line on what was easy or hard about \
 these tools.";
+
+/// Drafts that simulate_program and validate_program checked, so a later
+/// call names one (`draft`) instead of sending its edits again: an
+/// assistant writes far slower than it reads. Only while the server runs,
+/// like everything nobody needs after a restart; a draft gone is sent
+/// again. Each is for one assistant's person and one account, and for
+/// the program it was made from: once that changes, it is refused.
+#[derive(Default)]
+pub struct Drafts(std::sync::Mutex<std::collections::HashMap<String, Vec<Saved>>>);
+
+pub struct Saved {
+    id: String,
+    /// [`base_of`] the program it was made from.
+    base: String,
+    doc: String,
+    at: std::time::Instant,
+}
+
+/// Drafts kept per person and account, newest first.
+const DRAFTS_KEPT: usize = 8;
+/// How long a draft is kept.
+const DRAFT_TTL: std::time::Duration = std::time::Duration::from_secs(2 * 3600);
+/// People with drafts at once; past it the store starts over.
+const DRAFT_ACCOUNTS: usize = 10_000;
+
+impl Drafts {
+    /// Keeps `doc`, made from a program whose [`base_of`] is `base`, and
+    /// gives its id.
+    fn keep(&self, key: &str, base: String, doc: String) -> String {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(format!("{base}\n{doc}").as_bytes());
+        let id: String = digest.iter().take(5).map(|b| format!("{b:02x}")).collect();
+        let mut all = self
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if all.len() >= DRAFT_ACCOUNTS && !all.contains_key(key) {
+            all.clear();
+        }
+        let kept = all.entry(key.to_string()).or_default();
+        kept.retain(|d| d.id != id && d.at.elapsed() < DRAFT_TTL);
+        kept.insert(
+            0,
+            Saved {
+                id: id.clone(),
+                base,
+                doc,
+                at: std::time::Instant::now(),
+            },
+        );
+        kept.truncate(DRAFTS_KEPT);
+        id
+    }
+
+    /// The draft `id` (its base and document), if it is still kept.
+    fn get(&self, key: &str, id: &str) -> Option<(String, String)> {
+        let all = self
+            .0
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        all.get(key)?
+            .iter()
+            .find(|d| d.id == id && d.at.elapsed() < DRAFT_TTL)
+            .map(|d| (d.base.clone(), d.doc.clone()))
+    }
+}
+
+/// What a draft was made from: a digest of the program as it stood.
+fn base_of(program: &Program) -> String {
+    use sha2::{Digest, Sha256};
+    let json = serde_json::to_string(program).unwrap_or_default();
+    Sha256::digest(json.as_bytes())
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect()
+}
 
 pub enum Failure {
     Unknown,
@@ -55,6 +132,13 @@ fn program_property() -> Value {
     json!({
         "description": "A whole program document, for a full rewrite (an object, or its JSON as a string). Built-in exercises it leaves out are added back. Usually send `edits` instead",
         "type": ["object", "string"]
+    })
+}
+
+fn draft_property() -> Value {
+    json!({
+        "description": "A draft simulate_program or validate_program returned (its `draft`), instead of sending its edits again. With `edits` too, they apply on top of it",
+        "type": "string"
     })
 }
 
@@ -100,8 +184,10 @@ fn tools() -> Vec<Value> {
         json!({
             "name": "read_guide",
             "title": "Read the program guide",
-            "description": "What a Schlift program is and every field in it: exercises, workouts, classes, progressions (estimated_max, fixed, linear, double, cycle, formula), the formula language and every planner number. Read it before writing a program.",
-            "inputSchema": schema(json!({}), &[]),
+            "description": "What a Schlift program is and every field in it: exercises, workouts, classes, progressions (estimated_max, fixed, linear, double, cycle, formula), schemes, the formula language and every planner number. Read it whole (about 7,000 tokens) before writing a program; later, `section` gives one part.",
+            "inputSchema": schema(json!({
+                "section": { "type": "string", "description": "One part, by its heading: editing, exercises, workouts, classes, progressions, formula, schemes, sets, calibration, equipment, example (any heading works; an unknown one lists them)" }
+            }), &[]),
             "annotations": { "readOnlyHint": true },
         }),
         json!({
@@ -151,16 +237,17 @@ fn tools() -> Vec<Value> {
         json!({
             "name": "validate_program",
             "title": "Check a draft program",
-            "description": "Every problem with a draft (edits to the current program, or a whole document), each with its path (workouts[upper_a].exercises[2]). A draft with an error can't be set; warnings are advice. simulate_program and set_program check too, so this is only needed on its own.",
-            "inputSchema": schema(json!({ "edits": edits_property(), "program": program_property() }), &[]),
+            "description": "Every problem with a draft (edits to the current program, or a whole document), each with its path (workouts[upper_a].exercises[2]). A draft with an error can't be set; warnings are advice. A clean one comes back with a `draft` id. simulate_program and set_program check too, so this is only needed on its own.",
+            "inputSchema": schema(json!({ "edits": edits_property(), "draft": draft_property(), "program": program_property() }), &[]),
             "annotations": { "readOnlyHint": true },
         }),
         json!({
             "name": "simulate_program",
             "title": "Run a draft program",
-            "description": "What a draft (edits to the current program, a whole document, or with neither the current program) prescribes, without setting it: its past workouts planned again as of just before each, beside what was planned and done; and the next sessions, each done as `effort` says, through the app's own rules (warmups, the calibration ramp, the time budget). Its problems too.",
+            "description": "What a draft (edits to the current program, a whole document, or with neither the current program) prescribes, without setting it: its past workouts planned again as of just before each, beside what was planned and done; and the next sessions, each done as `effort` says, through the app's own rules (warmups, the calibration ramp, the time budget), with how long each took. Its problems too. Use summary: true and lifts to keep it short; give maxes for lifts never done. A clean run comes back with a `draft` id: set_program takes it, and further simulate_program calls take it with more edits on top.",
             "inputSchema": schema(json!({
                 "edits": edits_property(),
+                "draft": draft_property(),
                 "program": program_property(),
                 "sessions": { "type": "integer", "minimum": 0, "maximum": 60, "description": "Workouts forward from now (default 6)" },
                 "every_days": { "type": "integer", "minimum": 1, "maximum": 14, "description": "Days between them (default 2)" },
@@ -171,16 +258,18 @@ fn tools() -> Vec<Value> {
                 "budget_minutes": { "type": "integer", "minimum": 5, "maximum": 300 },
                 "history": { "type": "integer", "minimum": 0, "maximum": 60, "description": "Past workouts to plan again (default 6)" },
                 "lifts": { "type": "array", "items": { "type": "string" }, "description": "Show only these exercise keys (the workouts still run whole)" },
-                "summary": { "type": "boolean", "description": "Per lift, one short line a session (plan, what was planned then, what was done) instead of every field" }
+                "summary": { "type": "boolean", "description": "Per lift, one short line a session (plan, the max it planned from, what was planned then, what was done set by set; a new lift's ramp rungs) and each workout's minutes, instead of every field" },
+                "maxes": { "type": "object", "additionalProperties": { "type": "number", "exclusiveMinimum": 0 }, "description": "Lifts never done ramp up on their first session; the simulated lifter otherwise settles at an arbitrary weight. Give its estimated one-rep max (lb; reps for a bodyweight lift) per exercise key, e.g. {\"incline_dumbbell_press\": 70}, and the ramp settles where it would for someone that strong (as far as the program's ramp can climb). Bodyweight lifts don't ramp. Give them on each call" }
             }), &[]),
             "annotations": { "readOnlyHint": true },
         }),
         json!({
             "name": "set_program",
             "title": "Set the program",
-            "description": "Make a draft the person's program (edits to the current program, or a whole document): it plans every workout from the next one on (none already done changes) and reaches their phone at once. Refused, with its problems, if it has an error. Earlier programs stay in their history.",
+            "description": "Make a draft the person's program (the `draft` id simulate_program gave, edits to the current program, or a whole document): it plans every workout from the next one on (none already done changes) and reaches their phone at once. Refused, with its problems, if it has an error. Earlier programs stay in their history.",
             "inputSchema": schema(json!({
                 "edits": edits_property(),
+                "draft": draft_property(),
                 "program": program_property(),
                 "note": { "type": "string", "maxLength": 300, "description": "One line, to the person, on why" }
             }), &["note"]),
@@ -189,11 +278,17 @@ fn tools() -> Vec<Value> {
         json!({
             "name": "list_exercises",
             "title": "Find exercises",
-            "description": "Exercises the program can use, built-in and its own: key, name, equipment, muscles (primary first), class, own progression, whether built in, and which workouts use it. Filter by muscle, equipment, a name fragment or keys.",
+            "description": "Exercises the program can use, built-in and its own: key, name, equipment, muscles (primary first), class, whether built in, which workouts use it, and any progression, params, scheme, measure, per_side or tempo it sets (left out when it doesn't). Filter by muscle, equipment (one or several), a name fragment or keys.",
             "inputSchema": schema(json!({
                 "muscle": { "type": "string", "enum": ["chest", "back", "shoulders", "biceps", "triceps", "quads", "hamstrings", "glutes", "calves", "core"], "description": "Trains this muscle" },
                 "primary_only": { "type": "boolean", "description": "With muscle: only lifts where it is the primary mover" },
-                "equipment": { "type": "string", "enum": ["barbell", "dumbbell", "machine", "cable", "bodyweight"] },
+                "equipment": {
+                    "description": "Uses this equipment, or any of these (a home gym without cables or machines: [\"barbell\", \"dumbbell\", \"bodyweight\"])",
+                    "anyOf": [
+                        { "type": "string", "enum": ["barbell", "dumbbell", "machine", "cable", "bodyweight"] },
+                        { "type": "array", "items": { "type": "string", "enum": ["barbell", "dumbbell", "machine", "cable", "bodyweight"] } }
+                    ]
+                },
                 "query": { "type": "string", "description": "Name contains this (any case)" },
                 "keys": { "type": "array", "items": { "type": "string" }, "description": "Exactly these keys" },
                 "limit": { "type": "integer", "minimum": 1, "maximum": 100, "description": "At most this many (default 30)" }
@@ -249,23 +344,87 @@ fn tools() -> Vec<Value> {
 }
 
 fn text(value: &Value) -> Value {
+    let mut value = value.clone();
+    tidy_numbers(&mut value);
     json!({
-        "content": [{ "type": "text", "text": serde_json::to_string_pretty(value).unwrap_or_default() }],
+        "content": [{ "type": "text", "text": value.to_string() }],
         "structuredContent": value,
     })
 }
 
+/// A program's numbers are f32: shown as f64 they read 1.100000023841858.
+/// Each fraction is written as the f32 it is (1.1), which reads back to
+/// the same f32, so a value copied into an edit means what it did.
+fn tidy_numbers(value: &mut Value) {
+    match value {
+        Value::Number(n) if n.is_f64() => {
+            if let Some(x) = n.as_f64() {
+                if x.fract() != 0.0 && x.abs() < 1e7 {
+                    let short: f64 = (x as f32).to_string().parse().unwrap_or(x);
+                    if let Some(tidy) = serde_json::Number::from_f64(short) {
+                        *n = tidy;
+                    }
+                }
+            }
+        }
+        Value::Array(items) => items.iter_mut().for_each(tidy_numbers),
+        Value::Object(fields) => fields.values_mut().for_each(tidy_numbers),
+        _ => {}
+    }
+}
+
 /// The draft a write tool was given, as a whole document: `edits` applied
-/// to the current program, or a `program` with any built-in exercises it
-/// leaves out put back. With neither, "" (the current program, where a
-/// tool allows that). Also how many edits applied.
-fn draft(account: &Account, arguments: &Value) -> Result<(String, usize), Failure> {
-    match (arguments.get("edits"), arguments.get("program")) {
+/// to the current program (or on top of a kept `draft`), a kept `draft`
+/// as it is, or a `program` with any built-in exercises it leaves out put
+/// back. With none, "" (the current program, where a tool allows that).
+/// Also how many edits applied.
+fn draft(
+    account: &Account,
+    arguments: &Value,
+    drafts: &Drafts,
+    key: &str,
+) -> Result<(String, usize), Failure> {
+    let named = match arguments.get("draft") {
+        None | Some(Value::Null) => None,
+        Some(Value::String(id)) if !id.trim().is_empty() => Some(id.trim()),
+        Some(_) => {
+            return Err(Failure::Tool(
+                "draft is the id a simulate_program gave".into(),
+            ))
+        }
+    };
+    let edits = arguments.get("edits");
+    if named.is_some() && arguments.get("program").is_some() {
+        return Err(Failure::Tool(
+            "send a draft (with edits on top, if any) or a whole program, not both".into(),
+        ));
+    }
+    let base: Option<Program> = match named {
+        None => None,
+        Some(id) => {
+            let Some((made_from, doc)) = drafts.get(key, id) else {
+                return Err(Failure::Tool(format!(
+                    "no draft {id:?}: drafts last two hours, while the server runs. Send the edits again"
+                )));
+            };
+            if made_from != base_of(&account.program) {
+                return Err(Failure::Tool(format!(
+                    "the program changed since draft {id:?} was made (in the app, or by another assistant). get_program, then send the edits again"
+                )));
+            }
+            if edits.is_none() {
+                return Ok((doc, 0));
+            }
+            Some(Program::parse(&doc).map_err(|e| Failure::Server(e.to_string()))?)
+        }
+    };
+    let current = base.as_ref().unwrap_or(&account.program);
+    match (edits, arguments.get("program")) {
         (Some(_), Some(_)) => Err(Failure::Tool(
             "send edits or a whole program, not both".into(),
         )),
         (Some(Value::Array(edits)), None) => {
-            let doc = edit::apply(&account.program, edits).map_err(|e| {
+            let doc = edit::apply(current, edits).map_err(|e| {
                 Failure::Tool(
                     serde_json::to_string_pretty(&json!({
                         "applied": 0,
@@ -421,8 +580,16 @@ pub async fn call(
             _ => user_id.to_string(),
         };
     let whose = whose.as_str();
+    // Drafts are this assistant's person's, for this account.
+    let draft_key = format!("{user_id}>{whose}");
     match name {
-        "read_guide" => Ok(json!({ "content": [{ "type": "text", "text": GUIDE }] })),
+        "read_guide" => {
+            let text = match arguments.get("section").and_then(Value::as_str) {
+                Some(section) if !section.trim().is_empty() => guide_section(section),
+                _ => GUIDE.to_string(),
+            };
+            Ok(json!({ "content": [{ "type": "text", "text": text }] }))
+        }
         "get_program" => {
             let (got, (program, note)) = mcp
                 .db
@@ -493,23 +660,32 @@ pub async fn call(
         }
         "validate_program" => {
             let args = arguments.clone();
-            let (checked, applied) = mcp
+            let drafts = mcp.drafts.clone();
+            let key = draft_key.clone();
+            let (checked, applied, id) = mcp
                 .db
                 .read_account(whose, move |a| -> Result<_, Failure> {
-                    let (program_json, applied) = draft(a, &args)?;
+                    let (program_json, applied) = draft(a, &args, &drafts, &key)?;
                     if program_json.is_empty() {
                         return Err(Failure::Tool("send edits or a program to check".into()));
                     }
-                    let checked = View::new(a, now)
-                        .validate_program(ValidateProgramRequest { program_json })?;
-                    Ok((checked, applied))
+                    let checked = View::new(a, now).validate_program(ValidateProgramRequest {
+                        program_json: program_json.clone(),
+                    })?;
+                    let id = (!checked.problems.iter().any(|p| p.error))
+                        .then(|| drafts.keep(&key, base_of(&a.program), program_json));
+                    Ok((checked, applied, id))
                 })
                 .await??;
-            Ok(text(&json!({
+            let mut out = json!({
                 "ok": !checked.problems.iter().any(|p| p.error),
                 "applied": applied,
                 "problems": problems(&checked.problems),
-            })))
+            });
+            if let Some(id) = id {
+                out["draft"] = json!(id);
+            }
+            Ok(text(&out))
         }
         "simulate_program" => {
             let effort = match arguments.get("effort").and_then(Value::as_str) {
@@ -534,15 +710,26 @@ pub async fn call(
                 history: int(arguments, "history", 6, 0, 60),
                 exercises: strings(arguments, "exercises").unwrap_or_default(),
             };
+            let maxes = maxes(arguments)?;
+            let maxes_given: Vec<String> = maxes.keys().cloned().collect();
             let args = arguments.clone();
-            let (run, applied) = mcp
+            let drafts = mcp.drafts.clone();
+            let key = draft_key.clone();
+            let ((run, details), applied, id) = mcp
                 .db
                 .read_account(whose, move |a| -> Result<_, Failure> {
-                    let (program_json, applied) = draft(a, &args)?;
+                    let (program_json, applied) = draft(a, &args, &drafts, &key)?;
                     request.program_json = program_json;
-                    Ok((View::new(a, now).simulate_program(request)?, applied))
+                    let run = schlift_core::simulate::simulate_detailed(a, now, &request, &maxes);
+                    let id = (!request.program_json.is_empty()
+                        && !run.0.problems.iter().any(|p| p.error))
+                    .then(|| drafts.keep(&key, base_of(&a.program), request.program_json.clone()));
+                    Ok((run, applied, id))
                 })
                 .await??;
+            // The forward workouts are the last ones, in order.
+            let first_forward = run.workouts.len() - details.len();
+            let detail = |i: usize| i.checked_sub(first_forward).and_then(|i| details.get(i));
             if run.problems.iter().any(|p| p.error) {
                 return Err(Failure::Tool(
                     serde_json::to_string_pretty(&json!({
@@ -554,45 +741,79 @@ pub async fn call(
             }
             let only: Option<Vec<String>> = strings(arguments, "lifts");
             let shown = |key: &str| only.as_ref().is_none_or(|o| o.iter().any(|k| k == key));
+            let notes = run_notes(&run.workouts, &details, &maxes_given);
             if arguments
                 .get("summary")
                 .and_then(Value::as_bool)
                 .unwrap_or(false)
             {
-                return Ok(text(&json!({
+                let ramped = details
+                    .iter()
+                    .flat_map(|d| &d.lifts)
+                    .any(|l| !l.ramp.is_empty() && !maxes_given.contains(&l.exercise));
+                let mut out = json!({
                     "applied": applied,
-                    "lifts": summary(&run.workouts, &shown),
+                    "draft": id,
+                    "workouts": run.workouts.iter().enumerate().filter_map(|(i, w)| detail(i).map(|d| {
+                        let mut line = format!("{} {} · {} min", date(w.at), w.name, d.minutes);
+                        let budget = budget_of(w);
+                        if budget > 0 && d.minutes > budget {
+                            line.push_str(&format!(" (over its {budget}-min budget)"));
+                        }
+                        line
+                    })).collect::<Vec<_>>(),
+                    "lifts": summary(&run.workouts, &details, &shown),
                     "problems": problems(&run.problems),
-                })));
+                });
+                if !notes.is_empty() {
+                    out["notes"] = json!(notes);
+                }
+                if ramped {
+                    out["ramp_note"] = json!(RAMP_NOTE);
+                }
+                return Ok(text(&out));
             }
             let workouts: Vec<Value> = run
                 .workouts
                 .iter()
-                .map(|w| {
+                .enumerate()
+                .map(|(i, w)| {
                     json!({
                         "date": date(w.at),
                         "past": w.past,
                         "workout": w.name,
+                        "minutes": detail(i).map(|d| d.minutes),
                         "lifts": w.lifts.iter().filter(|l| shown(&l.exercise)).map(|l| json!({
                             "exercise": l.exercise,
                             "plan": l.decision.as_ref().map(plan),
                             "planned_then": l.recorded.as_ref().map(|d| json!({ "sets": d.sets, "reps": d.reps, "weight_lb": round(d.weight) })),
                             "done": { "weight_lb": round(l.done_weight), "reps": l.done_reps, "every_rep": l.hit },
+                            "done_sets": detail(i).and_then(|d| d.lifts.iter().find(|x| x.exercise == l.exercise)).map(|x| json!({
+                                "ramp": x.ramp.iter().map(|(w, r)| format!("{r} @ {}", round(*w))).collect::<Vec<_>>(),
+                                "working": sets_done(&x.working),
+                            })),
                         })).collect::<Vec<_>>(),
                     })
                 })
                 .collect();
-            Ok(text(&json!({
+            let mut out = json!({
                 "applied": applied,
+                "draft": id,
                 "workouts": workouts,
                 "problems": problems(&run.problems),
-            })))
+            });
+            if !notes.is_empty() {
+                out["notes"] = json!(notes);
+            }
+            Ok(text(&out))
         }
         "set_program" => {
             let mut account = mcp.db.read_account(user_id, Clone::clone).await?;
-            let (program_json, applied) = draft(&account, arguments)?;
+            let (program_json, applied) = draft(&account, arguments, &mcp.drafts, &draft_key)?;
             if program_json.is_empty() {
-                return Err(Failure::Tool("send edits or a program to set".into()));
+                return Err(Failure::Tool(
+                    "send a draft, edits or a program to set".into(),
+                ));
             }
             let note = arguments
                 .get("note")
@@ -791,6 +1012,11 @@ fn exercises(program: &Program, arguments: &Value) -> Value {
         .and_then(Value::as_bool)
         .unwrap_or(false);
     let limit = int(arguments, "limit", 30, 1, 100) as usize;
+    let equipment: Option<Vec<String>> = match arguments.get("equipment") {
+        Some(Value::String(one)) => Some(vec![one.clone()]),
+        Some(Value::Array(_)) => strings(arguments, "equipment"),
+        _ => None,
+    };
     let matching: Vec<Value> = program
         .exercises
         .iter()
@@ -801,7 +1027,11 @@ fn exercises(program: &Program, arguments: &Value) -> Value {
                 e.name.to_lowercase().contains(q.as_str()) || e.key.contains(q.as_str())
             })
         })
-        .filter(|(_, v)| get("equipment").is_none_or(|eq| v["equipment"] == eq))
+        .filter(|(_, v)| {
+            equipment
+                .as_ref()
+                .is_none_or(|eq| eq.iter().any(|e| v["equipment"] == *e))
+        })
         .filter(|(_, v)| {
             get("muscle").is_none_or(|m| {
                 let muscles = v["muscles"].as_array().cloned().unwrap_or_default();
@@ -813,21 +1043,43 @@ fn exercises(program: &Program, arguments: &Value) -> Value {
             })
         })
         .map(|(e, v)| {
-            json!({
+            let mut out = json!({
                 "key": e.key,
                 "name": e.name,
                 "equipment": v["equipment"],
                 "muscles": v["muscles"],
                 "class": e.class,
-                "progression": e.progression,
-                "params": e.params,
-                "scheme": e.scheme,
-                "measure": v["measure"],
-                "per_side": e.per_side,
-                "tempo": e.tempo,
                 "built_in": builtin.contains(&e.key),
-                "in_workouts": program.workouts.iter().filter(|w| w.exercises.contains(&e.key)).map(|w| w.id.clone()).collect::<Vec<_>>(),
-            })
+            });
+            // Only what the lift sets: the rest is its class's, or the default.
+            let workouts: Vec<String> = program
+                .workouts
+                .iter()
+                .filter(|w| w.exercises.contains(&e.key))
+                .map(|w| w.id.clone())
+                .collect();
+            if !workouts.is_empty() {
+                out["in_workouts"] = json!(workouts);
+            }
+            if let Some(progression) = &e.progression {
+                out["progression"] = json!(progression);
+            }
+            if !e.params.is_empty() {
+                out["params"] = json!(e.params);
+            }
+            if let Some(scheme) = &e.scheme {
+                out["scheme"] = json!(scheme);
+            }
+            if v["measure"] != "reps" {
+                out["measure"] = v["measure"].clone();
+            }
+            if e.per_side {
+                out["per_side"] = json!(true);
+            }
+            if !e.tempo.is_empty() {
+                out["tempo"] = json!(e.tempo);
+            }
+            out
         })
         .collect();
     let total = matching.len();
@@ -979,19 +1231,59 @@ fn scheme(sets: i32, reps: i32, weight: f32) -> String {
     format!("{sets}×{reps} @ {}", round(weight))
 }
 
+/// Told with a summary whose new lifts ramped with no `maxes`.
+const RAMP_NOTE: &str = "Lifts marked `ramp` were never done: their first session ramps up to find a working weight. With no `maxes` for them the simulated lifter is a stand-in (two rungs in full, the third one rep short), so the weights after the ramp say nothing about this person. Give `maxes` (estimated one-rep max, lb) to see where they'd settle, or judge only the ramp and the progression after it.";
+
+/// Sets as done, runs of the same weight and reps together:
+/// `1×5 @ 185, 3×8 @ 155`.
+fn sets_done(sets: &[(f32, i32)]) -> String {
+    let mut runs: Vec<(i32, f32, i32)> = Vec::new();
+    for &(weight, reps) in sets {
+        match runs.last_mut() {
+            Some((n, w, r)) if *w == weight && *r == reps => *n += 1,
+            _ => runs.push((1, weight, reps)),
+        }
+    }
+    runs.iter()
+        .map(|(n, w, r)| scheme(*n, *r, *w))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
 /// A simulation per lift: one line a session and where it starts and ends,
-/// for `simulate_program`'s `summary`.
+/// for `simulate_program`'s `summary`. A forward session says each set as
+/// done; a new lift's first one, its ramp.
 fn summary(
     workouts: &[schlift_core::pb::SimulatedWorkout],
+    details: &[schlift_core::simulate::ForwardDetail],
     shown: &dyn Fn(&str) -> bool,
 ) -> Vec<Value> {
     let mut lifts: Vec<(String, Vec<String>, Vec<String>)> = Vec::new();
-    for w in workouts {
+    // A lift whose number isn't reps, and what it counts.
+    let mut measures: Vec<(String, &str)> = Vec::new();
+    for (i, w) in workouts.iter().enumerate() {
         for l in w.lifts.iter().filter(|l| shown(&l.exercise)) {
             let Some(d) = l.decision.as_ref() else {
                 continue;
             };
-            let mut planned = scheme(d.sets, d.reps, d.weight);
+            match schlift_core::pb::Measure::try_from(d.measure) {
+                Ok(schlift_core::pb::Measure::Seconds) => {
+                    measures.push((l.exercise.clone(), "seconds"))
+                }
+                Ok(schlift_core::pb::Measure::Metres) => {
+                    measures.push((l.exercise.clone(), "metres"))
+                }
+                _ => {}
+            }
+            let done = i
+                .checked_sub(workouts.len() - details.len())
+                .and_then(|i| details.get(i))
+                .and_then(|f| f.lifts.iter().find(|x| x.exercise == l.exercise));
+            let mut planned = if d.calibration {
+                "ramp".to_string()
+            } else {
+                scheme(d.sets, d.reps, d.weight)
+            };
             if !d.scheme.is_empty() && d.scheme != "straight" {
                 planned.push_str(&format!(" ({})", d.scheme));
             }
@@ -1000,18 +1292,40 @@ fn summary(
                 date(w.at),
                 if w.past { "(past) " } else { "" }
             );
+            if d.max > 0.0 && !d.calibration {
+                line.push_str(&format!(" · max {}", round(d.max)));
+            }
             if let Some(then) = l.recorded.as_ref() {
                 let then = scheme(then.sets, then.reps, then.weight);
                 if then != planned {
                     line.push_str(&format!(" · was {then}"));
                 }
             }
-            line.push_str(&format!(
-                " · did {} @ {} {}",
-                l.done_reps,
-                round(l.done_weight),
-                if l.hit { "hit" } else { "short" }
-            ));
+            match done {
+                Some(x) => {
+                    if !x.ramp.is_empty() {
+                        let rungs: Vec<String> = x
+                            .ramp
+                            .iter()
+                            .map(|(w, r)| format!("{r} @ {}", round(*w)))
+                            .collect();
+                        line.push_str(&format!(" {} → settled", rungs.join(", ")));
+                    } else {
+                        line.push_str(" · did");
+                    }
+                    line.push_str(&format!(
+                        " {} {}",
+                        sets_done(&x.working),
+                        if l.hit { "hit" } else { "short" }
+                    ));
+                }
+                None => line.push_str(&format!(
+                    " · did {} @ {} {}",
+                    l.done_reps,
+                    round(l.done_weight),
+                    if l.hit { "hit" } else { "short" }
+                )),
+            }
             match lifts.iter_mut().find(|(k, _, _)| *k == l.exercise) {
                 Some((_, lines, plans)) => {
                     lines.push(line);
@@ -1024,14 +1338,147 @@ fn summary(
     lifts
         .into_iter()
         .map(|(exercise, sessions, plans)| {
-            json!({
+            let mut out = json!({
                 "exercise": exercise,
                 "from": plans.first(),
                 "to": plans.last(),
                 "sessions": sessions,
-            })
+            });
+            if let Some((_, measure)) = measures.iter().find(|(k, _)| *k == exercise) {
+                out["counts"] = json!(measure);
+            }
+            out
         })
         .collect()
+}
+
+/// The time budget a simulated workout planned to: its lifts'.
+fn budget_of(workout: &schlift_core::pb::SimulatedWorkout) -> i32 {
+    workout
+        .lifts
+        .iter()
+        .filter_map(|l| l.decision.as_ref())
+        .map(|d| d.budget_minutes)
+        .max()
+        .unwrap_or(0)
+}
+
+/// What a forward run should tell an assistant beyond its numbers: maxes
+/// it gave that nothing used, ramps that ran out of rungs before the max
+/// it gave, and workouts that ran past their budget.
+fn run_notes(
+    workouts: &[schlift_core::pb::SimulatedWorkout],
+    details: &[schlift_core::simulate::ForwardDetail],
+    maxes_given: &[String],
+) -> Vec<String> {
+    let mut notes = Vec::new();
+    let lifts: Vec<&schlift_core::simulate::LiftDone> =
+        details.iter().flat_map(|d| &d.lifts).collect();
+    let unused: Vec<&str> = maxes_given
+        .iter()
+        .filter(|k| {
+            !lifts
+                .iter()
+                .any(|l| l.exercise == **k && !l.ramp.is_empty())
+        })
+        .map(String::as_str)
+        .collect();
+    if !unused.is_empty() {
+        notes.push(format!(
+            "maxes not used for {}: only a lift never done ramps (a bodyweight lift doesn't; it starts at the bottom of its range), and only in a workout the run did",
+            unused.join(", ")
+        ));
+    }
+    let mut capped: Vec<&str> = lifts
+        .iter()
+        .filter(|l| l.ramp_capped && maxes_given.contains(&l.exercise))
+        .map(|l| l.exercise.as_str())
+        .collect();
+    capped.dedup();
+    if !capped.is_empty() {
+        notes.push(format!(
+            "{}: the ramp ran out of rungs (calibration.max_rungs) before the max you gave, and settled where it stopped. The app does the same for this person unless they type a bigger jump on a rung; calibration.rung_factor and max_rungs change it for every new lift",
+            capped.join(", ")
+        ));
+    }
+    let first_forward = workouts.len() - details.len();
+    let over = workouts[first_forward..]
+        .iter()
+        .zip(details)
+        .filter(|(w, d)| budget_of(w) > 0 && d.minutes > budget_of(w))
+        .count();
+    if over > 0 {
+        notes.push(format!(
+            "{over} workout(s) ran past their time budget: a new lift's ramp, warmups and rests all take time; sets.max, fewer lifts or less rest shorten it"
+        ));
+    }
+    notes
+}
+
+/// `simulate_program`'s `maxes`: exercise key to a max over 0.
+fn maxes(arguments: &Value) -> Result<std::collections::HashMap<String, f32>, Failure> {
+    let Some(given) = arguments.get("maxes") else {
+        return Ok(Default::default());
+    };
+    let Some(given) = given.as_object() else {
+        return Err(Failure::Tool(
+            "maxes is an object: {\"exercise_key\": one-rep max in lb}".into(),
+        ));
+    };
+    given
+        .iter()
+        .map(|(key, max)| match max.as_f64() {
+            Some(m) if m > 0.0 && m < 5000.0 => Ok((key.clone(), m as f32)),
+            _ => Err(Failure::Tool(format!(
+                "maxes.{key}: a one-rep max in lb (reps for a bodyweight lift), over 0"
+            ))),
+        })
+        .collect()
+}
+
+/// One part of the guide: the heading that matches `name` (any case,
+/// backticks ignored; a word of it is enough) down to the next heading as
+/// high. An unknown name lists the headings.
+fn guide_section(name: &str) -> String {
+    let want = name.trim().trim_matches('`').to_lowercase();
+    let headings: Vec<(usize, usize, String)> = GUIDE
+        .lines()
+        .enumerate()
+        .filter_map(|(i, line)| {
+            let level = line.chars().take_while(|c| *c == '#').count();
+            (level > 1 && line[level..].starts_with(' ')).then(|| {
+                (
+                    i,
+                    level,
+                    line[level..].trim().replace('`', "").to_lowercase(),
+                )
+            })
+        })
+        .collect();
+    let found = headings
+        .iter()
+        .find(|(_, _, h)| *h == want)
+        .or_else(|| {
+            headings
+                .iter()
+                .find(|(_, _, h)| h.split_whitespace().any(|w| w == want))
+        })
+        .or_else(|| headings.iter().find(|(_, _, h)| h.contains(&want)));
+    let Some(&(start, level, _)) = found else {
+        let names: Vec<&str> = headings.iter().map(|(_, _, h)| h.as_str()).collect();
+        return format!("No section {name:?}. Sections: {}", names.join(", "));
+    };
+    let end = headings
+        .iter()
+        .find(|(i, l, _)| *i > start && *l <= level)
+        .map_or(usize::MAX, |(i, _, _)| *i);
+    GUIDE
+        .lines()
+        .enumerate()
+        .filter(|(i, _)| *i >= start && *i < end)
+        .map(|(_, l)| l)
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 /// Each lift's sessions over time, for `get_progress`.

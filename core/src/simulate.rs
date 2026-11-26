@@ -13,7 +13,10 @@
 //! says and ended — through the same API the app uses, so the warmups, the
 //! calibration ramp and the time budget all run as they would. A lift never
 //! done ramps up: its first two rungs are done in full, the third one rep
-//! short, which settles it.
+//! short, which settles it. Given what a lift's max is
+//! ([`simulate_detailed`]'s `maxes`), the scripted lifter instead does each
+//! rung as that max allows and answers "how many more?" honestly, so the
+//! ramp settles where it would for that person.
 //!
 //! Nothing of either is recorded on the account.
 
@@ -44,6 +47,39 @@ pub fn simulate(
     now: i64,
     req: &SimulateProgramRequest,
 ) -> SimulateProgramResponse {
+    simulate_detailed(account, now, req, &HashMap::new()).0
+}
+
+/// What a forward workout did beyond its decisions: how long it took, and
+/// each lift's ramp rungs and working sets as done.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForwardDetail {
+    pub minutes: i32,
+    pub lifts: Vec<LiftDone>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LiftDone {
+    pub exercise: String,
+    /// The calibration rungs, (weight lb, reps), in order.
+    pub ramp: Vec<(f32, i32)>,
+    /// The working sets, drops and minis included, (weight lb, reps).
+    pub working: Vec<(f32, i32)>,
+    /// The ramp ran every rung the program allows (`calibration.max_rungs`)
+    /// and settled where it stopped, not where the lifter's max was.
+    pub ramp_capped: bool,
+}
+
+/// [`simulate`], with each forward workout's [`ForwardDetail`] (in the
+/// order of the response's forward workouts, after the past ones), and the
+/// scripted lifter's maxes: a lift with one here (lb, the Epley estimate a
+/// single rep; reps for a bodyweight lift) does its ramp as that max allows.
+pub fn simulate_detailed(
+    account: &Account,
+    now: i64,
+    req: &SimulateProgramRequest,
+    maxes: &HashMap<String, f32>,
+) -> (SimulateProgramResponse, Vec<ForwardDetail>) {
     let (draft, problems) = if req.program_json.trim().is_empty() {
         (account.program.clone(), Vec::new())
     } else {
@@ -59,19 +95,65 @@ pub fn simulate(
                 (ProgramRef::new(program), problems)
             }
             _ => {
-                return SimulateProgramResponse {
-                    problems: problems.iter().map(problem_proto).collect(),
-                    workouts: Vec::new(),
-                }
+                return (
+                    SimulateProgramResponse {
+                        problems: problems.iter().map(problem_proto).collect(),
+                        workouts: Vec::new(),
+                    },
+                    Vec::new(),
+                )
             }
         }
     };
     let mut workouts = backtest(account, &draft, req.history.clamp(0, MAX_HISTORY) as usize);
-    workouts.extend(forward(account, draft, now, req));
-    SimulateProgramResponse {
-        problems: problems.iter().map(problem_proto).collect(),
-        workouts,
+    let (ahead, details) = forward(account, draft, now, req, maxes);
+    workouts.extend(ahead);
+    (
+        SimulateProgramResponse {
+            problems: problems.iter().map(problem_proto).collect(),
+            workouts,
+        },
+        details,
+    )
+}
+
+/// The reps a lifter whose max is `max` can do at `weight`, to failure.
+fn reps_possible(program: &Program, exercise: &str, max: f32, weight: f32) -> i32 {
+    let reps = if program.is_bodyweight(exercise) || weight <= 0.0 {
+        max
+    } else {
+        (max / weight - 1.0) * program.estimate.divisor
+    };
+    (reps + 1e-3).floor().max(0.0) as i32
+}
+
+/// A lift's calibration rungs and working sets as done in `record`.
+fn done_sets(program: &Program, record: &WorkoutRecord, exercise: &str) -> LiftDone {
+    let mut lift = LiftDone {
+        exercise: exercise.to_string(),
+        ..Default::default()
+    };
+    for set in record
+        .proposed_sets
+        .iter()
+        .filter(|s| s.exercise == exercise && !s.warmup && !s.cancelled)
+    {
+        let Some(done) = record
+            .completed_sets
+            .iter()
+            .find(|c| c.proposed_set_id == set.id && c.ended_at > 0)
+        else {
+            continue;
+        };
+        let pair = (done.actual_weight, done.actual_reps);
+        if set.calibration {
+            lift.ramp.push(pair);
+        } else {
+            lift.working.push(pair);
+        }
     }
+    lift.ramp_capped = lift.ramp.len() >= program.calibration.max_rungs;
+    lift
 }
 
 /// The last `count` finished workouts, each planned again by `draft` as of
@@ -198,10 +280,11 @@ fn forward(
     draft: ProgramRef,
     now: i64,
     req: &SimulateProgramRequest,
-) -> Vec<SimulatedWorkout> {
+    maxes: &HashMap<String, f32>,
+) -> (Vec<SimulatedWorkout>, Vec<ForwardDetail>) {
     let sessions = req.sessions.clamp(0, MAX_SESSIONS);
     if sessions == 0 {
-        return Vec::new();
+        return (Vec::new(), Vec::new());
     }
     let mut sim = account.clone();
     let mut ids = 0_u64;
@@ -215,7 +298,7 @@ fn forward(
             .record_program((*draft).clone(), "simulation", "")
             .is_err()
         {
-            return Vec::new();
+            return (Vec::new(), Vec::new());
         }
     }
     // A workout left under way is over before the run starts.
@@ -233,6 +316,7 @@ fn forward(
     }) * DAY;
     let effort = SimulatedEffort::try_from(req.effort).unwrap_or(SimulatedEffort::AllHit);
     let mut out = Vec::new();
+    let mut details = Vec::new();
     for n in 0..sessions {
         let at = now + i64::from(n) * every;
         let Some((template_id, exercises)) = pick(&sim, at, req) else {
@@ -278,7 +362,15 @@ fn forward(
                         .iter()
                         .any(|c| c.proposed_set_id == s.id)
             });
-            let reps = if set.calibration {
+            // A lifter of a known max does a rung as far as it goes, and
+            // says honestly how many more it had in it.
+            let known = maxes
+                .get(&set.exercise)
+                .filter(|_| set.calibration)
+                .map(|max| reps_possible(&sim.program, &set.exercise, *max, set.target_weight));
+            let reps = if let Some(possible) = known {
+                possible.min(set.target_reps)
+            } else if set.calibration {
                 let rung = rungs.entry(set.exercise.clone()).or_default();
                 *rung += 1;
                 if *rung >= 3 {
@@ -333,11 +425,16 @@ fn forward(
             // one loads; the scripted lifter answers "a couple left", the usual
             // climb (a short rung settles on its own).
             if set.calibration && reps >= set.target_reps {
+                let reps_left = match known.map(|possible| possible - set.target_reps) {
+                    Some(left) if left <= 1 => RepsLeft::ZeroToOne,
+                    Some(left) if left >= 5 => RepsLeft::FivePlus,
+                    _ => RepsLeft::TwoToFour,
+                };
                 mutations.push(WorkoutMutation {
                     mutation: Some(workout_mutation::Mutation::AnswerRung(AnswerRungRequest {
                         workout_id: workout_id.clone(),
                         proposed_set_id: set.id.clone(),
-                        reps_left: RepsLeft::TwoToFour as i32,
+                        reps_left: reps_left as i32,
                         jump_lb: 0.0,
                     })),
                 });
@@ -356,12 +453,20 @@ fn forward(
         let Some(record) = sim.workout(&workout_id) else {
             break;
         };
+        let lifts = first_decisions(record);
+        details.push(ForwardDetail {
+            minutes: ((clock - at) / 60) as i32,
+            lifts: lifts
+                .iter()
+                .map(|d| done_sets(&sim.program, record, &d.exercise))
+                .collect(),
+        });
         out.push(SimulatedWorkout {
             at,
             template_id,
             name: record.workout.name.clone(),
             past: false,
-            lifts: first_decisions(record)
+            lifts: lifts
                 .into_iter()
                 .map(|decision| {
                     let (done_weight, done_reps, hit) = lifted(record, &decision.exercise);
@@ -377,7 +482,7 @@ fn forward(
                 .collect(),
         });
     }
-    out
+    (out, details)
 }
 
 /// The workout to do at `at`, as a template and the lifts to start it

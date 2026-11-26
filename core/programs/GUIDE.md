@@ -30,9 +30,16 @@ reverted.
    it prescribes for the next sessions under an assumption ("every rep
    hit", "the last set one rep short"). Read the numbers. Do they progress
    the way you meant? `lifts` keeps the output to the lifts you are
-   checking, and `summary` gives one short line a session per lift.
-4. Set it: `set_program` with the same edits and a one-line `note` saying
-   why. The person sees the note, and the next workout plans from it. To
+   checking, and `summary` gives one short line a session per lift (each
+   set as done, the max it planned from) and each workout's minutes. A
+   lift the person has never done ramps up to a working weight on its
+   first session; give `maxes` (your estimate of its one-rep max, in lb)
+   so the simulated ramp settles where theirs would, or its numbers after
+   the ramp are a stand-in's.
+4. Set it: a clean `simulate_program` returns a `draft` id. To try a
+   further change, simulate that `draft` with just the new `edits` (they
+   apply on top). Then `set_program` with the `draft` and a one-line
+   `note` saying why, rather than sending the edits again. The person sees the note, and the next workout plans from it. To
    go back to an earlier program, open it (`get_earlier_program`) and set
    it again with today's `workouts`.
 5. Say how it went: `send_feedback`, one line (at most 144 characters) on
@@ -125,7 +132,8 @@ equipment can load in their unit. 20 kg is 44.0925 lb. A 2.5 kg step is
 Every lift the program knows, in the order the app's picker shows them.
 The built-in ones (squat, bench press and about 75 more) are in every
 program; `get_program` shows only those a program adds or changes, and
-`list_exercises` finds the rest.
+`list_exercises` finds the rest (its `equipment` takes several, so a gym
+without cables or machines is `["barbell", "dumbbell", "bodyweight"]`).
 Each one looks like this:
 
 ```json
@@ -185,6 +193,9 @@ The workouts the person picks from, in their order:
 
 - `id`: stable and unique, 1 to 64 characters with no spaces. A finished
   workout names the one it came from, so keep the ids of workouts you keep.
+  Removing a workout changes nothing already done: finished workouts keep
+  their name and every set, and their lifts' history carries on in any
+  workout that has them.
 - `name`: 1 to 60 characters.
 - `exercises`: keys from `exercises`, in order, each once, at most 30.
 - `rotation`: `true` puts it in the rotation that Home suggests from;
