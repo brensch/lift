@@ -29,7 +29,7 @@ function Line({ message }: { message: BotMessage }) {
   if (message.kind === "you") {
     return (
       <div className="flex justify-end animate-reveal-up motion-reduce:animate-none">
-        <p className="m-0 max-w-[85%] rounded-2xl rounded-br-sm bg-text text-background px-4 py-2.5 text-[0.95rem] leading-relaxed">
+        <p className="m-0 max-w-[85%] break-words rounded-2xl rounded-br-sm bg-text text-background px-4 py-2.5 text-[0.95rem] leading-relaxed">
           {message.text}
         </p>
       </div>
@@ -37,24 +37,26 @@ function Line({ message }: { message: BotMessage }) {
   }
   if (message.kind === "tool") {
     return (
-      <div className="flex items-center gap-2 text-xs text-muted animate-reveal-up motion-reduce:animate-none">
-        <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 font-mono text-[0.7rem] text-text">
+      <div className="flex min-w-0 items-center gap-2 text-xs text-muted animate-reveal-up motion-reduce:animate-none">
+        <span className="shrink-0 inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 font-mono text-[0.7rem] text-text">
           <Wrench size={11} className="text-primary" />
           {message.tool}
         </span>
-        <span className="truncate">{message.text}</span>
+        <span className="min-w-0 truncate">{message.text}</span>
       </div>
     );
   }
   return (
-    <p className="m-0 max-w-[92%] text-[0.95rem] leading-relaxed text-text animate-reveal-up motion-reduce:animate-none">
+    <p className="m-0 max-w-[92%] break-words text-[0.95rem] leading-relaxed text-text animate-reveal-up motion-reduce:animate-none">
       {message.text}
     </p>
   );
 }
 
 export function BotChat({ title, messages }: { title: string; messages: BotMessage[] }) {
-  const { ref, visible } = useReveal(0.35);
+  // A sliver in view is enough: on a phone the window is taller than the
+  // screen, and a bigger share might never be on it at once.
+  const { ref, visible } = useReveal(0.1);
   const reduced =
     typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const [shown, setShown] = useState(reduced ? messages.length : 0);
@@ -83,13 +85,18 @@ export function BotChat({ title, messages }: { title: string; messages: BotMessa
       </div>
       {/* Every line is laid out from the start (invisible until its turn) so
           the window doesn't grow and push the page around as it plays. */}
-      <div className="grid p-5 md:p-6">
-        <div className="col-start-1 row-start-1 flex flex-col gap-3.5 invisible" aria-hidden>
+      {/* One column the window's width, not its longest line's: on a phone
+          the lines wrap instead of running off the side. */}
+      <div className="grid grid-cols-[minmax(0,1fr)] p-4 md:p-6">
+        <div
+          className="col-start-1 row-start-1 min-w-0 flex flex-col gap-3.5 invisible"
+          aria-hidden
+        >
           {messages.map((m, i) => (
             <Line key={i} message={m} />
           ))}
         </div>
-        <div className="col-start-1 row-start-1 flex flex-col gap-3.5">
+        <div className="col-start-1 row-start-1 min-w-0 flex flex-col gap-3.5">
           {messages.slice(0, shown).map((m, i) => (
             <Line key={i} message={m} />
           ))}

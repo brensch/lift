@@ -102,9 +102,9 @@ website:
   # below), and its button to the /bot page.
   bot_eyebrow: Connect your bot
   bot_heading: Tired of thinking?
-  bot_text: Bots can read white papers written by professional bro science purveyors much better than humans can. Connect your bot below, tell it your goals, and it will set up your routine for you exactly to your liking.
+  bot_text: Bots can read white papers written by professional bro science purveyors much better than humans can.
   bot_button: Connect your bot
-  bot_works_with: Works with Claude, ChatGPT and any bot that speaks MCP.
+  bot_works_with: It works with any AI that accepts MCP servers.
   # The /bot page: how to connect. Placeholders.
   # The /bot page: the app's setup page (app/copy.yaml onboarding.bot and
   # its steps, widgets/connect_ai.dart), word for word. Change both.
