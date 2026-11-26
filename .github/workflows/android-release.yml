@@ -6,6 +6,10 @@ on:
     tags:
       - "v*"
 
+env:
+  # Keep equal to FLUTTER_VERSION in .github/workflows/tests.yml.
+  FLUTTER_VERSION: "3.50.1"
+
 jobs:
   build-android-release:
     runs-on: ubuntu-latest
@@ -20,6 +24,15 @@ jobs:
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
           persist-credentials: false
+
+      # The container's Flutter is whatever cirruslabs calls stable, and it
+      # lags (its newest is 3.44, Dart 3.12; google_fonts 9 needs Dart 3.13).
+      # Install the pinned one over it, like tests.yml and ios-build.yml.
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
 
       - name: Cache Gradle dependencies
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
