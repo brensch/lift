@@ -264,6 +264,7 @@ describes, OAuth 2.1:
 | `/.well-known/oauth-protected-resource` | Which authorization server signs in for `/api/mcp`: this one |
 | `/.well-known/oauth-authorization-server` | Its metadata |
 | `/api/oauth/register` | Dynamic client registration (RFC 7591): public clients, no secret. A redirect URI must be https, http to loopback, or a native app's own scheme |
+| Client ID metadata documents | Instead of registering, a client's `client_id` can be an `https://` URL serving its metadata (`client_id_metadata_document_supported`, `src/mcp/cimd.rs`). Fetched at `/connect` (both `DescribeConnect` and `AnswerConnect`) and at the code exchange, never on a refresh: a domain on the default port with a path, every address it resolves to public and the connection pinned to the vetted one, no redirects, 5 s, 64 KB, a few at once; kept an hour (a failure a minute). Its `client_id` must be the URL exactly, its `redirect_uris` must include the one asked for and pass the registration rules, and it may not claim a secret. It is saved as an `assistant_clients` row keyed by the URL, so grants and tokens work as for a registered client. The consent page shows its `client_name` with the URL's host: "Claude (claude.ai)" |
 | `/connect` (website) | The authorization endpoint: `web/src/pages/connect.tsx` signs the person in with their passkey, shows the client and what it may do (`CAN`), and on Allow calls `AnswerConnect`, which issues a code bound to the PKCE challenge (S256 only) |
 | `/api/oauth/token` | Exchanges the code with its verifier for an access token (1 hour) and a refresh token (60 days); each refresh replaces both |
 
@@ -323,7 +324,14 @@ and message before unwinding.
   moves to them (step 6).
 - `src/mcp/tests.rs` — only safe redirect URIs register; an assistant
   registers, is allowed, exchanges and refreshes its tokens, and sets a
-  program through the tools.
+  program through the tools; one connects by its metadata document (served
+  from a table), and a document for another id, a redirect it doesn't
+  list or an address not to fetch is refused.
+- `src/mcp/cimd.rs` — only public addresses are fetched (private,
+  loopback, link-local, CGNAT, reserved, IPv4 inside IPv6), a name with
+  any private address is refused, only plain https URLs are client ids, a
+  document must name its own id and safe redirects, and one is read once
+  an hour. An ignored test does the real fetch (`-- --ignored`).
 - `src/db/assistants.rs` — a grant from consent to revocation.
 - `src/demo_seed.rs` — both demo users seed, and the walk over their
   history rises.

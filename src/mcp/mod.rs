@@ -6,7 +6,9 @@
 //!   server signs in for `/api/mcp`: this one.
 //! - `/.well-known/oauth-authorization-server` is its metadata.
 //! - `/api/oauth/register` registers a client (RFC 7591), public: PKCE,
-//!   no secret.
+//!   no secret. Or a client needn't register: its `client_id` can be an
+//!   `https://` URL serving its metadata, fetched when it connects
+//!   (`cimd.rs`).
 //! - The authorization endpoint is the website's `/connect` page: the
 //!   person signs in with their passkey and allows the client, and the page
 //!   answers through `AssistantService` (`src/server/assistant.rs`), which
@@ -29,6 +31,7 @@ use sha2::{Digest, Sha256};
 
 use crate::db::{Client, ServerDb};
 
+pub mod cimd;
 mod tools;
 
 /// The only scope: read the person's training, set their program.
@@ -53,6 +56,8 @@ pub struct Mcp {
     /// on clients nobody connected drops the oldest, so a flood would push
     /// out the ones people were about to allow.
     pub registrations: std::sync::Arc<crate::rate::Limiter>,
+    /// Client ID metadata documents: fetched, checked and kept a while.
+    pub cimd: std::sync::Arc<cimd::Cimd>,
 }
 
 /// Registrations from one address: a few at once, then one a minute.
@@ -85,6 +90,7 @@ impl Mcp {
                 REGISTRATIONS_BURST,
                 REGISTRATION_REFILL,
             )),
+            cimd: std::sync::Arc::new(cimd::Cimd::https()),
         }
     }
 
@@ -140,6 +146,7 @@ async fn authorization_server(State(mcp): State<Mcp>) -> Json<Value> {
         "grant_types_supported": ["authorization_code", "refresh_token"],
         "code_challenge_methods_supported": ["S256"],
         "token_endpoint_auth_methods_supported": ["none"],
+        "client_id_metadata_document_supported": true,
     }))
 }
 
@@ -290,6 +297,25 @@ async fn token(State(mcp): State<Mcp>, body: Bytes) -> Response {
                     "the client, redirect URI or code verifier doesn't match the consent",
                 );
             }
+            // A metadata document's client must still list the redirect it
+            // was allowed with. (A refresh doesn't fetch: the grant is the
+            // person's, and the document's host being down mustn't cut
+            // them off.)
+            if cimd::is_url(client_id) {
+                match mcp.cimd.resolve(client_id).await {
+                    Ok(client) if client.redirect_uris.contains(&consent.redirect_uri) => {}
+                    Ok(_) => {
+                        return oauth_error(
+                            StatusCode::BAD_REQUEST,
+                            "invalid_grant",
+                            "the client's metadata no longer lists the redirect URI",
+                        )
+                    }
+                    Err(error) => {
+                        return oauth_error(StatusCode::BAD_REQUEST, "invalid_client", &error)
+                    }
+                }
+            }
             mcp.db.grant_assistant(&consent).await.map(Some)
         }
         "refresh_token" => {
@@ -330,22 +356,48 @@ async fn token(State(mcp): State<Mcp>, body: Bytes) -> Response {
     }
 }
 
-/// A consent request checked against its client: the client registered,
-/// the redirect one it registered, PKCE S256, and for this server.
+/// The client a client id names: registered here, or the metadata
+/// document at the URL it is, fetched and kept as a client row so a grant
+/// can name it.
+async fn client(mcp: &Mcp, client_id: &str) -> Result<Client, String> {
+    // Logged, not told: the caller isn't signed in.
+    fn failed(error: impl std::fmt::Display) -> String {
+        tracing::error!(%error, "reading an assistant");
+        "Something went wrong; try again".to_string()
+    }
+    if cimd::is_url(client_id) {
+        let client = mcp.cimd.resolve(client_id).await?;
+        mcp.db.save_url_assistant(&client).await.map_err(failed)?;
+        return Ok(client);
+    }
+    mcp.db
+        .assistant_client(client_id)
+        .await
+        .map_err(failed)?
+        .ok_or_else(|| "This assistant isn't registered".to_string())
+}
+
+/// What the consent page calls a client: its name, and for a metadata
+/// document the host that vouches for it ("Claude (claude.ai)").
+pub fn display_name(client: &Client) -> String {
+    match url::Url::parse(&client.client_id) {
+        Ok(url) if cimd::is_url(&client.client_id) => format!(
+            "{} ({})",
+            client.client_name,
+            url.host_str().unwrap_or_default()
+        ),
+        _ => client.client_name.clone(),
+    }
+}
+
+/// A consent request checked against its client: the client registered
+/// (or its metadata document read), the redirect one it lists, PKCE S256,
+/// and for this server.
 pub async fn check_connect(
     mcp: &Mcp,
     request: &schlift_core::pb::ConnectRequest,
 ) -> Result<Client, String> {
-    let client = mcp
-        .db
-        .assistant_client(&request.client_id)
-        .await
-        .map_err(|error| {
-            // Logged, not told: the caller isn't signed in.
-            tracing::error!(%error, "reading an assistant");
-            "Something went wrong; try again".to_string()
-        })?
-        .ok_or("This assistant isn't registered")?;
+    let client = client(mcp, &request.client_id).await?;
     if !client.redirect_uris.contains(&request.redirect_uri) {
         return Err("The return address isn't one this assistant registered".into());
     }
