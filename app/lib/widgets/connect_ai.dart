@@ -6,12 +6,12 @@
 library;
 
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../gen/copy.dart';
 import '../logic/website.dart';
+import '../screens/connect_ai_screen.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
 import 'common/flat.dart';
@@ -149,7 +149,15 @@ class LetAiDoIt extends StatelessWidget {
     return Material(
       color: tk.primary.withValues(alpha: 0.08),
       child: InkWell(
-        onTap: () => context.push('/connect-ai'),
+        // On the root navigator: the editors it sits on (the workout
+        // editor) are pushed there, over the router's pages, so a router
+        // push would land underneath them.
+        onTap: () => Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute<void>(
+            settings: const RouteSettings(name: '/connect-ai'),
+            builder: (_) => const ConnectAiScreen(),
+          ),
+        ),
         child: Container(
           padding: const EdgeInsets.fromLTRB(FlatSection.margin, 12, 8, 12),
           decoration: BoxDecoration(
