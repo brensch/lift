@@ -342,13 +342,13 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
         return null;
       },
       routes: [
-        GoRoute(path: '/starting', builder: (_, __) => const Scaffold()),
-        GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
-        GoRoute(
+        _route(path: '/starting', builder: (_, __) => const Scaffold()),
+        _route(path: '/login', builder: (_, __) => const LoginScreen()),
+        _route(
           path: '/permissions',
           builder: (_, __) => const PermissionsScreen(),
         ),
-        GoRoute(
+        _route(
           path: '/onboarding',
           builder: (_, __) => const OnboardingScreen(),
         ),
@@ -356,40 +356,40 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
           observers: [PageTrackObserver()],
           // The banner here, not in MainLayout: the tutorial's sandbox
           // layout has no session to lose.
-          builder: (context, state, child) => SessionExpiredBanner(
-            child: RecoveryAlertBanner(child: MainLayout(child: child)),
+          pageBuilder: (context, state, child) => _page(
+            state,
+            SessionExpiredBanner(
+              child: RecoveryAlertBanner(child: MainLayout(child: child)),
+            ),
           ),
           // One stack: home (or the live workout) at '/', and every other
           // page pushed over it with `context.push`, so each has a back
           // arrow that pops to where it was opened from. Nothing replaces
           // the stack except signing in or out.
           routes: [
-            GoRoute(path: '/', builder: (_, __) => const WorkoutTab()),
-            GoRoute(
+            _route(path: '/', builder: (_, __) => const WorkoutTab()),
+            _route(
               path: '/workout/log',
               builder: (_, __) => const WorkoutLogPage(),
             ),
-            GoRoute(
+            _route(
               path: '/workout/heart',
               builder: (_, __) => const WorkoutHeartPage(),
             ),
-            GoRoute(
+            _route(
               path: '/workout/:id/completed',
               builder: (_, state) => CompletedWorkoutScreen(
                 workoutId: state.pathParameters['id']!,
                 isHistory: state.uri.queryParameters['isHistory'] == 'true',
               ),
             ),
-            GoRoute(
+            _route(
               path: '/progress',
               builder: (_, __) => const ProgressScreen(),
             ),
-            GoRoute(
-              path: '/history',
-              builder: (_, __) => const HistoryScreen(),
-            ),
-            GoRoute(path: '/learn', builder: (_, __) => const LearnScreen()),
-            GoRoute(
+            _route(path: '/history', builder: (_, __) => const HistoryScreen()),
+            _route(path: '/learn', builder: (_, __) => const LearnScreen()),
+            _route(
               path: '/exercise/:ex',
               builder: (_, state) {
                 return ExerciseDetailScreen(
@@ -397,51 +397,48 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
                 );
               },
             ),
-            GoRoute(
+            _route(
               path: '/sound-settings',
               builder: (_, __) => const SoundSettingsScreen(),
             ),
-            GoRoute(
-              path: '/program',
-              builder: (_, __) => const ProgramScreen(),
-            ),
-            GoRoute(
+            _route(path: '/program', builder: (_, __) => const ProgramScreen()),
+            _route(
               path: '/passkeys',
               builder: (_, __) => const PasskeysScreen(),
             ),
-            GoRoute(
+            _route(
               path: '/passkeys/add',
               builder: (_, __) => const AddPasskeyScreen(),
             ),
-            GoRoute(
+            _route(
               path: '/debug-notifications',
               builder: (_, __) => const DebugNotificationsScreen(),
             ),
-            GoRoute(
+            _route(
               path: '/debug-logs',
               builder: (_, __) => const DebugLogsScreen(),
             ),
-            GoRoute(
+            _route(
               path: '/build-info',
               builder: (_, __) => const BuildInfoScreen(),
             ),
-            GoRoute(
+            _route(
               path: '/settings',
               builder: (_, __) => const SettingsScreen(),
             ),
-            GoRoute(
+            _route(
               path: '/settings/profile-marker',
               builder: (_, __) => const ProfileMarkerScreen(),
             ),
-            GoRoute(
+            _route(
               path: '/settings/plate-colors',
               builder: (_, __) => const PlateColorsScreen(),
             ),
-            GoRoute(
+            _route(
               path: '/settings/app-icon',
               builder: (_, __) => const AppIconScreen(),
             ),
-            GoRoute(
+            _route(
               path: '/settings/data',
               builder: (_, __) => const YourDataScreen(),
             ),
@@ -537,3 +534,28 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     );
   }
 }
+
+/// A route whose page is material_ui's [MaterialPage], so it opens with the
+/// platform's transition (and iOS swipe-back). go_router only does that
+/// itself when it finds flutter/material's `MaterialApp` above it, and the app
+/// is a material_ui `MaterialApp`, so left to itself every route would get a
+/// `NoTransitionPage`.
+GoRoute _route({
+  required String path,
+  required Widget Function(BuildContext context, GoRouterState state) builder,
+}) => GoRoute(
+  path: path,
+  pageBuilder: (context, state) => _page(state, builder(context, state)),
+);
+
+/// The page go_router's `MaterialApp` configuration would build.
+MaterialPage<void> _page(GoRouterState state, Widget child) => MaterialPage(
+  key: state.pageKey,
+  name: state.name ?? state.path,
+  arguments: <String, String>{
+    ...state.pathParameters,
+    ...state.uri.queryParameters,
+  },
+  restorationId: state.pageKey.value,
+  child: child,
+);
