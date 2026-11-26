@@ -4,3 +4,4 @@
 - Setup is restyled to match the rest of the app, and the bot page has everything you need to connect an AI right there.
 - The website's connect page, where you allow an AI assistant, is clearer: what it can and can't do, each in its own section.
 - The menu has a Connect AI page with the steps to hook up Claude, ChatGPT or any AI that speaks MCP, and the screens where you edit workouts by hand point you to it.
+- Edit your programme by hand as fully as an AI can: each lift's progression (estimated max, linear, double, cycle or fixed, with every number), its reps, rest and warmups, its set layout step by step (top sets, back-offs, AMRAP, drops, myo-reps, clusters, EMOM), supersets, how Home picks your next workout, a weekly schedule, each muscle's weekly target and recovery hours. Find them under Settings → Program.

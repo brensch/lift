@@ -198,6 +198,15 @@ class WorkoutServiceWrapper {
     GetProgramVersionResponse.fromBuffer,
   );
 
+  /// Make [json] (a whole document) the program, as set by hand; its
+  /// problems come back, and with an error nothing was set.
+  Future<SetProgramResponse> setProgram(String json, {String note = ''}) =>
+      _call(
+        'SetProgram',
+        SetProgramRequest(programJson: json, note: note),
+        SetProgramResponse.fromBuffer,
+      );
+
   /// Back to the built-in rules, or to the earlier program [to]'s, the
   /// workouts as they are now kept.
   Future<void> resetProgram({String to = ''}) => _call(

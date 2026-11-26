@@ -55,6 +55,7 @@ class Copy {
   final CopyAppIcon appIcon;
   final CopySuggestions suggestions;
   final CopyConnectAi connectAi;
+  final CopyRules rules;
   const Copy({
     required this.tutorial,
     required this.library,
@@ -108,6 +109,225 @@ class Copy {
     required this.appIcon,
     required this.suggestions,
     required this.connectAi,
+    required this.rules,
+  });
+}
+
+class CopyRules {
+  final String programRow;
+  final String programRowSub;
+  final String homeRow;
+  final String homeRowSub;
+  final String save;
+  final String saved;
+  final String failed;
+  final String problem;
+  final String liftsTitle;
+  final String liftsHeading;
+  final String liftsEmpty;
+  final String liftOverride;
+  final String liftOverrideSub;
+  final String progressionHeading;
+  final String groupRule;
+  final String kindEstimatedMax;
+  final String kindEstimatedMaxSub;
+  final String kindLinear;
+  final String kindLinearSub;
+  final String kindDouble;
+  final String kindDoubleSub;
+  final String kindCycle;
+  final String kindCycleSub;
+  final String kindFixed;
+  final String kindFixedSub;
+  final String kindFormula;
+  final String kindFormulaSub;
+  final String sets;
+  final String setsAuto;
+  final String reps;
+  final String repLow;
+  final String repHigh;
+  final String repStep;
+  final String increment;
+  final String weight;
+  final String deloadAfter;
+  final String deloadTo;
+  final String cycleStep;
+  final String cycleFraction;
+  final String addStep;
+  final String removeStep;
+  final String groupHeading;
+  final String groupLifts;
+  final String rest;
+  final String warmups;
+  final String schemeHeading;
+  final String schemeOwn;
+  final String schemeEdit;
+  final String otherHeading;
+  final String tempo;
+  final String perSide;
+  final String stepsTitle;
+  final String role;
+  final String roleWorking;
+  final String roleTop;
+  final String roleBackoff;
+  final String roleDrop;
+  final String roleMini;
+  final String roleWorkingMany;
+  final String roleTopMany;
+  final String roleBackoffMany;
+  final String schemeStraight;
+  final CopyRulesSchemeNames schemeNames;
+  final String count;
+  final String countRest;
+  final String stepReps;
+  final String fraction;
+  final String amrap;
+  final String rir;
+  final String stepRest;
+  final String every;
+  final String groupsHeading;
+  final String groupsHint;
+  final String groupAdd;
+  final String groupPick;
+  final String groupRow;
+  final String groupRest;
+  final String groupRemove;
+  final String groupsSaveFirst;
+  final String nextHeading;
+  final String nextVolume;
+  final String nextVolumeSub;
+  final String nextSequence;
+  final String nextSequenceSub;
+  final String nextSchedule;
+  final String nextScheduleSub;
+  final String scheduleHeading;
+  final String scheduleRest;
+  final String targetsHeading;
+  final String targetsDefault;
+  final String targetsRow;
+  final String targetLow;
+  final String targetHigh;
+  final String recoveryHeading;
+  final String recoveryDefault;
+  final List<String> days;
+  const CopyRules({
+    required this.programRow,
+    required this.programRowSub,
+    required this.homeRow,
+    required this.homeRowSub,
+    required this.save,
+    required this.saved,
+    required this.failed,
+    required this.problem,
+    required this.liftsTitle,
+    required this.liftsHeading,
+    required this.liftsEmpty,
+    required this.liftOverride,
+    required this.liftOverrideSub,
+    required this.progressionHeading,
+    required this.groupRule,
+    required this.kindEstimatedMax,
+    required this.kindEstimatedMaxSub,
+    required this.kindLinear,
+    required this.kindLinearSub,
+    required this.kindDouble,
+    required this.kindDoubleSub,
+    required this.kindCycle,
+    required this.kindCycleSub,
+    required this.kindFixed,
+    required this.kindFixedSub,
+    required this.kindFormula,
+    required this.kindFormulaSub,
+    required this.sets,
+    required this.setsAuto,
+    required this.reps,
+    required this.repLow,
+    required this.repHigh,
+    required this.repStep,
+    required this.increment,
+    required this.weight,
+    required this.deloadAfter,
+    required this.deloadTo,
+    required this.cycleStep,
+    required this.cycleFraction,
+    required this.addStep,
+    required this.removeStep,
+    required this.groupHeading,
+    required this.groupLifts,
+    required this.rest,
+    required this.warmups,
+    required this.schemeHeading,
+    required this.schemeOwn,
+    required this.schemeEdit,
+    required this.otherHeading,
+    required this.tempo,
+    required this.perSide,
+    required this.stepsTitle,
+    required this.role,
+    required this.roleWorking,
+    required this.roleTop,
+    required this.roleBackoff,
+    required this.roleDrop,
+    required this.roleMini,
+    required this.roleWorkingMany,
+    required this.roleTopMany,
+    required this.roleBackoffMany,
+    required this.schemeStraight,
+    required this.schemeNames,
+    required this.count,
+    required this.countRest,
+    required this.stepReps,
+    required this.fraction,
+    required this.amrap,
+    required this.rir,
+    required this.stepRest,
+    required this.every,
+    required this.groupsHeading,
+    required this.groupsHint,
+    required this.groupAdd,
+    required this.groupPick,
+    required this.groupRow,
+    required this.groupRest,
+    required this.groupRemove,
+    required this.groupsSaveFirst,
+    required this.nextHeading,
+    required this.nextVolume,
+    required this.nextVolumeSub,
+    required this.nextSequence,
+    required this.nextSequenceSub,
+    required this.nextSchedule,
+    required this.nextScheduleSub,
+    required this.scheduleHeading,
+    required this.scheduleRest,
+    required this.targetsHeading,
+    required this.targetsDefault,
+    required this.targetsRow,
+    required this.targetLow,
+    required this.targetHigh,
+    required this.recoveryHeading,
+    required this.recoveryDefault,
+    required this.days,
+  });
+}
+
+class CopyRulesSchemeNames {
+  final String straight;
+  final String topBackoff;
+  final String plusSet;
+  final String pyramid;
+  final String dropFinish;
+  final String myo;
+  final String cluster;
+  final String emom;
+  const CopyRulesSchemeNames({
+    required this.straight,
+    required this.topBackoff,
+    required this.plusSet,
+    required this.pyramid,
+    required this.dropFinish,
+    required this.myo,
+    required this.cluster,
+    required this.emom,
   });
 }
 
@@ -2383,7 +2603,7 @@ const copy = Copy(
     editTitle: 'Edit workout',
     nameHint: 'Name, e.g. Push, Legs, Tuesday',
     empty:
-        'Add exercises. Tap one to set your own weight and reps. They follow the exercise everywhere.',
+        'Add exercises. Tap one to set how it progresses, its sets and rest, or your own weight. They follow the exercise everywhere.',
     addExercises: 'Add exercises',
     save: 'Save',
     saveFailed: 'Could not save: {error}',
@@ -2820,5 +3040,123 @@ const copy = Copy(
     title: 'Connect AI',
     peasant: 'Dog, don\'t do this by hand like a peasant. Just let AI do it.',
     peasantButton: 'Connect AI',
+  ),
+  rules: CopyRules(
+    programRow: 'Progression',
+    programRowSub: 'How each lift moves, its reps, rest and sets',
+    homeRow: 'Programme rules',
+    homeRowSub: 'How Home picks, your schedule, weekly targets, recovery',
+    save: 'Save',
+    saved: 'Saved',
+    failed: 'Couldn\'t save: {error}',
+    problem: '{path}: {message}',
+    liftsTitle: 'Progression',
+    liftsHeading: 'Your lifts',
+    liftsEmpty: 'No lifts in your workouts yet.',
+    liftOverride: 'Your own weight',
+    liftOverrideSub: 'Set this lift\'s next sets yourself',
+    progressionHeading: 'How it progresses',
+    groupRule: 'Same as its group ({group})',
+    kindEstimatedMax: 'Follows your estimated max',
+    kindEstimatedMaxSub:
+        'Stays at a weight while your max covers more reps in the range, then goes up a step',
+    kindLinear: 'Linear',
+    kindLinearSub: 'Same reps every time; hit them all and it goes up',
+    kindDouble: 'Double progression',
+    kindDoubleSub:
+        'Reps climb to the top of the range, then the weight goes up and reps reset',
+    kindCycle: 'Cycle',
+    kindCycleSub: 'Rotates through steps, each a share of your max',
+    kindFixed: 'Fixed',
+    kindFixedSub: 'The same numbers every time',
+    kindFormula: 'Custom formula',
+    kindFormulaSub: 'Written by an AI. Ask it to change this one.',
+    sets: 'Sets',
+    setsAuto: 'Sets from your time',
+    reps: 'Reps',
+    repLow: 'Fewest reps',
+    repHigh: 'Most reps',
+    repStep: 'Reps added each time',
+    increment: 'Jump ({unit}, 0 = smallest)',
+    weight: 'Weight ({unit})',
+    deloadAfter: 'Misses before dropping back (0 = never)',
+    deloadTo: 'Drop back to (%)',
+    cycleStep: 'Step {n}',
+    cycleFraction: 'Of your max (%)',
+    addStep: 'Add a step',
+    removeStep: 'Remove',
+    groupHeading: 'Reps and rest: every {group} lift',
+    groupLifts: '{lifts}',
+    rest: 'Rest between sets (s)',
+    warmups: 'Warmup sets first',
+    schemeHeading: 'Set layout',
+    schemeOwn: 'This lift\'s own layout',
+    schemeEdit: 'Edit the steps',
+    otherHeading: 'Other',
+    tempo: 'Tempo cue (e.g. 3-1-1)',
+    perSide: 'Number is per side',
+    stepsTitle: 'Set layout',
+    role: 'Kind of set',
+    roleWorking: 'Working',
+    roleTop: 'Top set',
+    roleBackoff: 'Back-off',
+    roleDrop: 'Drop set',
+    roleMini: 'Mini set',
+    roleWorkingMany: 'Working sets',
+    roleTopMany: 'Top sets',
+    roleBackoffMany: 'Back-offs',
+    schemeStraight: 'Straight sets',
+    schemeNames: CopyRulesSchemeNames(
+      straight: 'Straight sets',
+      topBackoff: 'Top set and back-offs',
+      plusSet: 'Plus set (5/3/1)',
+      pyramid: 'Pyramid',
+      dropFinish: 'Drop-set finisher',
+      myo: 'Myo-reps',
+      cluster: 'Clusters',
+      emom: 'EMOM',
+    ),
+    count: 'How many',
+    countRest: 'The rest of the sets',
+    stepReps: 'Reps (0 = the rule\'s)',
+    fraction: 'Weight (% of the working weight)',
+    amrap: 'As many as you can',
+    rir: 'Reps left in the tank (−1 = no target)',
+    stepRest: 'Rest after (s, 0 = usual)',
+    every: 'EMOM, starts every (s, 0 = off)',
+    groupsHeading: 'Supersets',
+    groupsHint: 'Lifts in a superset alternate sets.',
+    groupAdd: 'Add a superset',
+    groupPick: 'Pick the lifts to alternate',
+    groupRow: '{lifts}',
+    groupRest: 'Rest after each round (s)',
+    groupRemove: 'Remove',
+    groupsSaveFirst: 'Save the workout first, then link lifts into supersets.',
+    nextHeading: 'How Home picks your workout',
+    nextVolume: 'What your muscles need most',
+    nextVolumeSub:
+        'The workout whose rested muscles are furthest behind this week',
+    nextSequence: 'In order',
+    nextSequenceSub: 'The rotation in its order, round and round',
+    nextSchedule: 'By day of the week',
+    nextScheduleSub: 'The workout set for today',
+    scheduleHeading: 'Your week',
+    scheduleRest: 'Rest',
+    targetsHeading: 'Weekly sets per muscle',
+    targetsDefault: 'Every muscle',
+    targetsRow: '{low}–{high} sets',
+    targetLow: 'Fewest sets a week',
+    targetHigh: 'Most sets a week',
+    recoveryHeading: 'Hours to recover',
+    recoveryDefault: 'Any muscle not set',
+    days: [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ],
   ),
 );

@@ -19,6 +19,8 @@ import '../theme/theme_spec.dart';
 import '../widgets/suggestion_screen.dart';
 import '../widgets/common/flat.dart';
 import '../widgets/connect_ai.dart';
+import 'program/program_rules_screen.dart';
+import 'program/progression_screen.dart';
 import '../widgets/dialogs/confirm_dialog.dart';
 import 'program_document_screen.dart';
 
@@ -40,6 +42,17 @@ class _ProgramScreenState extends State<ProgramScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  /// A page of the hand editors; the program again when it's closed.
+  Future<void> _open(Widget page) async {
+    final wp = context.read<WorkoutProvider>();
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChangeNotifierProvider.value(value: wp, child: page),
+      ),
+    );
+    await _load();
   }
 
   /// The program is the phone's own (the core); the assistants are the
@@ -204,6 +217,18 @@ class _ProgramScreenState extends State<ProgramScreen> {
                   program.summary,
                   icon: AppIcons.maths,
                   current: true,
+                ),
+                FlatRow(
+                  icon: AppIcons.progress,
+                  label: copy.rules.programRow,
+                  subtitle: copy.rules.programRowSub,
+                  onTap: () => _open(const ProgressionScreen()),
+                ),
+                FlatRow(
+                  icon: AppIcons.edit,
+                  label: copy.rules.homeRow,
+                  subtitle: copy.rules.homeRowSub,
+                  onTap: () => _open(const ProgramRulesScreen()),
                 ),
                 if (!program.summary.builtinRules)
                   FlatRow(

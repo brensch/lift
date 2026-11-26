@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io' show Platform;
@@ -778,6 +779,22 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// The program: who set it and why, and the ones before it.
   Future<GetProgramResponse> getProgram() => _service.getProgram();
+
+  /// The program's document as it is now, to change by hand.
+  Future<Map<String, dynamic>> programDocument() async =>
+      jsonDecode((await _service.getProgram()).programJson)
+          as Map<String, dynamic>;
+
+  /// Set [document] as the program (by hand, as an assistant would), then
+  /// plan Home again. The errors that stopped it, if any; none when set.
+  Future<List<ProgramProblem>> setProgramDocument(
+    Map<String, dynamic> document,
+  ) async {
+    final res = await _service.setProgram(jsonEncode(document));
+    final errors = res.problems.where((p) => p.error).toList();
+    if (errors.isEmpty) await refreshHome();
+    return errors;
+  }
 
   /// One earlier program, its document included.
   Future<GetProgramVersionResponse> getProgramVersion(String id) =>

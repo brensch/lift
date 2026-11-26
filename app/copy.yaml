@@ -763,7 +763,7 @@ template_editor:
   edit_title: Edit workout
   name_hint: Name, e.g. Push, Legs, Tuesday
   # The empty exercise list.
-  empty: Add exercises. Tap one to set your own weight and reps. They follow the exercise everywhere.
+  empty: Add exercises. Tap one to set how it progresses, its sets and rest, or your own weight. They follow the exercise everywhere.
   add_exercises: Add exercises
   save: Save
   # Also the override sheet's failure. {error} is the reason.
@@ -1239,3 +1239,127 @@ connect_ai:
   title: Connect AI
   peasant: Dog, don't do this by hand like a peasant. Just let AI do it.
   peasant_button: Connect AI
+
+# Editing the program by hand, as much as an assistant can: each lift's
+# progression, reps and rest, and set layout; the workouts' supersets;
+# how Home picks, the schedule, each muscle's weekly target and recovery.
+# Placeholders.
+rules:
+  program_row: Progression
+  program_row_sub: How each lift moves, its reps, rest and sets
+  home_row: Programme rules
+  home_row_sub: How Home picks, your schedule, weekly targets, recovery
+  save: Save
+  saved: Saved
+  failed: "Couldn't save: {error}"
+  problem: "{path}: {message}"
+  # The progression page: the lifts in your workouts.
+  lifts_title: Progression
+  lifts_heading: Your lifts
+  lifts_empty: No lifts in your workouts yet.
+  # One lift.
+  lift_override: Your own weight
+  lift_override_sub: Set this lift's next sets yourself
+  progression_heading: How it progresses
+  group_rule: "Same as its group ({group})"
+  kind_estimated_max: Follows your estimated max
+  kind_estimated_max_sub: Stays at a weight while your max covers more reps in the range, then goes up a step
+  kind_linear: Linear
+  kind_linear_sub: Same reps every time; hit them all and it goes up
+  kind_double: Double progression
+  kind_double_sub: Reps climb to the top of the range, then the weight goes up and reps reset
+  kind_cycle: Cycle
+  kind_cycle_sub: Rotates through steps, each a share of your max
+  kind_fixed: Fixed
+  kind_fixed_sub: The same numbers every time
+  kind_formula: Custom formula
+  kind_formula_sub: Written by an AI. Ask it to change this one.
+  sets: Sets
+  sets_auto: Sets from your time
+  reps: Reps
+  rep_low: Fewest reps
+  rep_high: Most reps
+  rep_step: Reps added each time
+  increment: "Jump ({unit}, 0 = smallest)"
+  weight: "Weight ({unit})"
+  deload_after: Misses before dropping back (0 = never)
+  deload_to: "Drop back to (%)"
+  cycle_step: "Step {n}"
+  cycle_fraction: "Of your max (%)"
+  add_step: Add a step
+  remove_step: Remove
+  group_heading: "Reps and rest: every {group} lift"
+  group_lifts: "{lifts}"
+  rest: Rest between sets (s)
+  warmups: Warmup sets first
+  scheme_heading: Set layout
+  scheme_own: This lift's own layout
+  scheme_edit: Edit the steps
+  other_heading: Other
+  tempo: Tempo cue (e.g. 3-1-1)
+  per_side: Number is per side
+  # Scheme step editor.
+  steps_title: Set layout
+  role: Kind of set
+  role_working: Working
+  role_top: Top set
+  role_backoff: Back-off
+  role_drop: Drop set
+  role_mini: Mini set
+  # A step that takes the rest of the sets, in the layout's summary.
+  role_working_many: Working sets
+  role_top_many: Top sets
+  role_backoff_many: Back-offs
+  scheme_straight: Straight sets
+  # The built-in layouts' names; a program's own show their key.
+  scheme_names:
+    straight: Straight sets
+    top_backoff: Top set and back-offs
+    plus_set: Plus set (5/3/1)
+    pyramid: Pyramid
+    drop_finish: Drop-set finisher
+    myo: Myo-reps
+    cluster: Clusters
+    emom: EMOM
+  count: How many
+  count_rest: The rest of the sets
+  step_reps: Reps (0 = the rule's)
+  fraction: "Weight (% of the working weight)"
+  amrap: As many as you can
+  rir: "Reps left in the tank (−1 = no target)"
+  step_rest: Rest after (s, 0 = usual)
+  every: EMOM, starts every (s, 0 = off)
+  # Supersets, in the workout editor.
+  groups_heading: Supersets
+  groups_hint: Lifts in a superset alternate sets.
+  group_add: Add a superset
+  group_pick: Pick the lifts to alternate
+  group_row: "{lifts}"
+  group_rest: Rest after each round (s)
+  group_remove: Remove
+  groups_save_first: Save the workout first, then link lifts into supersets.
+  # Programme rules.
+  next_heading: How Home picks your workout
+  next_volume: What your muscles need most
+  next_volume_sub: The workout whose rested muscles are furthest behind this week
+  next_sequence: In order
+  next_sequence_sub: The rotation in its order, round and round
+  next_schedule: By day of the week
+  next_schedule_sub: The workout set for today
+  schedule_heading: Your week
+  schedule_rest: Rest
+  targets_heading: Weekly sets per muscle
+  targets_default: Every muscle
+  targets_row: "{low}–{high} sets"
+  target_low: Fewest sets a week
+  target_high: Most sets a week
+  recovery_heading: Hours to recover
+  recovery_default: Any muscle not set
+  days:
+    - Monday
+    - Tuesday
+    - Wednesday
+    - Thursday
+    - Friday
+    - Saturday
+    - Sunday

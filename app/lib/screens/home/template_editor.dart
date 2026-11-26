@@ -2,9 +2,11 @@
 /// rotation the suggestion picks from, and an ordered exercise list. That
 /// is the whole thing — sets, reps and weight are planned, each
 /// row shows its next plan (the list planned as one workout in Home's
-/// budget, so it reads what Home's card reads), and tapping one sets your
-/// own numbers for the exercise (an override), which apply in every
-/// template that contains it. Nothing is recorded until Save.
+/// budget, so it reads what Home's card reads), and tapping one opens the
+/// lift's settings (how it progresses, its group's reps and rest, its set
+/// layout, and your own numbers for it, an override), which apply in every
+/// template that contains it. A saved workout's supersets are a page of
+/// their own. Nothing here is recorded until Save.
 library;
 
 import 'package:flutter/foundation.dart' show listEquals;
@@ -22,6 +24,8 @@ import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/flat.dart';
 import '../../widgets/connect_ai.dart';
+import '../program/lift_rules_screen.dart';
+import '../program/supersets_screen.dart';
 import '../../theme/theme_spec.dart';
 import '../../widgets/exercise_picker.dart';
 import '../../theme/app_icons.dart';
@@ -255,12 +259,25 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
                                   onRemove: () => _setExercises(
                                     List.of(_exercises)..removeAt(index),
                                   ),
-                                  onTap: () => _editOverride(exercise),
+                                  onTap: () => showLiftRules(
+                                    context,
+                                    exercise: exercise,
+                                    onOverride: () => _editOverride(exercise),
+                                  ),
                                 );
                               },
                             ),
                     ),
                     const SizedBox(height: 10),
+                    if (!_isNew && _exercises.length > 1) ...[
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            showSupersets(context, widget.template!.id),
+                        icon: const Icon(AppIcons.multiplayer, size: 18),
+                        label: Text(copy.rules.groupsHeading),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
                     OutlinedButton.icon(
                       onPressed: _addExercises,
                       icon: const Icon(AppIcons.add, size: 18),
