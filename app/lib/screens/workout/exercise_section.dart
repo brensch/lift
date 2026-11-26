@@ -296,32 +296,41 @@ class _ExerciseSectionState extends State<ExerciseSection> {
                     ),
                   ),
                 ),
-              // Finished: fold it away, or bring its circles back.
-              if (finished && first)
-                IconButton(
-                  onPressed: toggle,
-                  padding: EdgeInsets.zero,
-                  constraints: tight,
-                  // No 48px tap box around it: that is what made the row tall.
-                  style: IconButton.styleFrom(
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  icon: Icon(
-                    folded ? AppIcons.expandDown : AppIcons.expandUp,
-                    size: t.size.title,
-                    color: t.muted,
+              // Finished: fold it away, or bring its circles back. A
+              // group's later lifts keep the room it takes (and the
+              // grip's), so their targets line up under the first's.
+              if (finished)
+                Visibility.maintain(
+                  visible: first,
+                  child: IconButton(
+                    onPressed: toggle,
+                    padding: EdgeInsets.zero,
+                    constraints: tight,
+                    // No 48px tap box around it: that is what made the row tall.
+                    style: IconButton.styleFrom(
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    icon: Icon(
+                      folded ? AppIcons.expandDown : AppIcons.expandUp,
+                      size: t.size.title,
+                      color: t.muted,
+                    ),
                   ),
                 ),
               // The grip: drags the exercise straight away.
-              if (dragIndex != null && first)
-                ReorderableDragStartListener(
-                  index: dragIndex!,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child: Icon(
-                      AppIcons.drag,
-                      size: t.size.title,
-                      color: t.muted,
+              if (dragIndex != null)
+                Visibility.maintain(
+                  visible: first,
+                  child: ReorderableDragStartListener(
+                    index: dragIndex!,
+                    enabled: first,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 10),
+                      child: Icon(
+                        AppIcons.drag,
+                        size: t.size.title,
+                        color: t.muted,
+                      ),
                     ),
                   ),
                 ),
