@@ -181,6 +181,40 @@ pub fn redirect_allowed(uri: &str) -> bool {
     }
 }
 
+/// Whether a redirect a client asks for is one it lists: the same string,
+/// or (RFC 8252 §7.3) both plain http to the same loopback host, path and
+/// query, on any port. A desktop client listens on whatever port is free,
+/// so its document lists `http://localhost/callback` and it asks for
+/// `http://localhost:3118/callback`.
+pub fn redirect_matches(listed: &str, asked: &str) -> bool {
+    if listed == asked {
+        return true;
+    }
+    let (Ok(listed), Ok(asked)) = (url::Url::parse(listed), url::Url::parse(asked)) else {
+        return false;
+    };
+    let loopback = |u: &url::Url| {
+        u.scheme() == "http"
+            && matches!(u.host_str(), Some("localhost" | "127.0.0.1" | "[::1]"))
+            && u.username().is_empty()
+            && u.password().is_none()
+            && u.fragment().is_none()
+    };
+    loopback(&listed)
+        && loopback(&asked)
+        && listed.host_str() == asked.host_str()
+        && listed.path() == asked.path()
+        && listed.query() == asked.query()
+}
+
+/// Whether a client lists the redirect asked for.
+fn lists_redirect(client: &Client, asked: &str) -> bool {
+    client
+        .redirect_uris
+        .iter()
+        .any(|listed| redirect_matches(listed, asked))
+}
+
 async fn register(State(mcp): State<Mcp>, headers: HeaderMap, body: Bytes) -> Response {
     if !mcp.registrations.allow(&caller(&headers)) {
         return oauth_error(
@@ -303,7 +337,7 @@ async fn token(State(mcp): State<Mcp>, body: Bytes) -> Response {
             // them off.)
             if cimd::is_url(client_id) {
                 match mcp.cimd.resolve(client_id).await {
-                    Ok(client) if client.redirect_uris.contains(&consent.redirect_uri) => {}
+                    Ok(client) if lists_redirect(&client, &consent.redirect_uri) => {}
                     Ok(_) => {
                         return oauth_error(
                             StatusCode::BAD_REQUEST,
@@ -398,7 +432,7 @@ pub async fn check_connect(
     request: &schlift_core::pb::ConnectRequest,
 ) -> Result<Client, String> {
     let client = client(mcp, &request.client_id).await?;
-    if !client.redirect_uris.contains(&request.redirect_uri) {
+    if !lists_redirect(&client, &request.redirect_uri) {
         return Err("The return address isn't one this assistant registered".into());
     }
     if request.code_challenge_method != "S256"
