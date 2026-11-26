@@ -482,12 +482,9 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused) {
       unawaited(AppLogger.instance.flush());
     }
-    if (state == AppLifecycleState.resumed) {
-      // Force a fresh HTTP/2 connection on resume. Mobile networks silently
-      // kill idle connections; without this, every gRPC call hangs until it
-      // hits the deadline.
-      _grpcClient.resetChannel();
-    }
+    // Nothing is reconnected here on resume: the account's stream asks
+    // whether its connection still answers and replaces it only if not
+    // (`AccountSync`), and every call shares that connection.
   }
 
   @override
