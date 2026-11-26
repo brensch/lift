@@ -20,6 +20,7 @@ async fn mcp() -> Mcp {
             1000,
             std::time::Duration::from_secs(1),
         )),
+        drafts: Default::default(),
     }
 }
 
@@ -593,7 +594,10 @@ async fn params_tune_a_shared_rule_and_the_simulator_says_only_what_was_asked() 
             .map(|line| {
                 let line = line.as_str().unwrap();
                 let at = &line[line.find(" @ ").unwrap() + 3..];
-                at[..at.find(' ').unwrap_or(at.len())].parse().unwrap()
+                let end = at
+                    .find(|c: char| !c.is_ascii_digit() && c != '.')
+                    .unwrap_or(at.len());
+                at[..end].parse().unwrap()
             })
             .collect()
     };
@@ -681,4 +685,163 @@ async fn an_assistant_suggests_to_a_friend_who_allows_it() {
     .await
     .unwrap_err()
     .contains("suggest_change"));
+}
+
+/// A new lift ramps on its first session: with no max for it the summary
+/// says its numbers are a stand-in's; with one, a stronger lifter settles
+/// heavier. Each forward workout says how long it took.
+#[tokio::test]
+async fn maxes_make_a_new_lifts_ramp_settle_where_that_person_would() {
+    let mcp = mcp().await;
+    let run = |maxes: Value| {
+        let mcp = mcp.clone();
+        async move {
+            tool(
+                &mcp,
+                "simulate_program",
+                json!({ "exercises": ["incline_dumbbell_press"], "sessions": 2, "history": 0,
+                        "summary": true, "maxes": maxes }),
+            )
+            .await
+            .unwrap()
+        }
+    };
+    let settled = |run: &Value| -> f64 {
+        let line = run["lifts"][0]["sessions"][0].as_str().unwrap().to_string();
+        assert!(line.contains("ramp") && line.contains("settled"), "{line}");
+        let after = &line[line.rfind(" @ ").unwrap() + 3..];
+        after[..after.find(' ').unwrap()].parse().unwrap()
+    };
+    let stand_in = run(json!({})).await;
+    assert!(stand_in["ramp_note"].as_str().unwrap().contains("maxes"));
+    assert!(stand_in["workouts"][0].as_str().unwrap().ends_with(" min"));
+    let weak = run(json!({ "incline_dumbbell_press": 40 })).await;
+    let strong = run(json!({ "incline_dumbbell_press": 120 })).await;
+    assert!(weak.get("ramp_note").is_none(), "{weak}");
+    let bodyweight = run(json!({ "pull_up": 8 })).await;
+    assert!(
+        bodyweight["notes"][0]
+            .as_str()
+            .unwrap()
+            .contains("maxes not used for pull_up"),
+        "{bodyweight}"
+    );
+    assert!(settled(&strong) > settled(&weak), "{weak} {strong}");
+    assert!(tool(
+        &mcp,
+        "simulate_program",
+        json!({ "maxes": { "squat": -5 } })
+    )
+    .await
+    .unwrap_err()
+    .contains("maxes.squat"));
+}
+
+/// The guide comes whole or a part at a time; an unknown part lists them.
+#[tokio::test]
+async fn the_guide_comes_a_section_at_a_time() {
+    let mcp = mcp().await;
+    let read = |section: &str| {
+        let mcp = mcp.clone();
+        let section = section.to_string();
+        async move {
+            tools::call(
+                &mcp,
+                "u1",
+                "Claude",
+                "read_guide",
+                &json!({ "section": section }),
+            )
+            .await
+            .ok()
+            .unwrap()["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .to_string()
+        }
+    };
+    let schemes = read("schemes").await;
+    assert!(schemes.starts_with("### `schemes`"), "{schemes}");
+    assert!(!schemes.contains("### `estimate`"));
+    assert!(read("Editing").await.starts_with("## Editing"));
+    assert!(read("nope")
+        .await
+        .contains("Sections: how to work, editing"));
+}
+
+/// Several kinds of equipment at once, and only the fields a lift sets.
+#[tokio::test]
+async fn exercises_filter_by_several_kinds_of_equipment() {
+    let mcp = mcp().await;
+    let found = tool(
+        &mcp,
+        "list_exercises",
+        json!({ "equipment": ["barbell", "dumbbell"], "limit": 100 }),
+    )
+    .await
+    .unwrap();
+    let all = found["exercises"].as_array().unwrap();
+    assert!(all.iter().any(|e| e["equipment"] == "barbell"));
+    assert!(all.iter().any(|e| e["equipment"] == "dumbbell"));
+    assert!(all
+        .iter()
+        .all(|e| e["equipment"] == "barbell" || e["equipment"] == "dumbbell"));
+    assert!(all.iter().all(|e| e.get("tempo").is_none()), "{found}");
+}
+
+/// A run comes back with a draft: set_program takes it instead of the
+/// edits, a later run takes it with more edits on top, and once the
+/// program changes underneath it is refused.
+#[tokio::test]
+async fn a_simulated_draft_is_set_by_its_id() {
+    let mcp = mcp().await;
+    let edits = json!([
+        { "set": "workouts[upper]", "value": { "name": "Upper", "exercises": ["bench_press", "barbell_row"] } }
+    ]);
+    let run = tool(
+        &mcp,
+        "simulate_program",
+        json!({ "edits": edits, "sessions": 1, "summary": true }),
+    )
+    .await
+    .unwrap();
+    let first = run["draft"].as_str().unwrap().to_string();
+    let more = tool(
+        &mcp,
+        "simulate_program",
+        json!({ "draft": first, "edits": [{ "set": "name", "value": "Two of them" }], "sessions": 1 }),
+    )
+    .await
+    .unwrap();
+    let second = more["draft"].as_str().unwrap().to_string();
+    assert_ne!(first, second);
+    let set = tool(
+        &mcp,
+        "set_program",
+        json!({ "draft": second, "note": "Upper day" }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(set["program"]["name"], "Two of them", "{set}");
+    let got = tool(
+        &mcp,
+        "get_program_part",
+        json!({ "path": "workouts[upper].name" }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(got["value"], "Upper", "{got}");
+    // The program it was made from is gone now.
+    let stale = tool(
+        &mcp,
+        "set_program",
+        json!({ "draft": first, "note": "again" }),
+    )
+    .await
+    .unwrap_err();
+    assert!(stale.contains("changed since"), "{stale}");
+    let unknown = tool(&mcp, "set_program", json!({ "draft": "nope", "note": "x" }))
+        .await
+        .unwrap_err();
+    assert!(unknown.contains("no draft"), "{unknown}");
 }

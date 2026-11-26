@@ -278,17 +278,23 @@ The tools (`mcp/tools.rs`):
 
 | Tool | Does |
 |---|---|
-| `read_guide` | `core/programs/GUIDE.md`: what a program is, every field |
+| `read_guide` | `core/programs/GUIDE.md`: what a program is, every field; whole, or one `section` by heading |
 | `get_program` | The current document, who set it and why, the earlier ones |
 | `get_earlier_program` | One earlier program's document (`GetProgramVersion`) |
 | `get_profile` | Unit, the workouts and the rotation's suggestion, starting weights, overrides, this week's volume, what is recovering, and per lift its estimated max, last session and next plan |
 | `get_history` | Finished workouts, each lift's planned and done sets (by lift, since, limit) |
-| `validate_program` | A draft's problems, each with its path |
-| `simulate_program` | A draft over the recorded history and forward (`SimulateProgram`): the rotation's suggestion, a workout, or the lifts named; with no workout, the last one's lifts |
-| `set_program` | `SetProgram` with author `mcp:<client name>` and the assistant's note, then the event placed with `push_events` and streamed to the phones |
+| `validate_program` | A draft's problems, each with its path; a clean one is kept as a `draft` id |
+| `simulate_program` | A draft over the recorded history and forward (`SimulateProgram`): the rotation's suggestion, a workout, or the lifts named; with no workout, the last one's lifts. `maxes` makes the scripted lifter's ramp settle where a lifter of that max would; `summary` gives each set as done and each workout's minutes (`simulate_detailed`). A clean run is kept as a `draft` id |
+| `set_program` | A `draft` id, edits or a whole document: `SetProgram` with author `mcp:<client name>` and the assistant's note, then the event placed with `push_events` and streamed to the phones |
 
 Reads fold the account as the website's do. The only write is
 `set_program`: an assistant can't record or delete training.
+
+Drafts (`tools::Drafts`) are only in memory, like everything that matters
+only while the server runs: the last few per person and account for two
+hours, each tied to a digest of the program it was made from, so one made
+before the app or another assistant changed the program is refused. A
+restart loses them and the assistant sends its edits again.
 
 ## Error handling
 

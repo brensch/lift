@@ -53,6 +53,8 @@ pub struct Mcp {
     /// on clients nobody connected drops the oldest, so a flood would push
     /// out the ones people were about to allow.
     pub registrations: std::sync::Arc<crate::rate::Limiter>,
+    /// Drafts checked by simulate_program and validate_program, by id.
+    pub drafts: std::sync::Arc<tools::Drafts>,
 }
 
 /// Registrations from one address: a few at once, then one a minute.
@@ -85,6 +87,7 @@ impl Mcp {
                 REGISTRATIONS_BURST,
                 REGISTRATION_REFILL,
             )),
+            drafts: Default::default(),
         }
     }
 
