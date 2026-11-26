@@ -414,6 +414,51 @@ mod home_and_onboarding {
         assert_eq!(plan(&app, "squat").weight, 110.0);
     }
 
+    /// An assistant that sets the program during setup keeps its workouts,
+    /// and the slider's starting weights are still recorded.
+    #[test]
+    fn onboarding_after_an_assistant_set_the_program() {
+        let mut app = App::new();
+        let mut program = (*app.account.program).clone();
+        program.workouts = vec![schlift_core::program::WorkoutDef {
+            id: "upper_a".into(),
+            name: "Upper A".into(),
+            exercises: vec!["bench_press".into(), "overhead_press".into()],
+            rotation: true,
+            notes: String::new(),
+            from_library: String::new(),
+            groups: vec![],
+        }];
+        let set = app
+            .call()
+            .set_program(SetProgramRequest {
+                program_json: program.to_json(),
+                note: "from the bot".into(),
+                author: "mcp:test".into(),
+            })
+            .unwrap();
+        assert!(set.problems.iter().all(|p| !p.error), "{:?}", set.problems);
+
+        app.call()
+            .complete_onboarding(CompleteOnboardingRequest {
+                unit: WeightUnit::Lb as i32,
+                strength: Some(0.5),
+                library_ids: vec!["stronglifts_a".into()],
+            })
+            .unwrap();
+        let home = app.view().home(0);
+        assert!(home.onboarded);
+        let names: Vec<&str> = home.templates.iter().map(|t| t.name.as_str()).collect();
+        assert_eq!(names, vec!["Upper A"], "the library pick is not added");
+        let Fact::Onboarded(recorded) = &app.log.last().unwrap().fact else {
+            panic!("onboarding recorded");
+        };
+        assert!(recorded
+            .starting_weights
+            .iter()
+            .any(|w| w.exercise == "squat" && w.weight_lb == 180.0));
+    }
+
     /// A kilogram user's weights land on the kilogram grid.
     #[test]
     fn a_kg_user_gets_kg_loadable_weights() {

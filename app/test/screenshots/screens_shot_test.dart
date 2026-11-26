@@ -19,6 +19,7 @@ import 'package:schlift/providers/auth_provider.dart';
 import 'package:schlift/providers/settings_provider.dart';
 import 'package:schlift/screens/maths_screen.dart';
 import 'package:schlift/screens/science_screen.dart';
+import 'package:schlift/screens/onboarding/steps/bot_step.dart';
 import 'package:schlift/screens/onboarding/steps/marker_step.dart';
 import 'package:schlift/screens/onboarding/steps/strength_step.dart';
 import 'package:schlift/screens/onboarding/steps/templates_step.dart';
@@ -280,6 +281,54 @@ void main() {
     expect(find.text('315 lb'), findsOneWidget);
     expect(find.text('225 lb'), findsOneWidget);
     expect(find.text(StrengthStep.creatureFor(1)), findsOneWidget);
+  });
+
+  testWidgets('onboarding bot step: connect, then the bot\'s workouts', (
+    tester,
+  ) async {
+    var skipped = 0;
+    var finished = 0;
+    var workouts = <WorkoutTemplate>[];
+    late StateSetter rebuild;
+    await pumpAtPhoneSize(
+      tester,
+      StatefulBuilder(
+        builder: (context, setState) {
+          rebuild = setState;
+          return Scaffold(
+            body: BotStep(
+              workouts: workouts,
+              onRefresh: () async {},
+              isSaving: false,
+              onBack: () {},
+              onSkip: () => skipped++,
+              onFinish: () => finished++,
+            ),
+          );
+        },
+      ),
+    );
+    await shoot(tester, 'onboarding_bot');
+    final t = copy.onboarding.bot;
+    expect(find.text(t.title), findsOneWidget);
+    expect(find.text(t.button), findsOneWidget);
+    await tester.tap(find.text(t.skip));
+    expect(skipped, 1);
+
+    // The bot set a program: it lists the workouts and finishing keeps them.
+    rebuild(
+      () => workouts = [
+        WorkoutTemplate(name: 'Upper A'),
+        WorkoutTemplate(name: 'Lower A'),
+      ],
+    );
+    await tester.pumpAndSettle();
+    await shoot(tester, 'onboarding_bot_done');
+    expect(find.text(t.done), findsOneWidget);
+    expect(find.text('Upper A'), findsOneWidget);
+    expect(find.text(t.button), findsNothing);
+    await tester.tap(find.text(t.finish));
+    expect(finished, 1);
   });
 
   testWidgets('onboarding weight step renders', (tester) async {

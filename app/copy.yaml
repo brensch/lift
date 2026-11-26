@@ -194,6 +194,20 @@ onboarding:
     body: We log calories burned for you into your fitness tracker because that's the only reason to go to the gym. Calories burned is proportional to weight. Leave it blank and we use an average.
     field: Bodyweight
     failed: "Setup failed: {error}. Try again."
+  # Before the rotation: let an assistant (over MCP) write the program.
+  # The button opens the website's /bot page, which says how to connect.
+  # When the program arrives while this page is up, it lists the workouts
+  # and finishing keeps them.
+  bot:
+    title: Tired of thinking?
+    body: Bots can read white papers written by professional bro science purveyors much better than humans can. Connect your bot below, tell it your goals, and it will set up your routine for you exactly to your liking.
+    button: Connect your bot
+    # Under the button.
+    hint: Come back here once your bot says it's done. Your workouts will be waiting.
+    skip: I'll pick my own
+    # Above the workouts the bot set up.
+    done: Your bot set you up with
+    finish: Start lifting
   templates:
     title: Pick your rotation
     body: You can add, remove, or edit them later. Pretty cool.
@@ -913,6 +927,9 @@ program:
   assistants_heading: Connected assistants
   assistants_body: An assistant you connect at schlift.com/connect can read your training and set your program.
   assistants_empty: None connected.
+  # Opens the website's /bot page: how to connect one.
+  assistants_connect: Connect your bot
+  assistants_connect_sub: Tell it your goals and it writes your program
   assistants_offline: Can't reach the server to list them.
   # {date}: when it last used its access.
   last_used: "Last used {date}"

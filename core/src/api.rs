@@ -648,7 +648,10 @@ impl<'a> Call<'a> {
             library_entries(&req.library_ids)?
         };
         let unit = crate::weight_units::unit_from_proto(req.unit);
-        let starting_weights = match (first, req.strength) {
+        // The slider's weights are the first onboarding's, whether or not
+        // the program already has workouts: an assistant may have set it
+        // (over MCP) while the person was still in setup.
+        let starting_weights = match (!self.account.onboarded, req.strength) {
             (true, Some(strength)) => exercise_weights(&self.account.program, strength, unit),
             _ => Vec::new(),
         };

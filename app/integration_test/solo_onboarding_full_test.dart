@@ -1,5 +1,5 @@
 // Scenario: a new user walks the entire onboarding flow — marker, unit,
-// strength, bodyweight, templates — and lands on the home screen ready to
+// strength, bodyweight, bot, templates — and lands on the home screen ready to
 // train. Captures every step.
 
 import 'package:flutter_test/flutter_test.dart';
@@ -21,29 +21,34 @@ void main() {
 
       // Step 1 — marker (emoji + colour). Defaults are valid, so just advance.
       await s.mustSee(o.marker.title, seconds: 10);
-      await s.shot('Onboarding 1/5 — pick your marker');
+      await s.shot('Onboarding 1/6 — pick your marker');
       await s.tapText(o.next);
 
       // Step 2 — unit.
       await s.mustSee(o.unit.title, seconds: 6);
-      await s.shot('Onboarding 2/5 — unit');
+      await s.shot('Onboarding 2/6 — unit');
       await s.tapText(o.next);
 
       // Step 3 — strength slider (seeds the starting weights).
       await s.mustSee(o.strength.title, seconds: 6);
-      await s.shot('Onboarding 3/5 — how huge are you');
+      await s.shot('Onboarding 3/6 — how huge are you');
       await s.tapText(o.next);
 
       // Step 4 — bodyweight (optional).
       await s.mustSee(o.weight.field, seconds: 6);
-      await s.shot('Onboarding 4/5 — bodyweight');
+      await s.shot('Onboarding 4/6 — bodyweight');
       await s.tapText(o.next);
 
-      // Step 5 — the rotation from the library (the defaults come
+      // Step 5 — connect a bot (optional): pick our own instead.
+      await s.mustSee(o.bot.title, seconds: 6);
+      await s.shot('Onboarding 5/6 — connect your bot');
+      await s.tapText(o.bot.skip);
+
+      // Step 6 — the rotation from the library (the defaults come
       // pre-ticked), then commit.
       await s.mustSee(o.templates.title, seconds: 6);
       await s.mustSee(Scenario.defaultTemplateName, seconds: 10);
-      await s.shot('Onboarding 5/5 — rotation');
+      await s.shot('Onboarding 6/6 — rotation');
       await s.tapText(o.templates.finish);
 
       // Landed on home (past the first-run tutorial), ready to train.
@@ -64,7 +69,8 @@ void main() {
 
       s.note(
         'Onboarding completed end to end',
-        detail: 'marker → unit → strength → bodyweight → templates → home',
+        detail:
+            'marker → unit → strength → bodyweight → bot → templates → home',
         kind: 'assert',
       );
     });

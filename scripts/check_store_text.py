@@ -19,7 +19,10 @@ RAW_DIR = ROOT / "store" / "screenshots" / "raw"
 # field -> (limit, which stores read it)
 LIMITS = {
     "name": (30, "both"),
-    "tagline": (30, "feature graphic byline, website, Play one-liner"),
+    # Not a store field: the feature graphic's byline has room for ~55
+    # characters at its 30 px, and Play's one-liner (tagline + promo, 80)
+    # is checked on its own below. 40 keeps the byline one short line.
+    "tagline": (40, "feature graphic byline, website, Play one-liner"),
     "app_store_subtitle": (30, "App Store subtitle"),
     "promotional_text": (170, "App Store promo, Play one-liner"),
     "keywords": (100, "App Store"),

@@ -15,3 +15,5 @@
 - After a set, the countdown ring on its circle runs down much faster, so the banner moves on to the next set sooner, and it no longer shows while the "how was that?" question is up — the circle is still tappable there to take a rep off, so a ring would have been misleading.
 - Deleting your account or adding a passkey now asks you to confirm with your passkey first, so an old session left open on its own isn't enough to do either.
 - AI assistants like Claude can connect to your account without registering first; the connect page shows the assistant's name and the site that vouches for it.
+- Schlift is now a free programmable workout tracker: connect your AI bot (Claude, ChatGPT or anything that speaks MCP) and it sets up your programme for you. Setup has a new "Tired of thinking?" page with a button to connect one, and the website has a page that walks you through it.
+- If your bot sets up your programme while you're still in setup, finishing setup keeps its workouts and still uses the starting weights you picked.
