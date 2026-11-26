@@ -159,6 +159,7 @@ enum PlanReasonKind {
   PLAN_REASON_KIND_USER_SET = 6;
   // This many sets: what the time budget fits, given to the lifts whose
   // muscles are furthest behind this week.
+  // No longer given: sets were the time budget's until it went.
   PLAN_REASON_KIND_SETS_FROM_TIME = 7;
   // The plan against the lift's last session, what the user sees move:
   // before/after are the weights (lb), reps_*/sets_* the reps and sets,
@@ -841,6 +842,9 @@ message MuscleRecoveryStatus {
 message GetHomeRequest {
   // The time the user has for a workout; 0 = the default (60).
   int32 budget_minutes = 1;
+  // The phone's offset from UTC, in seconds east: which day it is for a
+  // program that schedules by the day of the week.
+  int32 utc_offset_seconds = 2;
 }
 
 message GetHomeResponse {
@@ -895,6 +899,18 @@ message SuggestionReason {
   RecoveringMuscle first_lift_recovering = 5;
   reserved 4;
   reserved "overdue";
+  // How the program picks (its `next`): by volume (the fields above), in
+  // the rotation's order, or by the day of the week.
+  NextRule rule = 6;
+  // By the day: days from today to the day it's for (0 = today).
+  int32 days_until = 7;
+}
+
+enum NextRule {
+  // By volume: the program's default rule.
+  NEXT_RULE_UNSPECIFIED = 0;
+  NEXT_RULE_SEQUENCE = 1;
+  NEXT_RULE_SCHEDULE = 2;
 }
 
 message SuggestionMuscle {

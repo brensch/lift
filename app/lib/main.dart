@@ -52,6 +52,7 @@ import 'screens/plate_colors_screen.dart';
 import 'screens/profile_marker_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/build_info_screen.dart';
+import 'screens/connect_ai_screen.dart';
 import 'widgets/main_layout.dart';
 import 'widgets/recovery_alert_banner.dart';
 import 'widgets/session_expired_banner.dart';
@@ -389,6 +390,10 @@ class _SchliftAppState extends State<SchliftApp> with WidgetsBindingObserver {
             ),
             _route(path: '/history', builder: (_, __) => const HistoryScreen()),
             _route(path: '/learn', builder: (_, __) => const LearnScreen()),
+            _route(
+              path: '/connect-ai',
+              builder: (_, __) => const ConnectAiScreen(),
+            ),
             _route(
               path: '/exercise/:ex',
               builder: (_, state) {

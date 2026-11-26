@@ -15,6 +15,7 @@ library;
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
 
+import '../../widgets/common/marquee_text.dart';
 import '../../gen/copy.dart';
 import '../../gen/workout/v1/workout.pb.dart';
 import '../../gen/workout/v1/wearable.pb.dart' show QuickAnswer;
@@ -247,10 +248,11 @@ class _ExerciseSectionState extends State<ExerciseSection> {
                   child: Row(
                     children: [
                       Flexible(
-                        child: Text(
+                        // Too long for the row: the lift in hand scrolls
+                        // through its name now and then.
+                        child: MarqueeText(
                           exerciseName(m.exercise),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          active: widget.focused && !finished,
                           style: TextStyle(
                             fontSize: t.size.subtitle,
                             fontWeight: t.weight.bold,
@@ -296,32 +298,41 @@ class _ExerciseSectionState extends State<ExerciseSection> {
                     ),
                   ),
                 ),
-              // Finished: fold it away, or bring its circles back.
-              if (finished && first)
-                IconButton(
-                  onPressed: toggle,
-                  padding: EdgeInsets.zero,
-                  constraints: tight,
-                  // No 48px tap box around it: that is what made the row tall.
-                  style: IconButton.styleFrom(
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  icon: Icon(
-                    folded ? AppIcons.expandDown : AppIcons.expandUp,
-                    size: t.size.title,
-                    color: t.muted,
+              // Finished: fold it away, or bring its circles back. A
+              // group's later lifts keep the room it takes (and the
+              // grip's), so their targets line up under the first's.
+              if (finished)
+                Visibility.maintain(
+                  visible: first,
+                  child: IconButton(
+                    onPressed: toggle,
+                    padding: EdgeInsets.zero,
+                    constraints: tight,
+                    // No 48px tap box around it: that is what made the row tall.
+                    style: IconButton.styleFrom(
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    icon: Icon(
+                      folded ? AppIcons.expandDown : AppIcons.expandUp,
+                      size: t.size.title,
+                      color: t.muted,
+                    ),
                   ),
                 ),
               // The grip: drags the exercise straight away.
-              if (dragIndex != null && first)
-                ReorderableDragStartListener(
-                  index: dragIndex!,
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 10),
-                    child: Icon(
-                      AppIcons.drag,
-                      size: t.size.title,
-                      color: t.muted,
+              if (dragIndex != null)
+                Visibility.maintain(
+                  visible: first,
+                  child: ReorderableDragStartListener(
+                    index: dragIndex!,
+                    enabled: first,
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 10),
+                      child: Icon(
+                        AppIcons.drag,
+                        size: t.size.title,
+                        color: t.muted,
+                      ),
                     ),
                   ),
                 ),
@@ -499,7 +510,11 @@ class _CircleRowState extends State<_CircleRow> {
             controller: _scroll,
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.fromLTRB(4, _glow, _padding, _glow),
+            // From the top: a circle with a caption under it is taller than
+            // one without, and the answer buttons line up with the circles,
+            // not with circle and caption together.
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 for (var i = 0; i < widget.children.length; i++) ...[
                   if (i > 0) const SizedBox(width: _circleGap),
@@ -567,9 +582,12 @@ class _AnswerButtons extends StatelessWidget {
     final w = copy.workout;
     Widget button(QuickAnswer answer, String label) => FilledButton(
       onPressed: () => wp.answerQuick(setId, answer),
+      // Exactly a circle's height, so the row reads as one line.
       style: FilledButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 16),
         minimumSize: const Size(0, SetCircle.diameter),
+        maximumSize: const Size(double.infinity, SetCircle.diameter),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
       child: Text(
         label,

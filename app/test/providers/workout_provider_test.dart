@@ -164,15 +164,6 @@ void main() {
     expect(h.provider.takePendingTemplateOffer(), isNull, reason: 'taken');
   });
 
-  test('the budget moves in 5-minute steps and plans the home', () async {
-    expect(h.provider.budgetMinutes, 60);
-    await h.provider.stepBudget(-1);
-    expect(h.provider.budgetMinutes, 55);
-    expect(h.provider.home!.budgetMinutes, 55);
-    await h.start([raise]);
-    expect(h.provider.logFor(raise)!.decision.budgetMinutes, 55);
-  });
-
   test('an override is the next plan, and removing it goes back', () async {
     await h.provider.setOverride(exercise: squat, weightLb: 135, reps: 8);
     var plan = h.provider.planFor(squat)!;

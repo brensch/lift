@@ -67,12 +67,14 @@ fn starting_weight_lb(ex: &str, unit: AppWeightUnit) -> f32 {
     builtin().opener_lb(ex, unit)
 }
 
+/// A lift whose rule names no sets does exactly the program's per_lift
+/// (there's no time budget to hand out more).
 fn min_sets() -> i32 {
-    builtin().sets.min
+    builtin().sets.per_lift
 }
 
 fn max_sets() -> i32 {
-    builtin().sets.max
+    builtin().sets.per_lift
 }
 
 fn too_heavy_reps() -> i32 {
@@ -2024,7 +2026,7 @@ fn rotation() -> RotationRun {
                             .cloned()
                             .collect(),
                     );
-                    let alone = suggest_template(&only, &volume, &recovery, at, &last_started)
+                    let alone = suggest_template(&only, &volume, &recovery, at, &last_started, 0)
                         .expect("a template in rotation is suggested alone");
                     let behind: Vec<MuscleGroup> = alone
                         .reason

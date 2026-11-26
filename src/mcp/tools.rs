@@ -244,7 +244,7 @@ fn tools() -> Vec<Value> {
         json!({
             "name": "simulate_program",
             "title": "Run a draft program",
-            "description": "What a draft (edits to the current program, a whole document, or with neither the current program) prescribes, without setting it: its past workouts planned again as of just before each, beside what was planned and done; and the next sessions, each done as `effort` says, through the app's own rules (warmups, the calibration ramp, the time budget), with how long each took. Its problems too. Use summary: true and lifts to keep it short; give maxes for lifts never done. A clean run comes back with a `draft` id: set_program takes it, and further simulate_program calls take it with more edits on top.",
+            "description": "What a draft (edits to the current program, a whole document, or with neither the current program) prescribes, without setting it: its past workouts planned again as of just before each, beside what was planned and done; and the next sessions, each done as `effort` says, through the app's own rules (warmups, the calibration ramp), with how long each took. Its problems too. Use summary: true and lifts to keep it short; give maxes for lifts never done. A clean run comes back with a `draft` id: set_program takes it, and further simulate_program calls take it with more edits on top.",
             "inputSchema": schema(json!({
                 "edits": edits_property(),
                 "draft": draft_property(),
@@ -255,7 +255,6 @@ fn tools() -> Vec<Value> {
                 "miss_every": { "type": "integer", "minimum": 1, "description": "With miss_every: every this many sessions, the last set one rep short" },
                 "template_id": { "type": "string", "description": "Do this workout every time; otherwise the rotation's suggestion" },
                 "exercises": { "type": "array", "items": { "type": "string" }, "description": "Instead of a workout, these exercise keys in this order every time. With no workout to pick, the lifts of their last workout are used" },
-                "budget_minutes": { "type": "integer", "minimum": 5, "maximum": 300 },
                 "history": { "type": "integer", "minimum": 0, "maximum": 60, "description": "Past workouts to plan again (default 6)" },
                 "lifts": { "type": "array", "items": { "type": "string" }, "description": "Show only these exercise keys (the workouts still run whole)" },
                 "summary": { "type": "boolean", "description": "Per lift, one short line a session (plan, the max it planned from, what was planned then, what was done set by set; a new lift's ramp rungs) and each workout's minutes, instead of every field" },
@@ -706,9 +705,9 @@ pub async fn call(
                     .and_then(Value::as_str)
                     .unwrap_or_default()
                     .to_string(),
-                budget_minutes: int(arguments, "budget_minutes", 0, 0, 300),
                 history: int(arguments, "history", 6, 0, 60),
                 exercises: strings(arguments, "exercises").unwrap_or_default(),
+                ..Default::default()
             };
             let maxes = maxes(arguments)?;
             let maxes_given: Vec<String> = maxes.keys().cloned().collect();
@@ -741,7 +740,7 @@ pub async fn call(
             }
             let only: Option<Vec<String>> = strings(arguments, "lifts");
             let shown = |key: &str| only.as_ref().is_none_or(|o| o.iter().any(|k| k == key));
-            let notes = run_notes(&run.workouts, &details, &maxes_given);
+            let notes = run_notes(&details, &maxes_given);
             if arguments
                 .get("summary")
                 .and_then(Value::as_bool)
@@ -755,12 +754,7 @@ pub async fn call(
                     "applied": applied,
                     "draft": id,
                     "workouts": run.workouts.iter().enumerate().filter_map(|(i, w)| detail(i).map(|d| {
-                        let mut line = format!("{} {} · {} min", date(w.at), w.name, d.minutes);
-                        let budget = budget_of(w);
-                        if budget > 0 && d.minutes > budget {
-                            line.push_str(&format!(" (over its {budget}-min budget)"));
-                        }
-                        line
+                        format!("{} {} · {} min", date(w.at), w.name, d.minutes)
                     })).collect::<Vec<_>>(),
                     "lifts": summary(&run.workouts, &details, &shown),
                     "problems": problems(&run.problems),
@@ -1352,22 +1346,10 @@ fn summary(
         .collect()
 }
 
-/// The time budget a simulated workout planned to: its lifts'.
-fn budget_of(workout: &schlift_core::pb::SimulatedWorkout) -> i32 {
-    workout
-        .lifts
-        .iter()
-        .filter_map(|l| l.decision.as_ref())
-        .map(|d| d.budget_minutes)
-        .max()
-        .unwrap_or(0)
-}
-
 /// What a forward run should tell an assistant beyond its numbers: maxes
 /// it gave that nothing used, ramps that ran out of rungs before the max
-/// it gave, and workouts that ran past their budget.
+/// it gave.
 fn run_notes(
-    workouts: &[schlift_core::pb::SimulatedWorkout],
     details: &[schlift_core::simulate::ForwardDetail],
     maxes_given: &[String],
 ) -> Vec<String> {
@@ -1399,17 +1381,6 @@ fn run_notes(
         notes.push(format!(
             "{}: the ramp ran out of rungs (calibration.max_rungs) before the max you gave, and settled where it stopped. The app does the same for this person unless they type a bigger jump on a rung; calibration.rung_factor and max_rungs change it for every new lift",
             capped.join(", ")
-        ));
-    }
-    let first_forward = workouts.len() - details.len();
-    let over = workouts[first_forward..]
-        .iter()
-        .zip(details)
-        .filter(|(w, d)| budget_of(w) > 0 && d.minutes > budget_of(w))
-        .count();
-    if over > 0 {
-        notes.push(format!(
-            "{over} workout(s) ran past their time budget: a new lift's ramp, warmups and rests all take time; sets.max, fewer lifts or less rest shorten it"
         ));
     }
     notes

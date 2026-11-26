@@ -63,8 +63,6 @@ void main() {
         'barbell_row': (115, 5),
       });
       await h.provider.loadActiveWorkout('test');
-      // Half an hour: three lifts share it, one alone gets all of it.
-      await h.provider.stepBudget(-6);
       return h;
     }))!;
     addTearDown(h.dispose);
@@ -82,13 +80,13 @@ void main() {
       () => find.textContaining(line).evaluate().isNotEmpty,
     );
     expect(find.textContaining(line), findsOneWidget);
-    // Not the squat on its own, which gets the whole half hour.
+    // The same as the squat on its own: sets are the program's, not
+    // shared out of a time budget.
     final alone = planLine(
       h.provider.planFor('squat')!.decision,
       WeightUnit.WEIGHT_UNIT_LB,
     );
-    expect(alone, isNot(line));
-    expect(find.textContaining(alone), findsNothing);
+    expect(alone, line);
 
     // Backing out records nothing; Save, unchanged, keeps it as it was.
     await tester.pageBack();

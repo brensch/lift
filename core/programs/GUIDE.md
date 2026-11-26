@@ -106,6 +106,8 @@ equipment can load in their unit. 20 kg is 44.0925 lb. A 2.5 kg step is
   "notes": "Three days a week; wants a bigger squat.",
   "exercises": [ … ],
   "workouts": [ … ],
+  "next": "volume",
+  "schedule": { … },
   "classes": { … },
   "progressions": { … },
   "estimate": { … },
@@ -199,8 +201,7 @@ The workouts the person picks from, in their order:
 - `name`: 1 to 60 characters.
 - `exercises`: keys from `exercises`, in order, each once, at most 30.
 - `rotation`: `true` puts it in the rotation that Home suggests from;
-  `false` makes it a reserve. Home suggests the rotation workout whose
-  rested muscles are furthest behind on the week's volume.
+  `false` makes it a reserve. Which one Home suggests is `next`'s rule.
 - `notes`: free text.
 - `from_library`: the library entry it was copied from, or `""`.
 - `groups` (optional): lifts whose sets alternate, a superset (two) or a
@@ -219,6 +220,39 @@ The workouts the person picks from, in their order:
 
 The person can still start any workout, or a workout of any lifts, in the
 app. The app's template editor changes this list too.
+
+### `next`
+
+How Home picks the workout it suggests (the person can always start any):
+
+- `"volume"` (the default): the rotation workout whose rested muscles are
+  furthest behind this week's targets (`volume`), skipping one whose first
+  lift's muscle is still recovering (`recovery`). For a program with no
+  fixed order.
+- `"sequence"`: the rotation in its order, round and round: the workout
+  after the last one started (the first when none has been). Recovery and
+  volume never skip one; a workout the person picks themselves moves the
+  place on. For Upper A, Lower A, Upper B, Lower B and the like.
+- `"schedule"`: by the day of the week in `schedule`: today's workout, or
+  once it's been started today, the next day that has one. Home says how
+  many days off it is.
+
+Ask the person which they want when it isn't obvious: a fixed weekly
+schedule, a fixed order whenever they make it in, or whatever they need
+most.
+
+### `schedule`
+
+For `next: "schedule"`: the workout id each day of the week is for, by
+`mon`, `tue`, `wed`, `thu`, `fri`, `sat` and `sun`. A day not named is a
+rest day. The days are the person's own (their phone's time zone);
+`simulate_program` reads them in UTC.
+
+```json
+{ "set": "next", "value": "schedule" },
+{ "set": "schedule", "value": { "mon": "upper_a", "tue": "lower_a",
+                                "thu": "upper_b", "fri": "lower_b" } }
+```
 
 ### `classes`
 
@@ -256,8 +290,8 @@ These apply to every kind:
 - **Set by hand:** when the person types their own weight × reps for a
   lift, the next session is exactly that, and the progression carries on
   from it.
-- **Sets:** a progression that gives no `sets` (or `null`) leaves them to
-  the time budget (see `sets`).
+- **Sets:** a progression that gives no `sets` (or `null`) does
+  `sets.per_lift` (see `sets`).
 - **One rule, several lifts:** an exercise's `params` set its own values
   for numbers of the rule it follows, instead of a copy of the rule that
   differs in one number. For a `formula` a name is one of its `let` names,
@@ -295,7 +329,7 @@ its sessions with the Epley estimate (`estimate`):
 
 The plan stays at the last weight for as many reps as the max covers in the
 class's range. Past the top of the range it goes up one step. With time
-off, the max is cut (`time_off`). Sets come from the time budget.
+off, the max is cut (`time_off`). Sets are `sets.per_lift`.
 
 #### `fixed`
 
@@ -321,7 +355,7 @@ never change, or for a deload week.
   `deload_factor` of it, which must be over 0 and at most 1.
 - Time off cuts the weight by the `time_off` table.
 
-`sets` may be `null` to use the budget.
+`sets` may be `null` for `sets.per_lift`.
 
 #### `double`
 
@@ -366,7 +400,7 @@ Your own rule, as expressions:
 
 - `weight` is in pounds and is snapped to what loads.
 - `reps` is rounded and must come to 1–100.
-- `sets` is rounded to 1–20; `null` leaves it to the budget.
+- `sets` is rounded to 1–20; `null` is `sets.per_lift`.
 - `rest_seconds` is 0–1800; `null` uses the class's.
 - `note` (up to 300 characters) is shown beside the plan, so write it for
   the person.
@@ -439,7 +473,7 @@ A scheme is a list of `steps`, each some sets of one role, in order:
   max, and count `volume.partial_credit` of a set toward a muscle's week).
   The first step is a main one.
 - `count`: a number of sets (0 to 20), or `"rest"`: N less the numbered
-  main sets, so the time budget or the rule still sets the volume. At most
+  main sets, so the rule (or `sets.per_lift`) still sets the volume. At most
   one step takes the rest, and only a main one.
 - `reps` (optional): the number for each set (reps, seconds or metres, by
   the lift's measure). Without it, the rule's R.
@@ -501,16 +535,14 @@ cut to `factor`. The entry with the most `days` reached applies.
 
 ### `sets`
 
-How the time budget hands out working sets. The person picks a budget on
-Home before starting:
-
-- `default_budget_minutes`: the budget when they haven't picked one.
-- `min` and `max`: every lift whose sets are the budget's gets `min`. Then
-  one set at a time goes, up to `max`, to the lift whose primary muscle is
-  furthest below `volume.target_low` this week, until the next set won't
-  fit the budget.
+- `per_lift`: the working sets of a lift whose progression names none
+  (`estimated_max`, and `linear` or `double` with `sets: null`). 3 unless
+  you change it; give a rule its own `sets`, or a lift its own rule, for
+  more or fewer.
 - `override_sets`: a weight × reps the person set by hand without naming
   sets holds for this many.
+
+There is no time budget: a person short on time does less, or asks you.
 
 ### `costs`
 
@@ -564,6 +596,12 @@ primary muscle and `secondary_credit` for each other; a drop or mini set
 counts `partial_credit` of that (default 0.5). Rotation workouts
 within `tie_fraction` of the best score are tied, and the tie goes to the
 one done least recently.
+
+`targets` gives a muscle its own band over `target_low`–`target_high`, as
+`{ "shoulders": { "low": 16, "high": 24 } }`. Home draws each muscle's band,
+and `next: "volume"` scores a muscle against its own. Set them for a
+program that specialises (more shoulders, less chest) so Home shows the
+person what the program is aiming at.
 
 ### `recovery`
 

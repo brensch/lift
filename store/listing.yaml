@@ -38,9 +38,7 @@ keywords: gym,workout,lifting,strength,hypertrophy,bodybuilding,training,log,tra
 about: |
   Get your bot to set up a workout programme for you, choose from our (fully excellent) defaults, or make your own. Unlimited saved workouts, sexy interface, helpful companion wearables app, unlimited gains.
 
-  Schlift tracks which muscles you've worked out recently, and suggests a workout from your favourite routines based on what hasn't been trained that week. 
-  
-  As you successfully lift, it increases the weights/reps according to SCIENCE.
+  Easily view which muscles you've worked out in case you can't just feel them hurting.
 
 # both — the line above the testimonials in the description, and the section
 # label on the website
@@ -104,28 +102,23 @@ website:
   # below), and its button to the /bot page.
   bot_eyebrow: Connect your bot
   bot_heading: Tired of thinking?
-  bot_text: Bots can read white papers written by professional bro science purveyors much better than humans can. Connect your bot below, tell it your goals, and it will set up your routine for you exactly to your liking.
+  bot_text: Bots can read white papers written by professional bro science purveyors much better than humans can.
   bot_button: Connect your bot
-  bot_works_with: Works with Claude, ChatGPT and any bot that speaks MCP.
+  bot_works_with: It works with any AI that accepts MCP servers.
   # The /bot page: how to connect. Placeholders.
-  bot_page_title: CONNECT YOUR BOT
-  bot_page_text: Your bot talks to Schlift over MCP. It can read your training and set your programme; it can't record or delete anything. Takes about a minute.
-  bot_step_1_title: Copy this address
-  bot_step_1_text: This is the address your bot connects to.
+  # The /bot page: the app's setup page (app/copy.yaml onboarding.bot and
+  # its steps, widgets/connect_ai.dart), word for word. Change both.
+  bot_page_title: Tired of thinking?
+  bot_page_text: Bots can read white papers written by professional bro science purveyors much better than humans can.
+  bot_step_1_title: Add this connector to your fav AI
   bot_copy: Copy
   bot_copied: Copied
-  bot_step_2_title: Add it to your bot
-  bot_step_2_claude: "Claude: Settings → Connectors → Add custom connector. Name it Schlift and paste the address."
-  bot_step_2_chatgpt: "ChatGPT: Settings → Apps & Connectors → Advanced → turn on developer mode, then Create, and paste the address."
-  bot_step_2_other: Anything else that speaks MCP over HTTP with OAuth works the same way.
-  bot_open_claude: Open Claude's connectors
-  bot_step_3_title: Allow it
-  bot_step_3_text: Your bot sends you back here. Sign in with your passkey and press Allow. You can cut it off any time from the app or schlift.com/connect.
-  bot_step_4_title: Tell it your goals
-  bot_step_4_text: Something like this. Be as specific or as vague as you like, it'll ask.
-  bot_example_prompt: Use Schlift to set up my programme. I can train 4 days a week for about an hour. I want bigger shoulders and a stronger deadlift. Home gym with a barbell, rack, dumbbells and a pull-up bar.
-  bot_step_5_title: Go lift
-  bot_step_5_text: The programme turns up on your phone straight away. When you want it changed, just ask again.
+  bot_open_claude: Claude
+  bot_open_chatgpt: ChatGPT
+  bot_any_ai: It works with any AI that accepts MCP servers.
+  bot_step_2_title: Chat with chat
+  bot_step_2_text: Tell it to make a plan that will make you huge, or your butt big, or your hugs extra strong, or whatever your goal is in the gym.
+  bot_waiting: Your workouts show up in the app as soon as your bot saves them.
   cta_heading: Ready to schlift?
   cta_text: Download Schlift and start your first session in under a minute (I timed it).
 

@@ -536,7 +536,8 @@ fn suggestion(account: &Account, at: i64) -> Option<String> {
             .or_default();
         *entry = (*entry).max(r.workout.start_time);
     }
-    suggest_template(program, &volume, &recovery, at, &last_started)
+    // The server doesn't know the person's offset; a schedule reads UTC days.
+    suggest_template(program, &volume, &recovery, at, &last_started, 0)
         .map(|s| s.template_id)
         .or_else(|| program.workouts.first().map(|w| w.id.clone()))
 }

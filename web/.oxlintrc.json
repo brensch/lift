@@ -1,13 +1,37 @@
 {
   "$schema": "./node_modules/oxlint/configuration_schema.json",
   "plugins": ["react", "typescript"],
-  "env": { "browser": true, "es2024": true },
+  "env": {
+    "browser": true,
+    "es2024": true
+  },
   "ignorePatterns": ["dist", "src/gen"],
   "categories": {
     "correctness": "error",
     "suspicious": "warn"
   },
   "rules": {
-    "react/react-in-jsx-scope": "off"
+    "react/react-in-jsx-scope": "off",
+    "react/rules-of-hooks": "error",
+    "react/exhaustive-deps": "warn",
+    "react/only-export-components": [
+      "warn",
+      {
+        "allowConstantExport": true
+      }
+    ],
+    "typescript/no-explicit-any": "error",
+    "typescript/no-empty-object-type": "error",
+    "typescript/no-require-imports": "error",
+    "typescript/no-namespace": "error",
+    "typescript/ban-ts-comment": "error",
+    "typescript/no-unsafe-function-type": "error",
+    "prefer-const": "error",
+    "no-empty": "error",
+    "no-case-declarations": "error",
+    "no-fallthrough": "error",
+    "no-prototype-builtins": "error",
+    "no-redeclare": "error",
+    "no-array-constructor": "error"
   }
 }

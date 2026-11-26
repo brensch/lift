@@ -178,7 +178,7 @@ LINUX_SOFTWARE_RENDER ?= 1
 install-deps:
 	@echo "=== Installing Linux build dependencies ==="
 	sudo apt-get update
-	sudo apt-get install -y cmake ninja-build clang lld libgtk-3-dev pkg-config protobuf-compiler curl git unzip openjdk-17-jdk
+	sudo apt-get install -y cmake ninja-build clang lld libgtk-3-dev pkg-config protobuf-compiler curl git unzip openjdk-21-jdk
 	@echo "=== Installing Flutter SDK ==="
 	@if [ ! -d "$(HOME)/flutter-sdk" ]; then \
 		git clone --depth 1 --branch $(FLUTTER_VERSION) https://github.com/flutter/flutter.git $(HOME)/flutter-sdk; \
@@ -222,6 +222,11 @@ check-android-java:
 			echo "Android make targets will use JAVA_HOME=$$JAVAC_HOME_REAL"; \
 		fi; \
 		"$$JAVAC_HOME_REAL/bin/javac" -version; \
+		VERSION=$$("$$JAVAC_HOME_REAL/bin/javac" -version 2>&1 | sed -E "s/^javac ([0-9]+).*/\1/"); \
+		if [ "$$VERSION" -lt 21 ] 2>/dev/null; then \
+			echo "The Android build needs JDK 21 or newer (its Java and Kotlin target 21); this is $$VERSION. Install openjdk-21-jdk."; \
+			exit 1; \
+		fi; \
 	'
 
 # icons: put the rendered icon master (marketing/icon.png, see `make brand`)

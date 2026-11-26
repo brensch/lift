@@ -53,7 +53,7 @@ fn names_resolve_and_numbers_are_in_range() {
     let mut v = default_json();
     v["exercises"][0]["class"] = "nope".into();
     v["classes"]["heavy"]["rep_high"] = 2.into();
-    v["sets"]["max"] = 1.into();
+    v["sets"]["per_lift"] = 0.into();
     v["equipment"]["plates"]["lb"] = serde_json::json!([45.0, 45.0]);
     v["workouts"] = serde_json::json!([
         {"id": "a", "name": "A", "exercises": ["squat", "squat", "nope"], "rotation": true, "notes": "", "from_library": ""}
@@ -62,7 +62,7 @@ fn names_resolve_and_numbers_are_in_range() {
     for path in [
         "exercises[squat].class",
         "classes.heavy.rep_high",
-        "sets.max",
+        "sets.per_lift",
         "equipment.plates.lb[1]",
         "workouts[a].exercises[1]",
         "workouts[a].exercises[2]",
@@ -216,6 +216,43 @@ mod edits {
 
     fn fails(edits: serde_json::Value) -> EditError {
         edit::apply(&program(), edits.as_array().unwrap()).unwrap_err()
+    }
+
+    /// How Home picks, the schedule and a muscle's own band, as an
+    /// assistant writes them, and validated.
+    #[test]
+    fn next_schedule_and_targets() {
+        let p = apply(json!([
+            {"set": "next", "value": "schedule"},
+            {"set": "schedule", "value": {"mon": "a", "thu": "b"}},
+            {"set": "volume.targets.shoulders", "value": {"low": 16, "high": 24}}
+        ]))
+        .unwrap();
+        assert_eq!(p.next, Next::Schedule);
+        assert_eq!(p.schedule.get(&Weekday::Thu).map(String::as_str), Some("b"));
+        assert_eq!(p.volume.band(Muscle::Shoulders), (16, 24));
+        let problems = |p: &Program| {
+            validate::validate(&serde_json::to_string(p).unwrap())
+                .1
+                .into_iter()
+                .filter(|x| x.error)
+                .map(|x| x.path)
+                .collect::<Vec<String>>()
+        };
+        assert!(problems(&p).is_empty(), "{:?}", problems(&p));
+
+        let bad = apply(json!([
+            {"set": "next", "value": "schedule"},
+            {"set": "schedule", "value": {"mon": "nope"}},
+            {"set": "volume.targets.chest", "value": {"low": 12, "high": 8}}
+        ]))
+        .unwrap();
+        let paths = problems(&bad);
+        assert!(paths.contains(&"schedule.mon".to_string()), "{paths:?}");
+        assert!(
+            paths.contains(&"volume.targets.chest.high".to_string()),
+            "{paths:?}"
+        );
     }
 
     #[test]

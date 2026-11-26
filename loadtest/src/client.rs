@@ -635,7 +635,10 @@ impl Client {
         let home: GetHomeResponse = self.core(
             "GetHome",
             "core.get_home",
-            GetHomeRequest { budget_minutes: 45 },
+            GetHomeRequest {
+                budget_minutes: 45,
+                ..Default::default()
+            },
         )?;
         let template_id = if home.suggested_template_id.is_empty() {
             home.templates

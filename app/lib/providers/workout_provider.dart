@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:async';
 import 'dart:collection';
 import 'dart:io' show Platform;
@@ -529,29 +530,11 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
     return null;
   }
 
-  /// The time the user has for a workout, in minutes. Home plans every lift
-  /// in it, and a start records it.
+  /// The minutes sent with each plan. Nothing is sized by it any more
+  /// (a lift's sets are its program's); older cores still read it.
   int get budgetMinutes => _budgetMinutes;
-  int _budgetMinutes;
+  final int _budgetMinutes;
   static const defaultBudgetMinutes = 60;
-  static const budgetStepMinutes = 5;
-  static const minBudgetMinutes = 10;
-  static const maxBudgetMinutes = 180;
-
-  /// Move the budget by [steps] of [budgetStepMinutes] and plan again
-  /// straight away (the core plans on the phone: there is nothing to wait
-  /// for). The future completes when home is planned in it; a plan for a
-  /// budget that has since moved is dropped by [refreshHome].
-  Future<void> stepBudget(int steps) {
-    final next = (_budgetMinutes + steps * budgetStepMinutes).clamp(
-      minBudgetMinutes,
-      maxBudgetMinutes,
-    );
-    if (next == _budgetMinutes) return Future.value();
-    _budgetMinutes = next;
-    notifyListeners();
-    return refreshHome();
-  }
 
   /// The core's totals for the workout on screen: working-set volume and
   /// sets per exercise, and its time.
@@ -778,6 +761,22 @@ class WorkoutProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// The program: who set it and why, and the ones before it.
   Future<GetProgramResponse> getProgram() => _service.getProgram();
+
+  /// The program's document as it is now, to change by hand.
+  Future<Map<String, dynamic>> programDocument() async =>
+      jsonDecode((await _service.getProgram()).programJson)
+          as Map<String, dynamic>;
+
+  /// Set [document] as the program (by hand, as an assistant would), then
+  /// plan Home again. The errors that stopped it, if any; none when set.
+  Future<List<ProgramProblem>> setProgramDocument(
+    Map<String, dynamic> document,
+  ) async {
+    final res = await _service.setProgram(jsonEncode(document));
+    final errors = res.problems.where((p) => p.error).toList();
+    if (errors.isEmpty) await refreshHome();
+    return errors;
+  }
 
   /// One earlier program, its document included.
   Future<GetProgramVersionResponse> getProgramVersion(String id) =>

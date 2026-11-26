@@ -5281,9 +5281,11 @@ class MuscleRecoveryStatus extends $pb.GeneratedMessage {
 class GetHomeRequest extends $pb.GeneratedMessage {
   factory GetHomeRequest({
     $core.int? budgetMinutes,
+    $core.int? utcOffsetSeconds,
   }) {
     final result = create();
     if (budgetMinutes != null) result.budgetMinutes = budgetMinutes;
+    if (utcOffsetSeconds != null) result.utcOffsetSeconds = utcOffsetSeconds;
     return result;
   }
 
@@ -5301,6 +5303,7 @@ class GetHomeRequest extends $pb.GeneratedMessage {
       package: const $pb.PackageName(_omitMessageNames ? '' : 'workout.v1'),
       createEmptyInstance: create)
     ..aI(1, _omitFieldNames ? '' : 'budgetMinutes')
+    ..aI(2, _omitFieldNames ? '' : 'utcOffsetSeconds')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5331,6 +5334,17 @@ class GetHomeRequest extends $pb.GeneratedMessage {
   $core.bool hasBudgetMinutes() => $_has(0);
   @$pb.TagNumber(1)
   void clearBudgetMinutes() => $_clearField(1);
+
+  /// The phone's offset from UTC, in seconds east: which day it is for a
+  /// program that schedules by the day of the week.
+  @$pb.TagNumber(2)
+  $core.int get utcOffsetSeconds => $_getIZ(1);
+  @$pb.TagNumber(2)
+  set utcOffsetSeconds($core.int value) => $_setSignedInt32(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasUtcOffsetSeconds() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUtcOffsetSeconds() => $_clearField(2);
 }
 
 class GetHomeResponse extends $pb.GeneratedMessage {
@@ -5546,6 +5560,8 @@ class SuggestionReason extends $pb.GeneratedMessage {
     $core.Iterable<RecoveringMuscle>? recovering,
     $core.bool? fallback,
     RecoveringMuscle? firstLiftRecovering,
+    NextRule? rule,
+    $core.int? daysUntil,
   }) {
     final result = create();
     if (behind != null) result.behind.addAll(behind);
@@ -5553,6 +5569,8 @@ class SuggestionReason extends $pb.GeneratedMessage {
     if (fallback != null) result.fallback = fallback;
     if (firstLiftRecovering != null)
       result.firstLiftRecovering = firstLiftRecovering;
+    if (rule != null) result.rule = rule;
+    if (daysUntil != null) result.daysUntil = daysUntil;
     return result;
   }
 
@@ -5576,6 +5594,9 @@ class SuggestionReason extends $pb.GeneratedMessage {
     ..aOB(3, _omitFieldNames ? '' : 'fallback')
     ..aOM<RecoveringMuscle>(5, _omitFieldNames ? '' : 'firstLiftRecovering',
         subBuilder: RecoveringMuscle.create)
+    ..aE<NextRule>(6, _omitFieldNames ? '' : 'rule',
+        enumValues: NextRule.values)
+    ..aI(7, _omitFieldNames ? '' : 'daysUntil')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -5631,6 +5652,27 @@ class SuggestionReason extends $pb.GeneratedMessage {
   void clearFirstLiftRecovering() => $_clearField(5);
   @$pb.TagNumber(5)
   RecoveringMuscle ensureFirstLiftRecovering() => $_ensure(3);
+
+  /// How the program picks (its `next`): by volume (the fields above), in
+  /// the rotation's order, or by the day of the week.
+  @$pb.TagNumber(6)
+  NextRule get rule => $_getN(4);
+  @$pb.TagNumber(6)
+  set rule(NextRule value) => $_setField(6, value);
+  @$pb.TagNumber(6)
+  $core.bool hasRule() => $_has(4);
+  @$pb.TagNumber(6)
+  void clearRule() => $_clearField(6);
+
+  /// By the day: days from today to the day it's for (0 = today).
+  @$pb.TagNumber(7)
+  $core.int get daysUntil => $_getIZ(5);
+  @$pb.TagNumber(7)
+  set daysUntil($core.int value) => $_setSignedInt32(5, value);
+  @$pb.TagNumber(7)
+  $core.bool hasDaysUntil() => $_has(5);
+  @$pb.TagNumber(7)
+  void clearDaysUntil() => $_clearField(7);
 }
 
 class SuggestionMuscle extends $pb.GeneratedMessage {

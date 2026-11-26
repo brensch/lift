@@ -276,8 +276,6 @@ class _HomeScreenState extends State<HomeScreen> {
               SelectedTemplateCard(
                 template: selected,
                 plan: wp.templatePlanFor(selected.id),
-                budgetMinutes: wp.budgetMinutes,
-                onBudgetStep: wp.stepBudget,
                 unit: unit,
                 recommended: selected.id == suggestedId,
                 boxed: false,
@@ -684,14 +682,15 @@ class _VolumeRow extends StatelessWidget {
     required this.anySelected,
   });
 
-  static const _trackMax = 24.0;
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final sets = entry.completedSets7d;
     final low = entry.targetLow.toDouble();
     final high = entry.targetHigh.toDouble();
+    // 24 sets across, or more for a muscle the program aims higher at, so
+    // its band still fits with room past it.
+    final trackMax = high * 1.2 > 24 ? high * 1.2 : 24.0;
     final inBand = sets >= low && sets <= high;
     final over = sets > high;
     final fill = over
@@ -751,8 +750,8 @@ class _VolumeRow extends StatelessWidget {
                       ),
                     ),
                     Positioned(
-                      left: width * (low / _trackMax),
-                      width: width * ((high - low) / _trackMax),
+                      left: width * (low / trackMax),
+                      width: width * ((high - low) / trackMax),
                       top: 0,
                       bottom: 0,
                       child: Container(
@@ -764,7 +763,7 @@ class _VolumeRow extends StatelessWidget {
                       left: 0,
                       top: 2,
                       bottom: 2,
-                      width: width * (sets / _trackMax).clamp(0.0, 1.0),
+                      width: width * (sets / trackMax).clamp(0.0, 1.0),
                       child: Container(
                         decoration: BoxDecoration(
                           color: fill,
@@ -774,7 +773,7 @@ class _VolumeRow extends StatelessWidget {
                     ),
                     // Tick at the band floor.
                     Positioned(
-                      left: width * (low / _trackMax) - 1,
+                      left: width * (low / trackMax) - 1,
                       top: 0,
                       bottom: 0,
                       child: Container(
@@ -963,8 +962,6 @@ class SelectedTemplateCard extends StatelessWidget {
 
   /// The template planned in the budget; null before the first load.
   final TemplatePlan? plan;
-  final int budgetMinutes;
-  final ValueChanged<int> onBudgetStep;
   final WeightUnit unit;
   final bool recommended;
 
@@ -983,8 +980,6 @@ class SelectedTemplateCard extends StatelessWidget {
     super.key,
     required this.template,
     required this.plan,
-    required this.budgetMinutes,
-    required this.onBudgetStep,
     required this.unit,
     required this.recommended,
     required this.reason,
@@ -1085,14 +1080,7 @@ class SelectedTemplateCard extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.only(bottom: 8, right: 8),
-            child: TutorialTarget(
-              id: 'home_time',
-              child: _TimeControl(
-                plan: plan ?? TemplatePlan.getDefault(),
-                budgetMinutes: budgetMinutes,
-                onStep: onBudgetStep,
-              ),
-            ),
+            child: _Duration(plan: plan ?? TemplatePlan.getDefault()),
           ),
           for (final exercisePlan in plans)
             Padding(
@@ -1113,80 +1101,26 @@ class SelectedTemplateCard extends StatelessWidget {
   }
 }
 
-/// "− 60 min +" and what the plan takes: "~52 min", "Needs 70 min" when
-/// two sets a lift don't fit, or "~62 min · the longest it gets" when the
-/// budget is at or past what the workout can use (its `max_seconds`): then
-/// + buys nothing and is off. The budget is shared by every template, so
-/// it is never moved here; only this template's cap is shown. A lift never
-/// done ramps until a set falls short, so a workout with one has no length
-/// to give: the calibration line stands in its place.
-class _TimeControl extends StatelessWidget {
+/// How long the workout takes: "~52 min". A lift never done ramps until
+/// a set falls short, so a workout with one has no length to give: the
+/// calibration line stands in its place.
+class _Duration extends StatelessWidget {
   final TemplatePlan plan;
-  final int budgetMinutes;
-  final ValueChanged<int> onStep;
 
-  const _TimeControl({
-    required this.plan,
-    required this.budgetMinutes,
-    required this.onStep,
-  });
+  const _Duration({required this.plan});
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final t = context.tokens;
+    final style = TextStyle(fontSize: t.size.body, color: t.muted);
     if (plan.plans.any((p) => p.decision.calibration)) {
-      return Text(
-        copy.plan.calibration,
-        style: TextStyle(fontSize: t.size.body, color: t.muted),
-      );
+      return Text(copy.plan.calibration, style: style);
     }
     final seconds = plan.estimatedSeconds;
-    final budget = budgetMinutes * 60;
-    // For the moment between a tap and its plan, the plan on show is the
-    // last budget's: it says only its length, never that it doesn't fit.
-    final planned = plan.plans.firstOrNull?.decision.budgetMinutes ?? 0;
-    final stale = planned > 0 && planned != budgetMinutes;
-    final over = !stale && seconds > budget;
-    final capped = !stale && plan.maxSeconds > 0 && budget >= plan.maxSeconds;
-    final template = over
-        ? copy.plan.needs
-        : (capped ? copy.plan.longest : copy.plan.estimate);
-    final estimate = seconds <= 0
-        ? ''
-        : template.replaceAll('{min}', '${planMinutes(seconds)}');
-    return Row(
-      children: [
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          onPressed: () => onStep(-1),
-          icon: const Icon(AppIcons.removeCircle),
-        ),
-        Text(
-          copy.plan.budget.replaceAll('{min}', '$budgetMinutes'),
-          style: TextStyle(
-            fontSize: t.size.bodyLg,
-            fontWeight: t.weight.heavy,
-            fontFeatures: const [FontFeature.tabularFigures()],
-          ),
-        ),
-        IconButton(
-          visualDensity: VisualDensity.compact,
-          onPressed: capped ? null : () => onStep(1),
-          icon: const Icon(AppIcons.addCircle),
-        ),
-        Expanded(
-          child: Text(
-            estimate,
-            textAlign: TextAlign.end,
-            style: TextStyle(
-              fontSize: t.size.body,
-              fontWeight: t.weight.bold,
-              color: over ? cs.error : cs.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-        ),
-      ],
+    if (seconds <= 0) return const SizedBox.shrink();
+    return Text(
+      copy.plan.estimate.replaceAll('{min}', '${planMinutes(seconds)}'),
+      style: style.copyWith(fontWeight: t.weight.bold),
     );
   }
 }

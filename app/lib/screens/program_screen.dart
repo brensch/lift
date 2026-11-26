@@ -4,21 +4,23 @@
 library;
 
 import 'package:fixnum/fixnum.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../gen/copy.dart';
 import '../gen/workout/v1/assistant.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/utils.dart';
-import '../logic/website.dart';
 import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/suggestion_screen.dart';
 import '../widgets/common/flat.dart';
+import '../widgets/connect_ai.dart';
+import 'program/program_rules_screen.dart';
+import 'program/progression_screen.dart';
 import '../widgets/dialogs/confirm_dialog.dart';
 import 'program_document_screen.dart';
 
@@ -40,6 +42,17 @@ class _ProgramScreenState extends State<ProgramScreen> {
   void initState() {
     super.initState();
     _load();
+  }
+
+  /// A page of the hand editors; the program again when it's closed.
+  Future<void> _open(Widget page) async {
+    final wp = context.read<WorkoutProvider>();
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ChangeNotifierProvider.value(value: wp, child: page),
+      ),
+    );
+    await _load();
   }
 
   /// The program is the phone's own (the core); the assistants are the
@@ -199,10 +212,23 @@ class _ProgramScreenState extends State<ProgramScreen> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
+                const LetAiDoIt(),
                 _summaryRow(
                   program.summary,
                   icon: AppIcons.maths,
                   current: true,
+                ),
+                FlatRow(
+                  icon: AppIcons.progress,
+                  label: copy.rules.programRow,
+                  subtitle: copy.rules.programRowSub,
+                  onTap: () => _open(const ProgressionScreen()),
+                ),
+                FlatRow(
+                  icon: AppIcons.edit,
+                  label: copy.rules.homeRow,
+                  subtitle: copy.rules.homeRowSub,
+                  onTap: () => _open(const ProgramRulesScreen()),
                 ),
                 if (!program.summary.builtinRules)
                   FlatRow(
@@ -257,10 +283,7 @@ class _ProgramScreenState extends State<ProgramScreen> {
                   icon: AppIcons.bot,
                   label: t.assistantsConnect,
                   subtitle: t.assistantsConnectSub,
-                  onTap: () => launchUrl(
-                    websiteUri('/bot'),
-                    mode: LaunchMode.externalApplication,
-                  ),
+                  onTap: () => context.push('/connect-ai'),
                 ),
               ],
             ),

@@ -35,7 +35,6 @@ import 'steps/unit_step.dart';
 import 'steps/weight_step.dart';
 import 'widgets/profile_marker_widgets.dart'
     show emojiWindowSize, shuffledEmojiWindow, withSelectedVisible;
-import '../../theme/theme_spec.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -307,8 +306,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            const SizedBox(height: 8),
-            _StepDots(step: _step, count: steps.length),
             Expanded(
               child: TrackedPage(
                 name: 'onboarding/${_stepSlugs[_step]}',
@@ -318,31 +315,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           ],
         ),
       ),
-    );
-  }
-}
-
-class _StepDots extends StatelessWidget {
-  final int step;
-  final int count;
-  const _StepDots({required this.step, required this.count});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(count, (i) {
-        return Container(
-          width: i == step ? 22 : 8,
-          height: 8,
-          margin: const EdgeInsets.symmetric(horizontal: 3),
-          decoration: BoxDecoration(
-            color: i == step ? cs.primary : cs.onSurface.withValues(alpha: 0.2),
-            borderRadius: context.tokens.brXs,
-          ),
-        );
-      }),
     );
   }
 }

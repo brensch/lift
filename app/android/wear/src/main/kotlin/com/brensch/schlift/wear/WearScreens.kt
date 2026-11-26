@@ -44,6 +44,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.Font
@@ -153,6 +154,15 @@ internal data class WearFace(
     val plates: List<Wearable.WearPlate> = emptyList(),
     // A first-time set: this in place of weight × reps, and no set taps.
     val firstTimeText: String,
+    // A set just done that asks how it went: its Easy and Hard in place of
+    // the weight (the band says the question; the rep circle stays).
+    val answers: List<Wearable.WearAnswer> = emptyList(),
+    // The rep circle is a set just done the phone's banner holds (asked
+    // about, or a moment to tap reps off): drawn done, a tap a rep off.
+    val held: Boolean = false,
+    // Just done with no question: the share of the tap window left, which
+    // the circle's orange ring counts down; null for no ring.
+    val ring: (() -> Float)? = null,
 )
 
 // The done screen's left column, as a fraction of the face.
@@ -253,9 +263,10 @@ internal fun FaceScreen(
     onTapSet: (String) -> Unit,
     onRep: () -> Unit,
     onWeight: () -> Unit,
+    onAnswer: (Wearable.QuickAnswer) -> Unit = {},
 ) {
     CompositionLocalProvider(LocalFaceColors provides colors) {
-        Face(face, enabled, onTapSet, onRep, onWeight)
+        Face(face, enabled, onTapSet, onRep, onWeight, onAnswer)
     }
 }
 
@@ -266,6 +277,7 @@ private fun Face(
     onTapSet: (String) -> Unit,
     onRep: () -> Unit,
     onWeight: () -> Unit,
+    onAnswer: (Wearable.QuickAnswer) -> Unit,
 ) {
     val c = LocalFaceColors.current
     val round = LocalConfiguration.current.isScreenRound
@@ -350,6 +362,7 @@ private fun Face(
                     enabled = enabled,
                     onRep = onRep,
                     onWeight = onWeight,
+                    onAnswer = onAnswer,
                 )
             }
             Rule(c.hairline)
@@ -549,6 +562,7 @@ private fun WeightRow(
     enabled: Boolean,
     onRep: () -> Unit,
     onWeight: () -> Unit,
+    onAnswer: (Wearable.QuickAnswer) -> Unit,
 ) {
     val c = LocalFaceColors.current
     // The weight's touch lights the panel orange from the face's edge to the ×.
@@ -563,66 +577,128 @@ private fun WeightRow(
                 .padding(end = inset),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier =
-                Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .background(if (pressed) WearPalette.Lifting else Color.Transparent)
-                    .clickable(
-                        interactionSource = press,
-                        indication = null,
-                        enabled = face.hasPlates,
-                        onClick = onWeight,
-                    ).padding(start = if (face.plates.isEmpty()) inset else 0.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // The end of the bar as it is loaded, as the phone draws it: the
-            // bar comes in from the face's edge, the plates step down from
-            // the heaviest, then the weight they add up to.
-            if (face.plates.isNotEmpty()) {
-                HalfBar(plates = face.plates, height = d * 0.15f, lead = inset)
-                Spacer(modifier = Modifier.width(d * 0.02f))
+        // Asking how the set went: its Easy and Hard where the weight is.
+        val easyHard =
+            face.answers.filter {
+                it.answer == Wearable.QuickAnswer.QUICK_ANSWER_EASY ||
+                    it.answer == Wearable.QuickAnswer.QUICK_ANSWER_HARD
             }
-            // The number and its unit share a baseline, in a row of their
-            // own: that row is what sits in the middle of the panel, beside
-            // the plates.
-            Row(modifier = Modifier.weight(1f, fill = false)) {
-                FitText(
-                    text = face.weight,
-                    size = (d * 0.147f).asSp(),
-                    color = c.text,
-                    align = TextAlign.Start,
-                    modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
-                )
-                if (face.unit.isNotEmpty()) {
-                    Text(
-                        text = " ${face.unit}",
-                        color = c.text,
-                        fontSize = (d * 0.05f).asSp(),
-                        fontWeight = FontWeight.Bold,
-                        fontFamily = WearMonoFontFamily,
-                        maxLines = 1,
-                        modifier = Modifier.alignByBaseline(),
-                    )
+        if (easyHard.isNotEmpty()) {
+            Row(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(start = inset, end = d * 0.03f, top = d * 0.03f, bottom = d * 0.03f),
+                horizontalArrangement = Arrangement.spacedBy(d * 0.025f),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                for (answer in easyHard) {
+                    Box(
+                        modifier =
+                            Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clip(RoundedCornerShape(d * 0.03f))
+                                .background(WearPalette.Ready)
+                                .clickable(enabled = enabled) { onAnswer(answer.answer) },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        FitText(
+                            text = answer.label,
+                            size = (d * 0.07f).asSp(),
+                            color = WearPalette.OnDark,
+                            align = TextAlign.Center,
+                        )
+                    }
                 }
             }
+        } else {
+            Row(
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(if (pressed) WearPalette.Lifting else Color.Transparent)
+                        .clickable(
+                            interactionSource = press,
+                            indication = null,
+                            enabled = face.hasPlates,
+                            onClick = onWeight,
+                        ).padding(start = if (face.plates.isEmpty()) inset else 0.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // The end of the bar as it is loaded, as the phone draws it: the
+                // bar comes in from the face's edge, the plates step down from
+                // the heaviest, then the weight they add up to.
+                if (face.plates.isNotEmpty()) {
+                    HalfBar(plates = face.plates, height = d * 0.15f, lead = inset)
+                    Spacer(modifier = Modifier.width(d * 0.02f))
+                }
+                // The number and its unit share a baseline, in a row of their
+                // own: that row is what sits in the middle of the panel, beside
+                // the plates.
+                Row(modifier = Modifier.weight(1f, fill = false)) {
+                    FitText(
+                        text = face.weight,
+                        size = (d * 0.147f).asSp(),
+                        color = c.text,
+                        align = TextAlign.Start,
+                        modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
+                    )
+                    if (face.unit.isNotEmpty()) {
+                        Text(
+                            text = " ${face.unit}",
+                            color = c.text,
+                            fontSize = (d * 0.05f).asSp(),
+                            fontWeight = FontWeight.Bold,
+                            fontFamily = WearMonoFontFamily,
+                            maxLines = 1,
+                            modifier = Modifier.alignByBaseline(),
+                        )
+                    }
+                }
+            }
+            Text(
+                text = "×",
+                color = c.text,
+                fontSize = (d * 0.067f).asSp(),
+                fontWeight = FontWeight.Bold,
+                fontFamily = WearMonoFontFamily,
+                modifier = Modifier.padding(horizontal = d * 0.02f),
+            )
         }
-        Text(
-            text = "×",
-            color = c.text,
-            fontSize = (d * 0.067f).asSp(),
-            fontWeight = FontWeight.Bold,
-            fontFamily = WearMonoFontFamily,
-            modifier = Modifier.padding(horizontal = d * 0.02f),
-        )
-        val look = circleLook(face.repState, face.stageColor, c)
+        // Held: the set just done, as the phone's banner circle draws it,
+        // and a tap on it a rep off.
+        val look =
+            if (face.held && !c.dim) {
+                CircleLook(c.text, c.text, c.ground)
+            } else {
+                circleLook(face.repState, face.stageColor, c)
+            }
         val outer = d * 0.187f
         Box(
             modifier =
                 Modifier
                     .size(outer)
-                    .clip(CircleShape)
+                    .drawWithContent {
+                        drawContent()
+                        // The tap window, an orange ring over the circle's
+                        // edge running down, as the phone's.
+                        val left = face.ring?.invoke() ?: 0f
+                        if (left > 0f) {
+                            val stroke = size.minDimension * 0.08f
+                            drawArc(
+                                color = WearPalette.Ready,
+                                startAngle = -90f,
+                                sweepAngle = 360f * left.coerceIn(0f, 1f),
+                                useCenter = false,
+                                topLeft = Offset(stroke / 2, stroke / 2),
+                                size = Size(size.width - stroke, size.height - stroke),
+                                style = Stroke(width = stroke),
+                            )
+                        }
+                    }.clip(CircleShape)
                     .background(look.ring)
                     .clickable(enabled = enabled, onClick = onRep),
             contentAlignment = Alignment.Center,
@@ -1051,64 +1127,3 @@ private fun heartRateColor(bpm: Float?): Color {
 }
 
 internal fun parseHex(hex: String): Color = runCatching { Color(android.graphics.Color.parseColor(hex)) }.getOrDefault(WearPalette.Muted)
-
-/**
- * The banner's question after a set that asks how it went: the phone's
- * words, easy / hard / fail as buttons, and a quiet skip that puts it away.
- */
-@Composable
-internal fun QuestionScreen(
-    question: Wearable.WearQuestion,
-    enabled: Boolean,
-    onAnswer: (Wearable.QuickAnswer) -> Unit,
-    onSkip: () -> Unit,
-) {
-    BoxWithConstraints(
-        modifier =
-            Modifier
-                .fillMaxSize()
-                .background(WearPalette.Ground),
-        contentAlignment = Alignment.Center,
-    ) {
-        val d = minOf(maxWidth, maxHeight)
-        Column(
-            modifier = Modifier.fillMaxWidth(0.78f),
-            verticalArrangement = Arrangement.spacedBy(d * 0.025f),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = question.title,
-                color = WearPalette.Text,
-                fontSize = (d * 0.065f).asSp(),
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center,
-                maxLines = 2,
-            )
-            for (answer in question.answersList) {
-                Box(
-                    modifier =
-                        Modifier
-                            .fillMaxWidth()
-                            .height(d * 0.13f)
-                            .clip(RoundedCornerShape(d * 0.03f))
-                            .background(WearPalette.Ready)
-                            .clickable(enabled = enabled) { onAnswer(answer.answer) },
-                    contentAlignment = Alignment.Center,
-                ) {
-                    FitText(
-                        text = answer.label,
-                        size = (d * 0.075f).asSp(),
-                        color = WearPalette.OnDark,
-                        align = TextAlign.Center,
-                    )
-                }
-            }
-            Text(
-                text = question.skipLabel,
-                modifier = Modifier.clickable(onClick = onSkip),
-                color = WearPalette.Muted,
-                fontSize = (d * 0.055f).asSp(),
-            )
-        }
-    }
-}

@@ -1,1 +1,0 @@
-- Screens slide in again when you open them, and on iPhone you can swipe back from the edge; the library upgrade had quietly turned that off.

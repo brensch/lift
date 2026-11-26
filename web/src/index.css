@@ -10,6 +10,8 @@
   --color-text: #111111;
   --color-muted: #4a4a44;
   --color-border: #b7b6ac;
+  /* The band behind a section's heading (the app's headingBand). */
+  --color-band: #cac9c0;
   --color-primary: #ff4f00;
   --color-on-primary: #ffffff;
   --color-danger: #e0301e;

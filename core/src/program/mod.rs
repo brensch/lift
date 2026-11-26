@@ -54,6 +54,14 @@ pub struct Program {
     pub exercises: Vec<ExerciseDef>,
     /// The templates, in the user's order.
     pub workouts: Vec<WorkoutDef>,
+    /// How Home picks the next workout from the rotation. Volume in a
+    /// program from before it existed.
+    #[serde(default)]
+    pub next: Next,
+    /// For `next: schedule`, the workout (by id) each day of the week is
+    /// for; a day not named is a rest day.
+    #[serde(default)]
+    pub schedule: BTreeMap<Weekday, String>,
     /// By name; every exercise is in one.
     pub classes: BTreeMap<String, Class>,
     /// By name; a class or an exercise names the one it follows.
@@ -492,12 +500,36 @@ pub struct TimeOff {
 /// How many working sets a lift gets from the time budget.
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Sets {
-    pub default_budget_minutes: i32,
-    /// Every lift gets this many before any gets more.
-    pub min: i32,
-    pub max: i32,
+    /// The working sets of a lift whose rule names none. 3 in a program
+    /// from before it existed (which handed them out by a time budget).
+    #[serde(default = "three")]
+    pub per_lift: i32,
     /// An override that names no sets is held for this many.
     pub override_sets: i32,
+    /// No longer read: the time budget these sized sets by is gone. Kept
+    /// so stored programs read back as they were written.
+    #[serde(default = "sixty")]
+    pub default_budget_minutes: i32,
+    #[serde(default = "two")]
+    pub min: i32,
+    #[serde(default = "five")]
+    pub max: i32,
+}
+
+fn three() -> i32 {
+    3
+}
+
+fn sixty() -> i32 {
+    60
+}
+
+fn two() -> i32 {
+    2
+}
+
+fn five() -> i32 {
+    5
 }
 
 /// What a workout's parts cost until the user's own timings are learned.
@@ -559,10 +591,80 @@ pub struct Volume {
     /// What a drop or mini set counts toward a muscle's week, of a set.
     #[serde(default = "half")]
     pub partial_credit: f32,
+    /// A muscle's own band, over `target_low`–`target_high`.
+    #[serde(default)]
+    pub targets: BTreeMap<Muscle, Band>,
 }
 
 fn half() -> f32 {
     0.5
+}
+
+impl Volume {
+    /// `muscle`'s weekly band: its own target, or the program's.
+    pub fn band(&self, muscle: Muscle) -> (i32, i32) {
+        self.targets
+            .get(&muscle)
+            .map_or((self.target_low, self.target_high), |b| (b.low, b.high))
+    }
+}
+
+/// One muscle's own weekly band, in sets.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Band {
+    pub low: i32,
+    pub high: i32,
+}
+
+/// How Home picks the next workout from the rotation.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, Default)]
+#[serde(rename_all = "snake_case")]
+pub enum Next {
+    /// The workout whose rested muscles are furthest behind the week's
+    /// targets.
+    #[default]
+    Volume,
+    /// The rotation in its order: the one after the last one started.
+    Sequence,
+    /// By day of the week, from `schedule`.
+    Schedule,
+}
+
+/// A day of the week, in the person's own time.
+#[derive(Serialize, Deserialize, Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[serde(rename_all = "snake_case")]
+pub enum Weekday {
+    Mon,
+    Tue,
+    Wed,
+    Thu,
+    Fri,
+    Sat,
+    Sun,
+}
+
+impl Weekday {
+    pub const ALL: [Weekday; 7] = [
+        Weekday::Mon,
+        Weekday::Tue,
+        Weekday::Wed,
+        Weekday::Thu,
+        Weekday::Fri,
+        Weekday::Sat,
+        Weekday::Sun,
+    ];
+
+    /// Monday 0 to Sunday 6.
+    pub fn index(self) -> usize {
+        self as usize
+    }
+
+    /// The day `unix` seconds falls on, `utc_offset` seconds east of UTC.
+    pub fn of(unix: i64, utc_offset: i64) -> Weekday {
+        // 1 January 1970 was a Thursday.
+        let day = (unix + utc_offset).div_euclid(86_400);
+        Weekday::ALL[(day + 3).rem_euclid(7) as usize]
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]

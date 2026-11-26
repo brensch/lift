@@ -1,13 +1,11 @@
-/// Onboarding step 1: choose pounds or kilograms.
+/// Onboarding: choose pounds or kilograms.
 library;
 
 import 'package:material_ui/material_ui.dart';
 
 import '../../../gen/copy.dart';
-import 'dart:async';
 import '../../../gen/workout/v1/settings.pb.dart';
-import '../widgets/selection_cards.dart';
-import '../../../theme/theme_spec.dart';
+import '../widgets/onboarding_page.dart';
 
 class UnitStep extends StatelessWidget {
   final WeightUnit selectedUnit;
@@ -25,74 +23,28 @@ class UnitStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            copy.onboarding.unit.title,
-            style: TextStyle(
-              fontSize: context.tokens.size.headline,
-              fontWeight: context.tokens.weight.heavy,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            copy.onboarding.unit.body,
-            style: TextStyle(
-              fontSize: context.tokens.size.body,
-              height: 1.4,
-              color: cs.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 20),
-          UnitCard(
-            title: copy.onboarding.unit.pounds,
-            subtitle: copy.onboarding.unit.poundsBody,
-            badge: '🦅',
-            selected: selectedUnit == WeightUnit.WEIGHT_UNIT_LB,
-            onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_LB),
-          ),
-          const SizedBox(height: 10),
-          UnitCard(
-            title: copy.onboarding.unit.kilograms,
-            subtitle: copy.onboarding.unit.kilogramsBody,
-            badge: '🌍',
-            selected: selectedUnit == WeightUnit.WEIGHT_UNIT_KG,
-            onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_KG),
-          ),
-          const Spacer(),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: onBack,
-                    child: Text(copy.onboarding.back),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 56,
-                  child: FilledButton(
-                    onPressed: onNext,
-                    child: Text(
-                      copy.onboarding.next,
-                      style: TextStyle(fontWeight: context.tokens.weight.heavy),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+    final t = copy.onboarding.unit;
+    return OnboardingPage(
+      title: t.title,
+      body: t.body,
+      onBack: onBack,
+      primary: OnboardingNext(label: copy.onboarding.next, onPressed: onNext),
+      children: [
+        ChoiceRow(
+          badge: '🦅',
+          title: t.pounds,
+          subtitle: t.poundsBody,
+          selected: selectedUnit == WeightUnit.WEIGHT_UNIT_LB,
+          onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_LB),
+        ),
+        ChoiceRow(
+          badge: '🌍',
+          title: t.kilograms,
+          subtitle: t.kilogramsBody,
+          selected: selectedUnit == WeightUnit.WEIGHT_UNIT_KG,
+          onTap: () => onSelect(WeightUnit.WEIGHT_UNIT_KG),
+        ),
+      ],
     );
   }
 }

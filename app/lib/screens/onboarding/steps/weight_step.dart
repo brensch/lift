@@ -7,6 +7,8 @@ import '../../../gen/copy.dart';
 import '../../../gen/workout/v1/settings.pb.dart';
 import '../../../logic/weight_units.dart';
 import '../../../theme/theme_spec.dart';
+import '../../../widgets/common/flat.dart';
+import '../widgets/onboarding_page.dart';
 
 class WeightStep extends StatelessWidget {
   final WeightUnit unit;
@@ -24,31 +26,16 @@ class WeightStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
     final t = copy.onboarding.weight;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t.title,
-            style: TextStyle(
-              fontSize: context.tokens.size.headline,
-              fontWeight: context.tokens.weight.heavy,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            t.body,
-            style: TextStyle(
-              fontSize: context.tokens.size.body,
-              height: 1.4,
-              color: cs.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 24),
-          TextField(
+    return OnboardingPage(
+      title: t.title,
+      body: t.body,
+      bigBody: true,
+      onBack: onBack,
+      primary: OnboardingNext(label: copy.onboarding.next, onPressed: onNext),
+      children: [
+        FlatSection(
+          child: TextField(
             controller: controller,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
@@ -57,36 +44,24 @@ class WeightStep extends StatelessWidget {
               border: const OutlineInputBorder(),
             ),
           ),
-          const Spacer(),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: onBack,
-                    child: Text(copy.onboarding.back),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 56,
-                  child: FilledButton(
-                    onPressed: onNext,
-                    child: Text(
-                      copy.onboarding.next,
-                      style: TextStyle(fontWeight: context.tokens.weight.heavy),
-                    ),
-                  ),
-                ),
-              ),
-            ],
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(
+            FlatSection.margin,
+            10,
+            FlatSection.margin,
+            0,
           ),
-        ],
-      ),
+          child: Text(
+            t.note,
+            style: TextStyle(
+              fontSize: context.tokens.size.small,
+              height: 1.4,
+              color: context.tokens.muted,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

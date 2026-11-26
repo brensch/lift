@@ -36,11 +36,11 @@ mod tools;
 
 /// The only scope: read the person's training, set their program.
 pub const SCOPE: &str = "program";
-/// What a granted assistant may do, as the consent page lists it.
-pub const CAN: [&str; 3] = [
+/// What a granted assistant may do, as the consent page lists it (the page
+/// says what it can't do under them).
+pub const CAN: [&str; 2] = [
     "Read your workouts, sets and lifts",
     "Read and set your program: your workouts, exercises and how each progresses",
-    "It can't record or delete training",
 ];
 /// The MCP revisions this server speaks, newest first.
 const PROTOCOL_VERSIONS: [&str; 3] = ["2025-06-18", "2025-03-26", "2024-11-05"];

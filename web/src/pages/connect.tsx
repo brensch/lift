@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { ConnectError } from "@connectrpc/connect";
 import { WobblyText } from "@/components/wobbly-text";
 import { Button } from "@/components/ui/button";
+import { FlatHeading, FlatRow, FlatSection } from "@/components/flat";
 import { useAuth } from "@/lib/use-auth";
 import { assistantClient, authHeaders } from "@/lib/grpc";
 import type {
@@ -21,25 +22,34 @@ function message(err: unknown, fallback: string): string {
   return fallback;
 }
 
-function Card({
+// A page in the app's flat style: the title section, then full-width
+// sections under it.
+function Page({
   title,
   seed,
+  intro,
   children,
 }: {
   title: string;
   seed: number;
-  children: React.ReactNode;
+  intro?: React.ReactNode;
+  children?: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-center min-h-[calc(100vh-10rem)] px-5">
-      <div className="border border-border rounded-xl bg-surface p-8 md:p-12 w-full max-w-md space-y-6">
+    <div className="pb-16">
+      <FlatSection className="pt-10 pb-6 space-y-3">
         <h1 className="font-display text-3xl font-extrabold tracking-tight m-0">
           <WobblyText text={title} seed={seed} />
         </h1>
-        {children}
-      </div>
+        {intro && <div className="text-lg leading-snug text-text">{intro}</div>}
+      </FlatSection>
+      {children}
     </div>
   );
+}
+
+function Problem({ children }: { children: React.ReactNode }) {
+  return <p className="m-0 text-danger font-semibold text-sm">{children}</p>;
 }
 
 export function ConnectPage() {
@@ -104,58 +114,71 @@ function Consent({ request }: { request: ConnectRequest }) {
 
   if (!described) {
     return (
-      <Card title="CONNECT" seed={71}>
-        {error ? (
-          <p className="text-danger font-semibold text-sm">{error}</p>
-        ) : (
-          <p className="text-muted">Checking the request…</p>
-        )}
-      </Card>
+      <Page
+        title="CONNECT"
+        seed={71}
+        intro={
+          error ? (
+            <Problem>{error}</Problem>
+          ) : (
+            <span className="text-muted">Checking the request…</span>
+          )
+        }
+      />
     );
   }
 
   return (
-    <Card title="CONNECT" seed={71}>
-      <p className="text-muted leading-relaxed">
-        <span className="text-text font-semibold">{described.clientName}</span> wants to connect to
-        your Schlift account. It will be able to:
-      </p>
-      <ul className="m-0 pl-5 space-y-1 text-text">
-        {described.can.map((line) => (
-          <li key={line}>{line}</li>
-        ))}
-      </ul>
-      <p className="text-sm text-muted">
-        You'll go back to <span className="font-semibold text-text">{described.redirectHost}</span>.
-        You can cut it off any time from this page or the app.
-      </p>
-      {user ? (
-        <div className="flex flex-col gap-3">
-          <Button
-            variant="primary"
-            size="lg"
-            className="w-full"
-            disabled={busy}
-            onClick={() => answer(true)}
-          >
-            Allow as {user.username}
+    <Page
+      title="CONNECT"
+      seed={71}
+      intro={
+        <>
+          <span className="font-bold">{described.clientName}</span> wants to connect to your Schlift
+          account.
+        </>
+      }
+    >
+      <FlatHeading>It will be able to</FlatHeading>
+      {described.can.map((line) => (
+        <FlatRow key={line} label={line} />
+      ))}
+      <FlatHeading>It can't</FlatHeading>
+      <FlatRow label="Record or delete your training" />
+      <FlatRow label="Fix your shoulder injury" />
+      <FlatSection className="space-y-3">
+        {user ? (
+          <>
+            <Button
+              variant="primary"
+              size="lg"
+              className="w-full"
+              disabled={busy}
+              onClick={() => answer(true)}
+            >
+              Allow as {user.username}
+            </Button>
+            <Button
+              variant="default"
+              className="w-full"
+              disabled={busy}
+              onClick={() => answer(false)}
+            >
+              Don't allow
+            </Button>
+          </>
+        ) : (
+          <Button variant="primary" size="lg" className="w-full" disabled={busy} onClick={signIn}>
+            {busy ? "Waiting for passkey..." : "Sign in with Passkey"}
           </Button>
-          <Button
-            variant="default"
-            className="w-full"
-            disabled={busy}
-            onClick={() => answer(false)}
-          >
-            Don't allow
-          </Button>
-        </div>
-      ) : (
-        <Button variant="primary" size="lg" className="w-full" disabled={busy} onClick={signIn}>
-          {busy ? "Waiting for passkey..." : "Sign in with Passkey"}
-        </Button>
-      )}
-      {error && <p className="text-danger font-semibold text-sm">{error}</p>}
-    </Card>
+        )}
+        {error && <Problem>{error}</Problem>}
+        <p className="m-0 text-sm text-muted leading-relaxed">
+          Revoke at any time in settings, or remove the connector from the AI. You'll go back to{" "}
+          <span className="font-mono text-text">{described.redirectHost}</span>.
+        </p>
+      </FlatSection>
+    </Page>
   );
 }
 
@@ -184,42 +207,59 @@ function Connected() {
 
   if (!user) {
     return (
-      <Card title="ASSISTANTS" seed={72}>
-        <p className="text-muted">
-          <Link to="/login" className="text-text font-semibold hover:underline">
-            Sign in
-          </Link>{" "}
-          to see the assistants you've connected.
-        </p>
-      </Card>
+      <Page
+        title="ASSISTANTS"
+        seed={72}
+        intro={
+          <span className="text-muted">
+            <Link to="/login" className="text-text font-semibold hover:underline">
+              Sign in
+            </Link>{" "}
+            to see the assistants you've connected.
+          </span>
+        }
+      />
     );
   }
 
   return (
-    <Card title="ASSISTANTS" seed={72}>
-      <p className="text-muted leading-relaxed">
-        Assistants you've connected can read your training and set your program.
-      </p>
-      {grants === null && !error && <p className="text-muted">Loading…</p>}
-      {grants?.length === 0 && <p className="text-muted">None yet.</p>}
-      <ul className="list-none p-0 m-0 divide-y divide-border">
-        {grants?.map((g) => (
-          <li key={g.grantId} className="py-3 flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="font-semibold text-text truncate">{g.clientName}</div>
-              <div className="text-sm text-muted">
-                {Number(g.lastUsedAt) > 0
-                  ? `Last used ${new Date(Number(g.lastUsedAt) * 1000).toLocaleDateString()}`
-                  : "Not used yet"}
-              </div>
-            </div>
+    <Page
+      title="ASSISTANTS"
+      seed={72}
+      intro={
+        <span className="text-muted">
+          Assistants you've connected can read your training and set your program.
+        </span>
+      }
+    >
+      <FlatHeading>Connected</FlatHeading>
+      {grants === null && !error && (
+        <FlatRow label={<span className="text-muted font-normal">Loading…</span>} />
+      )}
+      {grants?.length === 0 && (
+        <FlatRow label={<span className="text-muted font-normal">None yet.</span>} />
+      )}
+      {grants?.map((g) => (
+        <FlatRow
+          key={g.grantId}
+          label={g.clientName}
+          sub={
+            Number(g.lastUsedAt) > 0
+              ? `Last used ${new Date(Number(g.lastUsedAt) * 1000).toLocaleDateString()}`
+              : "Not used yet"
+          }
+          right={
             <Button variant="default" onClick={() => revoke(g.grantId)}>
               Revoke
             </Button>
-          </li>
-        ))}
-      </ul>
-      {error && <p className="text-danger font-semibold text-sm">{error}</p>}
-    </Card>
+          }
+        />
+      ))}
+      {error && (
+        <FlatSection>
+          <Problem>{error}</Problem>
+        </FlatSection>
+      )}
+    </Page>
   );
 }

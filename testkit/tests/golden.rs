@@ -56,7 +56,7 @@ fn record() -> Vec<Event> {
 fn views(account: &Account) -> Value {
     let view = View::new(account, NOW);
     json!({
-        "home": view.get_home(GetHomeRequest { budget_minutes: BUDGET_MINUTES }).unwrap(),
+        "home": view.get_home(GetHomeRequest { budget_minutes: BUDGET_MINUTES, ..Default::default() }).unwrap(),
         "workouts": view.list_workout_summaries(),
         "progress": view.get_exercise_progress(),
         "settings": view.get_settings(),

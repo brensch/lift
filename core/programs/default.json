@@ -966,6 +966,8 @@
     }
   ],
   "workouts": [],
+  "next": "volume",
+  "schedule": {},
   "classes": {
     "heavy": {
       "rep_low": 5,
@@ -1117,9 +1119,7 @@
     }
   ],
   "sets": {
-    "default_budget_minutes": 60,
-    "min": 2,
-    "max": 5,
+    "per_lift": 3,
     "override_sets": 5
   },
   "costs": {
@@ -1171,7 +1171,8 @@
     "target_high": 20,
     "secondary_credit": 0.5,
     "tie_fraction": 0.8,
-    "partial_credit": 0.5
+    "partial_credit": 0.5,
+    "targets": {}
   },
   "recovery": {
     "hours": {

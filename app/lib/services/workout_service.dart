@@ -155,7 +155,11 @@ class WorkoutServiceWrapper {
   Future<GetHomeResponse> getHome({int budgetMinutes = 0}) async {
     final home = await _call(
       'GetHome',
-      GetHomeRequest(budgetMinutes: budgetMinutes),
+      GetHomeRequest(
+        budgetMinutes: budgetMinutes,
+        // Which day it is here, for a program that schedules by the day.
+        utcOffsetSeconds: DateTime.now().timeZoneOffset.inSeconds,
+      ),
       GetHomeResponse.fromBuffer,
     );
     await loadExercises();
@@ -193,6 +197,15 @@ class WorkoutServiceWrapper {
     GetProgramVersionRequest(id: id),
     GetProgramVersionResponse.fromBuffer,
   );
+
+  /// Make [json] (a whole document) the program, as set by hand; its
+  /// problems come back, and with an error nothing was set.
+  Future<SetProgramResponse> setProgram(String json, {String note = ''}) =>
+      _call(
+        'SetProgram',
+        SetProgramRequest(programJson: json, note: note),
+        SetProgramResponse.fromBuffer,
+      );
 
   /// Back to the built-in rules, or to the earlier program [to]'s, the
   /// workouts as they are now kept.

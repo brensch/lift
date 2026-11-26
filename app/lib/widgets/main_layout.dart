@@ -71,6 +71,12 @@ class MainLayout extends StatelessWidget {
                 label: copy.menu.learn,
                 onTap: () => open('/learn'),
               ),
+              FlatRow(
+                icon: AppIcons.bot,
+                large: true,
+                label: copy.menu.connectAi,
+                onTap: () => open('/connect-ai'),
+              ),
               const Spacer(),
               // Settings as one more row along the bottom, and logging out
               // in the corner beside it: red, and it asks before it does it.

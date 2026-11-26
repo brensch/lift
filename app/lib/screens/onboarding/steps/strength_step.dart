@@ -11,6 +11,7 @@ import '../../../gen/workout/v1/settings.pb.dart';
 import '../../../gen/workout/v1/workout.pb.dart';
 import '../../../logic/weight_units.dart';
 import '../../../theme/theme_spec.dart';
+import '../widgets/onboarding_page.dart';
 
 class StrengthStep extends StatelessWidget {
   final WeightUnit unit;
@@ -58,29 +59,16 @@ class StrengthStep extends StatelessWidget {
     };
     final labels = {for (final l in t.lifts) l.id: l.label};
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t.title,
-            style: TextStyle(
-              fontSize: context.tokens.size.headline,
-              fontWeight: context.tokens.weight.heavy,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            t.body,
-            style: TextStyle(
-              fontSize: context.tokens.size.body,
-              height: 1.4,
-              color: cs.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Expanded(
+    return OnboardingPage(
+      title: t.title,
+      body: t.body,
+      scroll: false,
+      onBack: onBack,
+      primary: OnboardingNext(label: copy.onboarding.next, onPressed: onNext),
+      children: [
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 8, 8),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -164,36 +152,8 @@ class StrengthStep extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: onBack,
-                    child: Text(copy.onboarding.back),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 56,
-                  child: FilledButton(
-                    onPressed: onNext,
-                    child: Text(
-                      copy.onboarding.next,
-                      style: TextStyle(fontWeight: context.tokens.weight.heavy),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

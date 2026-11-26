@@ -2,9 +2,11 @@
 /// rotation the suggestion picks from, and an ordered exercise list. That
 /// is the whole thing — sets, reps and weight are planned, each
 /// row shows its next plan (the list planned as one workout in Home's
-/// budget, so it reads what Home's card reads), and tapping one sets your
-/// own numbers for the exercise (an override), which apply in every
-/// template that contains it. Nothing is recorded until Save.
+/// budget, so it reads what Home's card reads), and its edit button opens
+/// the lift's settings (how it progresses, its group's reps and rest, its set
+/// layout, and your own numbers for it, an override), which apply in every
+/// template that contains it. A saved workout's supersets are a page of
+/// their own. Nothing here is recorded until Save.
 library;
 
 import 'package:flutter/foundation.dart' show listEquals;
@@ -21,6 +23,9 @@ import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/flat.dart';
+import '../../widgets/connect_ai.dart';
+import '../program/lift_rules_screen.dart';
+import '../program/supersets_screen.dart';
 import '../../theme/theme_spec.dart';
 import '../../widgets/exercise_picker.dart';
 import '../../theme/app_icons.dart';
@@ -171,121 +176,149 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: _nameController,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                  hintText: copy.templateEditor.nameHint,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(borderRadius: context.tokens.brSm),
-                ),
-                style: TextStyle(
-                  fontSize: context.tokens.size.body,
-                  fontWeight: context.tokens.weight.bold,
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  copy.rotation.switchLabel,
-                  style: TextStyle(
-                    fontSize: context.tokens.size.body,
-                    fontWeight: context.tokens.weight.bold,
-                  ),
-                ),
-                subtitle: Text(
-                  copy.rotation.switchHint,
-                  style: TextStyle(
-                    fontSize: context.tokens.size.small,
-                    color: cs.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-                value: _inRotation,
-                onChanged: (v) => setState(() => _inRotation = v),
-              ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: _exercises.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Text(
-                          copy.templateEditor.empty,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: cs.onSurface.withValues(alpha: 0.55),
-                          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const LetAiDoIt(),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: _nameController,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        hintText: copy.templateEditor.nameHint,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
                         ),
-                      )
-                    : ReorderableListView.builder(
-                        buildDefaultDragHandles: false,
-                        itemCount: _exercises.length,
-                        onReorderItem: (oldIndex, newIndex) {
-                          // onReorderItem's newIndex is already adjusted
-                          // for the removed item: no `newIndex -= 1`.
-                          final next = List.of(_exercises);
-                          final moved = next.removeAt(oldIndex);
-                          next.insert(newIndex, moved);
-                          _setExercises(next);
-                        },
-                        itemBuilder: (context, index) {
-                          final exercise = _exercises[index];
-                          return _ExerciseRow(
-                            key: ValueKey(exercise),
-                            index: index,
-                            exercise: exercise,
-                            plan: _planFor(exercise),
-                            unit: unit,
-                            onRemove: () => _setExercises(
-                              List.of(_exercises)..removeAt(index),
-                            ),
-                            onTap: () => _editOverride(exercise),
-                          );
-                        },
+                        border: OutlineInputBorder(
+                          borderRadius: context.tokens.brSm,
+                        ),
                       ),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: _addExercises,
-                icon: const Icon(AppIcons.add, size: 18),
-                label: Text(
-                  copy.templateEditor.addExercises,
-                  style: TextStyle(fontWeight: context.tokens.weight.heavy),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 54,
-                child: FilledButton(
-                  onPressed:
-                      _nameController.text.trim().isEmpty || _exercises.isEmpty
-                      ? null
-                      : _save,
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          copy.templateEditor.save,
-                          style: TextStyle(
-                            fontWeight: context.tokens.weight.heavy,
-                            fontSize: context.tokens.size.bodyLg,
-                          ),
+                      style: TextStyle(
+                        fontSize: context.tokens.size.body,
+                        fontWeight: context.tokens.weight.bold,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        copy.rotation.switchLabel,
+                        style: TextStyle(
+                          fontSize: context.tokens.size.body,
+                          fontWeight: context.tokens.weight.bold,
                         ),
+                      ),
+                      subtitle: Text(
+                        copy.rotation.switchHint,
+                        style: TextStyle(
+                          fontSize: context.tokens.size.small,
+                          color: cs.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      value: _inRotation,
+                      onChanged: (v) => setState(() => _inRotation = v),
+                    ),
+                    const SizedBox(height: 6),
+                    Expanded(
+                      child: _exercises.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              child: Text(
+                                copy.templateEditor.empty,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: cs.onSurface.withValues(alpha: 0.55),
+                                ),
+                              ),
+                            )
+                          : ReorderableListView.builder(
+                              buildDefaultDragHandles: false,
+                              itemCount: _exercises.length,
+                              onReorderItem: (oldIndex, newIndex) {
+                                // onReorderItem's newIndex is already adjusted
+                                // for the removed item: no `newIndex -= 1`.
+                                final next = List.of(_exercises);
+                                final moved = next.removeAt(oldIndex);
+                                next.insert(newIndex, moved);
+                                _setExercises(next);
+                              },
+                              itemBuilder: (context, index) {
+                                final exercise = _exercises[index];
+                                return _ExerciseRow(
+                                  key: ValueKey(exercise),
+                                  index: index,
+                                  exercise: exercise,
+                                  plan: _planFor(exercise),
+                                  unit: unit,
+                                  onRemove: () => _setExercises(
+                                    List.of(_exercises)..removeAt(index),
+                                  ),
+                                  onEdit: () => showLiftRules(
+                                    context,
+                                    exercise: exercise,
+                                    onOverride: () => _editOverride(exercise),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                    const SizedBox(height: 10),
+                    if (!_isNew && _exercises.length > 1) ...[
+                      OutlinedButton.icon(
+                        onPressed: () =>
+                            showSupersets(context, widget.template!.id),
+                        icon: const Icon(AppIcons.multiplayer, size: 18),
+                        label: Text(copy.rules.groupsHeading),
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+                    OutlinedButton.icon(
+                      onPressed: _addExercises,
+                      icon: const Icon(AppIcons.add, size: 18),
+                      label: Text(
+                        copy.templateEditor.addExercises,
+                        style: TextStyle(
+                          fontWeight: context.tokens.weight.heavy,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 54,
+                      child: FilledButton(
+                        onPressed:
+                            _nameController.text.trim().isEmpty ||
+                                _exercises.isEmpty
+                            ? null
+                            : _save,
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                copy.templateEditor.save,
+                                style: TextStyle(
+                                  fontWeight: context.tokens.weight.heavy,
+                                  fontSize: context.tokens.size.bodyLg,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -307,7 +340,9 @@ class _ExerciseRow extends StatelessWidget {
   final ExercisePlan? plan;
   final WeightUnit unit;
   final VoidCallback onRemove;
-  final VoidCallback onTap;
+
+  /// Opens the lift's settings (its progression, sets and your weight).
+  final VoidCallback onEdit;
 
   const _ExerciseRow({
     super.key,
@@ -316,7 +351,7 @@ class _ExerciseRow extends StatelessWidget {
     required this.plan,
     required this.unit,
     required this.onRemove,
-    required this.onTap,
+    required this.onEdit,
   });
 
   @override
@@ -333,7 +368,6 @@ class _ExerciseRow extends StatelessWidget {
     return ListTile(
       contentPadding: const EdgeInsets.only(left: 4, right: 0),
       dense: true,
-      onTap: onTap,
       leading: ReorderableDragStartListener(
         index: index,
         child: Icon(AppIcons.drag, color: cs.onSurface.withValues(alpha: 0.4)),
@@ -348,9 +382,19 @@ class _ExerciseRow extends StatelessWidget {
       subtitle: detail.isEmpty
           ? null
           : Text(detail, style: TextStyle(fontSize: context.tokens.size.small)),
-      trailing: IconButton(
-        icon: const Icon(AppIcons.removeCircle, size: 20),
-        onPressed: onRemove,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            tooltip: copy.templateEditor.editLift,
+            icon: const Icon(AppIcons.edit, size: 20),
+            onPressed: onEdit,
+          ),
+          IconButton(
+            icon: const Icon(AppIcons.removeCircle, size: 20),
+            onPressed: onRemove,
+          ),
+        ],
       ),
     );
   }

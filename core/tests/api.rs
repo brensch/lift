@@ -245,7 +245,7 @@ mod home_and_onboarding {
         assert!(response.templates.is_empty());
         assert_eq!(response.volume.len(), 10);
         assert_eq!(response.recovery.len(), 10);
-        assert_eq!(response.budget_minutes, 60);
+        assert_eq!(response.budget_minutes, 0, "there's no time budget");
         assert_eq!(
             response.plans.len(),
             schlift_core::program::Program::builtin().exercises.len()
@@ -256,10 +256,7 @@ mod home_and_onboarding {
         assert_eq!(squat.weight, 45.0, "from the empty bar");
         assert_eq!((squat.rep_low, squat.rep_high), (5, 8));
         assert!(squat.warmups);
-        assert_eq!(
-            kinds(&squat),
-            vec![PlanReasonKind::FirstTime, PlanReasonKind::SetsFromTime]
-        );
+        assert_eq!(kinds(&squat), vec![PlanReasonKind::FirstTime]);
 
         let raise = response
             .plans
@@ -649,15 +646,8 @@ mod the_walk {
             "as many reps as the max covers over the planned sets"
         );
         assert_eq!(kinds(&squat)[1], PlanReasonKind::MaxUp);
-        // Five sets in the hour against last time's three: the rep the hit
-        // earned goes to the extra sets, and the first reason says so.
-        assert_eq!(squat.sets, 5);
-        assert_eq!(kinds(&squat)[0], PlanReasonKind::SameAsLast);
-        assert_eq!(squat.reasons[0].cause, PlanChangeCause::Sets as i32);
-        assert_eq!(
-            (squat.reasons[0].sets_before, squat.reasons[0].sets_after),
-            (3, 5)
-        );
+        // The program's three sets, as last time.
+        assert_eq!(squat.sets, 3);
 
         let mut reps = Vec::new();
         for n in 0..3 {
@@ -827,8 +817,7 @@ mod the_walk {
             vec![
                 PlanReasonKind::WeightDown,
                 PlanReasonKind::MaxUp,
-                PlanReasonKind::TimeOff,
-                PlanReasonKind::SetsFromTime
+                PlanReasonKind::TimeOff
             ]
         );
         assert_eq!(d.reasons[0].cause, PlanChangeCause::TimeOff as i32);
@@ -927,238 +916,26 @@ mod the_walk {
     }
 }
 
-mod budget {
+mod sets {
     use super::*;
 
-    fn sets(d: &[ExerciseDecision]) -> Vec<i32> {
-        d.iter().map(|d| d.sets).collect()
-    }
-
-    /// Home's preview of a template is exactly what starting it then, in the
-    /// same budget, records.
+    /// A lift whose rule names no sets does the program's `per_lift`,
+    /// whatever time the person asks for; an override keeps its own.
     #[test]
-    fn home_preview_equals_a_start() {
+    fn sets_are_the_programs_not_the_clocks() {
         let mut app = App::new();
-        let onboarded = onboard(&mut app, WeightUnit::Lb);
-        import_session(&mut app, "squat", 200.0, 6, &[6, 6, 6], NOW - 2 * DAY);
-        import_session(&mut app, "bench_press", 135.0, 8, &[8, 7, 6], NOW - DAY);
-        let template = onboarded
-            .templates
-            .iter()
-            .find(|t| t.origin_library_id == "stronglifts_a")
-            .unwrap()
-            .clone();
-        for budget in [0, 25, 45, 90] {
-            let preview = app
-                .view()
-                .get_home(GetHomeRequest {
-                    budget_minutes: budget,
-                })
-                .unwrap()
-                .template_plans
-                .into_iter()
-                .find(|p| p.template_id == template.id)
-                .unwrap();
-            // The template editor's plan of the same lifts is Home's.
-            let edited = app
-                .view()
-                .get_template_plan(GetTemplatePlanRequest {
-                    exercises: template.exercises.clone(),
-                    budget_minutes: budget,
-                })
-                .unwrap()
-                .plan
-                .unwrap();
-            assert_eq!(edited.plans, preview.plans, "budget {budget}");
-            assert_eq!(edited.estimated_seconds, preview.estimated_seconds);
-            let previewed: Vec<ExerciseDecision> = preview
+        onboard(&mut app, WeightUnit::Lb);
+        let view = app.view();
+        for budget in [0, 20, 90] {
+            let d = view.template_plan(&["squat".to_string(), "bench_press".to_string()], budget);
+            let sets: Vec<i32> = d
                 .plans
-                .into_iter()
-                .map(|p| p.decision.unwrap())
+                .iter()
+                .filter_map(|p| p.decision.as_ref())
+                .map(|d| d.sets)
                 .collect();
-            let started = app
-                .call()
-                .start_workout(StartWorkoutRequest {
-                    template_id: template.id.clone(),
-                    budget_minutes: budget,
-                    ..Default::default()
-                })
-                .unwrap();
-            let recorded: Vec<ExerciseDecision> = started
-                .exercise_logs
-                .into_iter()
-                .map(|l| l.decision.unwrap())
-                .collect();
-            assert_eq!(previewed, recorded, "budget {budget}");
-            assert_eq!(
-                preview.estimated_seconds,
-                recorded.iter().map(|d| d.estimated_seconds).sum::<i32>()
-            );
-            app.call()
-                .end_workout(EndWorkoutRequest {
-                    workout_id: started.id,
-                    ended_at: 0,
-                })
-                .unwrap();
+            assert_eq!(sets, vec![3, 3], "at {budget} min");
         }
-    }
-
-    /// More time, more sets: 2 each at the floor, up to 5; and a budget two
-    /// sets each don't fit says how long the workout needs.
-    #[test]
-    fn the_budget_sets_the_sets() {
-        let mut app = App::new();
-        onboard(&mut app, WeightUnit::Lb);
-        let lifts = ["lateral_raise", "barbell_curl", "tricep_pushdown"];
-        for lift in lifts {
-            import_session(&mut app, lift, 30.0, 10, &[10, 10, 10], NOW - 3 * DAY);
-        }
-        let preview = |app: &App, budget: i32| {
-            app.view()
-                .get_home(GetHomeRequest {
-                    budget_minutes: budget,
-                })
-                .unwrap()
-                .plans
-                .into_iter()
-                .filter_map(|p| p.decision)
-                .filter(|d| lifts.iter().any(|l| *l == d.exercise))
-                .collect::<Vec<_>>()
-        };
-        assert!(preview(&app, 60).iter().all(|d| d.sets == 5), "alone");
-        let started = app
-            .call()
-            .start_workout(StartWorkoutRequest {
-                exercises: lifts.iter().map(|l| l.to_string()).collect(),
-                budget_minutes: 25,
-                ..Default::default()
-            })
-            .unwrap();
-        let decided: Vec<ExerciseDecision> = started
-            .exercise_logs
-            .iter()
-            .filter_map(|l| l.decision.clone())
-            .collect();
-        let total: i32 = decided.iter().map(|d| d.estimated_seconds).sum();
-        assert!(total <= 25 * 60, "{total}");
-        assert!(sets(&decided).iter().all(|n| (2..=5).contains(n)));
-        assert!(
-            sets(&decided).iter().sum::<i32>() > 6,
-            "{:?}",
-            sets(&decided)
-        );
-        assert!(decided.iter().all(|d| d.budget_minutes == 25));
-        app.call()
-            .end_workout(EndWorkoutRequest {
-                workout_id: started.id,
-                ended_at: 0,
-            })
-            .unwrap();
-
-        let tight = app
-            .call()
-            .start_workout(StartWorkoutRequest {
-                exercises: lifts.iter().map(|l| l.to_string()).collect(),
-                budget_minutes: 5,
-                ..Default::default()
-            })
-            .unwrap();
-        let decided: Vec<ExerciseDecision> = tight
-            .exercise_logs
-            .iter()
-            .filter_map(|l| l.decision.clone())
-            .collect();
-        assert_eq!(sets(&decided), vec![2, 2, 2], "the floor");
-        let needs: i32 = decided.iter().map(|d| d.estimated_seconds).sum();
-        assert!(needs > 5 * 60, "needs {} min", needs / 60 + 1);
-    }
-
-    /// The longest a workout gets: every free lift at five sets, an
-    /// override's sets as they are. A budget past it plans exactly that.
-    #[test]
-    fn the_longest_a_workout_gets() {
-        let mut app = App::new();
-        onboard(&mut app, WeightUnit::Lb);
-        let lifts = ["squat", "bench_press", "barbell_row"];
-        for lift in lifts {
-            import_session(&mut app, lift, 100.0, 5, &[5, 5, 5], NOW - 3 * DAY);
-        }
-        app.call()
-            .set_override(SetOverrideRequest {
-                exercise: "bench_press".to_string(),
-                weight: 100.0,
-                reps: 5,
-                sets: Some(2),
-            })
-            .unwrap();
-        let plan = |budget: i32| {
-            app.view()
-                .get_template_plan(GetTemplatePlanRequest {
-                    exercises: lifts.iter().map(|l| l.to_string()).collect(),
-                    budget_minutes: budget,
-                })
-                .unwrap()
-                .plan
-                .unwrap()
-        };
-        let roomy = plan(600);
-        let decided: Vec<ExerciseDecision> = roomy
-            .plans
-            .iter()
-            .filter_map(|p| p.decision.clone())
-            .collect();
-        assert_eq!(sets(&decided), vec![5, 2, 5], "the override's sets kept");
-        assert_eq!(roomy.estimated_seconds, roomy.max_seconds);
-        let tight = plan(20);
-        assert_eq!(tight.max_seconds, roomy.max_seconds, "the budget's own");
-        assert!(tight.estimated_seconds < tight.max_seconds);
-        // The cap is a budget that plans it all.
-        let cap = plan((roomy.max_seconds + 59) / 60);
-        assert_eq!(cap.estimated_seconds, cap.max_seconds);
-    }
-
-    /// A lift added mid-workout is planned in the workout's budget around
-    /// the lifts already there, which keep theirs.
-    #[test]
-    fn an_added_lift_fits_around_the_planned_ones() {
-        let mut app = App::new();
-        onboard(&mut app, WeightUnit::Lb);
-        import_session(&mut app, "barbell_curl", 50.0, 10, &[10, 10], NOW - 3 * DAY);
-        let started = app
-            .call()
-            .start_workout(StartWorkoutRequest {
-                exercises: vec!["lateral_raise".to_string()],
-                budget_minutes: 15,
-                ..Default::default()
-            })
-            .unwrap();
-        let before = decision(&started, "lateral_raise");
-        app.call()
-            .append_workout_mutations(AppendWorkoutMutationsRequest {
-                mutations: vec![mutation(Mutation::AddExercises(AddExercisesRequest {
-                    workout_id: started.id.clone(),
-                    exercises: vec!["barbell_curl".to_string()],
-                }))],
-            })
-            .unwrap();
-        let state = app
-            .view()
-            .get_workout(GetWorkoutRequest {
-                workout_id: started.id.clone(),
-            })
-            .unwrap();
-        let decisions: Vec<ExerciseDecision> = state
-            .exercise_logs
-            .iter()
-            .filter_map(|l| l.decision.clone())
-            .collect();
-        assert_eq!(decisions[0], before, "the planned lift keeps its decision");
-        assert_eq!(decisions[1].budget_minutes, 15);
-        assert_eq!(
-            working(&state.proposed_sets, "barbell_curl").len(),
-            decisions[1].sets as usize
-        );
-        assert_eq!(decisions[1].sets, 2, "15 minutes are spent already");
     }
 }
 
@@ -3760,12 +3537,12 @@ mod programs {
         onboard(&mut app, WeightUnit::Lb);
         let events = app.log.len();
         let mut p = current(&app);
-        p.sets.max = 0;
+        p.sets.per_lift = 0;
         let response = set(&mut app, &p, "mcp:test");
         assert!(response.summary.is_none());
         assert!(errors(&response.problems)
             .iter()
-            .any(|e| e.starts_with("sets.max")));
+            .any(|e| e.starts_with("sets.per_lift")));
         let not_json = app
             .call()
             .set_program(SetProgramRequest {
