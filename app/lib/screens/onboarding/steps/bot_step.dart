@@ -10,32 +10,17 @@ library;
 
 import 'dart:async';
 
-import 'package:flutter/services.dart';
-
 import 'package:material_ui/material_ui.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../../gen/copy.dart';
 import '../../../gen/workout/v1/workout.pb.dart' show WorkoutTemplate;
-import '../../../logic/website.dart';
-import '../../../theme/app_icons.dart';
 import '../../../theme/theme_spec.dart';
 import '../../../widgets/common/flat.dart';
+import '../../../widgets/connect_ai.dart';
 import '../widgets/onboarding_page.dart';
 
 /// How often to look for the bot's program while this page is up.
 const _poll = Duration(seconds: 4);
-
-/// The address a bot connects to: the MCP endpoint of this build's server.
-final _mcpAddress = websiteUri('/api/mcp').toString();
-
-/// Where Claude adds a custom connector.
-final _claudeConnectors = Uri.https('claude.ai', '/settings/connectors');
-
-/// Where ChatGPT adds one.
-final _chatgptConnectors = Uri.parse(
-  'https://chatgpt.com/#settings/Connectors',
-);
 
 class BotStep extends StatefulWidget {
   /// The program's workouts as they are now: empty until a bot sets some.
@@ -103,9 +88,6 @@ class _BotStepState extends State<BotStep> {
     _timer = null;
   }
 
-  Future<void> _open(Uri uri) =>
-      launchUrl(uri, mode: LaunchMode.externalApplication);
-
   @override
   Widget build(BuildContext context) {
     final tk = context.tokens;
@@ -130,49 +112,7 @@ class _BotStepState extends State<BotStep> {
               for (final w in widget.workouts) FlatRow(label: w.name),
             ]
           : [
-              FlatHeading('1  ${t.stepAddress}'),
-              _CopyRow(text: _mcpAddress),
-              FlatSection(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _open(_claudeConnectors),
-                            icon: const Icon(AppIcons.openExternal),
-                            label: Text(t.openClaude),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _open(_chatgptConnectors),
-                            icon: const Icon(AppIcons.openExternal),
-                            label: Text(t.openChatgpt),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      t.anyAi,
-                      style: TextStyle(
-                        fontSize: tk.size.caption,
-                        color: tk.muted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              FlatHeading('2  ${t.stepGoals}'),
-              FlatSection(
-                child: Text(
-                  t.goalsText,
-                  style: TextStyle(fontSize: tk.size.bodyLg, height: 1.4),
-                ),
-              ),
+              const ConnectAiSteps(),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   FlatSection.margin,
@@ -190,57 +130,6 @@ class _BotStepState extends State<BotStep> {
                 ),
               ),
             ],
-    );
-  }
-}
-
-/// [text] as a full-width row, with a button that copies it.
-class _CopyRow extends StatefulWidget {
-  final String text;
-  const _CopyRow({required this.text});
-
-  @override
-  State<_CopyRow> createState() => _CopyRowState();
-}
-
-class _CopyRowState extends State<_CopyRow> {
-  bool _copied = false;
-
-  Future<void> _copy() async {
-    await Clipboard.setData(ClipboardData(text: widget.text));
-    if (mounted) setState(() => _copied = true);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tk = context.tokens;
-    final t = copy.onboarding.bot;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: _copy,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(FlatSection.margin, 6, 4, 6),
-          decoration: BoxDecoration(
-            border: Border(bottom: BorderSide(color: tk.hairline)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  widget.text,
-                  style: tk.mono(TextStyle(fontSize: tk.size.small)),
-                ),
-              ),
-              TextButton.icon(
-                onPressed: _copy,
-                icon: Icon(_copied ? AppIcons.check : AppIcons.copy),
-                label: Text(_copied ? t.copied : t.copy),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

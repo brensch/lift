@@ -21,6 +21,7 @@ import '../../providers/settings_provider.dart';
 import '../../providers/workout_provider.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/common/flat.dart';
+import '../../widgets/connect_ai.dart';
 import '../../theme/theme_spec.dart';
 import '../../widgets/exercise_picker.dart';
 import '../../theme/app_icons.dart';
@@ -171,121 +172,136 @@ class _TemplateEditorSheetState extends State<_TemplateEditorSheet> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: _nameController,
-                textCapitalization: TextCapitalization.words,
-                decoration: InputDecoration(
-                  hintText: copy.templateEditor.nameHint,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  border: OutlineInputBorder(borderRadius: context.tokens.brSm),
-                ),
-                style: TextStyle(
-                  fontSize: context.tokens.size.body,
-                  fontWeight: context.tokens.weight.bold,
-                ),
-                onChanged: (_) => setState(() {}),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text(
-                  copy.rotation.switchLabel,
-                  style: TextStyle(
-                    fontSize: context.tokens.size.body,
-                    fontWeight: context.tokens.weight.bold,
-                  ),
-                ),
-                subtitle: Text(
-                  copy.rotation.switchHint,
-                  style: TextStyle(
-                    fontSize: context.tokens.size.small,
-                    color: cs.onSurface.withValues(alpha: 0.6),
-                  ),
-                ),
-                value: _inRotation,
-                onChanged: (v) => setState(() => _inRotation = v),
-              ),
-              const SizedBox(height: 6),
-              Expanded(
-                child: _exercises.isEmpty
-                    ? Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        child: Text(
-                          copy.templateEditor.empty,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: cs.onSurface.withValues(alpha: 0.55),
-                          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const LetAiDoIt(),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TextField(
+                      controller: _nameController,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: InputDecoration(
+                        hintText: copy.templateEditor.nameHint,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
                         ),
-                      )
-                    : ReorderableListView.builder(
-                        buildDefaultDragHandles: false,
-                        itemCount: _exercises.length,
-                        onReorderItem: (oldIndex, newIndex) {
-                          // onReorderItem's newIndex is already adjusted
-                          // for the removed item: no `newIndex -= 1`.
-                          final next = List.of(_exercises);
-                          final moved = next.removeAt(oldIndex);
-                          next.insert(newIndex, moved);
-                          _setExercises(next);
-                        },
-                        itemBuilder: (context, index) {
-                          final exercise = _exercises[index];
-                          return _ExerciseRow(
-                            key: ValueKey(exercise),
-                            index: index,
-                            exercise: exercise,
-                            plan: _planFor(exercise),
-                            unit: unit,
-                            onRemove: () => _setExercises(
-                              List.of(_exercises)..removeAt(index),
-                            ),
-                            onTap: () => _editOverride(exercise),
-                          );
-                        },
+                        border: OutlineInputBorder(
+                          borderRadius: context.tokens.brSm,
+                        ),
                       ),
-              ),
-              const SizedBox(height: 10),
-              OutlinedButton.icon(
-                onPressed: _addExercises,
-                icon: const Icon(AppIcons.add, size: 18),
-                label: Text(
-                  copy.templateEditor.addExercises,
-                  style: TextStyle(fontWeight: context.tokens.weight.heavy),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 54,
-                child: FilledButton(
-                  onPressed:
-                      _nameController.text.trim().isEmpty || _exercises.isEmpty
-                      ? null
-                      : _save,
-                  child: _isSaving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : Text(
-                          copy.templateEditor.save,
-                          style: TextStyle(
-                            fontWeight: context.tokens.weight.heavy,
-                            fontSize: context.tokens.size.bodyLg,
-                          ),
+                      style: TextStyle(
+                        fontSize: context.tokens.size.body,
+                        fontWeight: context.tokens.weight.bold,
+                      ),
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(
+                        copy.rotation.switchLabel,
+                        style: TextStyle(
+                          fontSize: context.tokens.size.body,
+                          fontWeight: context.tokens.weight.bold,
                         ),
+                      ),
+                      subtitle: Text(
+                        copy.rotation.switchHint,
+                        style: TextStyle(
+                          fontSize: context.tokens.size.small,
+                          color: cs.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                      value: _inRotation,
+                      onChanged: (v) => setState(() => _inRotation = v),
+                    ),
+                    const SizedBox(height: 6),
+                    Expanded(
+                      child: _exercises.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 20),
+                              child: Text(
+                                copy.templateEditor.empty,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: cs.onSurface.withValues(alpha: 0.55),
+                                ),
+                              ),
+                            )
+                          : ReorderableListView.builder(
+                              buildDefaultDragHandles: false,
+                              itemCount: _exercises.length,
+                              onReorderItem: (oldIndex, newIndex) {
+                                // onReorderItem's newIndex is already adjusted
+                                // for the removed item: no `newIndex -= 1`.
+                                final next = List.of(_exercises);
+                                final moved = next.removeAt(oldIndex);
+                                next.insert(newIndex, moved);
+                                _setExercises(next);
+                              },
+                              itemBuilder: (context, index) {
+                                final exercise = _exercises[index];
+                                return _ExerciseRow(
+                                  key: ValueKey(exercise),
+                                  index: index,
+                                  exercise: exercise,
+                                  plan: _planFor(exercise),
+                                  unit: unit,
+                                  onRemove: () => _setExercises(
+                                    List.of(_exercises)..removeAt(index),
+                                  ),
+                                  onTap: () => _editOverride(exercise),
+                                );
+                              },
+                            ),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: _addExercises,
+                      icon: const Icon(AppIcons.add, size: 18),
+                      label: Text(
+                        copy.templateEditor.addExercises,
+                        style: TextStyle(
+                          fontWeight: context.tokens.weight.heavy,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      height: 54,
+                      child: FilledButton(
+                        onPressed:
+                            _nameController.text.trim().isEmpty ||
+                                _exercises.isEmpty
+                            ? null
+                            : _save,
+                        child: _isSaving
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                copy.templateEditor.save,
+                                style: TextStyle(
+                                  fontWeight: context.tokens.weight.heavy,
+                                  fontSize: context.tokens.size.bodyLg,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

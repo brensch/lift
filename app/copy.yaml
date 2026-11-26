@@ -649,6 +649,7 @@ menu:
   logout_body: This is permanent until you log back in again
   logout_cancel: Cancel
   settings: Settings
+  connect_ai: Connect AI
   # The tooltip of the multiplayer button (home and the workout's top row).
   multiplayer: Multiplayer
 
@@ -1230,3 +1231,11 @@ suggestions:
   suggest_workout: Suggest a workout
   suggest_pick: Which of yours?
   sent: "Sent to {name}"
+
+# Connecting an AI over MCP: the menu's page (the steps are setup's, under
+# onboarding.bot), and the line at the top of the screens that edit the
+# program by hand. Placeholders.
+connect_ai:
+  title: Connect AI
+  peasant: Dog, don't do this by hand like a peasant. Just let AI do it.
+  peasant_button: Connect AI

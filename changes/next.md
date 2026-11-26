@@ -3,3 +3,4 @@
 - An AI assistant can give each muscle its own weekly target, say more shoulders and less chest, and Home's "This week" bars show each muscle's own target.
 - Setup is restyled to match the rest of the app, and the bot page has everything you need to connect an AI right there.
 - The website's connect page, where you allow an AI assistant, is clearer: what it can and can't do, each in its own section.
+- The menu has a Connect AI page with the steps to hook up Claude, ChatGPT or any AI that speaks MCP, and the screens where you edit workouts by hand point you to it.

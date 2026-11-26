@@ -4,21 +4,21 @@
 library;
 
 import 'package:fixnum/fixnum.dart';
+import 'package:go_router/go_router.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../gen/copy.dart';
 import '../gen/workout/v1/assistant.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/utils.dart';
-import '../logic/website.dart';
 import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../theme/app_icons.dart';
 import '../theme/theme_spec.dart';
 import '../widgets/suggestion_screen.dart';
 import '../widgets/common/flat.dart';
+import '../widgets/connect_ai.dart';
 import '../widgets/dialogs/confirm_dialog.dart';
 import 'program_document_screen.dart';
 
@@ -199,6 +199,7 @@ class _ProgramScreenState extends State<ProgramScreen> {
           ? const Center(child: CircularProgressIndicator())
           : ListView(
               children: [
+                const LetAiDoIt(),
                 _summaryRow(
                   program.summary,
                   icon: AppIcons.maths,
@@ -257,10 +258,7 @@ class _ProgramScreenState extends State<ProgramScreen> {
                   icon: AppIcons.bot,
                   label: t.assistantsConnect,
                   subtitle: t.assistantsConnectSub,
-                  onTap: () => launchUrl(
-                    websiteUri('/bot'),
-                    mode: LaunchMode.externalApplication,
-                  ),
+                  onTap: () => context.push('/connect-ai'),
                 ),
               ],
             ),
