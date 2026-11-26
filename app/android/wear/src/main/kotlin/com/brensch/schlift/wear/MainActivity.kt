@@ -696,7 +696,10 @@ private fun WorkoutScreens(
         }
     }
 
-    if (data.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) {
+    // A question outranks done: a ramp's next set only loads once it's
+    // answered, so a workout of one new lift (an Empty one, say) reads as
+    // all done until then.
+    if (data.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE && question == null) {
         DoneScreen(
             summary = if (data.hasCompletionSummary()) data.completionSummary else null,
             label = "All done",

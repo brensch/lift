@@ -87,6 +87,12 @@ void main() {
       QuickAnswer.QUICK_ANSWER_ONE_LESS,
     ]);
     expect(asking.question.answers.last.label, '${first.targetReps}');
+    // One lift and its next rung not loaded yet: nothing is next, and the
+    // workout reads all done, but the face is the asked set's all the same
+    // (its lift, its circles, its reps in the rep circle).
+    expect(asking.youCard.exerciseName, isNotEmpty);
+    expect(asking.youCard.repsText, '${first.targetReps}');
+    expect(asking.circles.map((c) => c.setId), contains(first.id));
 
     await h.provider.answerQuick(first.id, QuickAnswer.QUICK_ANSWER_EASY);
     expect(snapshot().hasQuestion(), isFalse);

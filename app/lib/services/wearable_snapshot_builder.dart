@@ -173,8 +173,21 @@ class WearableSnapshotBuilder {
     }
 
     snapshot.actions.addAll(actions);
-    if (target != null) {
-      snapshot.circles.addAll(_circles(workoutProvider, w, target));
+    // The set a question asks about, when the workout reads all done: a
+    // ramp's next rung only loads once it's answered, so a workout of one
+    // new lift (an Empty one, say) is all done until then. The watch asks on its face,
+    // so it gets that set's lift, circles and reps all the same.
+    final asking = workoutProvider.questionSetId;
+    final asked = asking.isEmpty || isEnded
+        ? null
+        : proposedSets.where((p) => p.id == asking).firstOrNull;
+    if (allDone && asked != null) {
+      snapshot.youCard = card(asked)
+        ..repsText = '${workoutProvider.askingReps}';
+    }
+    final shown = allDone && asked != null ? asked : target;
+    if (shown != null) {
+      snapshot.circles.addAll(_circles(workoutProvider, w, shown));
     }
     // A timed set being lifted counts down on the watch as on the phone.
     if (lifting &&
@@ -185,7 +198,6 @@ class WearableSnapshotBuilder {
     }
     // A set just done that asks how it went: the banner's answers, and its
     // reps to tap down.
-    final asking = workoutProvider.questionSetId;
     if (asking.isNotEmpty && !isEnded) {
       final q = copy.workout;
       snapshot.question = WearQuestion(
