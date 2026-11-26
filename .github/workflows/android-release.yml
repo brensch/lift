@@ -60,7 +60,12 @@ jobs:
 
       - name: Install Flutter dependencies
         working-directory: app
-        run: flutter pub get
+        # The container runs as root and the Flutter checkout above is owned
+        # by the runner user, so git refuses it without this.
+        run: |
+          git config --global --add safe.directory "$FLUTTER_ROOT"
+          flutter --version
+          flutter pub get
 
       - name: Prepare signing files
         working-directory: app/android
