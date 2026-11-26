@@ -684,22 +684,16 @@ private fun WorkoutScreens(
 
     fun action(type: Wearable.WearActionType): Wearable.WearAction? = data.actionsList.firstOrNull { it.type == type }
 
-    // A set just done that asks how it went: the banner's three answers,
-    // as buttons. Skip puts it away here; the next set closes it there.
-    var skipped by remember(data.workoutId) { mutableStateOf("") }
-    if (data.hasQuestion() && data.question.setId != skipped && !isAmbientMode) {
-        val question = data.question
-        QuestionScreen(
-            question = question,
-            enabled = !isActionPending,
-            onAnswer = { answer ->
-                pendingActionEmittedAt = data.emittedAt
-                pendingActionStartedAtMs = System.currentTimeMillis()
-                onAnswer(question.setId, answer)
-            },
-            onSkip = { skipped = question.setId },
-        )
-        return
+    // A set just done that asks how it went: the face asks it in place,
+    // the band saying the question, Easy and Hard where the weight is, and
+    // a tap on the rep circle a rep off. No skip: the next set waits on it.
+    val question = if (data.hasQuestion() && !isAmbientMode) data.question else null
+    val answer: (Wearable.QuickAnswer) -> Unit = { a ->
+        question?.let {
+            pendingActionEmittedAt = data.emittedAt
+            pendingActionStartedAtMs = System.currentTimeMillis()
+            onAnswer(it.setId, a)
+        }
     }
 
     if (data.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE) {
@@ -772,7 +766,12 @@ private fun WorkoutScreens(
             circles = data.circlesList,
             upNext = data.upNextText,
             upNextEmoji = data.upNextEmoji,
-            label = if (yapping) card.yappingLabel.ifEmpty { card.stateLabel } else card.stateLabel,
+            label =
+                when {
+                    question != null -> question.title
+                    yapping -> card.yappingLabel.ifEmpty { card.stateLabel }
+                    else -> card.stateLabel
+                },
             timer =
                 when {
                     dim -> rest?.minutes ?: ""
@@ -808,6 +807,7 @@ private fun WorkoutScreens(
             hasPlates = card.platesText.isNotEmpty(),
             plates = card.platesList,
             firstTimeText = card.firstTimeText,
+            answers = question?.answersList ?: emptyList(),
         )
 
     PlateDialog(card = card, show = showPlates && !isAmbientMode, onDismiss = { showPlates = false })
@@ -817,13 +817,19 @@ private fun WorkoutScreens(
         enabled = !dim && !isActionPending,
         onTapSet = tapSet,
         onRep = {
+            val oneLess =
+                question?.answersList?.firstOrNull {
+                    it.answer == Wearable.QuickAnswer.QUICK_ANSWER_ONE_LESS
+                }
             when {
+                question != null -> oneLess?.let { answer(it.answer) }
                 card.firstTime -> Unit
                 inHand != null -> tapSet(inHand.setId)
                 else -> primary?.let(fire)
             }
         },
         onWeight = { showPlates = true },
+        onAnswer = answer,
     )
 }
 
