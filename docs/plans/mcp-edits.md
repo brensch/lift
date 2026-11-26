@@ -225,6 +225,14 @@ An exercise can set its own values for the numbers of the rule it follows:
 
 ## CIMD
 
+**Built** (`src/mcp/cimd.rs`; see "MCP: assistants" in
+[backend.md](../architecture/backend.md)). Beyond the plan: the URL must
+be a domain on the default port with a path, written canonically; a name
+with any non-public address is refused and the connection is pinned to
+the address checked; a document claiming a secret or a signed-in token
+method is refused; a failure is remembered a minute; a refresh never
+fetches.
+
 The MCP authorization spec lets a client's `client_id` be an `https://` URL
 serving its metadata (name, redirect URIs) instead of registering first.
 

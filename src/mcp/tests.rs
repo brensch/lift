@@ -9,10 +9,34 @@ use tower::ServiceExt;
 const VERIFIER: &str = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
 const REDIRECT: &str = "https://claude.ai/api/mcp/auth_callback";
 
+/// Metadata documents served from a table, not the network.
+struct Documents(std::sync::Mutex<std::collections::HashMap<String, Value>>);
+
+#[tonic::async_trait]
+impl cimd::Fetch for Documents {
+    async fn get(&self, url: &url::Url) -> Result<Vec<u8>, String> {
+        let docs = self.0.lock().unwrap();
+        docs.get(url.as_str())
+            .map(|d| d.to_string().into_bytes())
+            .ok_or_else(|| "404".to_string())
+    }
+}
+
 async fn mcp() -> Mcp {
+    mcp_serving(json!({})).await
+}
+
+/// A server whose metadata document fetches read `documents` (URL → JSON).
+async fn mcp_serving(documents: Value) -> Mcp {
     let dir = std::env::temp_dir().join(format!("lift-mcp-{}", uuid::Uuid::new_v4()));
     let db = ServerDb::new_in_dir(&dir).await.unwrap();
     db.create_user_with_id("u1", "Lyss").await.unwrap();
+    let documents = documents
+        .as_object()
+        .unwrap()
+        .iter()
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
     Mcp {
         db,
         origin: "https://schlift.test".into(),
@@ -20,6 +44,9 @@ async fn mcp() -> Mcp {
             1000,
             std::time::Duration::from_secs(1),
         )),
+        cimd: std::sync::Arc::new(cimd::Cimd::new(std::sync::Arc::new(Documents(
+            std::sync::Mutex::new(documents),
+        )))),
     }
 }
 
@@ -681,4 +708,268 @@ async fn an_assistant_suggests_to_a_friend_who_allows_it() {
     .await
     .unwrap_err()
     .contains("suggest_change"));
+}
+
+#[test]
+fn a_loopback_redirect_matches_on_any_port() {
+    for (listed, asked) in [
+        (REDIRECT, REDIRECT),
+        (
+            "http://localhost/callback",
+            "http://localhost:3118/callback",
+        ),
+        (
+            "http://127.0.0.1/callback",
+            "http://127.0.0.1:50123/callback",
+        ),
+        ("http://[::1]/callback", "http://[::1]:8080/callback"),
+        (
+            "http://localhost:1234/callback",
+            "http://localhost:3118/callback",
+        ),
+        ("http://localhost/cb?x=1", "http://localhost:9/cb?x=1"),
+    ] {
+        assert!(redirect_matches(listed, asked), "{listed} {asked}");
+    }
+    for (listed, asked) in [
+        ("http://localhost/callback", "http://localhost:3118/other"),
+        (
+            "http://localhost/callback",
+            "http://127.0.0.1:3118/callback",
+        ),
+        (
+            "http://localhost/callback",
+            "https://localhost:3118/callback",
+        ),
+        (
+            "http://localhost/callback",
+            "http://localhost:3118/callback?x=1",
+        ),
+        (
+            "http://localhost/callback",
+            "http://evil.example:3118/callback",
+        ),
+        (
+            "http://localhost/callback",
+            "http://u@localhost:3118/callback",
+        ),
+        ("https://claude.ai/cb", "https://claude.ai:8443/cb"),
+        (REDIRECT, "https://claude.ai/api/mcp/auth_callback2"),
+    ] {
+        assert!(!redirect_matches(listed, asked), "{listed} {asked}");
+    }
+}
+
+/// Connects by a metadata document all the way to a working token: the
+/// consent page's check, a code, the exchange, a tool call.
+async fn connect_by_document(mcp: &Mcp, client_id: &str, redirect: &str) -> Value {
+    let connect = ConnectRequest {
+        client_id: client_id.into(),
+        redirect_uri: redirect.into(),
+        code_challenge: pkce_challenge(VERIFIER),
+        code_challenge_method: "S256".into(),
+        state: "xyz".into(),
+        scope: SCOPE.into(),
+        resource: "https://schlift.test/api/mcp".into(),
+    };
+    let client = check_connect(mcp, &connect).await.unwrap();
+    let code = mcp
+        .db
+        .issue_assistant_code(&crate::db::Consent {
+            user_id: "u1".into(),
+            client_id: client.client_id,
+            redirect_uri: redirect.into(),
+            code_challenge: connect.code_challenge.clone(),
+            scope: SCOPE.into(),
+        })
+        .await
+        .unwrap();
+    let (status, _, tokens) = send(
+        mcp,
+        post_form(
+            "/api/oauth/token",
+            &[
+                ("grant_type", "authorization_code"),
+                ("code", &code),
+                ("code_verifier", VERIFIER),
+                ("redirect_uri", redirect),
+                ("client_id", client_id),
+            ],
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{tokens}");
+    let (_, _, tools) = send(
+        mcp,
+        post_json(
+            "/api/mcp",
+            tokens["access_token"].as_str(),
+            rpc("tools/list", json!({})),
+        ),
+    )
+    .await;
+    assert!(tools["result"]["tools"].as_array().unwrap().len() > 5);
+    tokens
+}
+
+/// Claude's real documents: Claude Code's (as fetched from claude.ai,
+/// portless loopback redirects, asked for on an ephemeral port) and the
+/// hosted connector's shape.
+#[tokio::test]
+async fn claudes_own_documents_connect() {
+    const CODE: &str = "https://claude.ai/oauth/claude-code-client-metadata";
+    const HOSTED: &str = "https://claude.ai/oauth/mcp-oauth-client-metadata";
+    let mcp = mcp_serving(json!({
+        CODE: {
+            "client_id": CODE,
+            "client_name": "Claude Code",
+            "client_uri": "https://claude.ai",
+            "redirect_uris": ["http://localhost/callback", "http://127.0.0.1/callback"],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "token_endpoint_auth_method": "none",
+        },
+        HOSTED: {
+            "client_id": HOSTED,
+            "client_name": "Claude",
+            "client_uri": "https://claude.ai",
+            "redirect_uris": [REDIRECT],
+            "grant_types": ["authorization_code", "refresh_token"],
+            "response_types": ["code"],
+            "token_endpoint_auth_method": "none",
+        },
+    }))
+    .await;
+    connect_by_document(&mcp, CODE, "http://localhost:3118/callback").await;
+    connect_by_document(&mcp, CODE, "http://127.0.0.1:49152/callback").await;
+    connect_by_document(&mcp, HOSTED, REDIRECT).await;
+    let mut names: Vec<String> = mcp
+        .db
+        .assistant_grants("u1")
+        .await
+        .unwrap()
+        .into_iter()
+        .map(|g| g.client_name)
+        .collect();
+    names.sort();
+    assert_eq!(names, ["Claude", "Claude Code", "Claude Code"]);
+
+    // Claude Code on a path its document doesn't list is turned away.
+    let elsewhere = ConnectRequest {
+        client_id: CODE.into(),
+        redirect_uri: "http://localhost:3118/steal".into(),
+        code_challenge: pkce_challenge(VERIFIER),
+        code_challenge_method: "S256".into(),
+        state: String::new(),
+        scope: SCOPE.into(),
+        resource: String::new(),
+    };
+    assert!(check_connect(&mcp, &elsewhere).await.is_err());
+}
+
+/// A client with no registration: its client id is the URL of its
+/// metadata document, read when it connects, and the grant is keyed by it.
+#[tokio::test]
+async fn an_assistant_connects_by_its_metadata_document() {
+    const ID: &str = "https://claude.ai/oauth/mcp-oauth-client-metadata";
+    let mcp = mcp_serving(json!({
+        ID: {
+            "client_id": ID,
+            "client_name": "Claude",
+            "redirect_uris": [REDIRECT],
+            "token_endpoint_auth_method": "none",
+        },
+        "https://evil.example/claims-claude": {
+            "client_id": ID,
+            "client_name": "Claude",
+            "redirect_uris": ["https://evil.example/cb"],
+        },
+    }))
+    .await;
+    let get = Request::get("/.well-known/oauth-authorization-server")
+        .body(Body::empty())
+        .unwrap();
+    let (_, _, server) = send(&mcp, get).await;
+    assert_eq!(server["client_id_metadata_document_supported"], true);
+
+    let connect = ConnectRequest {
+        client_id: ID.into(),
+        redirect_uri: REDIRECT.into(),
+        code_challenge: pkce_challenge(VERIFIER),
+        code_challenge_method: "S256".into(),
+        state: "xyz".into(),
+        scope: SCOPE.into(),
+        resource: "https://schlift.test/api/mcp".into(),
+    };
+    let client = check_connect(&mcp, &connect).await.unwrap();
+    assert_eq!(display_name(&client), "Claude (claude.ai)");
+    // A redirect the document doesn't list, a document for another id, one
+    // that isn't there, an address that's not one to fetch: all refused.
+    for (client_id, redirect) in [
+        (ID, "https://evil.example/cb"),
+        (
+            "https://evil.example/claims-claude",
+            "https://evil.example/cb",
+        ),
+        ("https://claude.ai/missing", REDIRECT),
+        ("https://localhost/client", REDIRECT),
+    ] {
+        let bad = ConnectRequest {
+            client_id: client_id.into(),
+            redirect_uri: redirect.into(),
+            ..connect.clone()
+        };
+        assert!(check_connect(&mcp, &bad).await.is_err(), "{client_id}");
+    }
+
+    let code = mcp
+        .db
+        .issue_assistant_code(&crate::db::Consent {
+            user_id: "u1".into(),
+            client_id: ID.into(),
+            redirect_uri: REDIRECT.into(),
+            code_challenge: connect.code_challenge.clone(),
+            scope: SCOPE.into(),
+        })
+        .await
+        .unwrap();
+    let (status, _, tokens) = send(
+        &mcp,
+        post_form(
+            "/api/oauth/token",
+            &[
+                ("grant_type", "authorization_code"),
+                ("code", &code),
+                ("code_verifier", VERIFIER),
+                ("redirect_uri", REDIRECT),
+                ("client_id", ID),
+            ],
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{tokens}");
+    let access = tokens["access_token"].as_str().unwrap();
+    let (_, _, tools) = send(
+        &mcp,
+        post_json("/api/mcp", Some(access), rpc("tools/list", json!({}))),
+    )
+    .await;
+    assert!(tools["result"]["tools"].as_array().unwrap().len() > 5);
+    let grants = mcp.db.assistant_grants("u1").await.unwrap();
+    assert_eq!(grants.len(), 1);
+    assert_eq!(grants[0].client_name, "Claude");
+
+    let (status, _, refreshed) = send(
+        &mcp,
+        post_form(
+            "/api/oauth/token",
+            &[
+                ("grant_type", "refresh_token"),
+                ("refresh_token", tokens["refresh_token"].as_str().unwrap()),
+                ("client_id", ID),
+            ],
+        ),
+    )
+    .await;
+    assert_eq!(status, StatusCode::OK, "{refreshed}");
 }
