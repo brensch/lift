@@ -8,3 +8,4 @@
 - Home no longer asks how long you've got. Every lift gets three working sets unless your programme says otherwise; short on time, just do fewer or ask your AI. Each workout still shows roughly how long it takes.
 - On the watch, "How was that?" is asked on the workout face itself: the band asks it, Easy and Hard sit where the weight was, and the rep circle stays (tap it for a rep off). There's no separate screen and no skip.
 - In a workout, a lift whose name is too long for its row scrolls through it now and then while it's the one you're on.
+- The website's connect-your-bot page says exactly what the app's does: the address to add to your AI, Claude and ChatGPT buttons, and what to tell it.

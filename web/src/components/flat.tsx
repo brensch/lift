@@ -10,15 +10,13 @@ function Column({ className, children }: { className?: string; children: ReactNo
   return <div className={cn("max-w-xl mx-auto px-5", className)}>{children}</div>;
 }
 
-/** A section heading: small mono capitals on the darker band, full width. */
+/** A section heading on the darker band, full width, as the app's are. */
 export function FlatHeading({ children }: { children: ReactNode }) {
   return (
     // A pixel up, over the hairline that ends the row above, so the two read
     // as one line rather than a doubled one (as the app does).
     <div className="relative -mt-px bg-band border-y border-border">
-      <Column className="py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-muted">
-        {children}
-      </Column>
+      <Column className="py-2.5 text-base font-medium text-muted">{children}</Column>
     </div>
   );
 }
