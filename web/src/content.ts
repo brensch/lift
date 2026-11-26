@@ -27,6 +27,12 @@ export type LibraryTemplate = {
   exercises: string[];
 };
 
+/** One line of the home page's mock bot chat. */
+export type BotMessage =
+  | { kind: "you"; text: string }
+  | { kind: "bot"; text: string }
+  | { kind: "tool"; tool: string; text: string };
+
 export type Content = {
   name: string;
   tagline: string;
@@ -37,6 +43,7 @@ export type Content = {
   testimonials: Testimonial[];
   otherFeatures: { heading: string; items: { picture: string; text: string }[] };
   website: Record<string, string>;
+  botDemo: { title: string; messages: BotMessage[] };
   screenshots: Screenshot[];
   /** Every release, newest first, with everything that changed in it. */
   changelog: Release[];

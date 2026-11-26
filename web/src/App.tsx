@@ -11,6 +11,7 @@ import { DashboardPage } from "@/pages/dashboard";
 import { AdminPage } from "@/pages/admin";
 import { ChangesPage } from "@/pages/changes";
 import { ConnectPage } from "@/pages/connect";
+import { BotPage } from "@/pages/bot";
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
             <Route path="/demo" element={<DashboardPage key="demo" demo />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/connect" element={<ConnectPage />} />
+            <Route path="/bot" element={<BotPage />} />
           </Route>
         </Routes>
       </AuthProvider>

@@ -6,11 +6,13 @@ library;
 import 'package:fixnum/fixnum.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../gen/copy.dart';
 import '../gen/workout/v1/assistant.pb.dart';
 import '../gen/workout/v1/workout.pb.dart';
 import '../logic/utils.dart';
+import '../logic/website.dart';
 import '../providers/workout_provider.dart';
 import '../services/grpc_client.dart';
 import '../theme/app_icons.dart';
@@ -163,7 +165,7 @@ class _ProgramScreenState extends State<ProgramScreen> {
   Widget _grantRow(AssistantGrant g) {
     final t = copy.program;
     return FlatRow(
-      icon: AppIcons.science,
+      icon: AppIcons.bot,
       label: g.clientName,
       subtitle: g.lastUsedAt > 0
           ? t.lastUsed.replaceAll('{date}', _date(g.lastUsedAt))
@@ -251,6 +253,15 @@ class _ProgramScreenState extends State<ProgramScreen> {
                   _note(context, t.assistantsEmpty)
                 else
                   for (final g in _grants!) _grantRow(g),
+                FlatRow(
+                  icon: AppIcons.bot,
+                  label: t.assistantsConnect,
+                  subtitle: t.assistantsConnectSub,
+                  onTap: () => launchUrl(
+                    websiteUri('/bot'),
+                    mode: LaunchMode.externalApplication,
+                  ),
+                ),
               ],
             ),
     );

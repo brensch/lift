@@ -448,7 +448,7 @@ class Scenario {
     await settle(seconds: 5);
   }
 
-  /// Walk the whole onboarding flow (marker → unit → strength → bodyweight →
+  /// Walk the whole onboarding flow (marker → unit → strength → bodyweight → bot →
   /// templates) accepting the defaults — the library's default templates
   /// (StrongLifts A and B) come pre-ticked — skip the first-run tutorial and
   /// land on the home screen with START showing. Used by scenarios that need a
@@ -465,7 +465,9 @@ class Scenario {
     await mustSee(copy.onboarding.strength.title, seconds: 6);
     await tapText(copy.onboarding.next); // strength → bodyweight
     await mustSee(copy.onboarding.weight.field, seconds: 6);
-    await tapText(copy.onboarding.next); // bodyweight → templates
+    await tapText(copy.onboarding.next); // bodyweight → bot
+    await mustSee(copy.onboarding.bot.title, seconds: 6);
+    await tapText(copy.onboarding.bot.skip); // bot → templates
     await mustSee(copy.onboarding.templates.title, seconds: 6);
     await mustSee(defaultTemplateName, seconds: 10); // the library has loaded
     await tapText(copy.onboarding.templates.finish); // commit the defaults
