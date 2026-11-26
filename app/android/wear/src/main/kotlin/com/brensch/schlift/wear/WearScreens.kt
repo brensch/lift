@@ -44,6 +44,7 @@ import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.Font
@@ -156,6 +157,12 @@ internal data class WearFace(
     // A set just done that asks how it went: its Easy and Hard in place of
     // the weight (the band says the question; the rep circle stays).
     val answers: List<Wearable.WearAnswer> = emptyList(),
+    // The rep circle is a set just done the phone's banner holds (asked
+    // about, or a moment to tap reps off): drawn done, a tap a rep off.
+    val held: Boolean = false,
+    // Just done with no question: the share of the tap window left, which
+    // the circle's orange ring counts down; null for no ring.
+    val ring: (() -> Float)? = null,
 )
 
 // The done screen's left column, as a fraction of the face.
@@ -661,10 +668,10 @@ private fun WeightRow(
                 modifier = Modifier.padding(horizontal = d * 0.02f),
             )
         }
-        // Asking how it went: the set just done, as the phone's banner
-        // circle draws it (no ring), and a tap on it a rep off.
+        // Held: the set just done, as the phone's banner circle draws it,
+        // and a tap on it a rep off.
         val look =
-            if (face.answers.isNotEmpty() && !c.dim) {
+            if (face.held && !c.dim) {
                 CircleLook(c.text, c.text, c.ground)
             } else {
                 circleLook(face.repState, face.stageColor, c)
@@ -674,7 +681,24 @@ private fun WeightRow(
             modifier =
                 Modifier
                     .size(outer)
-                    .clip(CircleShape)
+                    .drawWithContent {
+                        drawContent()
+                        // The tap window, an orange ring over the circle's
+                        // edge running down, as the phone's.
+                        val left = face.ring?.invoke() ?: 0f
+                        if (left > 0f) {
+                            val stroke = size.minDimension * 0.08f
+                            drawArc(
+                                color = WearPalette.Ready,
+                                startAngle = -90f,
+                                sweepAngle = 360f * left.coerceIn(0f, 1f),
+                                useCenter = false,
+                                topLeft = Offset(stroke / 2, stroke / 2),
+                                size = Size(size.width - stroke, size.height - stroke),
+                                style = Stroke(width = stroke),
+                            )
+                        }
+                    }.clip(CircleShape)
                     .background(look.ring)
                     .clickable(enabled = enabled, onClick = onRep),
             contentAlignment = Alignment.Center,

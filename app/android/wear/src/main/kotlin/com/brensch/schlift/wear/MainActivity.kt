@@ -695,10 +695,58 @@ private fun WorkoutScreens(
             onAnswer(it.setId, a)
         }
     }
+    // A set just done lingers a moment on the rep circle, as on the phone's
+    // banner: an orange ring counts the window down and each tap on the
+    // circle takes a rep off and starts it again. The watch keeps it on its
+    // own, from the set it saw go from lifting to done; nothing is asked
+    // (a question's circle has no ring).
+    var lifted by remember(data.workoutId) { mutableStateOf<Wearable.WearSetCircle?>(null) }
+    var linger by remember(data.workoutId) { mutableStateOf<Linger?>(null) }
+    LaunchedEffect(data.emittedAt) {
+        val nowLifting = data.circlesList.firstOrNull { it.state == Wearable.WearCircleState.WEAR_CIRCLE_STATE_LIFTING }
+        val before = lifted
+        if (before != null && nowLifting?.setId != before.setId) {
+            val done = data.circlesList.firstOrNull { it.setId == before.setId }
+            val finished =
+                done == null ||
+                    done.state == Wearable.WearCircleState.WEAR_CIRCLE_STATE_FULL ||
+                    done.state == Wearable.WearCircleState.WEAR_CIRCLE_STATE_SHORT ||
+                    done.state == Wearable.WearCircleState.WEAR_CIRCLE_STATE_ZERO
+            if (finished && !data.hasQuestion()) {
+                linger = Linger(before.setId, done?.text ?: before.text, System.currentTimeMillis() + LINGER_MS)
+            }
+        }
+        lifted = nowLifting
+        // The phone's count once it lands (a tap there, or ours).
+        linger?.let { l ->
+            data.circlesList.firstOrNull { it.setId == l.setId }?.let { c ->
+                if (c.text != l.reps) linger = l.copy(reps = c.text)
+            }
+        }
+        if (data.hasQuestion() || nowLifting != null) linger = null
+    }
+    val justDone = if (question == null && !isAmbientMode) linger else null
+    val ringLeft = remember(data.workoutId) { mutableFloatStateOf(0f) }
+    val ringFill = remember(ringLeft) { { ringLeft.floatValue } }
+    LaunchedEffect(justDone?.setId, justDone?.untilMs) {
+        val until = justDone?.untilMs ?: return@LaunchedEffect
+        while (true) {
+            val left = until - System.currentTimeMillis()
+            ringLeft.floatValue = (left.toFloat() / LINGER_MS).coerceIn(0f, 1f)
+            if (left <= 0L) break
+            withFrameMillis { }
+        }
+        linger = null
+    }
+    val oneLessHere: () -> Unit = {
+        justDone?.let { l ->
+            onAnswer(l.setId, Wearable.QuickAnswer.QUICK_ANSWER_ONE_LESS)
+            // At once here; the phone's count replaces it when it lands.
+            val less = l.reps.toIntOrNull()?.let { (it - 1).coerceAtLeast(0).toString() } ?: l.reps
+            linger = l.copy(reps = less, untilMs = System.currentTimeMillis() + LINGER_MS)
+        }
+    }
 
-    // A question outranks done: a ramp's next set only loads once it's
-    // answered, so a workout of one new lift (an Empty one, say) reads as
-    // all done until then.
     if (data.state == WorkoutOuterClass.WorkoutState.WORKOUT_STATE_ALL_DONE && question == null) {
         DoneScreen(
             summary = if (data.hasCompletionSummary()) data.completionSummary else null,
@@ -804,10 +852,11 @@ private fun WorkoutScreens(
             // Asking: the reps the asked set logs, which a tap on the circle
             // takes one off, as the phone's banner circle does.
             reps =
-                question
-                    ?.answersList
-                    ?.firstOrNull { it.answer == Wearable.QuickAnswer.QUICK_ANSWER_ONE_LESS }
-                    ?.label ?: card.repsText,
+                justDone?.reps
+                    ?: question
+                        ?.answersList
+                        ?.firstOrNull { it.answer == Wearable.QuickAnswer.QUICK_ANSWER_ONE_LESS }
+                        ?.label ?: card.repsText,
             repState = inHand?.state ?: Wearable.WearCircleState.WEAR_CIRCLE_STATE_PENDING,
             bpm = latestBpm,
             // Dimmed, when rest ends in place of a ticking length.
@@ -817,6 +866,8 @@ private fun WorkoutScreens(
             plates = card.platesList,
             firstTimeText = card.firstTimeText,
             answers = question?.answersList ?: emptyList(),
+            held = question != null || justDone != null,
+            ring = if (justDone != null) ringFill else null,
         )
 
     PlateDialog(card = card, show = showPlates && !isAmbientMode, onDismiss = { showPlates = false })
@@ -832,6 +883,7 @@ private fun WorkoutScreens(
                 }
             when {
                 question != null -> oneLess?.let { answer(it.answer) }
+                justDone != null -> oneLessHere()
                 card.firstTime -> Unit
                 inHand != null -> tapSet(inHand.setId)
                 else -> primary?.let(fire)
@@ -856,3 +908,13 @@ private val ACTIVATING_KEYS =
         KeyEvent.KEYCODE_STEM_2,
         KeyEvent.KEYCODE_STEM_3,
     )
+
+/** A set just done, lingering on the rep circle until [untilMs]. */
+private data class Linger(
+    val setId: String,
+    val reps: String,
+    val untilMs: Long,
+)
+
+/** How long a set just done lingers for a tap, as the phone's window. */
+private const val LINGER_MS = 1250L
