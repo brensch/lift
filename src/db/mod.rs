@@ -15,6 +15,7 @@ mod auth;
 mod changes;
 pub mod ledger;
 mod migrate;
+mod reader;
 mod recovery;
 mod training;
 pub use changes::{Change, Topic};
@@ -31,6 +32,8 @@ pub type DbResult<T> = Result<T, Box<dyn std::error::Error + Send + Sync>>;
 #[derive(Clone)]
 pub struct ServerDb {
     pub read_pool: Pool<Sqlite>,
+    /// The reads every sync open makes, without sqlx's hop (`reader`).
+    reader: std::sync::Arc<reader::Reader>,
     write_pool: Pool<Sqlite>,
     join_requests: std::sync::Arc<session::JoinRequests>,
     changes: std::sync::Arc<changes::Changes>,
@@ -76,10 +79,15 @@ impl ServerDb {
             .connect_with(options)
             .await?;
         migrate::migrate(&write_pool).await?;
+        let reader = std::sync::Arc::new(reader::Reader::open(
+            Path::new(&db_path),
+            2 * std::thread::available_parallelism().map_or(4, |n| n.get()),
+        )?);
         let changes = std::sync::Arc::<changes::Changes>::default();
         let ledger = ledger::Ledger::open(
             data_dir,
             read_pool.clone(),
+            reader.clone(),
             write_pool.clone(),
             changes.clone(),
             timing,
@@ -93,6 +101,7 @@ impl ServerDb {
         );
         Ok(Self {
             read_pool,
+            reader,
             write_pool,
             join_requests: Default::default(),
             changes,

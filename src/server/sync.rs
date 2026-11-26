@@ -122,7 +122,9 @@ impl SyncService for ServerSyncService {
         // authenticate on the headers alone.
         let (metadata, extensions, inbound) = request.into_parts();
         let headers = Request::from_parts(metadata, extensions, ());
-        let user_id = authed_user_id(&headers, &self.db).await?;
+        // The login found good here stands until it expires or the stream is
+        // told it ended: the open doesn't check it again.
+        let (user_id, valid_until) = authed_login(&headers, &self.db).await?;
         let token = session_token(&headers).unwrap_or_default().to_string();
         info!(rpc = "Sync", %user_id, "open");
         // Watching before the first send, so nothing between is missed.
@@ -144,7 +146,7 @@ impl SyncService for ServerSyncService {
                 last_session: None,
                 last_requests: None,
                 checked: Instant::now(),
-                valid_until: i64::MAX,
+                valid_until,
                 caught_up: Default::default(),
                 legacy: false,
                 pushed: false,
@@ -419,6 +421,15 @@ impl Stream {
         self.checked.elapsed() > RECHECK_SIGNED_IN || now_unix() >= self.valid_until
     }
 
+    /// `ensure_signed_in`, when due (`signed_in_stale`): before anything is
+    /// taken or sent. A sign-out or deletion is told to the stream at once.
+    async fn recheck_signed_in(&mut self) -> ServerResult<()> {
+        if self.signed_in_stale() {
+            self.ensure_signed_in().await?;
+        }
+        Ok(())
+    }
+
     /// Ends the stream once its session is signed out, expired or deleted.
     async fn ensure_signed_in(&mut self) -> ServerResult<()> {
         let signed_in = self
@@ -439,9 +450,7 @@ impl Stream {
     /// The device's own events (placed, stored, and sent back down with
     /// everyone else's) or a heartbeat (answered with the head).
     async fn receive(&mut self, up: SyncRequest) -> ServerResult<Result<(), Closed>> {
-        if self.signed_in_stale() {
-            self.ensure_signed_in().await?;
-        }
+        self.recheck_signed_in().await?;
         match up.kind {
             Some(sync_request::Kind::Events(packed)) => {
                 let mut events = unpack_push(&packed).map_err(core_status)?;
@@ -611,22 +620,22 @@ impl Stream {
     }
 
     async fn send_session(&mut self) -> ServerResult<Result<(), Closed>> {
-        self.ensure_signed_in().await?;
-        // Read, and its session watched, before the session: the pointer is
-        // written before its change is announced, so a change that follows
-        // is never missed.
-        let pointer = self
+        self.recheck_signed_in().await?;
+        // Which session (one left idle is left here), then its changes
+        // watched, then it read: the pointer is written before its change is
+        // announced, so a change that follows is never missed.
+        let current = self
             .db
-            .get_user_session_pointer(&self.user_id)
+            .get_user_current_session(&self.user_id)
             .await
             .map_err(internal_error)?;
-        if self.session.as_ref().map(|(id, _)| id) != pointer.as_ref() {
-            self.session = pointer.map(|id| {
+        if self.session.as_ref().map(|(id, _)| id) != current.as_ref() {
+            self.session = current.clone().map(|id| {
                 let changes = self.db.watch(Topic::Session(id.clone()));
                 (id, changes)
             });
         }
-        let session = current_session(&self.db, &self.user_id).await?;
+        let session = session_view(&self.db, &self.user_id, current).await?;
         if self.last_session.as_ref() != Some(&session) {
             self.last_session = Some(session.clone());
             if let Err(closed) = self
@@ -673,7 +682,7 @@ impl Stream {
     }
 
     async fn send_requests(&mut self) -> ServerResult<Result<(), Closed>> {
-        self.ensure_signed_in().await?;
+        self.recheck_signed_in().await?;
         let requests = join_requests(&self.db, &self.user_id).await?;
         if self.last_requests.as_ref() == Some(&requests) {
             return Ok(Ok(()));

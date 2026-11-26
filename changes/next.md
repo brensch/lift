@@ -14,3 +14,4 @@
 - When a new lift is finding your starting weight, each ramp set now waits for you to say how it went: the next set doesn't load until you tap Easy or Hard. Easy takes a bigger jump up and a short 30-second rest; Hard gives you your normal rest before the next try.
 - After a set, the countdown ring on its circle runs down much faster, so the banner moves on to the next set sooner, and it no longer shows while the "how was that?" question is up — the circle is still tappable there to take a rep off, so a ring would have been misleading.
 - Deleting your account or adding a passkey now asks you to confirm with your passkey first, so an old session left open on its own isn't enough to do either.
+- Connecting to the server costs it about a third of what it did, so it keeps up when lots of phones connect at once, like right after an update.

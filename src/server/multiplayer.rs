@@ -402,12 +402,22 @@ impl MultiplayerService for ServerMultiplayerService {
 /// The caller's current session as they see it: who else is in it. Where
 /// each is up to the stream sends as their workout's events. Empty when not
 /// in one.
+#[cfg(test)]
 pub(super) async fn current_session(db: &ServerDb, user_id: &str) -> ServerResult<Session> {
-    let Some(session_id) = db
+    let current = db
         .get_user_current_session(user_id)
         .await
-        .map_err(internal_error)?
-    else {
+        .map_err(internal_error)?;
+    session_view(db, user_id, current).await
+}
+
+/// That view of a session the caller is known to be in (or of none).
+pub(super) async fn session_view(
+    db: &ServerDb,
+    user_id: &str,
+    current: Option<String>,
+) -> ServerResult<Session> {
+    let Some(session_id) = current else {
         return Ok(Session::default());
     };
     let mut members = Vec::new();
