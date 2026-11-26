@@ -202,7 +202,11 @@ class GrpcClient {
       options: ChannelOptions(
         credentials: credentials,
         idleTimeout: const Duration(minutes: 5),
-        connectionTimeout: const Duration(minutes: 10),
+        // How long a connection takes new calls (not how long one may take
+        // to connect: that's connectTimeout). One that still works is kept:
+        // each new one is a handshake, and the old one lingers as long as
+        // the Sync stream on it does. A closed one is replaced regardless.
+        connectionTimeout: const Duration(days: 1),
         connectTimeout: const Duration(seconds: 10),
         // The Sync stream is open for a whole workout; pings keep NATs
         // from idling it out. Its heartbeat notices a dead link, so these
@@ -232,17 +236,24 @@ class GrpcClient {
     );
   }
 
-  /// Tear down the current channel and create a fresh one.
-  /// Call this on app resume to recover from stale HTTP/2 connections.
-  /// Builds the new channel synchronously first, then shuts down the old one
-  /// in the background so that callers immediately get a working channel.
-  void resetChannel() {
-    AppLogger.instance.info('gRPC', 'resetChannel', {'host': host});
+  /// Tear down the current channel and create a fresh one: for a connection
+  /// that stopped answering (a network that dropped it without a word).
+  /// Builds the new channel synchronously first, so callers immediately get
+  /// a working one. Calls in flight on the old one finish on it, unless it's
+  /// known [dead], when they fail at once (`UNAVAILABLE`) rather than wait on
+  /// a socket that will never answer.
+  void resetChannel({bool dead = false}) {
+    AppLogger.instance.info('gRPC', 'resetChannel', {
+      'host': host,
+      'dead': dead,
+    });
     final oldChannel = channel;
     _buildChannel();
-    // Shut down the old channel in the background. Any in-flight calls on it
-    // will fail, but new calls already go through the fresh channel.
-    unawaited(oldChannel.shutdown().catchError((_) {}));
+    unawaited(
+      (dead ? oldChannel.terminate() : oldChannel.shutdown()).catchError(
+        (_) {},
+      ),
+    );
   }
 
   void setToken(String? token) {

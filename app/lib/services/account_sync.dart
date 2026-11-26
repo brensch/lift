@@ -11,10 +11,18 @@
 /// that died quietly (half-open wifi) within [_silenceLimit]; the stream is then
 /// dropped and dialled again, with backoff (to 10 s) while the server stays
 /// out of reach.
+///
+/// A connection is only ever replaced once it's known to be dead: each new
+/// one costs the phone round trips and the server a handshake and an open.
+/// Covered for a moment (a notification shade, a dialog, a call banner),
+/// the app keeps its stream. Back from the background, or woken after being
+/// frozen there, it asks the server whether the stream still reaches it (a
+/// heartbeat out of turn, [probeTimeout]) and keeps it if answered.
 library;
 
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter/widgets.dart';
@@ -33,9 +41,22 @@ class AccountSync extends ChangeNotifier
     implements CoreSource {
   final GrpcClient _grpc;
 
-  AccountSync(this._grpc) {
+  AccountSync(
+    this._grpc, {
+    this.probeTimeout = const Duration(seconds: 5),
+    Random? random,
+  }) : _random = random ?? Random() {
     WidgetsBinding.instance.addObserver(this);
   }
+
+  /// How long a probe of the stream waits for its answer before the link is
+  /// taken for dead: well past a slow mobile round trip, short enough that a
+  /// dead link is replaced while the person is still looking.
+  final Duration probeTimeout;
+
+  /// Spreads redials, so phones that lost the server together (a restart)
+  /// don't all come back in the same instant.
+  final Random _random;
 
   static const _tag = 'Sync';
   // Every open app sends one, so at scale they're most of what the server
@@ -100,6 +121,17 @@ class AccountSync extends ChangeNotifier
   Timer? _heartbeat;
   Timer? _redial;
   DateTime _lastHeard = DateTime.now();
+
+  /// When the heartbeat last ran: one running far later than due means the
+  /// app was frozen in the background meanwhile.
+  DateTime _lastBeat = DateTime.now();
+
+  /// A probe waiting for its answer ([_probe]).
+  Timer? _probing;
+
+  /// When the app left the screen (hidden, then paused); null while it's on
+  /// it, or only covered (inactive), when its stream carries on as it was.
+  DateTime? _awaySince;
 
   /// The last pending event sent on this stream; null until the server's
   /// first events on it are taken, before which nothing goes up: a server
@@ -278,6 +310,7 @@ class AccountSync extends ChangeNotifier
     _up = up;
     _sentUpTo = null;
     _lastHeard = DateTime.now();
+    _lastBeat = DateTime.now();
     final generation = _generation;
     // The stream opens with what this phone holds, the rules it folds by,
     // and what it has waiting; the server sends the rest (or, far behind,
@@ -521,7 +554,16 @@ class AccountSync extends ChangeNotifier
   void _beat() {
     final up = _up;
     if (up == null || up.isClosed) return;
-    if (DateTime.now().difference(_lastHeard) > _silenceLimit) {
+    final now = DateTime.now();
+    final overslept = now.difference(_lastBeat) > _heartbeatEvery * 2;
+    _lastBeat = now;
+    if (overslept) {
+      // Frozen in the background: the silence was the app's, not the
+      // link's. Asked rather than judged.
+      _probe();
+      return;
+    }
+    if (now.difference(_lastHeard) > _silenceLimit) {
       // Nothing back for too long: the link is dead even if the socket
       // doesn't know it. A fresh channel, and dial again.
       AppLogger.instance.warn(_tag, 'silent, redialling');
@@ -531,8 +573,36 @@ class AccountSync extends ChangeNotifier
     up.add(SyncRequest(heartbeat: Heartbeat()));
   }
 
+  /// Ask the server now whether the stream still reaches it: a heartbeat
+  /// out of turn. Anything heard within [probeTimeout] keeps the stream;
+  /// nothing, and the link is dead (a network that dropped it while the app
+  /// was away): a fresh connection, dialled at once.
+  void _probe() {
+    final up = _up;
+    if (up == null || up.isClosed || _probing != null) return;
+    final asked = DateTime.now();
+    final generation = _generation;
+    up.add(SyncRequest(heartbeat: Heartbeat()));
+    _probing = Timer(probeTimeout, () {
+      _probing = null;
+      if (generation != _generation) return;
+      if (DateTime.now().difference(asked) > probeTimeout * 2) {
+        // Frozen again while it waited: no verdict. Asked afresh.
+        _probe();
+        return;
+      }
+      if (!_lastHeard.isBefore(asked)) return;
+      AppLogger.instance.warn(_tag, 'unanswered, redialling');
+      _lost(null, resetChannel: true);
+    });
+  }
+
   void _lost(Object? error, {bool resetChannel = false}) {
     if (_up == null) return;
+    // A link found dead, or one lost while it was being asked (closed while
+    // the app was away): no server turned it away, so it's dialled again at
+    // once rather than after a backoff.
+    final atOnce = resetChannel || _probing != null;
     if (error is GrpcError && error.code == StatusCode.unauthenticated) {
       // The session lapsed: nothing to dial until the user signs in again.
       _hangUp();
@@ -551,16 +621,24 @@ class AccountSync extends ChangeNotifier
       return;
     }
     _hangUp();
-    if (resetChannel) _grpc.resetChannel();
+    // Dead: calls stuck on it fail now (and are retried) instead of waiting
+    // out a socket that will never answer.
+    if (resetChannel) _grpc.resetChannel(dead: true);
     _connected = false;
     notifyListeners();
     if (_core == null) return;
+    if (atOnce) {
+      _dial();
+      return;
+    }
     _failures++;
     final seconds = 1 << (_failures - 1).clamp(0, 5);
-    final wait = Duration(seconds: seconds) > _maxBackoff
+    final step = Duration(seconds: seconds) > _maxBackoff
         ? _maxBackoff
         : Duration(seconds: seconds);
-    _redial = Timer(wait, _dial);
+    // Half to all of the step: phones that lost the server together come
+    // back spread out, not in one burst.
+    _redial = Timer(step * (0.5 + _random.nextDouble() / 2), _dial);
   }
 
   /// Called when the server turns the session down, before the account is
@@ -579,6 +657,8 @@ class AccountSync extends ChangeNotifier
     _generation++;
     _heartbeat?.cancel();
     _heartbeat = null;
+    _probing?.cancel();
+    _probing = null;
     unawaited(_down?.cancel());
     _down = null;
     unawaited(_up?.close());
@@ -586,16 +666,41 @@ class AccountSync extends ChangeNotifier
     _connected = false;
   }
 
-  /// Back in the foreground: whatever the stream was doing in the
-  /// background, start it afresh now.
+  /// Only a return from the background matters: covered for a moment
+  /// (inactive: a notification shade, a dialog, a call banner) the stream
+  /// carried on, and is left as it is.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed || _core == null) return;
-    // Asked again: a refusal sets it straight back.
-    _updateRequired = false;
-    _hangUp();
-    _failures = 0;
-    _dial();
+    switch (state) {
+      case AppLifecycleState.hidden || AppLifecycleState.paused:
+        _awaySince ??= DateTime.now();
+      case AppLifecycleState.resumed:
+        final away = _awaySince;
+        _awaySince = null;
+        if (away != null) _back();
+      case AppLifecycleState.inactive || AppLifecycleState.detached:
+        break;
+    }
+  }
+
+  /// Back on screen from the background: the stream as it was if it still
+  /// reaches the server, otherwise a new one now.
+  void _back() {
+    if (_core == null) return;
+    if (_updateRequired) {
+      // Asked again: a refusal sets it straight back.
+      _updateRequired = false;
+      _failures = 0;
+      _dial();
+      return;
+    }
+    if (_up == null) {
+      // Waiting out a backoff (or never dialled): try now.
+      _failures = 0;
+      _dial();
+      return;
+    }
+    _probe();
   }
 
   bool _disposed = false;

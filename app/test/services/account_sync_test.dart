@@ -33,11 +33,26 @@ class _Scripted extends SyncServiceBase {
   /// Called with each request the phone sends up.
   void Function(SyncRequest)? onRequest;
 
+  /// Heartbeats answered (as the server does) or not (a link that died
+  /// without a word: what goes up reaches no one).
+  bool answerHeartbeats = true;
+
+  /// Heartbeats that came up, on any stream.
+  int heartbeats = 0;
+
   @override
   Stream<SyncResponse> sync(ServiceCall call, Stream<SyncRequest> request) {
-    request.listen((r) => onRequest?.call(r), onError: (_) {});
     final down = StreamController<SyncResponse>();
     streams.add(down);
+    request.listen((r) {
+      onRequest?.call(r);
+      if (r.hasHeartbeat()) {
+        heartbeats++;
+        if (answerHeartbeats && !down.isClosed) {
+          down.add(SyncResponse(head: Int64(0)));
+        }
+      }
+    }, onError: (_) {});
     return down.stream;
   }
 }
@@ -100,11 +115,45 @@ void main() {
   late Directory dir;
   Server? server;
 
-  Future<AccountSync> serve(SyncServiceBase service) async {
+  Future<AccountSync> serve(
+    SyncServiceBase service, {
+    Duration probeTimeout = const Duration(seconds: 5),
+  }) async {
     final s = Server.create(services: [service]);
     await s.serve(address: 'localhost', port: 0);
     server = s;
-    return AccountSync(GrpcClient(host: 'localhost', port: s.port!));
+    return AccountSync(
+      GrpcClient(host: 'localhost', port: s.port!),
+      probeTimeout: probeTimeout,
+    );
+  }
+
+  /// To the background and back, as the app goes: hidden, paused, then on
+  /// screen again.
+  void awayAndBack(AccountSync sync) {
+    for (final state in [
+      AppLifecycleState.inactive,
+      AppLifecycleState.hidden,
+      AppLifecycleState.paused,
+      AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+      AppLifecycleState.resumed,
+    ]) {
+      sync.didChangeAppLifecycleState(state);
+    }
+  }
+
+  /// Signed in on [service], with the server's first events taken.
+  Future<AccountSync> connected(
+    _Scripted service, {
+    Duration probeTimeout = const Duration(milliseconds: 400),
+  }) async {
+    final sync = await serve(service, probeTimeout: probeTimeout);
+    await sync.signIn('u1', 'Me');
+    await _until(() => service.streams.length == 1);
+    service.streams.first.add(SyncResponse(events: Events(head: Int64(0))));
+    await _until(() => sync.connected);
+    return sync;
   }
 
   setUp(() async {
@@ -137,8 +186,14 @@ void main() {
     expect(service.calls, 1);
     expect(sync.connected, isFalse);
 
-    // Back in the foreground the server is asked again, once.
+    // Only covered (a shade, a dialog): not asked again.
+    sync.didChangeAppLifecycleState(AppLifecycleState.inactive);
     sync.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    expect(service.calls, 1);
+
+    // Back from the background the server is asked again, once.
+    awayAndBack(sync);
     await _until(() => service.calls == 2 && sync.updateRequired);
     await Future<void>.delayed(const Duration(milliseconds: 1500));
     expect(service.calls, 2);
@@ -398,6 +453,128 @@ void main() {
     // What waits is the workout under way: the server places it when it
     // ends, so it isn't unsynced.
     expect(sync.unsynced, 0);
+
+    await sync.signOut();
+  });
+
+  test('covered for a moment, the stream carries on', () async {
+    final service = _Scripted();
+    final sync = await connected(service);
+
+    // A notification shade, a dialog, a call banner: inactive, then back.
+    for (var i = 0; i < 5; i++) {
+      sync.didChangeAppLifecycleState(AppLifecycleState.inactive);
+      sync.didChangeAppLifecycleState(AppLifecycleState.resumed);
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    expect(service.streams, hasLength(1));
+    expect(service.heartbeats, 0, reason: 'nothing asked either');
+    expect(sync.connected, isTrue);
+
+    await sync.signOut();
+  });
+
+  test('back from the background, a stream that answers is kept', () async {
+    final service = _Scripted();
+    final sync = await connected(service);
+
+    for (var i = 0; i < 3; i++) {
+      awayAndBack(sync);
+      await _until(() => service.heartbeats == i + 1);
+      await Future<void>.delayed(const Duration(milliseconds: 600));
+    }
+    expect(service.streams, hasLength(1));
+    expect(sync.connected, isTrue);
+
+    await sync.signOut();
+  });
+
+  test('back from the background, a dead link is replaced at once', () async {
+    final service = _Scripted();
+    final sync = await connected(service);
+
+    // The network dropped the connection while the app was away: what goes
+    // up reaches no one, and nothing comes down.
+    service.answerHeartbeats = false;
+    final asked = DateTime.now();
+    awayAndBack(sync);
+    await _until(() => service.streams.length == 2);
+    // The probe's wait, and no backoff after it.
+    expect(
+      DateTime.now().difference(asked),
+      lessThan(const Duration(milliseconds: 1200)),
+    );
+
+    // The new stream works, and is the only one dialled.
+    service.answerHeartbeats = true;
+    service.streams.last.add(_joinRequest('after'));
+    await _until(() => sync.joinRequests.requests.isNotEmpty);
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    expect(service.streams, hasLength(2));
+    expect(sync.connected, isTrue);
+
+    await sync.signOut();
+  });
+
+  test(
+    'a stream that ended while the app was away is dialled again at once',
+    () async {
+      final service = _Scripted();
+      final sync = await connected(service);
+      // Asked as it comes back, and closed before it answers: the server
+      // let it go while the app was frozen.
+      service.answerHeartbeats = false;
+      awayAndBack(sync);
+      await _until(() => service.heartbeats == 1);
+      final closed = DateTime.now();
+      await service.streams.first.close();
+      await _until(() => service.streams.length == 2);
+      expect(
+        DateTime.now().difference(closed),
+        lessThan(const Duration(milliseconds: 400)),
+        reason: 'not after a backoff',
+      );
+
+      await sync.signOut();
+    },
+  );
+
+  test(
+    'back from the background while waiting to redial, it dials now',
+    () async {
+      final service = _Scripted();
+      final sync = await connected(service);
+      // Dropped by the server three times over: the backoff grows to seconds.
+      for (var i = 1; i <= 3; i++) {
+        await service.streams.last.close();
+        await _until(() => service.streams.length == i + 1);
+      }
+      await service.streams.last.close();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      final waiting = service.streams.length;
+
+      awayAndBack(sync);
+      await _until(() => service.streams.length == waiting + 1);
+      // Taken up at once (well inside the backoff), and only once.
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      expect(service.streams, hasLength(waiting + 1));
+
+      await sync.signOut();
+    },
+  );
+
+  test('a stream lost on its own is dialled again after a backoff', () async {
+    final service = _Scripted();
+    final sync = await connected(service);
+    final closed = DateTime.now();
+    await service.streams.first.close();
+    await _until(() => service.streams.length == 2);
+    // Half to all of the first second: not in the same instant as every
+    // other phone the server let go.
+    expect(
+      DateTime.now().difference(closed),
+      greaterThanOrEqualTo(const Duration(milliseconds: 450)),
+    );
 
     await sync.signOut();
   });

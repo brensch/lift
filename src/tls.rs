@@ -34,8 +34,12 @@ const HANDSHAKE: Duration = Duration::from_secs(10);
 const RECHECK: Duration = Duration::from_secs(600);
 
 /// A connection idle this long is pinged: one gone quiet (a phone that lost
-/// its network) is closed instead of held.
-const KEEPALIVE: Duration = Duration::from_secs(60);
+/// its network) is closed instead of held. Long enough for a phone put away
+/// between sets: the app is frozen then and can't answer, but its connection
+/// still works, and it picks it up again (asking first) when it's back on
+/// screen rather than making a new one. Holding a quiet connection costs the
+/// server a few KB; making one costs it a handshake and an open.
+const KEEPALIVE: Duration = Duration::from_secs(300);
 const KEEPALIVE_TIMEOUT: Duration = Duration::from_secs(20);
 
 #[derive(Clone)]
