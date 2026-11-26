@@ -25,6 +25,13 @@ abstract final class AppIcons {
     fontPackage: _package,
   );
 
+  /// Phosphor `robot`: an assistant (a bot connected over MCP).
+  static const bot = IconData(
+    0xe762,
+    fontFamily: _family,
+    fontPackage: _package,
+  );
+
   /// Phosphor `article`.
   static const article = IconData(
     0xe0a8,

@@ -1,6 +1,6 @@
 use super::*;
 use crate::db::Consent;
-use crate::mcp::{check_connect, redirect_back, Mcp, CAN, SCOPE};
+use crate::mcp::{check_connect, display_name, redirect_back, Mcp, CAN, SCOPE};
 
 // ── Assistant Service ──
 //
@@ -35,7 +35,7 @@ impl AssistantService for ServerAssistantService {
             })
             .unwrap_or_default();
         Ok(Response::new(DescribeConnectResponse {
-            client_name: client.client_name,
+            client_name: display_name(&client),
             redirect_host,
             can: CAN.iter().map(|c| c.to_string()).collect(),
         }))

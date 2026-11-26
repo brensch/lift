@@ -116,6 +116,25 @@ impl ServerDb {
         Ok(client)
     }
 
+    /// A client whose id is its metadata document's URL, as the document
+    /// last said: kept as a row so codes and grants can name it, its name
+    /// and redirects updated each time it's read.
+    pub async fn save_url_assistant(&self, client: &Client) -> DbResult<()> {
+        sqlx::query(
+            "INSERT INTO assistant_clients (client_id, client_name, redirect_uris, created_at)
+             VALUES (?, ?, ?, ?)
+             ON CONFLICT (client_id) DO UPDATE
+             SET client_name = excluded.client_name, redirect_uris = excluded.redirect_uris",
+        )
+        .bind(&client.client_id)
+        .bind(&client.client_name)
+        .bind(serde_json::to_string(&client.redirect_uris)?)
+        .bind(now_unix())
+        .execute(&self.write_pool)
+        .await?;
+        Ok(())
+    }
+
     pub async fn assistant_client(&self, client_id: &str) -> DbResult<Option<Client>> {
         let row: Option<(String, String, String)> = sqlx::query_as(
             "SELECT client_id, client_name, redirect_uris FROM assistant_clients WHERE client_id = ?",

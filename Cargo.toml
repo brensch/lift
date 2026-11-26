@@ -28,6 +28,12 @@ tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"]
 tokio-rustls = { version = "0.26", default-features = false, features = ["ring", "tls12", "logging"] }
 rustls-pemfile = "2"
 hyper-util = { version = "0.1", features = ["server-auto", "tokio", "service"] }
+# Fetching an assistant's client metadata document (src/mcp/cimd.rs): one
+# GET over a connection to an address checked first, so no HTTP client
+# that resolves names itself.
+hyper = { version = "1", features = ["client", "http1"] }
+http-body-util = "0.1"
+webpki-roots = "1"
 tower = { version = "0.5", features = ["util"] }
 # The event log: each flush is one Parquet file (src/ledger).
 parquet = { version = "60", default-features = false, features = ["arrow", "zstd"] }
@@ -35,7 +41,6 @@ arrow-array = "60"
 arrow-schema = "60"
 
 [dev-dependencies]
-http-body-util = "0.1"
 # A software passkey, to run the WebAuthn ceremonies in tests.
 webauthn-authenticator-rs = { version = "0.6", default-features = false, features = ["softpasskey"] }
 

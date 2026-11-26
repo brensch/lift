@@ -15,19 +15,19 @@ name: Schlift
 
 # both — one line: the byline on the Play feature graphic and the website,
 # and the first half of Play's one-liner
-tagline: Free, simple, planned lifting.
+tagline: Free programmable workout tracker.
 
 # App Store only — the subtitle under the name (30). Apple rejects any price
 # in it, "free" included (guideline 2.3.7), so it is not the tagline; CI
 # checks for price words.
-app_store_subtitle: Simple lifting planned for you
+app_store_subtitle: Programmable workout tracker
 
 # both — App Store promotional text above the description (170). Play's
 # one-liner on the listing card is tagline + a space + this, and must fit 80.
 promotional_text: Before you know it you'll be huge.
 
 # App Store only — comma-separated search terms, no spaces needed after commas (100)
-keywords: gym,workout,lifting,strength,hypertrophy,bodybuilding,training,log,tracker,progress
+keywords: gym,workout,lifting,strength,hypertrophy,bodybuilding,training,log,tracker,progress,ai,program
 
 # The store description is composed from the three pieces below, in this
 # order: about, then the testimonials under their heading, then other_features.
@@ -36,6 +36,8 @@ keywords: gym,workout,lifting,strength,hypertrophy,bodybuilding,training,log,tra
 
 # both — the opening paragraphs. Blank lines separate paragraphs.
 about: |
+  Get your bot to set up a workout programme for you, choose from our (fully excellent) defaults, or make your own. Unlimited saved workouts, sexy interface, helpful companion wearables app, unlimited gains.
+
   Schlift tracks which muscles you've worked out recently, and suggests a workout from your favourite routines based on what hasn't been trained that week. 
   
   As you successfully lift, it increases the weights/reps according to SCIENCE.
@@ -98,8 +100,56 @@ website:
   # The /changes page: every release from changes/<version>.md. Placeholders.
   changes_heading: Changes
   changes_text: Everything that changed, release by release.
+  # The bot section on the home page, beside the mock chat (bot_demo
+  # below), and its button to the /bot page.
+  bot_eyebrow: Connect your bot
+  bot_heading: Tired of thinking?
+  bot_text: Bots can read white papers written by professional bro science purveyors much better than humans can. Connect your bot below, tell it your goals, and it will set up your routine for you exactly to your liking.
+  bot_button: Connect your bot
+  bot_works_with: Works with Claude, ChatGPT and any bot that speaks MCP.
+  # The /bot page: how to connect. Placeholders.
+  bot_page_title: CONNECT YOUR BOT
+  bot_page_text: Your bot talks to Schlift over MCP. It can read your training and set your programme; it can't record or delete anything. Takes about a minute.
+  bot_step_1_title: Copy this address
+  bot_step_1_text: This is the address your bot connects to.
+  bot_copy: Copy
+  bot_copied: Copied
+  bot_step_2_title: Add it to your bot
+  bot_step_2_claude: "Claude: Settings → Connectors → Add custom connector. Name it Schlift and paste the address."
+  bot_step_2_chatgpt: "ChatGPT: Settings → Apps & Connectors → Advanced → turn on developer mode, then Create, and paste the address."
+  bot_step_2_other: Anything else that speaks MCP over HTTP with OAuth works the same way.
+  bot_open_claude: Open Claude's connectors
+  bot_step_3_title: Allow it
+  bot_step_3_text: Your bot sends you back here. Sign in with your passkey and press Allow. You can cut it off any time from the app or schlift.com/connect.
+  bot_step_4_title: Tell it your goals
+  bot_step_4_text: Something like this. Be as specific or as vague as you like, it'll ask.
+  bot_example_prompt: Use Schlift to set up my programme. I can train 4 days a week for about an hour. I want bigger shoulders and a stronger deadlift. Home gym with a barbell, rack, dumbbells and a pull-up bar.
+  bot_step_5_title: Go lift
+  bot_step_5_text: The programme turns up on your phone straight away. When you want it changed, just ask again.
   cta_heading: Ready to schlift?
   cta_text: Download Schlift and start your first session in under a minute (I timed it).
+
+# The mock chat on the home page's bot section: a person asks their bot for
+# a programme and it builds one with Schlift's tools. `you` and `bot` are
+# messages; `tool` is a tool call drawn as a small chip (the tool's real
+# name, then what it did). Shown in order, as if it were happening.
+bot_demo:
+  title: Claude
+  messages:
+    - you: Set up my programme. 4 days a week, about an hour. I want bigger shoulders and a stronger deadlift. Home gym, barbell, rack, dumbbells, pull-up bar.
+    - tool: read_guide
+      text: Read how Schlift programs work
+    - tool: get_profile
+      text: Pounds, intermediate, no workouts yet
+    - tool: list_library
+      text: Looked at the ready-made splits
+    - bot: Going with an upper/lower split, twice each. Deadlift heavy on Monday with a lighter pull on Thursday, and extra shoulder work on both upper days.
+    - tool: simulate_program
+      text: Ran it forward 4 weeks
+    - bot: "Deadlift goes 225 → 265 lb over the month, overhead press 95 → 110. Rows and pulldowns keep your back up with all that pressing."
+    - tool: set_program
+      text: "Upper A, Lower A, Upper B, Lower B"
+    - bot: Done. It's on your phone. Start with Upper A today and I'll bump the weights as you hit your reps.
 
 # Screenshot slides in STORE order. File numbers are capture order
 # (app/integration_test/store_shots_test.dart), so they need not be sequential.

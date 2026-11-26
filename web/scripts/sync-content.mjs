@@ -88,6 +88,16 @@ const content = {
     ),
   },
   website: listing.website ?? {},
+  botDemo: {
+    title: String(listing.bot_demo?.title ?? ""),
+    messages: (listing.bot_demo?.messages ?? []).map((m) =>
+      m.tool
+        ? { kind: "tool", tool: String(m.tool), text: String(m.text ?? "") }
+        : m.you
+          ? { kind: "you", text: String(m.you) }
+          : { kind: "bot", text: String(m.bot ?? "") },
+    ),
+  },
   screenshots: (listing.screenshots ?? []).map((s) => ({
     src: `/generated/screens/${s.file}`,
     title: s.title,
