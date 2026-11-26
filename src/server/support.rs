@@ -80,12 +80,21 @@ pub(super) fn session_token<T>(request: &Request<T>) -> Option<&str> {
 }
 
 pub(super) async fn authed_user_id<T>(request: &Request<T>, db: &ServerDb) -> ServerResult<String> {
+    Ok(authed_login(request, db).await?.0)
+}
+
+/// The same, with when the caller's login expires (Unix seconds): a stream
+/// opened on it needs no other check until then, or until told it ended.
+pub(super) async fn authed_login<T>(
+    request: &Request<T>,
+    db: &ServerDb,
+) -> ServerResult<(String, i64)> {
     check_app_version(request)?;
     let token = session_token(request).ok_or_else(|| {
         tracing::warn!(rpc_auth = "missing_token", "auth failed: no session token");
         Status::unauthenticated("Missing session token")
     })?;
-    db.validate_auth_session(token)
+    db.validate_auth_session_until(token)
         .await
         .map_err(internal_error)?
         .ok_or_else(|| {

@@ -1,5 +1,6 @@
 use super::migrate::token_hash;
 use super::*;
+use rusqlite::OptionalExtension;
 use schlift::workout::v1::User;
 
 /// How long a login lasts unused: every use pushes it back to this.
@@ -281,6 +282,7 @@ impl ServerDb {
     /// The user a login belongs to, if it hasn't expired. A login in use
     /// stays signed in: its expiry slides to `LOGIN_SECONDS` from now
     /// (written once it is more than a day old).
+    #[cfg(test)]
     pub async fn validate_auth_session(&self, token: &str) -> DbResult<Option<String>> {
         Ok(self
             .validate_auth_session_until(token)
@@ -297,13 +299,13 @@ impl ServerDb {
     ) -> DbResult<Option<(String, i64)>> {
         let now = now_unix();
         let hash = token_hash(token);
-        let row: Option<(String, i64)> = sqlx::query_as(
-            "SELECT user_id, expires_at FROM logins WHERE token_hash = ? AND expires_at > ?",
-        )
-        .bind(&hash)
-        .bind(now)
-        .fetch_optional(&self.read_pool)
-        .await?;
+        let row: Option<(String, i64)> = self.reader.read(|c| {
+            c.prepare_cached(
+                "SELECT user_id, expires_at FROM logins WHERE token_hash = ? AND expires_at > ?",
+            )?
+            .query_row((&hash, now), |r| Ok((r.get(0)?, r.get(1)?)))
+            .optional()
+        })?;
         let Some((user_id, expires_at)) = row else {
             return Ok(None);
         };

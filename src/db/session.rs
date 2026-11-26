@@ -1,4 +1,5 @@
 use super::*;
+use rusqlite::OptionalExtension;
 use std::collections::HashMap;
 use std::sync::Mutex;
 
@@ -152,18 +153,20 @@ impl ServerDb {
 
     /// The user's row in the session they're in, idle or not.
     async fn membership(&self, user_id: &str) -> DbResult<Option<Membership>> {
-        let row = sqlx::query(
-            "SELECT session_id, joined_at, workout_id FROM session_members
-             WHERE user_id = ? AND left_at = 0",
-        )
-        .bind(user_id)
-        .fetch_optional(&self.read_pool)
-        .await?;
-        Ok(row.map(|r| Membership {
-            session_id: r.get("session_id"),
-            joined_at: r.get("joined_at"),
-            workout_id: r.get("workout_id"),
-        }))
+        self.reader.read(|c| {
+            c.prepare_cached(
+                "SELECT session_id, joined_at, workout_id FROM session_members
+                 WHERE user_id = ? AND left_at = 0",
+            )?
+            .query_row([user_id], |r| {
+                Ok(Membership {
+                    session_id: r.get(0)?,
+                    joined_at: r.get(1)?,
+                    workout_id: r.get(2)?,
+                })
+            })
+            .optional()
+        })
     }
 
     /// What a member's stored events say of their part in their session,

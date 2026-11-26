@@ -3105,6 +3105,7 @@ dependencies = [
  "hyper-util",
  "parquet",
  "prost",
+ "rusqlite",
  "rustls-pemfile",
  "schlift-core",
  "serde_json",

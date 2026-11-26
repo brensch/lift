@@ -176,6 +176,8 @@ impl Log {
 pub struct Ledger {
     dir: PathBuf,
     read_pool: Pool<Sqlite>,
+    /// Where an account is, read as it loads (`Ledger::load`).
+    reader: Arc<super::reader::Reader>,
     /// A batch's snapshot reads, apart from every other read.
     snapshot_pool: Pool<Sqlite>,
     write_pool: Pool<Sqlite>,
@@ -295,6 +297,7 @@ impl Ledger {
     pub(super) async fn open(
         data_dir: &Path,
         read_pool: Pool<Sqlite>,
+        reader: Arc<super::reader::Reader>,
         write_pool: Pool<Sqlite>,
         changes: Arc<Changes>,
         timing: Timing,
@@ -311,6 +314,7 @@ impl Ledger {
             dir,
             snapshot_pool,
             read_pool,
+            reader,
             write_pool,
             changes,
             timing,
@@ -400,17 +404,18 @@ impl Ledger {
             Option<bool>,
             Option<String>,
         );
-        let (exists, seq, last_id, ours, active): Loaded = sqlx::query_as(
-            "SELECT EXISTS (SELECT 1 FROM users WHERE id = ?1),
-                    (SELECT seq FROM account_snapshots WHERE user_id = ?1),
-                    (SELECT last_id FROM account_snapshots WHERE user_id = ?1),
-                    (SELECT fold = ?2 FROM account_snapshots WHERE user_id = ?1),
-                    (SELECT active_workout FROM account_snapshots WHERE user_id = ?1)",
-        )
-        .bind(user_id)
-        .bind(schlift_core::FOLD)
-        .fetch_one(&self.read_pool)
-        .await?;
+        let (exists, seq, last_id, ours, active): Loaded = self.reader.read(|c| {
+            c.prepare_cached(
+                "SELECT EXISTS (SELECT 1 FROM users WHERE id = ?1),
+                        (SELECT seq FROM account_snapshots WHERE user_id = ?1),
+                        (SELECT last_id FROM account_snapshots WHERE user_id = ?1),
+                        (SELECT fold = ?2 FROM account_snapshots WHERE user_id = ?1),
+                        (SELECT active_workout FROM account_snapshots WHERE user_id = ?1)",
+            )?
+            .query_row((user_id, schlift_core::FOLD), |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?))
+            })
+        })?;
         log.exists = exists;
         log.head = seq.unwrap_or(0);
         log.last_id = last_id.unwrap_or_default();

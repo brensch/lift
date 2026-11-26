@@ -40,8 +40,10 @@ pub use sync::ServerSyncService;
 pub use user::ServerUserService;
 pub use workout::ServerWorkoutService;
 
-use multiplayer::{current_session, join_requests};
+#[cfg(test)]
+use multiplayer::current_session;
+use multiplayer::{join_requests, session_view};
 use support::{
-    as_seen_by_others, authed_admin_id, authed_fresh_user_id, authed_user_id, client_labels,
-    core_status, internal_error, read_api, session_token, ServerResult,
+    as_seen_by_others, authed_admin_id, authed_fresh_user_id, authed_login, authed_user_id,
+    client_labels, core_status, internal_error, read_api, session_token, ServerResult,
 };
