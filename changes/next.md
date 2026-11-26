@@ -1,1 +1,5 @@
 - Screens slide in again when you open them, and on iPhone you can swipe back from the edge; the library upgrade had quietly turned that off.
+- Your programme decides which workout Home suggests: by what your muscles need most (as before), strictly in order (Upper A, Lower A, Upper B…), or by day of the week. An AI assistant can set this up for you.
+- An AI assistant can give each muscle its own weekly target, say more shoulders and less chest, and Home's "This week" bars show each muscle's own target.
+- Setup is restyled to match the rest of the app, and the bot page has everything you need to connect an AI right there.
+- The website's connect page, where you allow an AI assistant, is clearer: what it can and can't do, each in its own section.

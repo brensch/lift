@@ -311,7 +311,7 @@ void main() {
     await shoot(tester, 'onboarding_bot');
     final t = copy.onboarding.bot;
     expect(find.text(t.title), findsOneWidget);
-    expect(find.text(t.button), findsOneWidget);
+    expect(find.text(t.openClaude), findsOneWidget);
     await tester.tap(find.text(t.skip));
     expect(skipped, 1);
 
@@ -326,7 +326,7 @@ void main() {
     await shoot(tester, 'onboarding_bot_done');
     expect(find.text(t.done), findsOneWidget);
     expect(find.text('Upper A'), findsOneWidget);
-    expect(find.text(t.button), findsNothing);
+    expect(find.text(t.openClaude), findsNothing);
     await tester.tap(find.text(t.finish));
     expect(finished, 1);
   });

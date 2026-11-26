@@ -169,6 +169,7 @@ pub fn workout(store: &mut Store, lifter: &mut Lifter, start: i64) -> Result<i64
         "GetHome",
         GetHomeRequest {
             budget_minutes: BUDGET_MINUTES,
+            ..Default::default()
         },
         start,
     )?;
@@ -350,6 +351,7 @@ fn home(store: &mut Store, now: i64) -> Result<GetHomeResponse> {
         "GetHome",
         GetHomeRequest {
             budget_minutes: BUDGET_MINUTES,
+            ..Default::default()
         },
         now,
     )

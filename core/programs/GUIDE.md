@@ -106,6 +106,8 @@ equipment can load in their unit. 20 kg is 44.0925 lb. A 2.5 kg step is
   "notes": "Three days a week; wants a bigger squat.",
   "exercises": [ … ],
   "workouts": [ … ],
+  "next": "volume",
+  "schedule": { … },
   "classes": { … },
   "progressions": { … },
   "estimate": { … },
@@ -199,8 +201,7 @@ The workouts the person picks from, in their order:
 - `name`: 1 to 60 characters.
 - `exercises`: keys from `exercises`, in order, each once, at most 30.
 - `rotation`: `true` puts it in the rotation that Home suggests from;
-  `false` makes it a reserve. Home suggests the rotation workout whose
-  rested muscles are furthest behind on the week's volume.
+  `false` makes it a reserve. Which one Home suggests is `next`'s rule.
 - `notes`: free text.
 - `from_library`: the library entry it was copied from, or `""`.
 - `groups` (optional): lifts whose sets alternate, a superset (two) or a
@@ -219,6 +220,39 @@ The workouts the person picks from, in their order:
 
 The person can still start any workout, or a workout of any lifts, in the
 app. The app's template editor changes this list too.
+
+### `next`
+
+How Home picks the workout it suggests (the person can always start any):
+
+- `"volume"` (the default): the rotation workout whose rested muscles are
+  furthest behind this week's targets (`volume`), skipping one whose first
+  lift's muscle is still recovering (`recovery`). For a program with no
+  fixed order.
+- `"sequence"`: the rotation in its order, round and round: the workout
+  after the last one started (the first when none has been). Recovery and
+  volume never skip one; a workout the person picks themselves moves the
+  place on. For Upper A, Lower A, Upper B, Lower B and the like.
+- `"schedule"`: by the day of the week in `schedule`: today's workout, or
+  once it's been started today, the next day that has one. Home says how
+  many days off it is.
+
+Ask the person which they want when it isn't obvious: a fixed weekly
+schedule, a fixed order whenever they make it in, or whatever they need
+most.
+
+### `schedule`
+
+For `next: "schedule"`: the workout id each day of the week is for, by
+`mon`, `tue`, `wed`, `thu`, `fri`, `sat` and `sun`. A day not named is a
+rest day. The days are the person's own (their phone's time zone);
+`simulate_program` reads them in UTC.
+
+```json
+{ "set": "next", "value": "schedule" },
+{ "set": "schedule", "value": { "mon": "upper_a", "tue": "lower_a",
+                                "thu": "upper_b", "fri": "lower_b" } }
+```
 
 ### `classes`
 
@@ -564,6 +598,12 @@ primary muscle and `secondary_credit` for each other; a drop or mini set
 counts `partial_credit` of that (default 0.5). Rotation workouts
 within `tie_fraction` of the best score are tied, and the tie goes to the
 one done least recently.
+
+`targets` gives a muscle its own band over `target_low`–`target_high`, as
+`{ "shoulders": { "low": 16, "high": 24 } }`. Home draws each muscle's band,
+and `next: "volume"` scores a muscle against its own. Set them for a
+program that specialises (more shoulders, less chest) so Home shows the
+person what the program is aiming at.
 
 ### `recovery`
 

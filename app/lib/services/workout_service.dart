@@ -155,7 +155,11 @@ class WorkoutServiceWrapper {
   Future<GetHomeResponse> getHome({int budgetMinutes = 0}) async {
     final home = await _call(
       'GetHome',
-      GetHomeRequest(budgetMinutes: budgetMinutes),
+      GetHomeRequest(
+        budgetMinutes: budgetMinutes,
+        // Which day it is here, for a program that schedules by the day.
+        utcOffsetSeconds: DateTime.now().timeZoneOffset.inSeconds,
+      ),
       GetHomeResponse.fromBuffer,
     );
     await loadExercises();

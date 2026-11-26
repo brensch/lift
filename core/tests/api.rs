@@ -953,6 +953,7 @@ mod budget {
                 .view()
                 .get_home(GetHomeRequest {
                     budget_minutes: budget,
+                    ..Default::default()
                 })
                 .unwrap()
                 .template_plans
@@ -1017,6 +1018,7 @@ mod budget {
             app.view()
                 .get_home(GetHomeRequest {
                     budget_minutes: budget,
+                    ..Default::default()
                 })
                 .unwrap()
                 .plans

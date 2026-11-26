@@ -189,6 +189,21 @@ final $typed_data.Uint8List workoutStateDescriptor = $convert.base64Decode(
     'X1NUQVRFX1JFQURZEAUSGQoVV09SS09VVF9TVEFURV9ZQVBQSU5HEAYSGQoVV09SS09VVF9TVE'
     'FURV9MSUZUSU5HEAciBAgCEAI=');
 
+@$core.Deprecated('Use nextRuleDescriptor instead')
+const NextRule$json = {
+  '1': 'NextRule',
+  '2': [
+    {'1': 'NEXT_RULE_UNSPECIFIED', '2': 0},
+    {'1': 'NEXT_RULE_SEQUENCE', '2': 1},
+    {'1': 'NEXT_RULE_SCHEDULE', '2': 2},
+  ],
+};
+
+/// Descriptor for `NextRule`. Decode as a `google.protobuf.EnumDescriptorProto`.
+final $typed_data.Uint8List nextRuleDescriptor = $convert.base64Decode(
+    'CghOZXh0UnVsZRIZChVORVhUX1JVTEVfVU5TUEVDSUZJRUQQABIWChJORVhUX1JVTEVfU0VRVU'
+    'VOQ0UQARIWChJORVhUX1JVTEVfU0NIRURVTEUQAg==');
+
 @$core.Deprecated('Use rotationWarningKindDescriptor instead')
 const RotationWarningKind$json = {
   '1': 'RotationWarningKind',
@@ -1834,13 +1849,20 @@ const GetHomeRequest$json = {
   '1': 'GetHomeRequest',
   '2': [
     {'1': 'budget_minutes', '3': 1, '4': 1, '5': 5, '10': 'budgetMinutes'},
+    {
+      '1': 'utc_offset_seconds',
+      '3': 2,
+      '4': 1,
+      '5': 5,
+      '10': 'utcOffsetSeconds'
+    },
   ],
 };
 
 /// Descriptor for `GetHomeRequest`. Decode as a `google.protobuf.DescriptorProto`.
 final $typed_data.Uint8List getHomeRequestDescriptor = $convert.base64Decode(
-    'Cg5HZXRIb21lUmVxdWVzdBIlCg5idWRnZXRfbWludXRlcxgBIAEoBVINYnVkZ2V0TWludXRlcw'
-    '==');
+    'Cg5HZXRIb21lUmVxdWVzdBIlCg5idWRnZXRfbWludXRlcxgBIAEoBVINYnVkZ2V0TWludXRlcx'
+    'IsChJ1dGNfb2Zmc2V0X3NlY29uZHMYAiABKAVSEHV0Y09mZnNldFNlY29uZHM=');
 
 @$core.Deprecated('Use getHomeResponseDescriptor instead')
 const GetHomeResponse$json = {
@@ -1985,6 +2007,15 @@ const SuggestionReason$json = {
       '6': '.workout.v1.RecoveringMuscle',
       '10': 'firstLiftRecovering'
     },
+    {
+      '1': 'rule',
+      '3': 6,
+      '4': 1,
+      '5': 14,
+      '6': '.workout.v1.NextRule',
+      '10': 'rule'
+    },
+    {'1': 'days_until', '3': 7, '4': 1, '5': 5, '10': 'daysUntil'},
   ],
   '9': [
     {'1': 4, '2': 5},
@@ -1998,7 +2029,8 @@ final $typed_data.Uint8List suggestionReasonDescriptor = $convert.base64Decode(
     'lvbk11c2NsZVIGYmVoaW5kEjwKCnJlY292ZXJpbmcYAiADKAsyHC53b3Jrb3V0LnYxLlJlY292'
     'ZXJpbmdNdXNjbGVSCnJlY292ZXJpbmcSGgoIZmFsbGJhY2sYAyABKAhSCGZhbGxiYWNrElAKFW'
     'ZpcnN0X2xpZnRfcmVjb3ZlcmluZxgFIAEoCzIcLndvcmtvdXQudjEuUmVjb3ZlcmluZ011c2Ns'
-    'ZVITZmlyc3RMaWZ0UmVjb3ZlcmluZ0oECAQQBVIHb3ZlcmR1ZQ==');
+    'ZVITZmlyc3RMaWZ0UmVjb3ZlcmluZxIoCgRydWxlGAYgASgOMhQud29ya291dC52MS5OZXh0Un'
+    'VsZVIEcnVsZRIdCgpkYXlzX3VudGlsGAcgASgFUglkYXlzVW50aWxKBAgEEAVSB292ZXJkdWU=');
 
 @$core.Deprecated('Use suggestionMuscleDescriptor instead')
 const SuggestionMuscle$json = {

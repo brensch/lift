@@ -684,14 +684,15 @@ class _VolumeRow extends StatelessWidget {
     required this.anySelected,
   });
 
-  static const _trackMax = 24.0;
-
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final sets = entry.completedSets7d;
     final low = entry.targetLow.toDouble();
     final high = entry.targetHigh.toDouble();
+    // 24 sets across, or more for a muscle the program aims higher at, so
+    // its band still fits with room past it.
+    final trackMax = high * 1.2 > 24 ? high * 1.2 : 24.0;
     final inBand = sets >= low && sets <= high;
     final over = sets > high;
     final fill = over
@@ -751,8 +752,8 @@ class _VolumeRow extends StatelessWidget {
                       ),
                     ),
                     Positioned(
-                      left: width * (low / _trackMax),
-                      width: width * ((high - low) / _trackMax),
+                      left: width * (low / trackMax),
+                      width: width * ((high - low) / trackMax),
                       top: 0,
                       bottom: 0,
                       child: Container(
@@ -764,7 +765,7 @@ class _VolumeRow extends StatelessWidget {
                       left: 0,
                       top: 2,
                       bottom: 2,
-                      width: width * (sets / _trackMax).clamp(0.0, 1.0),
+                      width: width * (sets / trackMax).clamp(0.0, 1.0),
                       child: Container(
                         decoration: BoxDecoration(
                           color: fill,
@@ -774,7 +775,7 @@ class _VolumeRow extends StatelessWidget {
                     ),
                     // Tick at the band floor.
                     Positioned(
-                      left: width * (low / _trackMax) - 1,
+                      left: width * (low / trackMax) - 1,
                       top: 0,
                       bottom: 0,
                       child: Container(

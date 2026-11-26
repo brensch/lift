@@ -31,6 +31,18 @@ String _sentence(String text) =>
 /// and nothing else. Empty when there is no reason to give.
 String suggestionLine(SuggestionReason reason) {
   final r = copy.rotation;
+  switch (reason.rule) {
+    case NextRule.NEXT_RULE_SEQUENCE:
+      return r.inOrder;
+    case NextRule.NEXT_RULE_SCHEDULE:
+      return switch (reason.daysUntil) {
+        0 => r.scheduledToday,
+        1 => r.scheduledTomorrow,
+        final days => r.scheduledIn.replaceAll('{days}', '$days'),
+      };
+    default:
+      break;
+  }
   if (reason.hasFirstLiftRecovering()) {
     final waiting = reason.firstLiftRecovering;
     return r.firstLift

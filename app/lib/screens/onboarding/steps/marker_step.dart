@@ -1,14 +1,16 @@
-/// Onboarding step 1: pick a profile emoji and colour.
+/// Onboarding's first step: pick a profile emoji and colour.
 library;
 
 import 'package:material_ui/material_ui.dart';
 
 import '../../../gen/copy.dart';
 import '../../../logic/user_profile.dart';
+import '../../../theme/app_icons.dart';
 import '../../../theme/theme_spec.dart';
+import '../../../widgets/common/flat.dart';
+import '../widgets/onboarding_page.dart';
 import '../widgets/profile_marker_widgets.dart'
     show EmojiChoiceWrap, ColorChoiceWrap;
-import '../../../theme/app_icons.dart';
 
 class MarkerStep extends StatelessWidget {
   final String selectedEmoji;
@@ -32,30 +34,14 @@ class MarkerStep extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            copy.onboarding.marker.title,
-            style: TextStyle(
-              fontSize: context.tokens.size.headline,
-              fontWeight: context.tokens.weight.heavy,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            copy.onboarding.marker.body,
-            style: TextStyle(
-              fontSize: context.tokens.size.body,
-              height: 1.4,
-              color: cs.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Center(
+    final t = copy.onboarding.marker;
+    return OnboardingPage(
+      title: t.title,
+      body: t.body,
+      primary: OnboardingNext(label: copy.onboarding.next, onPressed: onNext),
+      children: [
+        FlatSection(
+          child: Center(
             child: Container(
               width: 120,
               height: 120,
@@ -73,49 +59,35 @@ class MarkerStep extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 4),
-          Align(
-            alignment: Alignment.centerRight,
-            child: OutlinedButton.icon(
-              onPressed: onRefreshEmojis,
-              icon: const Icon(AppIcons.refresh, size: 18),
-              label: Text(copy.onboarding.marker.refresh),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  EmojiChoiceWrap(
-                    choices: emojiChoices,
-                    selected: selectedEmoji,
-                    onSelect: onSelectEmoji,
-                  ),
-                  const SizedBox(height: 18),
-                  ColorChoiceWrap(
-                    selected: selectedColorHex,
-                    onSelect: onSelectColor,
-                  ),
-                ],
+        ),
+        FlatSection(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              EmojiChoiceWrap(
+                choices: emojiChoices,
+                selected: selectedEmoji,
+                onSelect: onSelectEmoji,
               ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: FilledButton(
-              onPressed: onNext,
-              child: Text(
-                copy.onboarding.next,
-                style: TextStyle(fontWeight: context.tokens.weight.heavy),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: onRefreshEmojis,
+                  icon: const Icon(AppIcons.refresh, size: 18),
+                  label: Text(t.refresh),
+                ),
               ),
-            ),
+            ],
           ),
-        ],
-      ),
+        ),
+        FlatSection(
+          child: ColorChoiceWrap(
+            selected: selectedColorHex,
+            onSelect: onSelectColor,
+          ),
+        ),
+      ],
     );
   }
 }

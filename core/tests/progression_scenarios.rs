@@ -2024,7 +2024,7 @@ fn rotation() -> RotationRun {
                             .cloned()
                             .collect(),
                     );
-                    let alone = suggest_template(&only, &volume, &recovery, at, &last_started)
+                    let alone = suggest_template(&only, &volume, &recovery, at, &last_started, 0)
                         .expect("a template in rotation is suggested alone");
                     let behind: Vec<MuscleGroup> = alone
                         .reason

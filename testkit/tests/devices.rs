@@ -117,6 +117,7 @@ fn reads(account: &Account, now: i64) -> Vec<Vec<u8>> {
             "GetHome",
             GetHomeRequest {
                 budget_minutes: BUDGET_MINUTES,
+                ..Default::default()
             }
             .encode_to_vec(),
         ),
@@ -140,6 +141,7 @@ fn store_reads(store: &mut Store, now: i64) -> Vec<Vec<u8>> {
             "GetHome",
             GetHomeRequest {
                 budget_minutes: BUDGET_MINUTES,
+                ..Default::default()
             }
             .encode_to_vec(),
         ),

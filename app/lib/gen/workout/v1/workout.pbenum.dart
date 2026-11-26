@@ -379,6 +379,29 @@ class WorkoutState extends $pb.ProtobufEnum {
   const WorkoutState._(super.value, super.name);
 }
 
+class NextRule extends $pb.ProtobufEnum {
+  /// By volume: the program's default rule.
+  static const NextRule NEXT_RULE_UNSPECIFIED =
+      NextRule._(0, _omitEnumNames ? '' : 'NEXT_RULE_UNSPECIFIED');
+  static const NextRule NEXT_RULE_SEQUENCE =
+      NextRule._(1, _omitEnumNames ? '' : 'NEXT_RULE_SEQUENCE');
+  static const NextRule NEXT_RULE_SCHEDULE =
+      NextRule._(2, _omitEnumNames ? '' : 'NEXT_RULE_SCHEDULE');
+
+  static const $core.List<NextRule> values = <NextRule>[
+    NEXT_RULE_UNSPECIFIED,
+    NEXT_RULE_SEQUENCE,
+    NEXT_RULE_SCHEDULE,
+  ];
+
+  static final $core.List<NextRule?> _byValue =
+      $pb.ProtobufEnum.$_initByValueList(values, 2);
+  static NextRule? valueOf($core.int value) =>
+      value < 0 || value >= _byValue.length ? null : _byValue[value];
+
+  const NextRule._(super.value, super.name);
+}
+
 class RotationWarningKind extends $pb.ProtobufEnum {
   static const RotationWarningKind ROTATION_WARNING_KIND_UNSPECIFIED =
       RotationWarningKind._(

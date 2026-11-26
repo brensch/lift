@@ -1,14 +1,16 @@
-/// Onboarding, before the rotation: let a bot write the program. The
-/// button opens the website's /bot page (how to connect an assistant over
-/// MCP); the person allows it there and tells it their goals, and the
-/// program it sets streams back here. While this page is up it looks
-/// again each time the app comes back to the front, and every few seconds
-/// once the person has gone to connect; when workouts arrive it lists them
-/// and finishing keeps them (the core adds no library templates to a
+/// Onboarding, before the rotation: let a bot write the program. The steps
+/// to connect one over MCP are all here (the address to copy and buttons to
+/// where it goes); the person allows it on the server's
+/// connect page and tells it their goals, and the program it sets streams
+/// back here. While this page is up it looks again every few seconds and
+/// each time the app comes back to the front; when workouts arrive it lists
+/// them and finishing keeps them (the core adds no library templates to a
 /// program that already has workouts).
 library;
 
 import 'dart:async';
+
+import 'package:flutter/services.dart';
 
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -18,9 +20,22 @@ import '../../../gen/workout/v1/workout.pb.dart' show WorkoutTemplate;
 import '../../../logic/website.dart';
 import '../../../theme/app_icons.dart';
 import '../../../theme/theme_spec.dart';
+import '../../../widgets/common/flat.dart';
+import '../widgets/onboarding_page.dart';
 
-/// How often to look for the bot's program once the person went to connect.
+/// How often to look for the bot's program while this page is up.
 const _poll = Duration(seconds: 4);
+
+/// The address a bot connects to: the MCP endpoint of this build's server.
+final _mcpAddress = websiteUri('/api/mcp').toString();
+
+/// Where Claude adds a custom connector.
+final _claudeConnectors = Uri.https('claude.ai', '/settings/connectors');
+
+/// Where ChatGPT adds one.
+final _chatgptConnectors = Uri.parse(
+  'https://chatgpt.com/#settings/Connectors',
+);
 
 class BotStep extends StatefulWidget {
   /// The program's workouts as they are now: empty until a bot sets some.
@@ -59,6 +74,9 @@ class _BotStepState extends State<BotStep> {
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(onResume: () => unawaited(_refresh()));
+    if (widget.workouts.isEmpty) {
+      _timer = Timer.periodic(_poll, (_) => unawaited(_refresh()));
+    }
   }
 
   @override
@@ -85,134 +103,143 @@ class _BotStepState extends State<BotStep> {
     _timer = null;
   }
 
-  Future<void> _connect() async {
-    _timer ??= Timer.periodic(_poll, (_) => unawaited(_refresh()));
-    await launchUrl(websiteUri('/bot'), mode: LaunchMode.externalApplication);
+  Future<void> _open(Uri uri) =>
+      launchUrl(uri, mode: LaunchMode.externalApplication);
+
+  @override
+  Widget build(BuildContext context) {
+    final tk = context.tokens;
+    final t = copy.onboarding.bot;
+    final done = widget.workouts.isNotEmpty;
+
+    return OnboardingPage(
+      title: t.title,
+      body: t.body,
+      onBack: widget.onBack,
+      backEnabled: !widget.isSaving,
+      primary: done
+          ? OnboardingNext(
+              label: t.finish,
+              onPressed: widget.onFinish,
+              busy: widget.isSaving,
+            )
+          : OutlinedButton(onPressed: widget.onSkip, child: Text(t.skip)),
+      children: done
+          ? [
+              FlatHeading(t.done),
+              for (final w in widget.workouts) FlatRow(label: w.name),
+            ]
+          : [
+              FlatHeading('1  ${t.stepAddress}'),
+              _CopyRow(text: _mcpAddress),
+              FlatSection(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _open(_claudeConnectors),
+                            icon: const Icon(AppIcons.openExternal),
+                            label: Text(t.openClaude),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            onPressed: () => _open(_chatgptConnectors),
+                            icon: const Icon(AppIcons.openExternal),
+                            label: Text(t.openChatgpt),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      t.anyAi,
+                      style: TextStyle(
+                        fontSize: tk.size.caption,
+                        color: tk.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              FlatHeading('2  ${t.stepGoals}'),
+              FlatSection(
+                child: Text(
+                  t.goalsText,
+                  style: TextStyle(fontSize: tk.size.bodyLg, height: 1.4),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  FlatSection.margin,
+                  10,
+                  FlatSection.margin,
+                  10,
+                ),
+                child: Text(
+                  t.waiting,
+                  style: TextStyle(
+                    fontSize: tk.size.small,
+                    height: 1.4,
+                    color: tk.muted,
+                  ),
+                ),
+              ),
+            ],
+    );
+  }
+}
+
+/// [text] as a full-width row, with a button that copies it.
+class _CopyRow extends StatefulWidget {
+  final String text;
+  const _CopyRow({required this.text});
+
+  @override
+  State<_CopyRow> createState() => _CopyRowState();
+}
+
+class _CopyRowState extends State<_CopyRow> {
+  bool _copied = false;
+
+  Future<void> _copy() async {
+    await Clipboard.setData(ClipboardData(text: widget.text));
+    if (mounted) setState(() => _copied = true);
   }
 
   @override
   Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
+    final tk = context.tokens;
     final t = copy.onboarding.bot;
-    final done = widget.workouts.isNotEmpty;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            t.title,
-            style: TextStyle(
-              fontSize: context.tokens.size.headline,
-              fontWeight: context.tokens.weight.heavy,
-            ),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: _copy,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(FlatSection.margin, 6, 4, 6),
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: tk.hairline)),
           ),
-          const SizedBox(height: 8),
-          Text(
-            t.body,
-            style: TextStyle(
-              fontSize: context.tokens.size.body,
-              height: 1.4,
-              color: cs.onSurface.withValues(alpha: 0.6),
-            ),
-          ),
-          const SizedBox(height: 20),
-          if (done) ...[
-            Text(
-              t.done,
-              style: TextStyle(
-                fontSize: context.tokens.size.small,
-                fontWeight: context.tokens.weight.heavy,
-                color: cs.tertiary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  for (final w in widget.workouts)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 6),
-                      child: Text(
-                        w.name,
-                        style: TextStyle(
-                          fontSize: context.tokens.size.title,
-                          fontWeight: context.tokens.weight.bold,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ] else ...[
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: FilledButton.icon(
-                onPressed: _connect,
-                icon: const Icon(AppIcons.bot),
-                label: Text(
-                  t.button,
-                  style: TextStyle(fontWeight: context.tokens.weight.heavy),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              t.hint,
-              style: TextStyle(
-                fontSize: context.tokens.size.small,
-                height: 1.4,
-                color: cs.onSurface.withValues(alpha: 0.6),
-              ),
-            ),
-            const Spacer(),
-          ],
-          Row(
+          child: Row(
             children: [
               Expanded(
-                child: SizedBox(
-                  height: 56,
-                  child: OutlinedButton(
-                    onPressed: widget.isSaving ? null : widget.onBack,
-                    child: Text(copy.onboarding.back),
-                  ),
+                child: Text(
+                  widget.text,
+                  style: tk.mono(TextStyle(fontSize: tk.size.small)),
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: SizedBox(
-                  height: 56,
-                  child: done
-                      ? FilledButton(
-                          onPressed: widget.isSaving ? null : widget.onFinish,
-                          child: widget.isSaving
-                              ? const SizedBox(
-                                  width: 22,
-                                  height: 22,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text(
-                                  t.finish,
-                                  style: TextStyle(
-                                    fontWeight: context.tokens.weight.heavy,
-                                  ),
-                                ),
-                        )
-                      : OutlinedButton(
-                          onPressed: widget.onSkip,
-                          child: Text(t.skip),
-                        ),
-                ),
+              TextButton.icon(
+                onPressed: _copy,
+                icon: Icon(_copied ? AppIcons.check : AppIcons.copy),
+                label: Text(_copied ? t.copied : t.copy),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
   }

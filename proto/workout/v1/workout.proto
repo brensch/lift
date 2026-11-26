@@ -841,6 +841,9 @@ message MuscleRecoveryStatus {
 message GetHomeRequest {
   // The time the user has for a workout; 0 = the default (60).
   int32 budget_minutes = 1;
+  // The phone's offset from UTC, in seconds east: which day it is for a
+  // program that schedules by the day of the week.
+  int32 utc_offset_seconds = 2;
 }
 
 message GetHomeResponse {
@@ -895,6 +898,18 @@ message SuggestionReason {
   RecoveringMuscle first_lift_recovering = 5;
   reserved 4;
   reserved "overdue";
+  // How the program picks (its `next`): by volume (the fields above), in
+  // the rotation's order, or by the day of the week.
+  NextRule rule = 6;
+  // By the day: days from today to the day it's for (0 = today).
+  int32 days_until = 7;
+}
+
+enum NextRule {
+  // By volume: the program's default rule.
+  NEXT_RULE_UNSPECIFIED = 0;
+  NEXT_RULE_SEQUENCE = 1;
+  NEXT_RULE_SCHEDULE = 2;
 }
 
 message SuggestionMuscle {

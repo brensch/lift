@@ -1133,12 +1133,18 @@ impl<'a> View<'a> {
     }
 
     pub fn get_home(&self, req: GetHomeRequest) -> Result<GetHomeResponse, CoreError> {
-        Ok(self.home(req.budget_minutes))
+        Ok(self.home_at(req.budget_minutes, req.utc_offset_seconds))
     }
 
     /// Everything the home screen needs, in one response, with every lift
     /// planned at now in `budget_minutes` (0 = the program's default).
     pub fn home(&self, budget_minutes: i32) -> GetHomeResponse {
+        self.home_at(budget_minutes, 0)
+    }
+
+    /// [Self::home] for a phone `utc_offset` seconds east of UTC: the day of
+    /// the week a schedule reads.
+    pub fn home_at(&self, budget_minutes: i32, utc_offset: i32) -> GetHomeResponse {
         let program = self.program();
         let planner = Planner::new(self.account, self.now);
         let budget = planner.budget(budget_minutes);
@@ -1172,8 +1178,14 @@ impl<'a> View<'a> {
                 *at = (*at).max(r.workout.start_time);
             }
         }
-        let suggestion =
-            suggest_template(program, &volume, &muscle_recovery, self.now, &last_started);
+        let suggestion = suggest_template(
+            program,
+            &volume,
+            &muscle_recovery,
+            self.now,
+            &last_started,
+            utc_offset.into(),
+        );
         // The library entries the user does not have, for the check's
         // additions.
         let addable: Vec<LibraryTemplate> = crate::template_library::library()

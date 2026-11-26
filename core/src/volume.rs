@@ -17,9 +17,9 @@ use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashMap};
 
 use crate::history::WorkoutRecord;
-use crate::pb::{MuscleVolume, RecoveringMuscle, SuggestionMuscle, SuggestionReason};
+use crate::pb::{MuscleVolume, NextRule, RecoveringMuscle, SuggestionMuscle, SuggestionReason};
 use crate::plan::DAY;
-use crate::program::{Muscle, Program, WorkoutDef};
+use crate::program::{Muscle, Next, Program, Weekday, WorkoutDef};
 use crate::recovery::MuscleRecovery;
 
 /// Weighted hard sets per muscle in the program's window. Counts
@@ -80,8 +80,8 @@ pub fn volume_rows(program: &Program, sets: &BTreeMap<Muscle, f32>) -> Vec<Muscl
         .map(|muscle| MuscleVolume {
             muscle: muscle.to_proto() as i32,
             completed_sets_7d: sets.get(muscle).copied().unwrap_or(0.0),
-            target_low: program.volume.target_low,
-            target_high: program.volume.target_high,
+            target_low: program.volume.band(*muscle).0,
+            target_high: program.volume.band(*muscle).1,
         })
         .collect()
 }
@@ -120,6 +120,79 @@ pub fn primary_muscles(program: &Program, exercises: &[String]) -> Vec<Muscle> {
 /// soonest (`first_lift_recovering`). Reserves (templates out of
 /// rotation) are never picked; None when nothing is in rotation.
 pub fn suggest_template(
+    program: &Program,
+    volume: &[MuscleVolume],
+    recovery: &[MuscleRecovery],
+    now: i64,
+    last_started: &HashMap<String, i64>,
+    utc_offset: i64,
+) -> Option<Suggestion> {
+    match program.next {
+        Next::Volume => {}
+        Next::Sequence => return in_sequence(program, last_started),
+        Next::Schedule => {
+            if let Some(s) = by_schedule(program, now, last_started, utc_offset) {
+                return Some(s);
+            }
+        }
+    }
+    by_volume(program, volume, recovery, now, last_started)
+}
+
+/// `next: sequence`: the rotation workout after the last one started, round
+/// and round; the first when none has been.
+fn in_sequence(program: &Program, last_started: &HashMap<String, i64>) -> Option<Suggestion> {
+    let rotation: Vec<&WorkoutDef> = program.workouts.iter().filter(|t| t.rotation).collect();
+    let started = |t: &WorkoutDef| last_started.get(&t.id).copied().unwrap_or(0);
+    let last = rotation
+        .iter()
+        .enumerate()
+        .filter(|(_, t)| started(t) > 0)
+        .max_by_key(|(i, t)| (started(t), std::cmp::Reverse(*i)))
+        .map(|(i, _)| i);
+    let next = match last {
+        Some(i) => rotation[(i + 1) % rotation.len()],
+        None => rotation.first()?,
+    };
+    Some(Suggestion {
+        template_id: next.id.clone(),
+        reason: SuggestionReason {
+            rule: NextRule::Sequence as i32,
+            ..Default::default()
+        },
+    })
+}
+
+/// `next: schedule`: the workout `schedule` gives today, unless it was
+/// already started today; otherwise the next day that has one. None when
+/// the schedule names no workout the program has.
+fn by_schedule(
+    program: &Program,
+    now: i64,
+    last_started: &HashMap<String, i64>,
+    utc_offset: i64,
+) -> Option<Suggestion> {
+    let day = |t: i64| (t + utc_offset).div_euclid(86_400);
+    let today = Weekday::of(now, utc_offset).index();
+    // Through to the same day next week, for a schedule of one day.
+    (0..=7).find_map(|d| {
+        let id = program.schedule.get(&Weekday::ALL[(today + d) % 7])?;
+        program.workout(id)?;
+        let done_today = last_started.get(id).is_some_and(|&at| day(at) == day(now));
+        (d > 0 || !done_today).then(|| Suggestion {
+            template_id: id.clone(),
+            reason: SuggestionReason {
+                rule: NextRule::Schedule as i32,
+                days_until: d as i32,
+                ..Default::default()
+            },
+        })
+    })
+}
+
+/// `next: volume`: the rotation workout whose rested muscles are furthest
+/// behind the week's targets.
+fn by_volume(
     program: &Program,
     volume: &[MuscleVolume],
     recovery: &[MuscleRecovery],
@@ -243,6 +316,7 @@ pub fn suggest_template(
                     hours_remaining: r.hours_remaining(now) as i32,
                 }
             }),
+            ..Default::default()
         },
     })
 }
@@ -352,6 +426,7 @@ mod tests {
             &per_muscle_recovery(&program, history),
             now,
             last,
+            0,
         )
     }
 
@@ -507,5 +582,102 @@ mod tests {
         let got = suggest(&[legs.clone(), arms], &[], now, &HashMap::new()).unwrap();
         assert_eq!(got.template_id, "arms");
         assert!(suggest(&[legs], &[], now, &HashMap::new()).is_none());
+    }
+
+    /// The rotation in order: the one after the last started, round and
+    /// round, the first when none has been; recovery and volume don't
+    /// skip one.
+    #[test]
+    fn sequence_goes_in_order() {
+        let mut program = Program::builtin().with_workouts(vec![
+            template("a", &["squat"]),
+            template("b", &["bench_press"]),
+            template("c", &["deadlift"]),
+        ]);
+        program.next = Next::Sequence;
+        let pick = |last: &[(&str, i64)]| {
+            let last: HashMap<String, i64> =
+                last.iter().map(|(id, at)| (id.to_string(), *at)).collect();
+            let s = suggest_template(&program, &[], &[], 1_000_000, &last, 0).unwrap();
+            assert_eq!(s.reason.rule, NextRule::Sequence as i32);
+            s.template_id
+        };
+        assert_eq!(pick(&[]), "a");
+        assert_eq!(pick(&[("a", 10), ("b", 20)]), "c");
+        assert_eq!(pick(&[("a", 10), ("b", 20), ("c", 30)]), "a");
+        // A workout outside the rotation doesn't move it.
+        assert_eq!(pick(&[("b", 20), ("reserve", 40)]), "c");
+    }
+
+    /// By the day: today's workout, unless it's been started today; then
+    /// the next day that has one. The day is the phone's, by its offset.
+    #[test]
+    fn schedule_reads_the_day() {
+        let mut program = Program::builtin().with_workouts(vec![
+            template("upper", &["bench_press"]),
+            template("lower", &["squat"]),
+        ]);
+        program.next = Next::Schedule;
+        program.schedule = BTreeMap::from([
+            (Weekday::Mon, "upper".to_string()),
+            (Weekday::Thu, "lower".to_string()),
+        ]);
+        // Monday 3 March 2025, 10:00 UTC.
+        let monday = 1_740_996_000;
+        assert_eq!(Weekday::of(monday, 0), Weekday::Mon);
+        let pick = |now: i64, last: &[(&str, i64)], offset: i64| {
+            let last: HashMap<String, i64> =
+                last.iter().map(|(id, at)| (id.to_string(), *at)).collect();
+            let s = suggest_template(&program, &[], &[], now, &last, offset).unwrap();
+            assert_eq!(s.reason.rule, NextRule::Schedule as i32);
+            (s.template_id, s.reason.days_until)
+        };
+        assert_eq!(pick(monday, &[], 0), ("upper".to_string(), 0));
+        // Done this morning: Thursday's is next.
+        assert_eq!(
+            pick(monday, &[("upper", monday - 3600)], 0),
+            ("lower".to_string(), 3)
+        );
+        // Tuesday: Thursday's, two days off.
+        assert_eq!(pick(monday + 86_400, &[], 0), ("lower".to_string(), 2));
+        // Eleven hours behind UTC it's still Sunday: Monday's, tomorrow.
+        assert_eq!(pick(monday, &[], -11 * 3600), ("upper".to_string(), 1));
+        // One day a week, done today: the same day next week.
+        program.schedule = BTreeMap::from([(Weekday::Mon, "upper".to_string())]);
+        let pick_one = suggest_template(
+            &program,
+            &[],
+            &[],
+            monday,
+            &HashMap::from([("upper".to_string(), monday - 60)]),
+            0,
+        )
+        .unwrap();
+        assert_eq!(pick_one.reason.days_until, 7);
+    }
+
+    /// A muscle's own target is its band on Home and what the suggestion
+    /// scores it against.
+    #[test]
+    fn a_muscles_own_target() {
+        let mut program = Program::clone(&Program::builtin());
+        program.volume.targets.insert(
+            Muscle::Shoulders,
+            crate::program::Band { low: 16, high: 24 },
+        );
+        let rows = volume_rows(&program, &BTreeMap::new());
+        let shoulders = rows
+            .iter()
+            .find(|r| r.muscle == Muscle::Shoulders.to_proto() as i32)
+            .unwrap();
+        assert_eq!((shoulders.target_low, shoulders.target_high), (16, 24));
+        let chest = rows
+            .iter()
+            .find(|r| r.muscle == Muscle::Chest.to_proto() as i32)
+            .unwrap();
+        assert_eq!(
+            (chest.target_low, chest.target_high),
+            (program.volume.target_low, program.volume.target_high)
+        );
     }
 }

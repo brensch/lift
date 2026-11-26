@@ -120,6 +120,7 @@ impl Phone {
                     "GetHome",
                     GetHomeRequest {
                         budget_minutes: BUDGET_MINUTES,
+                        ..Default::default()
                     },
                     now,
                 )?;

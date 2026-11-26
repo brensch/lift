@@ -23,7 +23,7 @@ tutorial:
       body: Not in a creepy way though. I'll let you know which muscle groups need more work and which have rested enough.
     - target: home_templates
       title: Pick your workout
-      body: The star is today's suggestion, picked from whatever covers the most unworked muscles. You can pick whatever you want though, ie butt again.
+      body: The star is today's suggestion from your programme. You can ignore that though and just do butt again if you want.
     - target: home_add
       title: Need more options?
       body: We're spoilt for choice in today's society. Continue being spoilt by browsing the lovingly curated set of workouts to add to your rotation, or make your own.
@@ -97,6 +97,12 @@ rotation:
   # Every workout in rotation opens on a muscle still recovering: the one
   # whose first lift is back soonest.
   first_lift: "Every workout starts on something sore. First back: {muscle}, in {hours}h."
+  # When the program picks in its own order or by the day (its `next`).
+  # Placeholders.
+  in_order: Next in your programme's order
+  scheduled_today: On your programme for today
+  scheduled_tomorrow: On your programme for tomorrow. Today's a rest day.
+  scheduled_in: "On your programme in {days} days. Rest up."
   # The rotation check, at the top of the sheet: this line, the bars of
   # one lap of the rotation's sets per muscle, then any warnings.
   check_body: "Here's what an average rotation would work. Got enough butt in it? Legs? Biceps? Move things into your rotation that we cycle through to make sure you're sculpting the right bits."
@@ -190,20 +196,31 @@ onboarding:
       - id: overhead_press
         label: Overhead press
   weight:
-    title: Weight
-    body: We log calories burned for you into your fitness tracker because that's the only reason to go to the gym. Calories burned is proportional to weight. Leave it blank and we use an average.
+    title: Bodyweight
+    body: Calories burned is calculated from body weight
     field: Bodyweight
+    # Small, under the field.
+    note: What's the point in working out if you aren't getting caloric credit for it.
     failed: "Setup failed: {error}. Try again."
   # Before the rotation: let an assistant (over MCP) write the program.
-  # The button opens the website's /bot page, which says how to connect.
   # When the program arrives while this page is up, it lists the workouts
   # and finishing keeps them.
   bot:
     title: Tired of thinking?
-    body: Bots can read white papers written by professional bro science purveyors much better than humans can. Connect your bot below, tell it your goals, and it will set up your routine for you exactly to your liking.
-    button: Connect your bot
-    # Under the button.
-    hint: Come back here once your bot says it's done. Your workouts will be waiting.
+    body: Bots can read white papers written by professional bro science purveyors much better than humans can.
+    # The steps, all on this page: no trip to the website.
+    step_address: Add this connector to your fav AI
+    copy: Copy
+    copied: Copied
+    # Buttons under the address: each opens that bot's connector settings.
+    open_claude: Claude
+    open_chatgpt: ChatGPT
+    step_goals: Chat with chat
+    goals_text: Tell it to make a plan that will make you huge, or your butt big, or your hugs extra strong, or whatever your goal is in the gym.
+    # Under the steps, while nothing has arrived yet.
+    waiting: Your workouts show up here as soon as your bot saves them.
+    # Small print at the bottom.
+    any_ai: It works with any AI that accepts MCP servers.
     skip: I'll pick my own
     # Above the workouts the bot set up.
     done: Your bot set you up with

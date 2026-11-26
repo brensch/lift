@@ -1383,6 +1383,112 @@ public final class WorkoutOuterClass {
   }
 
   /**
+   * Protobuf enum {@code workout.v1.NextRule}
+   */
+  public enum NextRule
+      implements com.google.protobuf.Internal.EnumLite {
+    /**
+     * <pre>
+     * By volume: the program's default rule.
+     * </pre>
+     *
+     * <code>NEXT_RULE_UNSPECIFIED = 0;</code>
+     */
+    NEXT_RULE_UNSPECIFIED(0),
+    /**
+     * <code>NEXT_RULE_SEQUENCE = 1;</code>
+     */
+    NEXT_RULE_SEQUENCE(1),
+    /**
+     * <code>NEXT_RULE_SCHEDULE = 2;</code>
+     */
+    NEXT_RULE_SCHEDULE(2),
+    UNRECOGNIZED(-1),
+    ;
+
+    /**
+     * <pre>
+     * By volume: the program's default rule.
+     * </pre>
+     *
+     * <code>NEXT_RULE_UNSPECIFIED = 0;</code>
+     */
+    public static final int NEXT_RULE_UNSPECIFIED_VALUE = 0;
+    /**
+     * <code>NEXT_RULE_SEQUENCE = 1;</code>
+     */
+    public static final int NEXT_RULE_SEQUENCE_VALUE = 1;
+    /**
+     * <code>NEXT_RULE_SCHEDULE = 2;</code>
+     */
+    public static final int NEXT_RULE_SCHEDULE_VALUE = 2;
+
+
+    @java.lang.Override
+    public final int getNumber() {
+      if (this == UNRECOGNIZED) {
+        throw new java.lang.IllegalArgumentException(
+            "Can't get the number of an unknown enum value.");
+      }
+      return value;
+    }
+
+    /**
+     * @param value The number of the enum to look for.
+     * @return The enum associated with the given number.
+     * @deprecated Use {@link #forNumber(int)} instead.
+     */
+    @java.lang.Deprecated
+    public static NextRule valueOf(int value) {
+      return forNumber(value);
+    }
+
+    public static NextRule forNumber(int value) {
+      switch (value) {
+        case 0: return NEXT_RULE_UNSPECIFIED;
+        case 1: return NEXT_RULE_SEQUENCE;
+        case 2: return NEXT_RULE_SCHEDULE;
+        default: return null;
+      }
+    }
+
+    public static com.google.protobuf.Internal.EnumLiteMap<NextRule>
+        internalGetValueMap() {
+      return internalValueMap;
+    }
+    private static final com.google.protobuf.Internal.EnumLiteMap<
+        NextRule> internalValueMap =
+          new com.google.protobuf.Internal.EnumLiteMap<NextRule>() {
+            @java.lang.Override
+            public NextRule findValueByNumber(int number) {
+              return NextRule.forNumber(number);
+            }
+          };
+
+    public static com.google.protobuf.Internal.EnumVerifier 
+        internalGetVerifier() {
+      return NextRuleVerifier.INSTANCE;
+    }
+
+    private static final class NextRuleVerifier implements 
+         com.google.protobuf.Internal.EnumVerifier { 
+            static final com.google.protobuf.Internal.EnumVerifier           INSTANCE = new NextRuleVerifier();
+            @java.lang.Override
+            public boolean isInRange(int number) {
+              return NextRule.forNumber(number) != null;
+            }
+          };
+
+    private final int value;
+
+    private NextRule(int value) {
+      this.value = value;
+    }
+
+    // @@protoc_insertion_point(enum_scope:workout.v1.NextRule)
+  }
+
+  /**
    * Protobuf enum {@code workout.v1.RotationWarningKind}
    */
   public enum RotationWarningKind
@@ -41278,6 +41384,17 @@ public final class WorkoutOuterClass {
      * @return The budgetMinutes.
      */
     int getBudgetMinutes();
+
+    /**
+     * <pre>
+     * The phone's offset from UTC, in seconds east: which day it is for a
+     * program that schedules by the day of the week.
+     * </pre>
+     *
+     * <code>int32 utc_offset_seconds = 2 [json_name = "utcOffsetSeconds"];</code>
+     * @return The utcOffsetSeconds.
+     */
+    int getUtcOffsetSeconds();
   }
   /**
    * Protobuf type {@code workout.v1.GetHomeRequest}
@@ -41325,6 +41442,47 @@ public final class WorkoutOuterClass {
     private void clearBudgetMinutes() {
       
       budgetMinutes_ = 0;
+    }
+
+    public static final int UTC_OFFSET_SECONDS_FIELD_NUMBER = 2;
+    private int utcOffsetSeconds_;
+    /**
+     * <pre>
+     * The phone's offset from UTC, in seconds east: which day it is for a
+     * program that schedules by the day of the week.
+     * </pre>
+     *
+     * <code>int32 utc_offset_seconds = 2 [json_name = "utcOffsetSeconds"];</code>
+     * @return The utcOffsetSeconds.
+     */
+    @java.lang.Override
+    public int getUtcOffsetSeconds() {
+      return utcOffsetSeconds_;
+    }
+    /**
+     * <pre>
+     * The phone's offset from UTC, in seconds east: which day it is for a
+     * program that schedules by the day of the week.
+     * </pre>
+     *
+     * <code>int32 utc_offset_seconds = 2 [json_name = "utcOffsetSeconds"];</code>
+     * @param value The utcOffsetSeconds to set.
+     */
+    private void setUtcOffsetSeconds(int value) {
+      
+      utcOffsetSeconds_ = value;
+    }
+    /**
+     * <pre>
+     * The phone's offset from UTC, in seconds east: which day it is for a
+     * program that schedules by the day of the week.
+     * </pre>
+     *
+     * <code>int32 utc_offset_seconds = 2 [json_name = "utcOffsetSeconds"];</code>
+     */
+    private void clearUtcOffsetSeconds() {
+      
+      utcOffsetSeconds_ = 0;
     }
 
     public static workout.v1.WorkoutOuterClass.GetHomeRequest parseFrom(
@@ -41462,6 +41620,49 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * The phone's offset from UTC, in seconds east: which day it is for a
+       * program that schedules by the day of the week.
+       * </pre>
+       *
+       * <code>int32 utc_offset_seconds = 2 [json_name = "utcOffsetSeconds"];</code>
+       * @return The utcOffsetSeconds.
+       */
+      @java.lang.Override
+      public int getUtcOffsetSeconds() {
+        return instance.getUtcOffsetSeconds();
+      }
+      /**
+       * <pre>
+       * The phone's offset from UTC, in seconds east: which day it is for a
+       * program that schedules by the day of the week.
+       * </pre>
+       *
+       * <code>int32 utc_offset_seconds = 2 [json_name = "utcOffsetSeconds"];</code>
+       * @param value The utcOffsetSeconds to set.
+       * @return This builder for chaining.
+       */
+      public Builder setUtcOffsetSeconds(int value) {
+        copyOnWrite();
+        instance.setUtcOffsetSeconds(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * The phone's offset from UTC, in seconds east: which day it is for a
+       * program that schedules by the day of the week.
+       * </pre>
+       *
+       * <code>int32 utc_offset_seconds = 2 [json_name = "utcOffsetSeconds"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearUtcOffsetSeconds() {
+        copyOnWrite();
+        instance.clearUtcOffsetSeconds();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.GetHomeRequest)
     }
     @java.lang.Override
@@ -41479,9 +41680,11 @@ public final class WorkoutOuterClass {
         case BUILD_MESSAGE_INFO: {
             java.lang.Object[] objects = new java.lang.Object[] {
               "budgetMinutes_",
+              "utcOffsetSeconds_",
             };
             java.lang.String info =
-                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0004";
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0004\u0002\u0004" +
+                "";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through
@@ -44634,6 +44837,37 @@ public final class WorkoutOuterClass {
      * @return The firstLiftRecovering.
      */
     workout.v1.WorkoutOuterClass.RecoveringMuscle getFirstLiftRecovering();
+
+    /**
+     * <pre>
+     * How the program picks (its `next`): by volume (the fields above), in
+     * the rotation's order, or by the day of the week.
+     * </pre>
+     *
+     * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+     * @return The enum numeric value on the wire for rule.
+     */
+    int getRuleValue();
+    /**
+     * <pre>
+     * How the program picks (its `next`): by volume (the fields above), in
+     * the rotation's order, or by the day of the week.
+     * </pre>
+     *
+     * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+     * @return The rule.
+     */
+    workout.v1.WorkoutOuterClass.NextRule getRule();
+
+    /**
+     * <pre>
+     * By the day: days from today to the day it's for (0 = today).
+     * </pre>
+     *
+     * <code>int32 days_until = 7 [json_name = "daysUntil"];</code>
+     * @return The daysUntil.
+     */
+    int getDaysUntil();
   }
   /**
    * <pre>
@@ -45064,6 +45298,111 @@ public final class WorkoutOuterClass {
      */
     private void clearFirstLiftRecovering() {  firstLiftRecovering_ = null;
       
+    }
+
+    public static final int RULE_FIELD_NUMBER = 6;
+    private int rule_;
+    /**
+     * <pre>
+     * How the program picks (its `next`): by volume (the fields above), in
+     * the rotation's order, or by the day of the week.
+     * </pre>
+     *
+     * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+     * @return The enum numeric value on the wire for rule.
+     */
+    @java.lang.Override
+    public int getRuleValue() {
+      return rule_;
+    }
+    /**
+     * <pre>
+     * How the program picks (its `next`): by volume (the fields above), in
+     * the rotation's order, or by the day of the week.
+     * </pre>
+     *
+     * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+     * @return The rule.
+     */
+    @java.lang.Override
+    public workout.v1.WorkoutOuterClass.NextRule getRule() {
+      workout.v1.WorkoutOuterClass.NextRule result = workout.v1.WorkoutOuterClass.NextRule.forNumber(rule_);
+      return result == null ? workout.v1.WorkoutOuterClass.NextRule.UNRECOGNIZED : result;
+    }
+    /**
+     * <pre>
+     * How the program picks (its `next`): by volume (the fields above), in
+     * the rotation's order, or by the day of the week.
+     * </pre>
+     *
+     * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+     * @param value The enum numeric value on the wire for rule to set.
+     */
+    private void setRuleValue(int value) {
+        rule_ = value;
+    }
+    /**
+     * <pre>
+     * How the program picks (its `next`): by volume (the fields above), in
+     * the rotation's order, or by the day of the week.
+     * </pre>
+     *
+     * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+     * @param value The rule to set.
+     */
+    private void setRule(workout.v1.WorkoutOuterClass.NextRule value) {
+      rule_ = value.getNumber();
+      
+    }
+    /**
+     * <pre>
+     * How the program picks (its `next`): by volume (the fields above), in
+     * the rotation's order, or by the day of the week.
+     * </pre>
+     *
+     * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+     */
+    private void clearRule() {
+      
+      rule_ = 0;
+    }
+
+    public static final int DAYS_UNTIL_FIELD_NUMBER = 7;
+    private int daysUntil_;
+    /**
+     * <pre>
+     * By the day: days from today to the day it's for (0 = today).
+     * </pre>
+     *
+     * <code>int32 days_until = 7 [json_name = "daysUntil"];</code>
+     * @return The daysUntil.
+     */
+    @java.lang.Override
+    public int getDaysUntil() {
+      return daysUntil_;
+    }
+    /**
+     * <pre>
+     * By the day: days from today to the day it's for (0 = today).
+     * </pre>
+     *
+     * <code>int32 days_until = 7 [json_name = "daysUntil"];</code>
+     * @param value The daysUntil to set.
+     */
+    private void setDaysUntil(int value) {
+      
+      daysUntil_ = value;
+    }
+    /**
+     * <pre>
+     * By the day: days from today to the day it's for (0 = today).
+     * </pre>
+     *
+     * <code>int32 days_until = 7 [json_name = "daysUntil"];</code>
+     */
+    private void clearDaysUntil() {
+      
+      daysUntil_ = 0;
     }
 
     public static workout.v1.WorkoutOuterClass.SuggestionReason parseFrom(
@@ -45615,6 +45954,117 @@ public final class WorkoutOuterClass {
         return this;
       }
 
+      /**
+       * <pre>
+       * How the program picks (its `next`): by volume (the fields above), in
+       * the rotation's order, or by the day of the week.
+       * </pre>
+       *
+       * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+       * @return The enum numeric value on the wire for rule.
+       */
+      @java.lang.Override
+      public int getRuleValue() {
+        return instance.getRuleValue();
+      }
+      /**
+       * <pre>
+       * How the program picks (its `next`): by volume (the fields above), in
+       * the rotation's order, or by the day of the week.
+       * </pre>
+       *
+       * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+       * @param value The rule to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRuleValue(int value) {
+        copyOnWrite();
+        instance.setRuleValue(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * How the program picks (its `next`): by volume (the fields above), in
+       * the rotation's order, or by the day of the week.
+       * </pre>
+       *
+       * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+       * @return The rule.
+       */
+      @java.lang.Override
+      public workout.v1.WorkoutOuterClass.NextRule getRule() {
+        return instance.getRule();
+      }
+      /**
+       * <pre>
+       * How the program picks (its `next`): by volume (the fields above), in
+       * the rotation's order, or by the day of the week.
+       * </pre>
+       *
+       * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+       * @param value The enum numeric value on the wire for rule to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRule(workout.v1.WorkoutOuterClass.NextRule value) {
+        copyOnWrite();
+        instance.setRule(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * How the program picks (its `next`): by volume (the fields above), in
+       * the rotation's order, or by the day of the week.
+       * </pre>
+       *
+       * <code>.workout.v1.NextRule rule = 6 [json_name = "rule"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRule() {
+        copyOnWrite();
+        instance.clearRule();
+        return this;
+      }
+
+      /**
+       * <pre>
+       * By the day: days from today to the day it's for (0 = today).
+       * </pre>
+       *
+       * <code>int32 days_until = 7 [json_name = "daysUntil"];</code>
+       * @return The daysUntil.
+       */
+      @java.lang.Override
+      public int getDaysUntil() {
+        return instance.getDaysUntil();
+      }
+      /**
+       * <pre>
+       * By the day: days from today to the day it's for (0 = today).
+       * </pre>
+       *
+       * <code>int32 days_until = 7 [json_name = "daysUntil"];</code>
+       * @param value The daysUntil to set.
+       * @return This builder for chaining.
+       */
+      public Builder setDaysUntil(int value) {
+        copyOnWrite();
+        instance.setDaysUntil(value);
+        return this;
+      }
+      /**
+       * <pre>
+       * By the day: days from today to the day it's for (0 = today).
+       * </pre>
+       *
+       * <code>int32 days_until = 7 [json_name = "daysUntil"];</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearDaysUntil() {
+        copyOnWrite();
+        instance.clearDaysUntil();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:workout.v1.SuggestionReason)
     }
     @java.lang.Override
@@ -45637,10 +46087,12 @@ public final class WorkoutOuterClass {
               workout.v1.WorkoutOuterClass.RecoveringMuscle.class,
               "fallback_",
               "firstLiftRecovering_",
+              "rule_",
+              "daysUntil_",
             };
             java.lang.String info =
-                "\u0000\u0004\u0000\u0000\u0001\u0005\u0004\u0000\u0002\u0000\u0001\u001b\u0002\u001b" +
-                "\u0003\u0007\u0005\t";
+                "\u0000\u0006\u0000\u0000\u0001\u0007\u0006\u0000\u0002\u0000\u0001\u001b\u0002\u001b" +
+                "\u0003\u0007\u0005\t\u0006\f\u0007\u0004";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         // fall through

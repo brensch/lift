@@ -920,6 +920,31 @@ fn check_numbers(p: &Program, c: &mut Checker) {
     }
     c.num("volume.secondary_credit", v.secondary_credit, 0.0, 1.0);
     c.above("volume.tie_fraction", v.tie_fraction, 0.0, 1.0);
+    for (muscle, band) in &v.targets {
+        let at = format!("volume.targets.{}", muscle_name(*muscle));
+        c.int(&format!("{at}.low"), band.low.into(), 0, 100);
+        c.int(&format!("{at}.high"), band.high.into(), 0, 100);
+        if band.high < band.low {
+            c.err(format!("{at}.high"), "under low");
+        }
+    }
+    for (day, id) in &p.schedule {
+        let at = format!("schedule.{}", weekday_name(*day));
+        if p.workout(id).is_none() {
+            c.err(at, format!("{id:?} is not one of the workouts"));
+        }
+    }
+    match p.next {
+        Next::Schedule if p.schedule.is_empty() => c.err(
+            "next",
+            "schedule picks by `schedule`, which names no days: give it some, e.g. {\"mon\": \"upper_a\"}",
+        ),
+        Next::Volume | Next::Sequence if !p.schedule.is_empty() => c.warn(
+            "schedule",
+            "only `next: schedule` reads it; Home ignores it otherwise",
+        ),
+        _ => {}
+    }
     for (muscle, hours) in &p.recovery.hours {
         c.int(
             &format!("recovery.hours.{}", muscle_name(*muscle)),
@@ -983,6 +1008,13 @@ fn check_numbers(p: &Program, c: &mut Checker) {
             }
         }
     }
+}
+
+fn weekday_name(d: Weekday) -> String {
+    serde_json::to_value(d)
+        .ok()
+        .and_then(|v| v.as_str().map(str::to_string))
+        .unwrap_or_default()
 }
 
 fn muscle_name(m: Muscle) -> String {

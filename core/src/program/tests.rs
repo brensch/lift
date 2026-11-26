@@ -218,6 +218,43 @@ mod edits {
         edit::apply(&program(), edits.as_array().unwrap()).unwrap_err()
     }
 
+    /// How Home picks, the schedule and a muscle's own band, as an
+    /// assistant writes them, and validated.
+    #[test]
+    fn next_schedule_and_targets() {
+        let p = apply(json!([
+            {"set": "next", "value": "schedule"},
+            {"set": "schedule", "value": {"mon": "a", "thu": "b"}},
+            {"set": "volume.targets.shoulders", "value": {"low": 16, "high": 24}}
+        ]))
+        .unwrap();
+        assert_eq!(p.next, Next::Schedule);
+        assert_eq!(p.schedule.get(&Weekday::Thu).map(String::as_str), Some("b"));
+        assert_eq!(p.volume.band(Muscle::Shoulders), (16, 24));
+        let problems = |p: &Program| {
+            validate::validate(&serde_json::to_string(p).unwrap())
+                .1
+                .into_iter()
+                .filter(|x| x.error)
+                .map(|x| x.path)
+                .collect::<Vec<String>>()
+        };
+        assert!(problems(&p).is_empty(), "{:?}", problems(&p));
+
+        let bad = apply(json!([
+            {"set": "next", "value": "schedule"},
+            {"set": "schedule", "value": {"mon": "nope"}},
+            {"set": "volume.targets.chest", "value": {"low": 12, "high": 8}}
+        ]))
+        .unwrap();
+        let paths = problems(&bad);
+        assert!(paths.contains(&"schedule.mon".to_string()), "{paths:?}");
+        assert!(
+            paths.contains(&"volume.targets.chest.high".to_string()),
+            "{paths:?}"
+        );
+    }
+
     #[test]
     fn set_reaches_fields_maps_and_named_items() {
         let p = apply(json!([

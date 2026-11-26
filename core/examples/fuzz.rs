@@ -252,6 +252,7 @@ fn run_user(
                 .view(at_time)
                 .get_home(GetHomeRequest {
                     budget_minutes: budget,
+                    ..Default::default()
                 })
                 .map(|home| home.template_plans)
                 .unwrap_or_default()

@@ -6326,9 +6326,11 @@
             "target": 10
           }
         ],
+        "days_until": 0,
         "fallback": false,
         "first_lift_recovering": null,
-        "recovering": []
+        "recovering": [],
+        "rule": 0
       },
       "template_plans": [
         {

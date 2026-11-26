@@ -390,12 +390,16 @@ class _Popover extends StatelessWidget {
         constraints: BoxConstraints(
           maxHeight: (room + overlap).clamp(_needed, 460.0),
         ),
+        // The arrow after the card either way, so it paints over the card's
+        // border where they meet; laid out upwards when it points up.
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          verticalDirection: below
+              ? VerticalDirection.up
+              : VerticalDirection.down,
           children: [
-            if (below) const _Arrow(up: true),
             Flexible(child: card),
-            if (!below) const _Arrow(up: false),
+            _Arrow(up: below),
           ],
         ),
       ),
@@ -544,12 +548,17 @@ class _Arrow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    return CustomPaint(
-      size: const Size(24, 12),
-      painter: _ArrowPainter(
-        fill: cs.surface,
-        edge: cs.onSurface.withValues(alpha: 0.35),
-        up: up,
+    // The card's own colour and border, and a pixel over the card's edge so
+    // its base covers the border there: one shape, not a tab on a box.
+    return Transform.translate(
+      offset: Offset(0, up ? 1 : -1),
+      child: CustomPaint(
+        size: const Size(24, 12),
+        painter: _ArrowPainter(
+          fill: context.tokens.panel,
+          edge: cs.outline,
+          up: up,
+        ),
       ),
     );
   }
@@ -568,11 +577,15 @@ class _ArrowPainter extends CustomPainter {
     final tip = Offset(size.width / 2, up ? 0 : size.height);
     final left = Offset(0, up ? size.height : 0);
     final right = Offset(size.width, up ? size.height : 0);
+    // The fill runs past the base, over the card's border.
+    final past = up ? 2.0 : -2.0;
     canvas.drawPath(
       Path()
         ..moveTo(left.dx, left.dy)
         ..lineTo(tip.dx, tip.dy)
         ..lineTo(right.dx, right.dy)
+        ..lineTo(right.dx, right.dy + past)
+        ..lineTo(left.dx, left.dy + past)
         ..close(),
       Paint()..color = fill,
     );
@@ -584,7 +597,7 @@ class _ArrowPainter extends CustomPainter {
       Paint()
         ..color = edge
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2,
+        ..strokeWidth = 1,
     );
   }
 
